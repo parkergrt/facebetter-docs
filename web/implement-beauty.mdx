@@ -1,0 +1,553 @@
+---
+title: "Implement Beauty"
+description: "Implement Web Beauty"
+---
+
+## Integrate SDK
+
+Install via npm:
+
+```bash
+npm install facebetter
+```
+
+**Using ES Module (Recommended):**
+
+```javascript
+import { 
+  BeautyEffectEngine, 
+  EngineConfig, 
+  BeautyType, 
+  BasicParam,
+  ReshapeParam,
+  MakeupParam,
+  BackgroundMode,
+  VirtualBackgroundOptions,
+  ProcessMode 
+} from 'facebetter';
+```
+
+**Using CommonJS:**
+
+```javascript
+const { BeautyEffectEngine, EngineConfig } = require('facebetter');
+```
+
+## Log Configuration
+
+Logging is disabled by default, you can enable it as needed:
+
+<Warning>
+Log configuration must be called **before** engine initialization.
+</Warning>
+
+```javascript
+await engine.setLogConfig({
+    consoleEnabled: true,  // Console logging
+    fileEnabled: false,    // File logging (not supported in browser environment)
+    level: 0,              // Log level: 0=DEBUG, 1=INFO, 2=WARN, 3=ERROR
+    fileName: 'facebetter.log'  // Log file name (optional, only effective when fileEnabled is true)
+});
+```
+
+**Note**: Log configuration must be called before engine initialization.
+
+## Create Engine Configuration
+
+Follow the instructions on [this page](/intro/enable-service#get-appid-and-appkey) to get `appId` and `appKey`
+
+**Verification Priority:**
+- If `licenseJson` is provided, use license data verification (supports online response and offline license)
+- Otherwise, use `appId` and `appKey` for automatic online verification
+
+```javascript
+import { BeautyEffectEngine, EngineConfig } from 'facebetter';
+
+const config = new EngineConfig({
+    appId: 'your appId',     // Configure your appid (optional, not required if licenseJson is provided)
+    appKey: 'your appKey'    // Configure your appkey (optional, not required if licenseJson is provided)
+    // Optional: Use license data verification (takes priority if provided)
+    // licenseJson: 'your license json string'
+});
+const engine = new BeautyEffectEngine(config);
+```
+
+### Error Handling
+
+It's recommended to check if engine creation is successful:
+
+```javascript
+try {
+    await engine.init();
+    console.log('Engine initialized successfully');
+} catch (error) {
+    console.error('Engine initialization failed:', error);
+    // Handle error
+}
+```
+
+## Adjust Beauty Parameters
+
+<Tip>
+All beauty parameters range from `[0.0, 1.0]`. Set to `0` to disable the effect.
+</Tip>
+
+### Set Skin Beauty Parameters
+
+Use `setBasicParam` interface to set skin beauty parameters, **parameter range [0.0, 1.0]** (float);
+
+```javascript
+import { BasicParam } from 'facebetter';
+
+engine.setBasicParam(
+    BasicParam.Smoothing, 
+    0.5  // 0.0-1.0
+);
+```
+
+Supported skin beauty parameters:
+```javascript
+BasicParam = {
+    Smoothing: 0,   // Skin smoothing
+    Sharpening: 1,  // Sharpening
+    Whitening: 2,   // Whitening
+    Rosiness: 3     // Rosiness
+};
+```
+
+### Set Face Reshape Parameters
+
+Use `setReshapeParam` interface to set face reshape parameters, **parameter range [0.0, 1.0]** (float);
+
+```javascript
+import { ReshapeParam } from 'facebetter';
+
+engine.setReshapeParam(
+    ReshapeParam.FaceThin, 
+    0.5  // 0.0-1.0
+);
+```
+
+Supported face reshape parameters:
+
+```javascript
+ReshapeParam = {
+    FaceThin: 0,      // Face thinning
+    FaceVShape: 1,    // V-face
+    FaceNarrow: 2,    // Narrow face
+    FaceShort: 3,     // Short face
+    Cheekbone: 4,     // Cheekbone
+    Jawbone: 5,       // Jawbone
+    Chin: 6,          // Chin
+    NoseSlim: 7,      // Nose slimming
+    EyeSize: 8,       // Eye enlargement
+    EyeDistance: 9    // Eye distance
+};
+```
+
+### Set Makeup Parameters
+
+Use `setMakeupParam` interface to set makeup parameters, **parameter range [0.0, 1.0]** (float);
+
+```javascript
+import { MakeupParam } from 'facebetter';
+
+engine.setMakeupParam(
+    MakeupParam.Lipstick, 
+    0.5  // 0.0-1.0
+);
+```
+
+Supported makeup parameters:
+
+```javascript
+MakeupParam = {
+    Lipstick: 0,  // Lipstick
+    Blush: 1      // Blush
+};
+```
+
+### Set Skin-Only Beauty
+
+Use the `setSkinOnlyBeauty` interface to set whether beauty effects are applied only to skin regions. When enabled, beauty effects (smoothing, whitening, etc.) will only be applied to detected skin areas, leaving non-skin areas unchanged.
+
+```javascript
+// Enable skin-only beauty
+engine.setSkinOnlyBeauty(true);
+
+// Disable skin-only beauty (apply to entire image)
+engine.setSkinOnlyBeauty(false);
+```
+
+<Tip>
+After enabling skin-only beauty, even with high beauty parameter values, non-skin areas (such as background, clothing, etc.) will not be affected.
+</Tip>
+
+### Set Virtual Background
+
+Enable virtual background via `setVirtualBackground` interface (unified API, consistent with other platforms):
+
+```javascript
+import { VirtualBackgroundOptions, BackgroundMode } from 'facebetter';
+
+// Set blur background
+const blurOptions = new VirtualBackgroundOptions({
+  mode: BackgroundMode.Blur
+});
+engine.setVirtualBackground(blurOptions);
+
+// Set image background
+const bgImage = new Image();
+bgImage.onload = () => {
+  const imageOptions = new VirtualBackgroundOptions({
+    mode: BackgroundMode.Image,
+    backgroundImage: bgImage
+  });
+  engine.setVirtualBackground(imageOptions);
+};
+bgImage.src = 'background.jpg';
+
+// Disable virtual background
+const noneOptions = new VirtualBackgroundOptions({
+  mode: BackgroundMode.None
+});
+engine.setVirtualBackground(noneOptions);
+```
+
+**Simplified syntax (also supported):**
+
+```javascript
+// Pass object directly, no need to use new VirtualBackgroundOptions
+engine.setVirtualBackground({
+  mode: BackgroundMode.Blur
+});
+
+// Set image background
+bgImage.onload = () => {
+  engine.setVirtualBackground({
+    mode: BackgroundMode.Image,
+    backgroundImage: bgImage
+  });
+};
+
+// Turn off virtual background
+engine.setVirtualBackground({
+  mode: BackgroundMode.None
+});
+```
+
+## Using Filters and Stickers
+
+### Filter Functionality
+Filters are set through the `setFilter` interface. Filter resource files (`.fbd`) must be registered via `registerFilter` first.
+
+```javascript
+// 1. Register filter resource (supports URL path or Uint8Array data)
+const filterId = 'chuxin';
+const fbdUrl = '/assets/filters/chuxin.fbd';
+engine.registerFilter(filterId, fbdUrl);
+
+// 2. Use filter
+engine.setFilter(filterId);
+
+// 3. Adjust filter intensity (0.0 - 1.0)
+engine.setFilterIntensity(0.8);
+```
+
+### Sticker Functionality
+Stickers are set through the `setSticker` interface and also need to be registered first.
+
+```javascript
+// 1. Register sticker resource
+const stickerId = 'cherry';
+const fbdUrl = '/assets/stickers/cherry.fbd';
+engine.registerSticker(stickerId, fbdUrl);
+
+// 2. Use sticker
+engine.setSticker(stickerId);
+
+// 3. Clear sticker
+engine.setSticker('');
+```
+
+## Set Engine Callbacks
+
+Monitor engine authentication and initialization status:
+
+```javascript
+engine.setEngineEventCallback((code, message) => {
+    if (code === 0) {
+        // License verification succeeded or engine initialization completed
+        console.log('Engine event succeeded:', message);
+    } else {
+        // License verification failed or engine initialization failed
+        console.error('Engine event failed (code ' + code + '):', message);
+    }
+});
+```
+
+Event codes:
+- `0`: License validation success or engine initialization complete
+- `1`: License validation failed
+- `101`: Engine initialization failed
+
+## Process Images
+
+### Get Image Data from Canvas
+
+```javascript
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+```
+
+### Get Image Data from Image Element
+
+```javascript
+const img = new Image();
+img.onload = function() {
+    const canvas = document.createElement('canvas');
+    canvas.width = img.width;
+    canvas.height = img.height;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(img, 0, 0);
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    // Process image...
+};
+img.src = 'image.jpg';
+```
+
+### Process Image
+
+`processMode` includes Video and Image modes. Video is suitable for live streaming and video scenarios with higher efficiency, Image mode is suitable for image processing scenarios.
+
+<Tip>
+The engine automatically maintains input/output format consistency. If input is RGBA format, output is RGBA format; if input is I420 format, output is I420 format.
+</Tip>
+
+```javascript
+import { FrameType } from 'facebetter';
+
+// processImage is a synchronous method (no await needed)
+// Method 1: Pass ImageData with dimensions
+const result = engine.processImage(
+    imageData, 
+    canvas.width, 
+    canvas.height, 
+    FrameType.Video  // or FrameType.Image
+);
+
+// Method 2: Pass HTMLImageElement (width/height can be omitted)
+const result = engine.processImage(
+    imageElement, 
+    undefined, 
+    undefined, 
+    FrameType.Image
+);
+
+// Method 3: Pass HTMLVideoElement (width/height can be omitted)
+const result = engine.processImage(
+    videoElement, 
+    undefined, 
+    undefined, 
+    FrameType.Video
+);
+
+// Method 4: Pass Uint8ClampedArray (width/height are required)
+const result = engine.processImage(
+    uint8Array, 
+    640,  // required
+    480,  // required
+    FrameType.Video
+);
+```
+
+### Draw Processed Image
+
+```javascript
+// Draw processed image data to Canvas
+ctx.putImageData(result, 0, 0);
+```
+
+### Save Processed Image
+
+Processed image data can be saved as image files:
+
+**Method 1: Using Canvas.toDataURL()**
+
+```javascript
+// Draw processed image data to Canvas
+ctx.putImageData(result, 0, 0);
+
+// Convert to Data URL
+const dataURL = canvas.toDataURL('image/png');
+
+// Create download link
+const link = document.createElement('a');
+link.download = 'beauty-result.png';
+link.href = dataURL;
+link.click();
+```
+
+**Method 2: Using Canvas.toBlob()**
+
+```javascript
+// Draw processed image data to Canvas
+ctx.putImageData(result, 0, 0);
+
+// Convert to Blob
+canvas.toBlob(function(blob) {
+    // Create download link
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.download = 'beauty-result.png';
+    link.href = url;
+    link.click();
+    
+    // Release URL object
+    URL.revokeObjectURL(url);
+}, 'image/png');
+```
+
+**Method 3: Save as Different Formats**
+
+```javascript
+// Save as PNG (lossless, larger file size)
+const pngDataURL = canvas.toDataURL('image/png');
+
+// Save as JPEG (lossy, smaller file size, quality can be set)
+const jpegDataURL = canvas.toDataURL('image/jpeg', 0.9); // Quality 0-1
+
+// Create download
+function downloadImage(dataURL, filename, mimeType) {
+    const link = document.createElement('a');
+    link.download = filename;
+    link.href = dataURL;
+    link.click();
+}
+
+// Usage
+downloadImage(pngDataURL, 'beauty-result.png', 'image/png');
+downloadImage(jpegDataURL, 'beauty-result.jpg', 'image/jpeg');
+```
+
+**Complete Example: Save Processed Image**
+
+```javascript
+function processAndSaveImage(imageData, engine) {
+    try {
+        // Process image (synchronous method)
+        const result = engine.processImage(
+            imageData, 
+            imageData.width, 
+            imageData.height, 
+            FrameType.Image
+        );
+        
+        // Create temporary Canvas
+        const canvas = document.createElement('canvas');
+        canvas.width = imageData.width;
+        canvas.height = imageData.height;
+        const ctx = canvas.getContext('2d');
+        
+        // Draw processed image
+        ctx.putImageData(result, 0, 0);
+        
+        // Save as image
+        canvas.toBlob(function(blob) {
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.download = `beauty-${Date.now()}.png`;
+            link.href = url;
+            link.click();
+            URL.revokeObjectURL(url);
+        }, 'image/png');
+        
+        console.log('Image saved successfully');
+    } catch (error) {
+        console.error('Failed to process or save image:', error);
+    }
+}
+```
+
+## Lifecycle Management
+
+<Tip>
+Call `destroy()` method after engine use to release resources and avoid memory leaks.
+</Tip>
+
+### Release Resources
+
+When page unloads or no longer in use, be sure to release engine resources:
+
+```javascript
+// On page unload
+window.addEventListener('beforeunload', () => {
+    if (engine) {
+        engine.destroy();
+        engine = null;
+    }
+});
+
+// Or in component destruction (Vue/React)
+onUnmounted(() => {  // Vue
+    if (engine) {
+        engine.destroy();
+        engine = null;
+    }
+});
+
+useEffect(() => {  // React
+    return () => {
+        if (engine) {
+            engine.destroy();
+            engine = null;
+        }
+    };
+}, []);
+```
+
+### Memory Management
+
+- Release unused ImageData objects promptly
+- Avoid repeatedly creating large numbers of image objects in loops
+- Recommend reusing Canvas and ImageData objects
+
+```javascript
+// Reuse Canvas and ImageData
+let canvas = null;
+let imageData = null;
+
+function processFrame() {
+    if (!canvas) {
+        canvas = document.createElement('canvas');
+        canvas.width = 640;
+        canvas.height = 480;
+    }
+    
+    const ctx = canvas.getContext('2d');
+    // Draw image to canvas
+    ctx.drawImage(video, 0, 0);
+    
+    // Get image data
+    imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    
+    // Process image (synchronous method)
+    const result = engine.processImage(
+        imageData, 
+        canvas.width, 
+        canvas.height, 
+        FrameType.Video
+    );
+    
+    // Draw result
+    ctx.putImageData(result, 0, 0);
+}
+```
+
+## Related Documentation
+
+- [Best Practices](/web/best-practices) - Performance optimization and architecture design recommendations
+- [FAQ](/web/faq) - Common questions and troubleshooting
+- [API Reference](/web/api-reference) - Complete API documentation
+

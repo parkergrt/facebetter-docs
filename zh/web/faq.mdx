@@ -1,0 +1,436 @@
+---
+title: "常见问题"
+description: "Web 美颜 SDK 常见问题解答"
+---
+
+## 集成问题
+
+### Q: 引擎创建失败怎么办？
+
+A: 检查以下几点：
+- 确认 `appId` 和 `appKey` 是否正确
+- 检查网络连接是否正常（需要在线验证）
+- 查看浏览器控制台的错误信息
+- 确认 SDK 版本是否最新
+- 检查浏览器是否支持现代 Web 技术
+
+```javascript
+// 检查浏览器支持
+ if (typeof WebAssembly === 'undefined') {
+    console.error('浏览器不支持运行所需的 Web 技术');
+}
+```
+
+### Q: 如何检查 SDK 是否加载成功？
+
+A: 可以通过以下方式检查：
+
+```javascript
+// ES Module
+import { BeautyEffectEngine } from 'facebetter';
+console.log('SDK 导入成功');
+
+// CommonJS
+const { BeautyEffectEngine } = require('facebetter');
+console.log('SDK 导入成功');
+```
+
+### Q: 运行时出现模块加载错误？
+
+A: 可能的原因和解决方案：
+- **网络问题**：检查网络连接，确保可以访问 npm 仓库
+- **CORS 问题**：确保服务器配置了正确的 CORS 头
+- **文件路径错误**：检查文件路径是否正确
+- **浏览器不支持**：使用现代浏览器（Chrome 57+、Firefox 52+、Safari 11+ 或 Edge 16+）
+
+```javascript
+// 检查浏览器支持
+if (typeof WebAssembly === 'undefined') {
+    alert('您的浏览器版本过旧，请使用 Chrome 57+、Firefox 52+、Safari 11+ 或 Edge 16+');
+}
+```
+
+### Q: 如何更新版本？
+
+A: 更新 npm 包版本：
+
+```bash
+npm update facebetter
+```
+
+或者指定版本：
+
+```bash
+npm install facebetter@latest
+```
+
+## 功能问题
+
+### Q: 美颜效果不明显？
+
+A: 可以尝试：
+- 增加美颜参数值（范围 0.0-1.0）
+- 确保启用了对应的美颜类型
+- 检查图像质量是否足够清晰
+- 确认人脸检测是否正常
+- 尝试使用 `FrameType.Image` 模式获得更好的效果
+
+```javascript
+// 增加参数值
+engine.setBasicParam(BasicParam.Whitening, 0.8); // 从 0.5 增加到 0.8
+
+// 使用图像模式
+const result = engine.processImage(
+    imageData, 
+    imageData.width, 
+    imageData.height, 
+    FrameType.Image  // 使用图像模式
+);
+```
+
+### Q: 美颜效果过度或失真？
+
+A: 建议：
+- 降低美颜参数值
+- 检查参数组合是否合理
+- 避免同时启用过多美颜类型
+- 根据图像质量调整参数
+
+```javascript
+// 降低参数值
+engine.setBasicParam(BasicParam.Whitening, 0.2); // 从 0.5 降低到 0.2
+
+// 只启用必要的美颜类型 - 设置参数值为 0 即可禁用
+engine.setBasicParam(BasicParam.Smoothing, 0.5);
+engine.setReshapeParam(ReshapeParam.EyeEnlarging, 0);  // 禁用不需要的类型
+```
+
+### Q: 虚拟背景不生效？
+
+A: 检查：
+- 确认已设置虚拟背景参数（参数值 > 0 表示启用）
+- 检查背景图片路径是否正确
+- 确认图片格式是否支持（PNG、JPG）
+- 检查图片文件是否存在且可读
+
+```javascript
+import { VirtualBackgroundOptions, BackgroundMode, VirtualBackgroundType } from 'facebetter';
+
+// 启用虚拟背景（设置参数值 > 0）
+engine.setVirtualBackgroundType(VirtualBackgroundType.Blur, 0.5);
+
+// 设置模糊背景
+const blurOptions = new VirtualBackgroundOptions({
+  mode: BackgroundMode.Blur
+});
+engine.setVirtualBackground(blurOptions);
+
+// 设置图片背景
+const bgImage = new Image();
+bgImage.onload = () => {
+  const imageOptions = new VirtualBackgroundOptions({
+    mode: BackgroundMode.Image,
+    backgroundImage: bgImage
+  });
+  engine.setVirtualBackground(imageOptions);
+};
+bgImage.src = '/path/to/background.png';
+```
+
+### Q: 处理后的图像是黑色的？
+
+A: 可能的原因：
+- 图像数据格式不正确
+- Canvas 上下文获取失败
+- 图像尺寸为 0
+
+```javascript
+// 检查图像数据
+if (!imageData || !imageData.data) {
+    console.error('图像数据无效');
+    return;
+}
+
+// 检查 Canvas
+const canvas = document.getElementById('canvas');
+if (!canvas) {
+    console.error('Canvas 元素不存在');
+    return;
+}
+
+const ctx = canvas.getContext('2d');
+if (!ctx) {
+    console.error('无法获取 Canvas 上下文');
+    return;
+}
+
+// 检查尺寸
+if (canvas.width === 0 || canvas.height === 0) {
+    console.error('Canvas 尺寸无效');
+    return;
+}
+```
+
+## 性能问题
+
+### Q: 处理速度慢怎么办？
+
+A: 优化建议：
+- 使用 `FrameType.Video` 进行实时处理
+- 降低图像分辨率
+- 减少同时启用的美颜类型
+- 避免在主线程进行图像处理
+- 使用 OffscreenCanvas（如果支持）
+
+```javascript
+// 使用视频模式
+const result = engine.processImage(
+    imageData, 
+    imageData.width, 
+    imageData.height, 
+    FrameType.Video  // 视频模式更快
+);
+
+// 降低分辨率
+const smallCanvas = document.createElement('canvas');
+smallCanvas.width = Math.floor(canvas.width / 2);
+smallCanvas.height = Math.floor(canvas.height / 2);
+const smallCtx = smallCanvas.getContext('2d');
+smallCtx.drawImage(sourceCanvas, 0, 0, smallCanvas.width, smallCanvas.height);
+const smallImageData = smallCtx.getImageData(0, 0, smallCanvas.width, smallCanvas.height);
+```
+
+### Q: 内存占用过高？
+
+A: 解决方案：
+- 及时释放 `ImageData` 对象
+- 避免频繁创建和销毁引擎实例
+- 复用 Canvas 和 ImageData 对象
+- 使用对象池模式管理图像缓冲区
+
+```javascript
+// 复用 Canvas
+let reusableCanvas = null;
+let reusableCtx = null;
+
+function getReusableCanvas(width, height) {
+    if (!reusableCanvas) {
+        reusableCanvas = document.createElement('canvas');
+        reusableCanvas.width = width;
+        reusableCanvas.height = height;
+        reusableCtx = reusableCanvas.getContext('2d');
+    } else if (reusableCanvas.width !== width || reusableCanvas.height !== height) {
+        reusableCanvas.width = width;
+        reusableCanvas.height = height;
+    }
+    return { canvas: reusableCanvas, ctx: reusableCtx };
+}
+```
+
+### Q: 应用卡顿或崩溃？
+
+A: 排查步骤：
+- 检查是否在主线程进行图像处理
+- 确认资源释放是否完整
+- 查看控制台的错误信息
+- 检查参数值是否在有效范围内（0.0-1.0）
+- 使用浏览器性能分析工具
+
+```javascript
+// 使用 requestAnimationFrame 优化
+function processFrame() {
+    requestAnimationFrame(() => {
+        try {
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            // processImage 是同步方法
+            const result = engine.processImage(
+                imageData, 
+                canvas.width, 
+                canvas.height, 
+                FrameType.Video
+            );
+            ctx.putImageData(result, 0, 0);
+        } catch (error) {
+            console.error('处理失败:', error);
+        }
+        
+        // 继续下一帧
+        if (isProcessing) {
+            processFrame();
+        }
+    });
+}
+```
+
+## 兼容性问题
+
+### Q: 哪些浏览器支持？
+
+A: 支持 WebAssembly 的现代浏览器：
+- Chrome 57+
+- Firefox 52+
+- Safari 11+
+- Edge 16+
+
+```javascript
+// 检测浏览器支持
+function checkBrowserSupport() {
+    if (typeof WebAssembly === 'undefined') {
+        return {
+            supported: false,
+            message: '您的浏览器不支持 WebAssembly'
+        };
+    }
+    
+    return {
+        supported: true,
+        message: '浏览器支持 WebAssembly'
+    };
+}
+```
+
+### Q: 在移动端使用有什么注意事项？
+
+A: 建议：
+- 降低图像分辨率以提高性能
+- 使用 `FrameType.Video` 模式
+- 适当降低美颜参数值
+- 注意内存使用，及时释放资源
+
+```javascript
+// 移动端优化
+const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
+if (isMobile) {
+    // 降低分辨率
+    canvas.width = Math.min(canvas.width, 640);
+    canvas.height = Math.min(canvas.height, 480);
+    
+    // 使用视频模式
+    processMode = FrameType.Video;
+    
+    // 降低参数值
+    engine.setBasicParam(BasicParam.Whitening, 0.3);
+}
+```
+
+## 其他问题
+
+### Q: 如何在 Vue/React 中使用？
+
+A: 参考以下示例：
+
+**Vue 3:**
+
+```vue
+<template>
+  <canvas ref="canvasRef"></canvas>
+</template>
+
+<script setup>
+import { ref, onMounted, onUnmounted } from 'vue';
+import { BeautyEffectEngine, EngineConfig } from 'facebetter';
+
+const canvasRef = ref(null);
+let engine = null;
+
+onMounted(async () => {
+  const config = new EngineConfig({
+    appId: 'your-app-id',
+    appKey: 'your-app-key'
+  });
+  
+  engine = new BeautyEffectEngine(config);
+  await engine.init();
+});
+
+onUnmounted(() => {
+  if (engine) {
+    engine.destroy();
+  }
+});
+</script>
+```
+
+**React:**
+
+```jsx
+import { useEffect, useRef } from 'react';
+import { BeautyEffectEngine, EngineConfig } from 'facebetter';
+
+function BeautyComponent() {
+  const canvasRef = useRef(null);
+  const engineRef = useRef(null);
+  
+  useEffect(() => {
+    async function init() {
+      const config = new EngineConfig({
+        appId: 'your-app-id',
+        appKey: 'your-app-key'
+      });
+      
+      engineRef.current = new BeautyEffectEngine(config);
+      await engineRef.current.init();
+    }
+    
+    init();
+    
+    return () => {
+      if (engineRef.current) {
+        engineRef.current.destroy();
+      }
+    };
+  }, []);
+  
+  return <canvas ref={canvasRef} />;
+}
+```
+
+### Q: 如何处理图片上传后的美颜？
+
+A: 示例代码：
+
+```javascript
+function handleFileUpload(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    
+    const reader = new FileReader();
+    reader.onload = async function(e) {
+        const img = new Image();
+        img.onload = async function() {
+            const canvas = document.createElement('canvas');
+            canvas.width = img.width;
+            canvas.height = img.height;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0);
+            
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const result = engine.processImage(
+                imageData, 
+                canvas.width, 
+                canvas.height, 
+                FrameType.Image
+            );
+            
+            ctx.putImageData(result, 0, 0);
+            
+            // 显示处理后的图片
+            const resultImg = document.createElement('img');
+            resultImg.src = canvas.toDataURL();
+            document.body.appendChild(resultImg);
+        };
+        img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+}
+```
+
+## 相关文档
+
+- [快速开始](/zh/web/quick-start) - 快速集成指南
+- [实现美颜](/zh/web/implement-beauty) - 详细使用说明
+- [错误处理](/zh/web/error-handling) - 错误处理指南
+- [最佳实践](/zh/web/best-practices) - 性能优化建议
+- [API 参考](/zh/web/api-reference) - 完整的 API 文档
+

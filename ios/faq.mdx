@@ -1,0 +1,194 @@
+---
+title: "FAQ"
+description: "iOS Beauty SDK Common Questions and Answers"
+---
+
+## Integration Issues
+
+### Q: What to do if engine creation fails?
+A: Check the following points:
+- Confirm that `appId` and `appKey` are correct
+- Check if network connection is normal
+- View log output for detailed error information
+- Confirm if SDK version is latest
+- Check if Framework is properly linked
+
+### Q: Can't find header files or classes during compilation?
+A: Possible reasons:
+- Confirm that `Facebetter.framework` has been properly added to the project
+- Check if Framework's "Embed & Sign" setting is correct
+- Confirm import statement: `#import <Facebetter/FBBeautyEffectEngine.h>`
+- Try Clean Build Folder and rebuild
+
+### Q: Link errors at runtime?
+A: Solutions:
+- Confirm if device architecture is supported (arm64, armv7)
+- Check if Framework file is complete
+- Confirm Framework's deployment target setting is correct
+- Check for other Framework conflicts
+
+## Functionality Issues
+
+### Q: Beauty effects are not obvious?
+A: You can try:
+- Increase beauty parameter values (range 0.0-1.0)
+- Ensure corresponding beauty types are enabled
+- Check if image quality is clear enough
+- Confirm if face detection is working normally
+
+### Q: Beauty effects are excessive or distorted?
+A: Recommendations:
+- Reduce beauty parameter values
+- Check if parameter combinations are reasonable
+- Avoid enabling too many beauty types simultaneously
+- Adjust parameters based on image quality
+
+### Q: Virtual background not working?
+A: Check:
+- Confirm `FBBeautyType_VirtualBackground` is enabled
+- Check if background image path is correct
+- Confirm if image format is supported (PNG, JPG)
+- Check if image file exists and is readable
+
+## Performance Issues
+
+### Q: What to do if processing is slow?
+A: Optimization suggestions:
+- Use `FBFrameTypeVideo` for real-time processing
+- Reduce image resolution
+- Reduce number of simultaneously enabled beauty types
+- Avoid image processing on main thread
+- Use multi-threading for image processing
+
+### Q: High memory usage?
+A: Solutions:
+- Release `FBImageFrame` and `FBImageBuffer` objects timely
+- Avoid frequent creation and destruction of engine instances
+- Reuse `FBImageFrame` objects
+- Use object pool pattern to manage image buffers
+
+### Q: App crashes or freezes?
+A: Troubleshooting steps:
+- Check if image processing is done on main thread
+- Confirm resource release is complete
+- View exception information in logs
+- Check if parameter values are within valid range
+- Use Instruments tool to analyze memory and performance
+
+## Image Processing Issues
+
+### Q: How to handle different image formats?
+A: Use `FBImageFrame`'s format conversion methods:
+- `toRGBA` - Convert to RGBA format
+- `toI420` - Convert to I420 format
+- `toNV12` - Convert to NV12 format
+- `toBGRA` - Convert to BGRA format
+
+### Q: Camera preview image processing?
+A: Recommended process:
+1. Get CVPixelBuffer from AVCaptureSession
+2. Use `createWithData` to create FBImageFrame
+3. Call `processImage` to process
+4. Convert to target format for display
+
+### Q: Image rotation issues?
+A: Solutions:
+- Use `FBImageFrame`'s `rotate` method to rotate images
+- Supports 0°, 90°, 180°, 270° rotation
+- Rotation operation modifies original image data
+
+## Permission Issues
+
+### Q: Camera permission issues?
+A: Need to add permission description:
+```xml
+<key>NSCameraUsageDescription</key>
+<string>Camera permission required for beauty photography</string>
+```
+
+### Q: Photo library permission issues?
+A: Need to add permission description:
+```xml
+<key>NSPhotoLibraryUsageDescription</key>
+<string>Photo library permission required to select photos for beauty</string>
+```
+
+## Debugging Issues
+
+### Q: How to enable debug logging?
+A: Configure before creating engine:
+```objc
+FBLogConfig *logConfig = [[FBLogConfig alloc] init];
+logConfig.consoleEnabled = YES;
+logConfig.fileEnabled = YES;
+logConfig.level = FBLogLevel_Debug;
+[FBBeautyEffectEngine setLogConfig:logConfig];
+```
+
+### Q: How to get detailed error information?
+A: Methods:
+- Enable DEBUG level logging
+- Check API return values (0 indicates success)
+- View file log output
+- Use Xcode's Console to view logs
+
+## Version Compatibility
+
+### Q: Which iOS versions are supported?
+A: Supports iOS 10.0 and above
+
+### Q: Which device architectures are supported?
+A: Supports:
+- arm64 (64-bit devices)
+- armv7 (32-bit devices, iOS 10.0+)
+
+### Q: How to upgrade SDK version?
+A: Steps:
+1. Download new version SDK
+2. Replace old Framework file
+3. Clean project cache
+4. Rebuild project
+5. Test if functionality works normally
+
+## ARC Related Issues
+
+### Q: How to handle memory management?
+A: iOS uses ARC, but need to pay attention to:
+- Set objects to nil timely
+- Avoid circular references
+- Use weak references to avoid strong reference cycles
+
+### Q: How to handle CVPixelBuffer?
+A: Recommendations:
+- Use `CVPixelBufferRetain` and `CVPixelBufferRelease` for management
+- Or use `__bridge_transfer` and `__bridge_retained` for conversion
+
+## Multi-threading Issues
+
+### Q: How to process images in background thread?
+A: Recommendations:
+- Use `dispatch_async` to process in background queue
+- Avoid image processing on main thread
+- Use `dispatch_async(dispatch_get_main_queue())` to update UI
+
+### Q: How to handle concurrent access?
+A: Solutions:
+- Use `@synchronized` to protect shared resources
+- Use serial queue for image processing
+- Avoid multi-threaded access to engine instance
+
+## Deployment Issues
+
+### Q: App Store review rejected?
+A: Possible reasons:
+- Missing necessary permission descriptions
+- Using private APIs
+- Memory leak issues
+- Crash issues
+
+### Q: How to optimize app size?
+A: Recommendations:
+- Remove unused architectures (like armv7)
+- Compress resource files
+- Use App Thinning
+- Remove unused Framework parts

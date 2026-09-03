@@ -1,0 +1,502 @@
+---
+title: "API Reference"
+description: "Web API Reference"
+---
+
+## Error Classes
+
+### FacebetterError
+
+Facebetter error class, extends `Error`.
+
+**Properties:**
+- `message`: Error message
+- `code`: Error code (default -1)
+- `name`: Error name (fixed as 'FacebetterError')
+
+```javascript
+class FacebetterError extends Error {
+    constructor(message, code = -1)
+}
+```
+
+**Example:**
+
+```javascript
+try {
+    // Some operation
+} catch (error) {
+    if (error instanceof FacebetterError) {
+        console.error('Facebetter error:', error.message);
+        console.error('Error code:', error.code);
+    }
+}
+```
+
+## Configuration Classes
+
+### EngineConfig
+
+Engine configuration class, used to initialize the beauty engine.
+
+**Constructor:**
+
+```javascript
+new EngineConfig(config)
+```
+
+**Parameters:**
+- `config.appId` (string, optional): Application ID (required if licenseJson is not provided)
+- `config.appKey` (string, optional): Application key (required if licenseJson is not provided)
+- `config.licenseJson` (string, optional): License JSON string (if provided, appId and appKey are not needed)
+- `config.externalContext` (boolean, optional): Whether to use external OpenGL context (reserved for configuration structure alignment in Web/WASM environment, but currently not effective)
+
+**Methods:**
+
+- `isValid()`: Validate if configuration is valid
+- `toString()`: Return string representation of configuration
+
+**Verification Priority:**
+- If `licenseJson` is not empty, use license data verification (supports online response and offline license)
+- Otherwise, use `appId` and `appKey` for automatic online verification
+
+**Example:**
+
+```javascript
+const config = new EngineConfig({
+    appId: 'your-app-id',
+    appKey: 'your-app-key'
+});
+
+// Or use licenseJson
+const config = new EngineConfig({
+    licenseJson: '{"license": "..."}'
+});
+```
+
+## Enumeration Types
+
+### BeautyType
+
+Beauty type enumeration.
+
+```javascript
+BeautyType = {
+    Basic: 0,          // Basic beauty
+    Reshape: 1,        // Face reshaping
+    Makeup: 2,         // Makeup effects
+    VirtualBackground: 3    // Virtual background
+};
+```
+
+### BasicParam
+
+Basic beauty parameter enumeration.
+
+```javascript
+BasicParam = {
+    Smoothing: 0,   // Skin smoothing
+    Sharpening: 1,  // Sharpening
+    Whitening: 2,   // Whitening
+    Rosiness: 3     // Rosiness
+};
+```
+
+### ReshapeParam
+
+Face reshape parameter enumeration.
+
+```javascript
+ReshapeParam = {
+    FaceThin: 0,      // Face thinning
+    FaceVShape: 1,    // V-face
+    FaceNarrow: 2,    // Narrow face
+    FaceShort: 3,     // Short face
+    Cheekbone: 4,     // Cheekbone
+    Jawbone: 5,       // Jawbone
+    Chin: 6,          // Chin
+    NoseSlim: 7,      // Nose slimming
+    EyeSize: 8,       // Eye enlargement
+    EyeDistance: 9    // Eye distance
+};
+```
+
+### MakeupParam
+
+Makeup parameter enumeration.
+
+```javascript
+MakeupParam = {
+    Lipstick: 0,  // Lipstick
+    Blush: 1      // Blush
+};
+```
+
+### LipstickStyle
+
+Lipstick style enumeration.
+
+```javascript
+LipstickStyle = {
+    Rouge: 0,  // Rose red
+    Coral: 1,  // Coral
+    Pink: 2    // Pink (default)
+};
+```
+
+### BlushStyle
+
+Blush style enumeration.
+
+```javascript
+BlushStyle = {
+    Classic: 0,  // Classic (default)
+    Peach: 1,    // Peach
+    Rose: 2      // Rose
+};
+```
+
+### MirrorMode
+
+Mirror mode enumeration, applied to input before processing.
+
+```javascript
+MirrorMode = {
+    None: 0,        // No mirror
+    Horizontal: 1,  // Mirror horizontally (e.g. front camera selfie)
+    Vertical: 2,    // Mirror vertically
+    Both: 3         // Mirror both axes
+};
+```
+
+### Resource Management
+- `setFilter(filterId)`: Set filter
+  - Parameters: `filterId` (string) unique filter identifier. Pass an empty string to clear.
+- `setFilterIntensity(intensity)`: Set filter intensity
+  - Parameters: `intensity` (number) intensity value, range [0.0, 1.0].
+- `setSticker(stickerId)`: Set sticker
+  - Parameters: `stickerId` (string) unique sticker identifier. Pass an empty string to clear.
+- `registerFilter(filterId, resource)`: Register filter
+  - Parameters:
+    - `filterId` (string): Unique filter identifier
+    - `resource` (string|Uint8Array): Resource path (.fbd file) or Uint8Array data
+- `registerSticker(stickerId, resource)`: Register sticker
+  - Parameters:
+    - `stickerId` (string): Unique sticker identifier
+    - `resource` (string|Uint8Array): Resource path (.fbd file) or Uint8Array data
+- `unregisterFilter(filterId)`: Unload filter
+- `unregisterAllFilters()`: Unload all filters
+- `unregisterSticker(stickerId)`: Unload sticker
+- `unregisterAllStickers()`: Unload all stickers
+- `getRegisteredFilters()`: Get list of registered filters
+  - Returns: `string[]`
+- `getRegisteredStickers()`: Get list of registered stickers
+  - Returns: `string[]`
+
+### ProcessMode
+
+Processing mode enumeration.
+
+```javascript
+ProcessMode = {
+    Image: 0,   // Image mode, suitable for single image processing
+    Video: 1    // Video mode, suitable for video streams and live scenarios, better performance
+};
+```
+
+### BackgroundMode
+
+Background mode enumeration.
+
+```javascript
+BackgroundMode = {
+    None: 0,   // No background processing
+    Blur: 1,   // Blur background
+    Image: 2   // Background image replacement
+};
+```
+
+### VirtualBackgroundOptions
+
+Virtual background options class, used to set virtual background parameters.
+
+**Constructor:**
+
+```javascript
+new VirtualBackgroundOptions(options)
+```
+
+**Parameters:**
+- `options` (Object, optional): Options object
+  - `mode` (BackgroundMode, optional): Background mode, defaults to `BackgroundMode.None`
+  - `backgroundImage` (ImageData|HTMLImageElement|HTMLCanvasElement, optional): Background image, required when mode is `Image`
+
+**Methods:**
+- `isValid()`: Validate if options are valid
+  - Returns: `boolean`
+  - When mode is `Image`, checks if `backgroundImage` exists
+
+**Example:**
+
+```javascript
+import { VirtualBackgroundOptions, BackgroundMode } from 'facebetter';
+
+// Create blur background options
+const blurOptions = new VirtualBackgroundOptions({
+  mode: BackgroundMode.Blur
+});
+
+// Create image background options
+const bgImage = new Image();
+bgImage.src = 'background.jpg';
+const imageOptions = new VirtualBackgroundOptions({
+  mode: BackgroundMode.Image,
+  backgroundImage: bgImage
+});
+
+// Validate options
+if (imageOptions.isValid()) {
+  engine.setVirtualBackground(imageOptions);
+}
+```
+
+## Engine Classes
+
+### BeautyEffectEngine
+
+Main beauty effect engine class, provides entry point for beauty functionality.
+
+**Constructor:**
+
+```javascript
+new BeautyEffectEngine(config)
+```
+
+**Parameters:**
+- `config` (EngineConfig): Engine configuration object
+
+**Instance Methods:**
+
+#### Initialization
+
+- `init(options)`: Initialize engine
+  - Parameters:
+    - `options` (Object, optional): Initialization options
+      - `timeout` (number, optional): WASM module loading timeout in milliseconds, default 30000
+      - `authTimeout` (number, optional): Online authentication timeout in milliseconds, default 10000
+  - Returns: `Promise<void>`
+  - Example: 
+    ```javascript
+    await engine.init();
+    // Or specify timeout
+    await engine.init({
+      timeout: 60000,      // WASM loading timeout 60 seconds
+      authTimeout: 15000   // Authentication timeout 15 seconds
+    });
+    ```
+
+- `setLogConfig(config)`: Set log configuration
+  - Parameters:
+    - `config.consoleEnabled` (boolean, optional): Enable console logging, default false
+    - `config.fileEnabled` (boolean, optional): Enable file logging, default false (not supported in browser environment)
+    - `config.level` (number, optional): Log level (0=DEBUG, 1=INFO, 2=WARN, 3=ERROR), default 0
+    - `config.fileName` (string, optional): Log file name, default empty string
+  - Returns: `Promise<void>`
+  - Note: Can be called before or after `init()`, but recommended to call before `init()`
+
+#### Parameter Settings
+
+- `setBasicParam(param, value)`: Set basic beauty parameter
+  - Parameters:
+    - `param` (BasicParam): Parameter type
+    - `value` (number): Parameter value, range [0.0, 1.0] (float)
+  - Returns: `void`
+  - Example: `engine.setBasicParam(BasicParam.Whitening, 0.5);`
+
+- `setReshapeParam(param, value)`: Set face reshape parameter
+  - Parameters:
+    - `param` (ReshapeParam): Parameter type
+    - `value` (number): Parameter value, range [0.0, 1.0] (float)
+  - Returns: `void`
+  - Example: `engine.setReshapeParam(ReshapeParam.FaceThin, 0.5);`
+
+- `setMakeupParam(param, value)`: Set makeup parameter
+  - Parameters:
+    - `param` (MakeupParam): Parameter type
+    - `value` (number): Parameter value, range [0.0, 1.0] (float)
+  - Returns: `void`
+  - Example: `engine.setMakeupParam(MakeupParam.Lipstick, 0.5);`
+
+- `setLipstickStyle(style)`: Set lipstick style
+  - Parameters:
+    - `style` (LipstickStyle): Lipstick style
+  - Returns: `void`
+  - Example: `engine.setLipstickStyle(LipstickStyle.Rouge);`
+
+- `setBlushStyle(style)`: Set blush style
+  - Parameters:
+    - `style` (BlushStyle): Blush style
+  - Returns: `void`
+  - Example: `engine.setBlushStyle(BlushStyle.Classic);`
+
+- `setSkinOnlyBeauty(enabled)`: Set whether beauty is applied only to skin regions
+  - Parameters:
+    - `enabled` (boolean): `true` to enable skin-only beauty, `false` to apply to entire image
+  - Returns: `void`
+  - Example: 
+    ```javascript
+    // Enable skin-only beauty
+    engine.setSkinOnlyBeauty(true);
+    
+    // Disable skin-only beauty
+    engine.setSkinOnlyBeauty(false);
+    ```
+
+- `setVirtualBackground(options)`: Set virtual background (unified API, consistent with other platforms)
+  - Parameters:
+    - `options` (VirtualBackgroundOptions|Object): Virtual background options
+      - `mode` (BackgroundMode): Background mode (None, Blur, Image)
+      - `backgroundImage` (ImageData|HTMLImageElement|HTMLCanvasElement, optional): Background image (required when mode is Image)
+  - Returns: `void`
+  - Example: 
+    ```javascript
+    import { VirtualBackgroundOptions, BackgroundMode } from 'facebetter';
+    
+    // Set blur background
+    const blurOptions = new VirtualBackgroundOptions({
+      mode: BackgroundMode.Blur
+    });
+    engine.setVirtualBackground(blurOptions);
+    
+    // Set image background
+    const bgImage = new Image();
+    bgImage.onload = () => {
+      const imageOptions = new VirtualBackgroundOptions({
+        mode: BackgroundMode.Image,
+        backgroundImage: bgImage
+      });
+      engine.setVirtualBackground(imageOptions);
+    };
+    bgImage.src = 'background.jpg';
+    
+    // Simplified syntax
+    engine.setVirtualBackground({
+      mode: BackgroundMode.Blur
+    });
+    ```
+
+#### Image Processing
+
+- `processImage(input, width, height, frameType, mirrorMode)`: Process image
+  - Parameters:
+    - `input` (ImageData | HTMLImageElement | HTMLCanvasElement | HTMLVideoElement | Uint8ClampedArray): Input image
+    - `width` (number, optional): Image width (required when input is Uint8ClampedArray)
+    - `height` (number, optional): Image height (required when input is Uint8ClampedArray)
+    - `frameType` (FrameType, optional): Frame type, defaults to `FrameType.Video`
+    - `mirrorMode` (MirrorMode, optional): Mirror mode applied to input before processing, defaults to `MirrorMode.None`
+  - Returns: `ImageData` (synchronous return, not Promise)
+  - Example: 
+    ```javascript
+    // Using ImageData
+    const result = engine.processImage(
+        imageData, 
+        640, 
+        480, 
+        FrameType.Video,
+        MirrorMode.Horizontal
+    );
+    ```
+
+#### Resource Management
+
+- `destroy()`: Destroy engine and release resources
+  - Returns: `void`
+  - Note: Call when engine is no longer needed to free memory and WASM resources
+  - Example: `engine.destroy();`
+
+## Utility Functions
+
+### loadWasmModule
+
+Load WASM module (usually not needed to call directly, engine handles automatically).
+
+```javascript
+import { loadWasmModule } from 'facebetter';
+const module = await loadWasmModule();
+```
+
+## Usage Examples
+
+### Complete Example
+
+```javascript
+import { 
+    BeautyEffectEngine, 
+    EngineConfig, 
+    BeautyType, 
+    BasicParam,
+    FrameType 
+} from 'facebetter';
+
+// Create configuration
+const config = new EngineConfig({
+    appId: 'your-app-id',
+    appKey: 'your-app-key'
+});
+
+// Create engine
+const engine = new BeautyEffectEngine(config);
+
+// Set logging
+await engine.setLogConfig({
+    consoleEnabled: true,
+    level: 1
+});
+
+// Initialize
+await engine.init();
+
+// Set parameters
+engine.setBasicParam(BasicParam.Whitening, 0.5);
+engine.setBasicParam(BasicParam.Smoothing, 0.5);
+
+// Process image
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+
+const result = engine.processImage(
+    imageData, 
+    canvas.width, 
+    canvas.height, 
+    ProcessMode.Video
+);
+
+// Draw result
+ctx.putImageData(result, 0, 0);
+
+// Release resources
+engine.destroy();
+```
+
+## Deprecated APIs
+
+<Warning>
+**Deprecated**
+
+The following APIs are deprecated.
+</Warning>
+
+### Beauty Type Control
+
+- `setBeautyTypeEnabled(beautyType, enabled)`
+  - **Description**: [Deprecated] Enable or disable beauty type (No effect in parameter-driven mode)
+  - **Return Value**: `void`
+
+- `isBeautyTypeEnabled(beautyType)`
+  - **Description**: [Deprecated] Check if beauty type is enabled (Always returns false)
+  - **Return Value**: `false`
+
+- `disableAllBeautyTypes()`
+  - **Description**: [Deprecated] Disable all beauty types (Please reset effects by zeroing parameters)
+  - **Return Value**: `void`

@@ -1,0 +1,39 @@
+---
+title: "Face Sticker"
+description: "Instructions for using the Face Sticker creation plugin"
+---
+
+## Workflow Initialization
+
+Before designing with the plugin, you need to initialize the workspace:
+
+1.  Under the **Workflow Initialization** section, click the **Initialize Workspace** button.
+2.  The plugin will automatically create a 2048x2048 canvas named `Facebetter_Workspace`.
+3.  The canvas contains 106 standard face reference points.
+4.  **Option**: Check "Show Landmark Numbers" to easily identify the numbers of different parts.
+
+## Sticker Layer and Attribute Binding
+
+This is the core step of sticker creation, used to define how the sticker follows face movements.
+
+1.  **Select Layer**: Select the sticker layer you designed in the Figma canvas (it must be located within the workspace).
+2.  **Configure Attributes**:
+    -   **Blend Mode**: Set the fusion effect between the sticker and the face (e.g., Normal, Overlay, Screen, etc.).
+    -   **Position Type**:
+        -   **Landmarks**: Follow specific face landmarks (most common).
+        -   **Face Rect**: Position based on the entire face area.
+        -   **Screen Space**: Fixed at a screen position.
+    -   **Trigger Type**: Set the conditions for the sticker to appear (Always show, Face detected, Mouth open, etc.).
+    -   **Trigger Delay**: Delay time after triggering.
+    -   **Alpha Factor**: Adjust the overall transparency of the sticker.
+    -   **FPS**: Set the animation frame rate (if the layer contains multiple frames).
+
+## Preview and Export
+
+1.  **3D Preview**:
+    -   Click **3D Preview**.
+    -   In the popup window, you can see the real-time effect of the sticker on a 3D face model.
+    -   Supports left-click to rotate, right-click to pan, and scroll wheel to zoom.
+2.  **Export Package**:
+    -   After confirming the preview, click **Export**.
+    -   The package can be directly used in the Facebetter engine and related applications.

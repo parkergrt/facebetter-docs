@@ -1,0 +1,121 @@
+---
+title: "API Reference"
+description: "Flutter API Reference"
+---
+
+## FBEngineConfig
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `appId` | `String` | App ID (optional if `licenseJson` provided) |
+| `appKey` | `String` | App key (optional if `licenseJson` provided) |
+| `licenseJson` | `String?` | License JSON string (takes priority over appId/appKey) |
+| `externalContext` | `bool` | Use external OpenGL context (default `false`) |
+
+## FBBeautyEffectEngine
+
+### Static Methods
+
+| Method | Description |
+|--------|-------------|
+| `Future<String> getSdkVersion()` | Get SDK version |
+| `Future<void> setLogConfig(FBLogConfig config)` | Set log config (call before init) |
+| `Future<void> init(FBEngineConfig config)` | Initialize engine |
+| `FBBeautyEffectEngine get sharedInstance` | Get singleton instance |
+
+### Beauty Parameters
+
+| Method | Description |
+|--------|-------------|
+| `Future<int> setBasicParam(FBBasicParam param, double value)` | Set basic beauty param [0.0, 1.0] |
+| `Future<int> setReshapeParam(FBReshapeParam param, double value)` | Set face reshape param [0.0, 1.0] |
+| `Future<int> setMakeupParam(FBMakeupParam param, double value)` | Set makeup param [0.0, 1.0] |
+| `Future<int> setLipstickStyle(FBLipstickStyle style)` | Set lipstick style |
+| `Future<int> setBlushStyle(FBBlushStyle style)` | Set blush style |
+| `Future<int> setSkinOnlyBeauty(bool enabled)` | Apply beauty to skin only |
+| `Future<int> setVirtualBackground(FBBackgroundMode mode, {FBImageFrame? bg})` | Set virtual background |
+
+### Filters & Stickers
+
+| Method | Description |
+|--------|-------------|
+| `Future<int> setFilter(String filterId)` | Apply filter |
+| `Future<int> setFilterIntensity(double intensity)` | Set filter intensity [0.0, 1.0] |
+| `Future<int> setSticker(String stickerId)` | Apply sticker (empty to clear) |
+| `Future<int> registerFilter(String id, String path)` | Register filter from file |
+| `Future<int> registerFilterData(String id, Uint8List data)` | Register filter from data |
+| `Future<int> registerSticker(String id, String path)` | Register sticker from file |
+| `Future<int> registerStickerData(String id, Uint8List data)` | Register sticker from data |
+| `Future<int> unregisterFilter(String id)` | Unregister filter |
+| `Future<int> unregisterAllFilters()` | Unregister all filters |
+| `Future<int> unregisterSticker(String id)` | Unregister sticker |
+| `Future<int> unregisterAllStickers()` | Unregister all stickers |
+
+### Image Processing
+
+| Method | Description |
+|--------|-------------|
+| `Future<FBImageFrame?> processImage(FBImageFrame input)` | Process an image frame |
+| `Future<int> processImageFile(String input, String output)` | Process an image file |
+
+### Callbacks
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `onFaceLandmarks` | `Stream<FBFaceDetectionResult>` | Face landmark stream |
+| `onEngineEvent` | `Stream<FBEngineEvent>` | Engine event stream |
+
+### Lifecycle
+
+| Method | Description |
+|--------|-------------|
+| `Future<void> release()` | Release engine resources |
+
+**Return values:** `0` = success, `-1` = engine not initialized, `null` = processing failed.
+
+## Enumerations
+
+### FBBasicParam
+
+| Value | Description |
+|-------|-------------|
+| `smoothing(0)` | Skin smoothing |
+| `sharpening(1)` | Sharpening |
+| `whitening(2)` | Skin whitening |
+| `rosiness(3)` | Skin rosiness |
+
+### FBReshapeParam
+
+| Value | Description |
+|-------|-------------|
+| `faceThin(0)` | Face thin |
+| `faceVShape(1)` | V-shape face |
+| `eyeSize(8)` | Eye enlargement |
+| `noseSlim(7)` | Nose slimming |
+| ... | See full list in source |
+
+### FBImageFormat
+
+| Value | Description |
+|-------|-------------|
+| `i420(0)` | YUV 4:2:0 planar |
+| `nv12(1)` | YUV 4:2:0 semi-planar |
+| `nv21(2)` | YUV 4:2:0 (Android default) |
+| `bgra(3)` | BGRA 32bpp |
+| `rgba(4)` | RGBA 32bpp |
+| `bgr(5)` | BGR 24bpp |
+| `rgb(6)` | RGB 24bpp |
+
+## Native Engine Access
+
+For streaming SDK integration (TRTC, etc.):
+
+**iOS (Swift):**
+```swift
+let engine = FacebetterPlugin.sharedInstance().engine
+```
+
+**Android (Kotlin):**
+```kotlin
+val engine = FacebetterPlugin.sharedInstance?.getEngine()
+```

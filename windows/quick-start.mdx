@@ -1,0 +1,101 @@
+---
+title: "Quick Start"
+description: "Build and run the Facebetter C++ desktop demo on Windows (GLFW + ImGui)"
+---
+
+This guide explains how to build and run the Facebetter C++ desktop demo on Windows. The demo is built with **GLFW + Dear ImGui + OpenGL 3**: the left panel shows a live beauty-processed preview, while the right panel provides sliders to control each effect in real time.
+
+## Requirements
+
+| Tool | Version |
+| --- | --- |
+| Visual Studio / MSVC | 2019 or later (C++17 support required) |
+| CMake | 3.16+ |
+| Ninja | Any recent version (`winget install Ninja-build.Ninja`) |
+| Windows SDK | 10.0+ |
+
+> MinGW-w64 also works, but MSVC is recommended.
+
+## Step 1: Clone the Repository
+
+```bash
+git clone https://github.com/pixpark/facebetter-sdk.git
+cd facebetter-sdk
+```
+
+## Step 2: Place the SDK Files
+
+Unzip the Windows SDK package and place files under `demo/cpp/sdk/`:
+
+```
+demo/cpp/sdk/
+├── include/
+│   └── facebetter/
+│       ├── beauty_effect_engine.h
+│       ├── beauty_params.h
+│       ├── image_frame.h
+│       └── type_defines.h
+├── lib/
+│   ├── facebetter.lib      ← import library
+│   └── facebetter.dll      ← runtime DLL
+└── resource/
+    └── resource.fbd        ← model and resource pack
+```
+
+<Tip>
+The SDK download link is available on the [Download](https://facebetter.net/download) page or in your dashboard.
+</Tip>
+
+## Step 3: Build
+
+Open a **Developer Command Prompt for VS** (or a PowerShell session with the MSVC environment loaded), then run:
+
+```bat
+cd demo\cpp
+cmake -B build -G "Ninja" -DCMAKE_BUILD_TYPE=Release
+cmake --build build
+```
+
+After the build, CMake automatically:
+- Copies `facebetter.dll` next to the executable in `build/`
+- Copies `resource/resource.fbd` to `build/resource/resource.fbd`
+- Copies `demo.png` (if present) to `build/resource/demo.png`
+
+## Step 4: Prepare a Preview Image (optional)
+
+Place any face photo named `demo.png` in `demo/cpp/`:
+
+```
+demo/cpp/demo.png
+```
+
+The engine will process the image at ~30 fps and display the result in the left panel of the window.
+
+## Step 5: Run
+
+```bat
+cd demo\cpp\build
+.\facebetter_demo.exe
+```
+
+Once running, the window shows:
+
+- **Left panel** – live beauty-processed preview
+- **Right panel** – Beauty Control Panel with the following groups:
+  - **Basic Beauty**: Smoothing / Whitening / Rosiness / Sharpening
+  - **Face Reshape**: Face Thin / V Face / Narrow Face / Short Face / Cheekbone / Jawbone / Chin / Nose Slim / Eye Size / Eye Distance
+  - **Makeup**: Lipstick / Blush
+  - **Sticker**: dropdown (Off / rabbit)
+
+Click **Reset All** to restore all parameters to zero.
+
+## Troubleshooting
+
+**Q: "facebetter.dll not found" at startup**  
+A: Make sure `demo/cpp/sdk/lib/facebetter.dll` exists, then re-run `cmake --build build` so CMake copies the DLL next to the executable.
+
+**Q: Window shows "Put demo.png …"**  
+A: Place a face photo named `demo.png` in `demo/cpp/` and restart the demo.
+
+**Q: CMake cannot find Ninja**  
+A: Run `winget install Ninja-build.Ninja`, or replace `-G "Ninja"` with `-G "Visual Studio 17 2022"` and change `--config Release` accordingly.

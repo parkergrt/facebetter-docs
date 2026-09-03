@@ -1,0 +1,474 @@
+---
+title: "最佳实践"
+description: "Android 美颜 SDK 最佳实践指南"
+---
+
+## 性能优化
+
+### 1. 选择合适的处理模式
+
+**视频模式（VIDEO）**
+- 适合实时视频流、直播场景
+- 性能更优，处理速度快
+- 建议用于相机预览、视频通话等场景
+
+**图像模式（IMAGE）**
+- 适合单张图片处理
+- 质量更高，效果更好
+- 建议用于照片编辑、图片美化等场景
+
+```java
+// 实时视频处理
+input.type = ImageFrame.FrameType.VIDEO;
+ImageFrame output = engine.processImage(input);
+
+// 高质量图片处理
+input.type = ImageFrame.FrameType.IMAGE;
+ImageFrame output = engine.processImage(input);
+```
+
+### 2. 参数调节建议
+
+**美颜参数调节原则**
+- 从较小值开始调节，避免过度美颜
+- 实时场景下建议降低参数值以保证流畅度
+- 静态图片可以适当提高参数值
+- 根据用户群体和场景调整参数范围
+
+**推荐参数范围**
+```java
+// 基础美颜参数（实时场景）
+mBeautyEngine.setBeautyParam(BasicParam.SMOOTHING, 0.2f);  // 磨皮
+mBeautyEngine.setBeautyParam(BasicParam.WHITENING, 0.1f);  // 美白
+mBeautyEngine.setBeautyParam(BasicParam.ROSINESS, 0.1f);   // 红润
+
+// 面部重塑参数（实时场景）
+mBeautyEngine.setBeautyParam(ReshapeParam.FACE_THIN, 0.1f);    // 瘦脸
+mBeautyEngine.setBeautyParam(ReshapeParam.EYE_SIZE, 0.1f);     // 大眼
+```
+
+### 3. 内存优化
+
+**使用直接内存缓冲区**
+```java
+// 推荐：使用直接内存
+ByteBuffer data = ByteBuffer.allocateDirect(width * height * 4);
+
+// 避免：使用堆内存
+ByteBuffer data = ByteBuffer.allocate(width * height * 4);
+```
+
+**及时释放资源**
+```java
+public class BeautyProcessor {
+    private ImageFrame mReusableFrame; // 复用对象
+    
+    public ImageFrame processImage(byte[] imageData) {
+        // 复用 ImageFrame 对象
+        if (mReusableFrame == null) {
+            mReusableFrame = ImageFrame.createWithRGBA(data, width, height, stride);
+        }
+        
+        // 处理图像
+        mReusableFrame.type = ImageFrame.FrameType.VIDEO;
+        ImageFrame output = mBeautyEngine.processImage(mReusableFrame);
+        
+        return output;
+    }
+    
+    public void release() {
+        if (mReusableFrame != null) {
+            mReusableFrame.release();
+            mReusableFrame = null;
+        }
+    }
+}
+```
+
+## 架构设计
+
+### 1. 单例模式管理引擎
+
+```java
+public class BeautyEngineManager {
+    private static BeautyEngineManager sInstance;
+    private BeautyEffectEngine mEngine;
+    private Context mContext;
+    
+    private BeautyEngineManager(Context context) {
+        mContext = context.getApplicationContext();
+        initEngine();
+    }
+    
+    public static synchronized BeautyEngineManager getInstance(Context context) {
+        if (sInstance == null) {
+            sInstance = new BeautyEngineManager(context);
+        }
+        return sInstance;
+    }
+    
+    private void initEngine() {
+        BeautyEffectEngine.EngineConfig config = new BeautyEffectEngine.EngineConfig();
+        config.appId = "your_app_id";
+        config.appKey = "your_app_key";
+        mEngine = new BeautyEffectEngine(mContext, config);
+    }
+    
+    public BeautyEffectEngine getEngine() {
+        return mEngine;
+    }
+    
+    public void release() {
+        if (mEngine != null) {
+            mEngine.release();
+            mEngine = null;
+        }
+        sInstance = null;
+    }
+}
+```
+
+### 2. 异步处理图像
+
+```java
+public class AsyncBeautyProcessor {
+    private ExecutorService mExecutor;
+    private BeautyEffectEngine mEngine;
+    
+    public AsyncBeautyProcessor() {
+        mExecutor = Executors.newSingleThreadExecutor();
+    }
+    
+    public void processImageAsync(ImageFrame input, BeautyCallback callback) {
+        mExecutor.execute(() -> {
+            try {
+                input.type = ImageFrame.FrameType.VIDEO;
+                ImageFrame output = mEngine.processImage(input);
+                
+                // 切换到主线程回调
+                new Handler(Looper.getMainLooper()).post(() -> {
+                    callback.onSuccess(output);
+                });
+            } catch (Exception e) {
+                new Handler(Looper.getMainLooper()).post(() -> {
+                    callback.onError(e);
+                });
+            }
+        });
+    }
+    
+    public interface BeautyCallback {
+        void onSuccess(ImageFrame result);
+        void onError(Exception error);
+    }
+}
+```
+
+## 错误处理
+
+### 1. 完善的错误处理机制
+
+```java
+public class RobustBeautyProcessor {
+    private BeautyEffectEngine mEngine;
+    
+    public boolean processImage(ImageFrame input, ImageFrame output) {
+        // 参数检查
+        if (mEngine == null) {
+            Log.e("BeautyProcessor", "Engine not initialized");
+            return false;
+        }
+        
+        if (input == null || !input.isValid()) {
+            Log.e("BeautyProcessor", "Invalid input image");
+            return false;
+        }
+        
+        try {
+            // 处理图像
+            input.type = ImageFrame.FrameType.VIDEO;
+            ImageFrame result = mEngine.processImage(input);
+            if (result == null) {
+                Log.e("BeautyProcessor", "Failed to process image");
+                return false;
+            }
+            
+            // 复制结果到输出
+            copyImageFrame(result, output);
+            result.release();
+            
+            return true;
+        } catch (Exception e) {
+            Log.e("BeautyProcessor", "Exception during processing", e);
+            return false;
+        }
+    }
+    
+    private void copyImageFrame(ImageFrame src, ImageFrame dst) {
+        // 实现图像复制逻辑
+    }
+}
+```
+
+### 2. 重试机制
+
+```java
+public class RetryBeautyProcessor {
+    private static final int MAX_RETRY_COUNT = 3;
+    private static final long RETRY_DELAY_MS = 100;
+    
+    public ImageFrame processImageWithRetry(ImageFrame input) {
+        for (int i = 0; i < MAX_RETRY_COUNT; i++) {
+            try {
+                input.type = ImageFrame.FrameType.VIDEO;
+                ImageFrame result = mBeautyEngine.processImage(input);
+                if (result != null) {
+                    return result;
+                }
+            } catch (Exception e) {
+                Log.w("BeautyProcessor", "Attempt " + (i + 1) + " failed", e);
+            }
+            
+            if (i < MAX_RETRY_COUNT - 1) {
+                try {
+                    Thread.sleep(RETRY_DELAY_MS);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    break;
+                }
+            }
+        }
+        
+        Log.e("BeautyProcessor", "All retry attempts failed");
+        return null;
+    }
+}
+```
+
+## 生命周期管理
+
+<Warning>
+美颜引擎需要手动调用 `release()` 释放资源，ImageFrame 等对象使用完毕后也需要调用 `release()` 释放，否则会导致内存泄漏。
+</Warning>
+
+### 1. Activity 生命周期处理
+
+```java
+public class BeautyActivity extends AppCompatActivity {
+    private BeautyEngineManager mBeautyManager;
+    
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        
+        // 初始化美颜引擎
+        mBeautyManager = BeautyEngineManager.getInstance(this);
+    }
+    
+    @Override
+    protected void onResume() {
+        super.onResume();
+        // 恢复美颜处理
+    }
+    
+    @Override
+    protected void onPause() {
+        super.onPause();
+        // 暂停美颜处理
+    }
+    
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        // 释放美颜引擎（如果不再需要）
+        // mBeautyManager.release();
+    }
+}
+```
+
+### 2. Fragment 生命周期处理
+
+```java
+public class BeautyFragment extends Fragment {
+    private BeautyEffectEngine mBeautyEngine;
+    
+    @Override
+    public void onAttach(Context context) {
+        super.onAttach(context);
+        // 初始化美颜引擎
+        initBeautyEngine();
+    }
+    
+    @Override
+    public void onDetach() {
+        super.onDetach();
+        // 释放美颜引擎
+        if (mBeautyEngine != null) {
+            mBeautyEngine.release();
+            mBeautyEngine = null;
+        }
+    }
+}
+```
+
+## 性能监控
+
+### 1. 性能指标监控
+
+```java
+public class BeautyPerformanceMonitor {
+    private long mStartTime;
+    private int mFrameCount;
+    private long mTotalProcessTime;
+    
+    public void startFrame() {
+        mStartTime = System.currentTimeMillis();
+    }
+    
+    public void endFrame() {
+        long processTime = System.currentTimeMillis() - mStartTime;
+        mTotalProcessTime += processTime;
+        mFrameCount++;
+        
+        // 计算平均处理时间
+        if (mFrameCount % 30 == 0) { // 每30帧计算一次
+            long avgTime = mTotalProcessTime / mFrameCount;
+            Log.d("BeautyPerformance", "Average process time: " + avgTime + "ms");
+            
+            // 重置计数器
+            mTotalProcessTime = 0;
+            mFrameCount = 0;
+        }
+    }
+    
+    public boolean isPerformanceGood() {
+        return mTotalProcessTime / Math.max(mFrameCount, 1) < 33; // 30fps
+    }
+}
+```
+
+### 2. 内存使用监控
+
+```java
+public class MemoryMonitor {
+    private Runtime mRuntime;
+    
+    public MemoryMonitor() {
+        mRuntime = Runtime.getRuntime();
+    }
+    
+    public void logMemoryUsage(String tag) {
+        long totalMemory = mRuntime.totalMemory();
+        long freeMemory = mRuntime.freeMemory();
+        long usedMemory = totalMemory - freeMemory;
+        long maxMemory = mRuntime.maxMemory();
+        
+        Log.d("MemoryMonitor", tag + " - Used: " + (usedMemory / 1024 / 1024) + "MB, " +
+              "Max: " + (maxMemory / 1024 / 1024) + "MB");
+    }
+    
+    public boolean isMemoryLow() {
+        long usedMemory = mRuntime.totalMemory() - mRuntime.freeMemory();
+        long maxMemory = mRuntime.maxMemory();
+        return usedMemory > maxMemory * 0.8; // 使用超过80%
+    }
+}
+```
+
+## 配置管理
+
+### 1. 美颜配置管理
+
+```java
+public class BeautyConfigManager {
+    private SharedPreferences mPrefs;
+    private static final String PREF_NAME = "beauty_config";
+    
+    public BeautyConfigManager(Context context) {
+        mPrefs = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
+    }
+    
+    public void saveBeautyConfig(BeautyConfig config) {
+        SharedPreferences.Editor editor = mPrefs.edit();
+        editor.putFloat("smoothing", config.smoothing);
+        editor.putFloat("whitening", config.whitening);
+        editor.putFloat("face_thin", config.faceThin);
+        editor.putBoolean("basic_enabled", config.basicEnabled);
+        editor.putBoolean("reshape_enabled", config.reshapeEnabled);
+        editor.apply();
+    }
+    
+    public BeautyConfig loadBeautyConfig() {
+        BeautyConfig config = new BeautyConfig();
+        config.smoothing = mPrefs.getFloat("smoothing", 0.3f);
+        config.whitening = mPrefs.getFloat("whitening", 0.2f);
+        config.faceThin = mPrefs.getFloat("face_thin", 0.1f);
+        config.basicEnabled = mPrefs.getBoolean("basic_enabled", true);
+        config.reshapeEnabled = mPrefs.getBoolean("reshape_enabled", false);
+        return config;
+    }
+    
+    public static class BeautyConfig {
+        public float smoothing = 0.3f;
+        public float whitening = 0.2f;
+        public float faceThin = 0.1f;
+        public boolean basicEnabled = true;
+        public boolean reshapeEnabled = false;
+    }
+}
+```
+
+## 测试建议
+
+### 1. 单元测试
+
+```java
+@Test
+public void testBeautyEngineInitialization() {
+    BeautyEffectEngine.EngineConfig config = new BeautyEffectEngine.EngineConfig();
+    config.appId = "test_app_id";
+    config.appKey = "test_app_key";
+    
+    BeautyEffectEngine engine = new BeautyEffectEngine(mContext, config);
+    assertNotNull("Engine should be created", engine);
+    
+    engine.release();
+}
+
+@Test
+public void testImageProcessing() {
+    // 创建测试图像
+    ByteBuffer data = ByteBuffer.allocateDirect(640 * 480 * 4);
+    ImageFrame input = ImageFrame.createWithRGBA(data, 640, 480, 640 * 4);
+    
+    // 处理图像
+    input.type = ImageFrame.FrameType.VIDEO;
+    ImageFrame output = mBeautyEngine.processImage(input);
+    
+    assertNotNull("Output should not be null", output);
+    assertTrue("Output should be valid", output.isValid());
+    
+    input.release();
+    output.release();
+}
+```
+
+### 2. 性能测试
+
+```java
+@Test
+public void testPerformance() {
+    long startTime = System.currentTimeMillis();
+    
+    for (int i = 0; i < 100; i++) {
+        // 处理测试图像
+        processTestImage();
+    }
+    
+    long endTime = System.currentTimeMillis();
+    long totalTime = endTime - startTime;
+    long avgTime = totalTime / 100;
+    
+    assertTrue("Average process time should be less than 50ms", avgTime < 50);
+}
+```

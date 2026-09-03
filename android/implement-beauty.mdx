@@ -1,0 +1,587 @@
+---
+title: "Implement Beauty"
+description: "Implement Android Beauty"
+---
+
+## Add SDK Dependency
+
+### Method A: Maven Online Integration (Recommended)
+
+Add the Maven repository address to your project's root `build.gradle` or `settings.gradle`:
+
+```groovy
+repositories {
+    mavenCentral()
+}
+```
+
+Add the dependency in your module's `build.gradle`:
+
+```groovy
+dependencies {
+    implementation 'net.pixpark:facebetter:1.2.2'
+}
+```
+
+Alternatively, if you use the modern **Version Catalog** (`libs.versions.toml`) to manage dependencies (recommended, as used in the Demo):
+
+1. Add the following to `gradle/libs.versions.toml`:
+```toml
+[versions]
+facebetter = "1.2.2"
+
+[libraries]
+facebetter = { group = "net.pixpark", name = "facebetter", version.ref = "facebetter" }
+```
+
+2. Use it in your module's `build.gradle`:
+```groovy
+dependencies {
+    implementation libs.facebetter
+}
+```
+
+### Method B: Manual AAR Integration
+
+Go to the [Download](https://facebetter.net/download) page to get the latest SDK, then extract it.
+
+Copy the `facebetter.aar` library from the SDK package to your project path, such as the `libs` directory.
+
+Modify the project's `build.gradle` and add the `facebetter.aar` dependency in the `dependencies` section:
+
+```groovy
+dependencies {
+    implementation files('libs/facebetter.aar')
+    implementation libs.appcompat
+    implementation libs.material
+}
+```
+
+### Permission Configuration
+Add necessary permissions in `AndroidManifest.xml`:
+
+```xml
+<!-- Network permission (required): for appId and appKey network verification -->
+<uses-permission android:name="android.permission.INTERNET" />
+<uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+
+<!-- Storage permission (optional): only needed when writing log files -->
+<uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+<uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+
+<!-- Camera permission (optional): only needed when using camera capture in demo -->
+<uses-permission android:name="android.permission.CAMERA" />
+```
+
+**Permission Descriptions:**
+- **Network Permission**: Required. SDK needs network connection to verify `appId` and `appKey` to ensure the app runs normally.
+- **Storage Permission**: Optional. Only needed when file logging is configured (`logConfig.fileEnabled = true`).
+- **Camera Permission**: Optional. Only needed when using camera capture for beauty processing in the app. Not required if only processing existing images.
+
+## Import Classes
+Facebetter engine mainly has four classes that need to be imported into the files where they are used:
+
+```java
+import net.pixpark.facebetter.BeautyEffectEngine;
+import net.pixpark.facebetter.BeautyParams.*;
+import net.pixpark.facebetter.ImageBuffer;
+import net.pixpark.facebetter.ImageFrame;
+```
+## Log Configuration
+Logging is disabled by default and can be enabled as needed. Both console logging and file logging switches are supported.
+
+<Warning>
+Logging should be enabled **before** creating the beauty engine, otherwise you may not see initialization logs.
+</Warning>
+
+```java
+BeautyEffectEngine.LogConfig logConfig = new BeautyEffectEngine.LogConfig();
+// Console logging
+logConfig.consoleEnabled = true;
+// File logging
+logConfig.fileEnabled = true;
+// Log level
+logConfig.level = BeautyEffectEngine.LogLevel.INFO;
+// Log storage path
+logConfig.fileName = "xx/xx/facebetter.log";
+BeautyEffectEngine.setLogConfig(logConfig);
+```
+
+## Create Configuration Engine
+
+Follow the instructions on [this page](/intro/enable-service#get-appid-and-appkey) to get your `appid` and `appkey`.
+
+**Verification Priority:**
+- If `licenseJson` is provided, use license data verification (supports online response and offline license)
+- Otherwise, use `appId` and `appKey` for automatic online verification
+
+```java
+BeautyEffectEngine.EngineConfig config = new BeautyEffectEngine.EngineConfig();
+config.appId = "your appId"; // Configure your appid (optional, not required if licenseJson is provided)
+config.appKey = "your appkey"; // Configure your appkey (optional, not required if licenseJson is provided)
+// Optional: Use license data verification (takes priority if provided)
+// config.licenseJson = "your license json string";
+mBeautyEngine = new BeautyEffectEngine(this, config);
+```
+
+### Error Handling
+After creating the engine, it's recommended to check if it was successful:
+
+```java
+if (mBeautyEngine == null) {
+    Log.e("BeautyEngine", "Failed to create beauty engine");
+    return;
+}
+```
+
+## Adjust Beauty Parameters
+
+<Tip>
+All beauty parameters range from `[0.0, 1.0]`. Set to `0` to disable the effect.
+</Tip>
+
+### Set Skin Beauty Parameters
+Use the `setBeautyParam` interface to set skin beauty parameters. **Parameter range [0.0, 1.0]**.
+
+```java
+float value = 0.5; // Value range [0.0, 1.0]
+int ret = mBeautyEngine.setBeautyParam(BasicParam.SMOOTHING, value);
+```
+
+Supported skin beauty parameters:
+```java
+public static enum BasicParam {
+    SMOOTHING(0),   // Smoothing
+    SHARPENING(1),  // Sharpening
+    WHITENING(2),   // Whitening
+    ROSINESS(3);    // Rosiness
+}
+
+```
+
+### Set Skin-Only Beauty
+Use the `setSkinOnlyBeauty` interface to set whether beauty effects are applied only to skin regions. When enabled, beauty effects (smoothing, whitening, etc.) will only be applied to detected skin areas, leaving non-skin areas unchanged.
+
+```java
+// Enable skin-only beauty
+int ret = mBeautyEngine.setSkinOnlyBeauty(true);
+
+// Disable skin-only beauty (apply to entire image)
+ret = mBeautyEngine.setSkinOnlyBeauty(false);
+```
+
+<Tip>
+After enabling skin-only beauty, even with high beauty parameter values, non-skin areas (such as background, clothing, etc.) will not be affected.
+</Tip>
+
+### Set Face Reshape Parameters
+Use the `setBeautyParam` interface to set face reshape parameters. **Parameter range [0.0, 1.0]**.
+
+```java
+beautyEffectEngine.setBeautyParam(BeautyParams.ReshapeParam.FACE_THIN, 0.5f);
+```
+
+Supported face reshape parameters:
+
+```java
+public enum ReshapeParam {
+  FACE_THIN(0),      // Face thinning
+  FACE_V_SHAPE(1),   // V-shaped face
+  FACE_NARROW(2),    // Narrow face
+  FACE_SHORT(3),     // Short face
+  CHEEKBONE(4),      // Cheekbone
+  JAWBONE(5),        // Jawbone
+  CHIN(6),           // Chin
+  NOSE_SLIM(7),      // Nose slimming
+  EYE_SIZE(8),       // Eye enlargement
+  EYE_DISTANCE(9);   // Eye distance
+}
+```
+
+### Set Makeup Parameters
+
+```java
+beautyEffectEngine.setBeautyParam(BeautyParams.MakeupParam.LIPSTICK, 0.5f);
+```
+Supported makeup parameters:
+
+```java
+public enum MakeupParam {
+  LIPSTICK(0),  // Lipstick
+  BLUSH(1);     // Blush
+}
+```
+
+### Set Virtual Background
+Enable virtual background through the `setVirtualBackground` interface:
+
+```java
+// Set background mode
+BeautyParams.VirtualBackgroundOptions options = new BeautyParams.VirtualBackgroundOptions();
+options.mode = BeautyParams.BackgroundMode.BLUR;  // Blur background
+beautyEffectEngine.setVirtualBackground(options);
+
+// Set background image (need to set to IMAGE mode first)
+BeautyParams.VirtualBackgroundOptions imageOptions = new BeautyParams.VirtualBackgroundOptions();
+imageOptions.mode = BeautyParams.BackgroundMode.IMAGE;
+imageOptions.backgroundImage = imageFrame;  // ImageFrame object
+beautyEffectEngine.setVirtualBackground(imageOptions);
+```
+
+## Using Filters and Stickers
+
+### Filter Functionality
+Filters are set through the `setFilter` interface. Filter resource files (`.fbd`) must be registered via `registerFilter` first.
+
+```java
+// 1. Register filter resource
+String filterId = "chuxin";
+String fbdPath = getFilesDir() + "/filters/chuxin.fbd";
+mBeautyEngine.registerFilter(filterId, fbdPath);
+
+// 2. Use filter
+mBeautyEngine.setFilter(filterId);
+
+// 3. Adjust filter intensity (0.0 - 1.0)
+mBeautyEngine.setFilterIntensity(0.8f);
+```
+
+### Sticker Functionality
+Stickers are set through the `setSticker` interface and also need to be registered first.
+
+```java
+// 1. Register sticker resource
+String stickerId = "cherry";
+String fbdPath = getFilesDir() + "/stickers/cherry.fbd";
+mBeautyEngine.registerSticker(stickerId, fbdPath);
+
+// 2. Use sticker
+mBeautyEngine.setSticker(stickerId);
+
+// 3. Clear sticker
+mBeautyEngine.setSticker("");
+```
+
+## Set Callbacks
+
+Monitor engine events (license validation and engine initialization status):
+
+```java
+EngineCallbacks callbacks = new EngineCallbacks();
+callbacks.onEngineEvent = (code, message) -> {
+    if (code == EngineEventCode.LICENSE_VALIDATION_SUCCESS) {
+        // License validation succeeded
+        Log.d(TAG, "License validation succeeded");
+    } else if (code == EngineEventCode.LICENSE_VALIDATION_FAILED) {
+        // License validation failed
+        Log.e(TAG, "License validation failed: " + message);
+    } else if (code == EngineEventCode.INITIALIZATION_COMPLETE) {
+        // Engine initialization completed
+        Log.d(TAG, "Engine initialization completed");
+    } else if (code == EngineEventCode.INITIALIZATION_FAILED) {
+        // Engine initialization failed
+        Log.e(TAG, "Engine initialization failed: " + message);
+    }
+};
+beautyEffectEngine.setCallbacks(callbacks);
+```
+
+Event codes:
+- `EngineEventCode.LICENSE_VALIDATION_SUCCESS` (0): License validation succeeded
+- `EngineEventCode.LICENSE_VALIDATION_FAILED` (1): License validation failed
+- `EngineEventCode.INITIALIZATION_COMPLETE` (100): Engine initialization completed
+- `EngineEventCode.INITIALIZATION_FAILED` (101): Engine initialization failed
+
+## Process Images
+
+<Warning>
+ImageFrame objects must call `release()` after use, otherwise it will cause memory leaks.
+</Warning>
+
+### Create Images
+Image data is encapsulated through `ImageFrame`, supporting formats: `I420`, `NV12`, `NV21`, `RGB`, `RGBA`, `BGR`, `BGRA`.
+
+**Create ImageFrame with RGBA**
+```java
+ByteBuffer data = ByteBuffer.allocateDirect(width * height * 4);
+ImageFrame inputImage = ImageFrame.createWithRGBA(data, width, height, stride);
+```
+
+**Create ImageFrame with image file**
+```java
+ImageFrame inputImage = ImageFrame.createWithFile("xxx.png");
+```
+### Rotate Images
+ImageFrame has built-in image rotation methods that can be used as needed.
+
+```java
+int result = inputImage.rotate(ImageBuffer.Rotation.ROTATION_90);
+```
+
+Rotation angles
+```java
+public enum Rotation {
+  ROTATION_0(0),    // 0 degrees
+  ROTATION_90(1),   // Clockwise 90 degrees
+  ROTATION_180(2),  // Clockwise 180 degrees
+  ROTATION_270(3);  // Clockwise 270 degrees
+}
+```
+
+### Process Images
+`processMode` includes VIDEO and IMAGE modes. VIDEO mode is suitable for live streaming and video scenarios with higher efficiency. IMAGE mode is suitable for image processing scenarios.
+
+```java
+inputImage.type = ImageFrame.FrameType.VIDEO;
+ImageFrame outputImage = beautyEffectEngine.processImage(inputImage);
+```
+
+<Tip>
+The engine automatically maintains input/output format consistency. If input is NV21 format, output is NV21 format; if input is RGBA format, output is RGBA format.
+</Tip>
+
+### Get Processed Image Data
+
+```java
+ImageBuffer buffer = outputImage.toRGBA();
+ByteBuffer data = buffer.getData();
+int dataSize = buffer.getSize();
+
+int width = buffer.getWidth();
+int height = buffer.getHeight();
+int stride = buffer.getStride();
+```
+
+Get I420 data
+
+```java
+ImageBuffer buffer = outputImage.toI420();
+// Get continuous I420 memory data
+ByteBuffer data = buffer.getData();
+// Get I420 data length
+int dataSize = buffer.getSize();
+// Get Y, U, V component data separately
+ByteBuffer dataY = buffer.getDataY();
+ByteBuffer dataU = buffer.getDataU();
+ByteBuffer dataV = buffer.getDataV();
+
+int strideY = buffer.getStrideY();
+int strideU = buffer.getStrideU();
+int strideV = buffer.getStrideV();
+```
+
+`ImageFrame` can be converted to various formats through built-in toXXX methods: `I420`, `NV12`, `NV21`, `RGB`, `RGBA`, `BGR`, `BGRA`. These methods can be used for format conversion.
+
+## External Texture Processing
+
+<Warning>
+When using external texture processing, you must ensure the OpenGL context is on the main thread and pass `externalContext = true` during engine initialization.
+</Warning>
+
+### Use Cases
+External texture processing is suitable for the following scenarios:
+- **OpenGL/OpenGL ES Rendering Pipeline Integration**: When your application already uses OpenGL for rendering, you can directly use textures as input and output, avoiding CPU-GPU data copying
+- **Real-time Video Processing**: Process textures directly in video rendering callbacks to reduce memory copy overhead
+- **Performance Optimization**: Avoid downloading texture data to CPU memory and uploading back to GPU, improving processing efficiency
+
+### Configure External Context
+When using external texture processing, you need to enable the `externalContext` option when creating the engine:
+
+```java
+BeautyEffectEngine.EngineConfig config = new BeautyEffectEngine.EngineConfig();
+config.appId = "your appId";
+config.appKey = "your appKey";
+config.externalContext = true;  // Enable external context mode
+
+BeautyEffectEngine engine = new BeautyEffectEngine(context, config);
+```
+
+**Important Notes**:
+- When `externalContext = true`, the engine will not create its own OpenGL context, but use the current thread's OpenGL context
+- The engine must be created in a valid OpenGL context
+- Input and output textures must be in the same OpenGL context
+
+### Create Texture Frame
+Use the `ImageFrame.createWithTexture()` method to create an image frame from an OpenGL texture:
+
+```java
+// Create ImageFrame from OpenGL texture
+int textureId = ...;  // Your OpenGL texture ID
+int width = 1920;
+int height = 1080;
+int stride = width * 4;  // RGBA format, 4 bytes per pixel
+
+ImageFrame inputFrame = ImageFrame.createWithTexture(textureId, width, height, stride);
+if (inputFrame == null) {
+    Log.e(TAG, "Failed to create ImageFrame from texture");
+    return;
+}
+```
+
+**Parameter Description**:
+- `textureId`: OpenGL texture ID (type `GL_TEXTURE_2D`)
+- `width`: Texture width (pixels)
+- `height`: Texture height (pixels)
+- `stride`: Row stride (bytes), usually `width * 4` (RGBA format)
+
+### Get Output Texture
+After processing the image, you can get the output texture through `ImageBuffer.getTexture()`:
+
+```java
+// Process image
+inputFrame.type = ImageFrame.FrameType.IMAGE;
+ImageFrame outputFrame = engine.processImage(inputFrame);
+if (outputFrame == null) {
+    Log.e(TAG, "processImage returned null");
+    return;
+}
+
+// Get output texture
+ImageBuffer textureBuffer = outputFrame.getBuffer();
+if (textureBuffer == null) {
+    Log.e(TAG, "getBuffer returned null");
+    return;
+}
+
+// Get output texture ID and dimensions
+int outputTextureId = textureBuffer.getTexture();
+int outputWidth = textureBuffer.getWidth();
+int outputHeight = textureBuffer.getHeight();
+```
+
+### Complete Example
+
+```java
+public class ExternalTextureActivity extends AppCompatActivity
+    implements GLTextureRenderer.OnProcessVideoFrameCallback {
+    
+    private BeautyEffectEngine engine;
+    
+    @Override
+    public int onProcessVideoFrame(
+        GLTextureRenderer.TextureFrame srcFrame, 
+        GLTextureRenderer.TextureFrame dstFrame) {
+        
+        // Lazy initialize engine (in OpenGL context)
+        if (engine == null) {
+            BeautyEffectEngine.EngineConfig config = new BeautyEffectEngine.EngineConfig();
+            config.appId = "your appId";
+            config.appKey = "your appKey";
+            config.externalContext = true;  // Key: enable external context
+            
+            engine = new BeautyEffectEngine(this, config);
+            engine.setBeautyParam(BasicParam.SMOOTHING, 0.5f);
+        }
+        
+        // Create ImageFrame from input texture
+        int stride = srcFrame.width * 4;
+        ImageFrame inputFrame = ImageFrame.createWithTexture(
+            srcFrame.textureId, srcFrame.width, srcFrame.height, stride);
+        if (inputFrame == null) {
+            return -1;
+        }
+        
+        // Process image
+        ImageFrame outputFrame = engine.processImage(
+            inputFrame, BeautyEffectEngine.ProcessMode.IMAGE);
+        if (outputFrame == null) {
+            return -2;
+        }
+        
+        // Get output texture
+        ImageBuffer textureBuffer = outputFrame.getBuffer();
+        if (textureBuffer == null) {
+            return -3;
+        }
+        
+        // Set output texture information
+        dstFrame.textureId = textureBuffer.getTexture();
+        dstFrame.width = textureBuffer.getWidth();
+        dstFrame.height = textureBuffer.getHeight();
+        
+        return 0;  // Success
+    }
+}
+```
+
+### Important Notes
+
+#### 1. Context Requirements
+- **Engine must be created in a valid OpenGL context**: When `externalContext = true`, the engine uses the current thread's OpenGL context, so the engine must be created in the OpenGL rendering thread
+- **Context consistency**: Input texture, engine processing, and output texture must be in the same OpenGL context
+- **Thread safety**: OpenGL operations must be executed in the same thread
+
+#### 2. Texture Format Requirements
+- **Input texture format**: Supports `GL_RGBA` format `GL_TEXTURE_2D` textures
+- **Texture parameters**: It is recommended to set the following texture parameters for best results:
+  ```java
+  GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_MIN_FILTER, GLES20.GL_LINEAR);
+  GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_MAG_FILTER, GLES20.GL_LINEAR);
+  GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_WRAP_S, GLES20.GL_CLAMP_TO_EDGE);
+  GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_WRAP_T, GLES20.GL_CLAMP_TO_EDGE);
+  ```
+
+#### 3. Performance Optimization
+- **Lazy initialization**: Initialize the engine in the first rendering callback to ensure it is created in the correct OpenGL context
+- **Reuse ImageFrame**: If possible, reuse `ImageFrame` objects to reduce object creation overhead
+- **Process mode selection**:
+  - `ProcessMode.VIDEO`: Suitable for real-time video stream processing, higher performance
+  - `ProcessMode.IMAGE`: Suitable for single frame image processing, better quality
+
+#### 4. Memory Management
+- **Release resources timely**: Release `ImageFrame` and `ImageBuffer` objects after use
+- **Texture lifecycle**: Output textures are managed by the engine and do not need manual deletion, but input textures need to be managed by the caller
+
+#### 5. Error Handling
+- **Check return values**: All API calls should check return values
+- **Null pointer checks**: Check if return values of `createWithTexture()` and `processImage()` are `null`
+- **Texture validity**: Ensure input texture ID is valid and bound to the current OpenGL context
+
+#### 6. Common Issues
+- **Engine creation failure**: Check if it is created in an OpenGL context and if `externalContext` is correctly set
+- **Texture processing failure**: Check if texture format is RGBA and texture parameters are correctly set
+- **Context loss**: If the OpenGL context is destroyed, the engine needs to be recreated
+
+## Lifecycle Management
+
+<Warning>
+You must call `release()` to release engine resources when Activity/Fragment is destroyed, otherwise it will cause memory leaks.
+</Warning>
+
+### Release Resources
+When Activity or Fragment is destroyed, be sure to release engine resources:
+
+```java
+@Override
+protected void onDestroy() {
+    super.onDestroy();
+    if (mBeautyEngine != null) {
+        mBeautyEngine.release();
+        mBeautyEngine = null;
+    }
+}
+```
+
+### Memory Management
+- Release `ImageFrame` and `ImageBuffer` objects timely
+- Avoid repeatedly creating large numbers of image objects in loops
+- Recommend reusing `ImageFrame` objects
+
+```java
+// Release resources after use
+if (inputImage != null) {
+    inputImage.release();
+}
+if (outputImage != null) {
+    outputImage.release();
+}
+if (buffer != null) {
+    buffer.release();
+}
+```
+ 
+## Related Documentation
+
+- [Best Practices](/android/best-practices) - Performance optimization and architecture design recommendations
+- [Common Issues](/android/faq) - Common questions and troubleshooting
+- [API Reference](/android/api-reference) - Complete API documentation

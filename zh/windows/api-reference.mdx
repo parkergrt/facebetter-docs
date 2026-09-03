@@ -1,0 +1,959 @@
+---
+title: "API 参考"
+description: "Windows / Linux 平台 Facebetter SDK 完整 C++ API 文档"
+---
+
+> 适用平台：**Windows**、**Linux**。所有 API 位于 `facebetter` 命名空间。  
+> SDK 版本：`1.3.1`
+
+---
+
+## 日志相关
+
+### LogLevel
+
+日志级别枚举。
+
+```cpp
+enum class LogLevel {
+  Trace = 0,  // 跟踪
+  Debug,      // 调试
+  Info,       // 信息
+  Warn,       // 警告
+  Error,      // 错误
+  Critical    // 严重错误
+};
+```
+
+### LogConfig
+
+日志配置结构体。
+
+**字段说明：**
+- `console_enabled`：是否输出到控制台，默认 `false`
+- `file_enabled`：是否写入文件，默认 `false`
+- `level`：最低输出日志级别，默认 `Info`
+- `file_name`：日志文件路径（`file_enabled = true` 时有效），默认 `""`
+
+```cpp
+struct LogConfig {
+  bool        console_enabled = false;
+  bool        file_enabled    = false;
+  LogLevel    level           = LogLevel::Info;
+  std::string file_name       = "";
+};
+```
+
+---
+
+## 引擎相关
+
+### EngineConfig
+
+引擎初始化配置结构体。
+
+**字段说明：**
+- `app_id`：应用 ID，从控制台获取
+- `app_key`：应用密钥，从控制台获取
+- `resource_path`：`resource.fbd` 文件路径（支持相对或绝对路径）
+- `license_json`：离线/在线授权 JSON 字符串（可选）
+- `external_context`：是否使用外部 OpenGL 上下文，默认 `false`
+
+**验证优先级：**
+1. 若 `license_json` 不为空 → 使用 license JSON 验证（支持在线响应和离线授权）
+2. 否则 → 使用 `app_id` + `app_key` 进行联网验证
+
+```cpp
+struct EngineConfig {
+  std::string app_id;
+  std::string app_key;
+  std::string resource_path;
+  std::string license_json;        // 可选
+  bool        external_context = false;
+};
+```
+
+---
+
+### BeautyEffectEngine
+
+美颜效果引擎主类。不可复制/赋值。
+
+#### 静态方法
+
+##### `SetLogConfig`
+
+```cpp
+static int SetLogConfig(const LogConfig& config);
+```
+
+设置 SDK 全局日志配置。**必须在 `Create` 之前调用**，否则引擎初始化期间的日志无法捕获。
+
+| 参数 | 说明 |
+| --- | --- |
+| `config` | 日志配置结构体 |
+
+**返回值：** `0` 成功，非零失败。
+
+```cpp
+LogConfig log_cfg;
+log_cfg.console_enabled = true;
+log_cfg.level           = LogLevel::Info;
+BeautyEffectEngine::SetLogConfig(log_cfg);
+```
+
+##### `Create`
+
+```cpp
+static std::shared_ptr<BeautyEffectEngine> Create(const EngineConfig& config);
+```
+
+创建并初始化引擎实例。失败时返回 `nullptr`。
+
+```cpp
+EngineConfig cfg;
+cfg.app_id        = "your_app_id";
+cfg.app_key       = "your_app_key";
+cfg.resource_path = "resource/resource.fbd";
+auto engine = BeautyEffectEngine::Create(cfg);
+if (!engine) {
+    // 创建失败，请检查日志
+}
+```
+
+---
+
+#### 参数设置
+
+##### `SetBeautyParam`（基础美颜）
+
+```cpp
+virtual int SetBeautyParam(beauty_params::Basic param, float value) = 0;
+```
+
+设置基础美颜参数。所有参数值范围 `[0.0, 1.0]`，`0` 表示关闭该效果。
+
+| `param` 枚举值 | 说明 |
+| --- | --- |
+| `Basic::Smoothing` | 磨皮 |
+| `Basic::Sharpening` | 锐化 |
+| `Basic::Whitening` | 美白 |
+| `Basic::Rosiness` | 红润 |
+
+```cpp
+engine->SetBeautyParam(Basic::Smoothing,  0.5f);
+engine->SetBeautyParam(Basic::Whitening,  0.3f);
+engine->SetBeautyParam(Basic::Rosiness,   0.2f);
+engine->SetBeautyParam(Basic::Sharpening, 0.4f);
+```
+
+##### `SetBeautyParam`（美型）
+
+```cpp
+virtual int SetBeautyParam(beauty_params::Reshape param, float value) = 0;
+```
+
+| `param` 枚举值 | 说明 |
+| --- | --- |
+| `Reshape::FaceThin` | 瘦脸 |
+| `Reshape::FaceVShape` | V脸 |
+| `Reshape::FaceNarrow` | 窄脸 |
+| `Reshape::FaceShort` | 短脸 |
+| `Reshape::Cheekbone` | 瘦颧骨 |
+| `Reshape::Jawbone` | 瘦下颌 |
+| `Reshape::Chin` | 瘦下巴 |
+| `Reshape::NoseSlim` | 瘦鼻梁 |
+| `Reshape::EyeSize` | 大眼 |
+| `Reshape::EyeDistance` | 眼距 |
+
+```cpp
+engine->SetBeautyParam(Reshape::FaceThin,  0.4f);
+engine->SetBeautyParam(Reshape::EyeSize,   0.6f);
+```
+
+##### `SetBeautyParam`（美妆）
+
+```cpp
+virtual int SetBeautyParam(beauty_params::Makeup param, float value) = 0;
+```
+
+| `param` 枚举值 | 说明 |
+| --- | --- |
+| `Makeup::Lipstick` | 口红 |
+| `Makeup::Blush` | 腮红 |
+
+```cpp
+engine->SetBeautyParam(Makeup::Lipstick, 0.7f);
+engine->SetBeautyParam(Makeup::Blush,    0.4f);
+```
+
+##### `SetLipstickStyle` / `SetBlushStyle`
+
+```cpp
+virtual int SetLipstickStyle(beauty_params::LipstickStyle style) = 0;
+virtual int SetBlushStyle(beauty_params::BlushStyle style) = 0;
+```
+
+| 枚举 | 值 | 说明 |
+| --- | --- | --- |
+| `LipstickStyle::Rouge` | 0 | 玫瑰红 |
+| `LipstickStyle::Coral` | 1 | 珊瑚橙 |
+| `LipstickStyle::Pink` | 2 | 粉色（默认） |
+| `BlushStyle::Classic` | 0 | 经典（默认） |
+| `BlushStyle::Peach` | 1 | 蜜桃 |
+| `BlushStyle::Rose` | 2 | 玫瑰 |
+
+```cpp
+engine->SetLipstickStyle(LipstickStyle::Rouge);
+engine->SetBlushStyle(BlushStyle::Peach);
+```
+
+##### `SetBeautyParam`（绿幕抠图 ChromaKey）
+
+```cpp
+virtual int SetBeautyParam(beauty_params::ChromaKey param, float value) = 0;
+```
+
+| `param` 枚举值 | 说明 |
+| --- | --- |
+| `ChromaKey::KeyColor` | 抠图颜色：`0`=绿色，`1`=蓝色，`2`=红色 |
+| `ChromaKey::Similarity` | 相似度阈值 `[0.0, 1.0]` |
+| `ChromaKey::Smoothness` | 边缘平滑度 `[0.0, 1.0]` |
+| `ChromaKey::Desaturation` | 去饱和度 `[0.0, 1.0]` |
+
+```cpp
+engine->SetBeautyParam(ChromaKey::KeyColor,    0.0f);  // 绿色
+engine->SetBeautyParam(ChromaKey::Similarity,  0.4f);
+engine->SetBeautyParam(ChromaKey::Smoothness,  0.1f);
+```
+
+##### `SetVirtualBackground`
+
+```cpp
+virtual int SetVirtualBackground(
+    const beauty_params::VirtualBackgroundOptions& options) = 0;
+```
+
+设置虚拟背景效果。
+
+| 参数 | 说明 |
+| --- | --- |
+| `options.mode` | 背景模式：`None` / `Blur` / `Image` |
+| `options.background_image` | 背景图片帧（`Image` 模式时有效） |
+
+```cpp
+// 背景模糊
+beauty_params::VirtualBackgroundOptions opts;
+opts.mode = beauty_params::BackgroundMode::Blur;
+engine->SetVirtualBackground(opts);
+
+// 背景替换
+opts.mode             = beauty_params::BackgroundMode::Image;
+opts.background_image = bg_frame;
+engine->SetVirtualBackground(opts);
+
+// 关闭虚拟背景
+opts.mode = beauty_params::BackgroundMode::None;
+engine->SetVirtualBackground(opts);
+```
+
+##### `SetSkinOnlyBeauty`
+
+```cpp
+virtual int SetSkinOnlyBeauty(bool enabled) = 0;
+```
+
+设置美颜是否仅作用于皮肤区域。当启用时，美颜效果（磨皮、美白等）仅会应用于检测到的皮肤区域，非皮肤区域保持不变。
+
+| 参数 | 说明 |
+| --- | --- |
+| `enabled` | `true` 启用皮肤区域美颜，`false` 美颜作用于整张图像 |
+
+```cpp
+// 启用美颜仅作用于皮肤区域
+engine->SetSkinOnlyBeauty(true);
+
+// 禁用美颜仅作用于皮肤区域
+engine->SetSkinOnlyBeauty(false);
+```
+
+---
+
+#### 滤镜管理
+
+##### `SetFilter`
+
+```cpp
+virtual int SetFilter(const std::string& filter_id) = 0;
+```
+
+应用指定滤镜。传入空字符串清除当前滤镜。
+
+```cpp
+engine->SetFilter("chuxin");  // 应用滤镜
+engine->SetFilter("");        // 清除滤镜
+```
+
+##### `SetFilterIntensity`
+
+```cpp
+virtual int SetFilterIntensity(float intensity) = 0;
+```
+
+设置当前滤镜强度 `[0.0, 1.0]`。
+
+```cpp
+engine->SetFilterIntensity(0.8f);
+```
+
+##### `RegisterFilter`
+
+```cpp
+virtual int RegisterFilter(const std::string& filter_id,
+                           const std::string& fbd_file_path) = 0;
+virtual int RegisterFilter(const std::string& filter_id,
+                           const std::vector<uint8_t>& fbd_data) = 0;
+```
+
+注册自定义滤镜资源（`.fbd` 文件路径或内存数据）。注册后即可通过 ID 使用。
+
+```cpp
+engine->RegisterFilter("my_filter", "assets/filters/my_filter.fbd");
+engine->SetFilter("my_filter");
+```
+
+##### `UnregisterFilter` / `UnregisterAllFilters`
+
+```cpp
+virtual int UnregisterFilter(const std::string& filter_id) = 0;
+virtual int UnregisterAllFilters() = 0;
+```
+
+卸载已注册的滤镜，释放相关资源。
+
+##### `GetRegisteredFilters`
+
+```cpp
+virtual std::vector<std::string> GetRegisteredFilters() const = 0;
+```
+
+返回所有已注册滤镜的 ID 列表。
+
+---
+
+#### 贴纸管理
+
+##### `SetSticker`
+
+```cpp
+virtual int SetSticker(const std::string& sticker_id) = 0;
+```
+
+应用指定贴纸。传入空字符串清除当前贴纸。
+
+```cpp
+engine->SetSticker("rabbit");  // 应用贴纸
+engine->SetSticker("");        // 清除贴纸
+```
+
+##### `RegisterSticker`
+
+```cpp
+virtual int RegisterSticker(const std::string& sticker_id,
+                            const std::string& fbd_file_path) = 0;
+virtual int RegisterSticker(const std::string& sticker_id,
+                            const std::vector<uint8_t>& fbd_data) = 0;
+```
+
+注册自定义贴纸资源（`.fbd` 文件路径或内存数据）。
+
+```cpp
+engine->RegisterSticker("my_sticker", "assets/stickers/my_sticker.fbd");
+engine->SetSticker("my_sticker");
+```
+
+##### `UnregisterSticker` / `UnregisterAllStickers`
+
+```cpp
+virtual int UnregisterSticker(const std::string& sticker_id) = 0;
+virtual int UnregisterAllStickers() = 0;
+```
+
+##### `GetRegisteredStickers`
+
+```cpp
+virtual std::vector<std::string> GetRegisteredStickers() const = 0;
+```
+
+---
+
+#### 回调
+
+##### `SetCallbacks`
+
+```cpp
+virtual int SetCallbacks(const EngineCallbacks& callbacks) = 0;
+```
+
+注册引擎事件和数据回调。
+
+| 回调字段 | 类型 | 说明 |
+| --- | --- | --- |
+| `on_face_landmarks` | `function<void(const vector<FaceDetectionResult>&)>` | 每帧人脸关键点回调 |
+| `on_engine_event` | `function<void(int code, const string& message)>` | 引擎事件（授权、初始化等） |
+
+```cpp
+EngineCallbacks cbs;
+
+// 人脸关键点回调（每帧触发）
+cbs.on_face_landmarks = [](const std::vector<FaceDetectionResult>& results) {
+    for (const auto& face : results) {
+        std::cout << "Face ID: " << face.face_id
+                  << ", Score: " << face.score << std::endl;
+        // face.key_points 包含 111 个归一化坐标
+    }
+};
+
+// 引擎事件回调
+cbs.on_engine_event = [](int code, const std::string& msg) {
+    if (code == 0)
+        std::cout << "[Engine] Event: " << msg << std::endl;
+    else
+        std::cerr << "[Engine] Error " << code << ": " << msg << std::endl;
+};
+
+engine->SetCallbacks(cbs);
+```
+
+---
+
+#### 图像处理
+
+##### `ProcessImage`
+
+```cpp
+virtual const std::shared_ptr<ImageFrame> ProcessImage(
+    const std::shared_ptr<ImageFrame> image_frame) = 0;
+```
+
+对输入帧应用当前所有已配置的美颜效果，返回处理后的新帧。失败时返回 `nullptr`。
+
+| 参数 | 说明 |
+| --- | --- |
+| `image_frame` | 输入图像帧；`frame->type` 决定处理模式（见 `FrameType`） |
+
+**输出格式：** 引擎会尽量使输出格式与输入格式保持一致。
+
+```cpp
+auto input  = ImageFrame::CreateWithRGBA(data, width, height, stride);
+input->type = FrameType::Video;
+auto output = engine->ProcessImage(input);
+if (output && output->Data()) {
+    // 处理成功
+}
+```
+
+---
+
+#### 已废弃接口
+
+<Warning>
+**已弃用**
+
+以下接口在参数驱动模式下为空操作（no-op），保留仅为二进制兼容性，将在未来版本移除。
+</Warning>
+
+| 接口 | 说明 |
+| --- | --- |
+| `SetBeautyTypeEnabled(BeautyType, bool)` | 无效果，no-op |
+| `IsBeautyTypeEnabled(BeautyType) const` | 始终返回 `false` |
+| `DisableAllBeautyTypes()` | 无效果，no-op |
+
+---
+
+## 图像相关
+
+### Format
+
+图像像素格式枚举。
+
+```cpp
+enum class Format {
+  I420,     // YUV 4:2:0，12bpp，3 平面（Y、U、V）
+  NV12,     // YUV 4:2:0，12bpp，2 平面（Y + UV 交错）
+  NV21,     // YUV 4:2:0，12bpp，2 平面（Y + VU 交错，Android 默认）
+  BGRA,     // 32bpp，4 通道
+  RGBA,     // 32bpp，4 通道
+  BGR,      // 24bpp，3 通道
+  RGB,      // 24bpp，3 通道
+  Texture,  // GPU 纹理（OpenGL）
+};
+```
+
+### Rotation
+
+图像旋转角度枚举。
+
+```cpp
+enum class Rotation {
+  Rotation_0,    // 0 度（不旋转）
+  Rotation_90,   // 顺时针旋转 90 度
+  Rotation_180,  // 顺时针旋转 180 度
+  Rotation_270,  // 顺时针旋转 270 度
+};
+```
+
+### FrameType
+
+帧类型枚举，通过 `frame->type` 字段设置。
+
+```cpp
+enum class FrameType {
+  Image = 0,  // 图片模式：单张图片处理（每帧独立进行人脸检测）
+  Video = 1   // 视频模式：实时视频流（启用时序优化，默认值）
+};
+```
+
+---
+
+### ImageFrame
+
+图像帧类，提供创建、转换和操作图像数据的功能。不可复制/赋值。
+
+**线程安全：** `ImageFrame` 不保证线程安全，同一实例不应在多线程中同时调用 `Rotate` / `Mirror` / `Convert` 等操作。
+
+#### 静态创建方法
+
+##### `CreateWithFile`
+
+```cpp
+static std::shared_ptr<ImageFrame> CreateWithFile(const std::string& file_path);
+```
+
+从图片文件创建帧，支持 JPEG、PNG、BMP。失败返回 `nullptr`。
+
+```cpp
+auto frame = ImageFrame::CreateWithFile("input.jpg");
+```
+
+##### `Create`（通用方法）
+
+```cpp
+static std::shared_ptr<ImageFrame> Create(
+    const uint8_t* data, int width, int height, Format format);
+```
+
+从内存创建单平面格式帧（推荐用于 RGBA / BGRA / RGB / BGR）。  
+> 多平面 YUV 格式（I420/NV12/NV21）建议使用对应的专用方法。
+
+##### `CreateWithRGBA`
+
+```cpp
+static std::shared_ptr<ImageFrame> CreateWithRGBA(
+    const uint8_t* data, int width, int height, int stride);
+```
+
+从内存 RGBA 数据创建。
+
+```cpp
+auto frame = ImageFrame::CreateWithRGBA(rgba_ptr, 1280, 720, 1280 * 4);
+```
+
+##### `CreateWithBGRA`
+
+```cpp
+static std::shared_ptr<ImageFrame> CreateWithBGRA(
+    const uint8_t* data, int width, int height, int stride);
+```
+
+##### `CreateWithRGB`
+
+```cpp
+static std::shared_ptr<ImageFrame> CreateWithRGB(
+    const uint8_t* data, int width, int height, int stride);
+```
+
+##### `CreateWithBGR`
+
+```cpp
+static std::shared_ptr<ImageFrame> CreateWithBGR(
+    const uint8_t* data, int width, int height, int stride);
+```
+
+##### `CreateWithI420`
+
+```cpp
+static std::shared_ptr<ImageFrame> CreateWithI420(
+    int width, int height,
+    const uint8_t* dataY, int strideY,
+    const uint8_t* dataU, int strideU,
+    const uint8_t* dataV, int strideV);
+```
+
+从 I420（YUV 4:2:0，3 平面）数据创建。
+
+```cpp
+auto frame = ImageFrame::CreateWithI420(
+    1280, 720,
+    y_ptr, y_stride,
+    u_ptr, u_stride,
+    v_ptr, v_stride);
+```
+
+##### `CreateWithNV12`
+
+```cpp
+static std::shared_ptr<ImageFrame> CreateWithNV12(
+    int width, int height,
+    const uint8_t* dataY, int strideY,
+    const uint8_t* dataUV, int strideUV);
+```
+
+从 NV12（Y + UV 交错）数据创建。
+
+##### `CreateWithNV21`
+
+```cpp
+static std::shared_ptr<ImageFrame> CreateWithNV21(
+    int width, int height,
+    const uint8_t* dataY, int strideY,
+    const uint8_t* dataUV, int strideUV);
+```
+
+从 NV21（Y + VU 交错）数据创建。
+
+##### `CreateWithTexture`
+
+```cpp
+static std::shared_ptr<ImageFrame> CreateWithTexture(
+    uint32_t texture, int width, int height, int stride);
+```
+
+从 OpenGL 纹理句柄创建帧（`Format::Texture`），用于 GPU 纹理输入。
+
+```cpp
+auto frame = ImageFrame::CreateWithTexture(gl_texture_id, 1280, 720, 0);
+```
+
+##### `CreateWithAndroid420`
+
+```cpp
+static std::shared_ptr<ImageFrame> CreateWithAndroid420(
+    int width, int height,
+    uint8_t* yBuffer,  int strideY,
+    uint8_t* uBuffer,  int strideU,
+    uint8_t* vBuffer,  int strideV,
+    int pixelStrideUV);
+```
+
+从 Android Camera2 `YUV_420_888` 格式创建（主要用于 Android 平台）。
+
+---
+
+#### 图像操作方法
+
+##### `Rotate`
+
+```cpp
+int Rotate(Rotation rotation);
+```
+
+原地旋转图像。返回 `0` 成功，非零失败。
+
+```cpp
+frame->Rotate(Rotation::Rotation_90);
+```
+
+##### `Mirror`
+
+```cpp
+int Mirror(const std::string& mode);
+```
+
+原地镜像图像。`mode` 值（不区分大小写）：`"horizontal"`、`"vertical"`、`"both"`。
+
+```cpp
+frame->Mirror("horizontal");  // 水平镜像
+```
+
+##### `SetMirror`
+
+```cpp
+void SetMirror(const std::string& mode);
+```
+
+设置镜像标志，仅在下次 `ProcessImage` 时由引擎执行镜像操作（避免额外的格式转换）。  
+传入空字符串 `""` 清除标志。
+
+```cpp
+frame->SetMirror("horizontal");  // 标记为水平镜像，引擎处理时执行
+```
+
+##### `Convert`
+
+```cpp
+std::shared_ptr<ImageFrame> Convert(Format format) const;
+```
+
+将当前帧转换为指定格式，返回新的 `ImageFrame`。若目标格式与当前格式相同，返回共享底层 buffer 的等价帧。失败返回 `nullptr`。
+
+```cpp
+auto rgba_frame = frame->Convert(Format::RGBA);
+auto i420_frame = frame->Convert(Format::I420);
+```
+
+##### `ToFile`
+
+```cpp
+int ToFile(const std::string& path, int quality = 90) const;
+```
+
+将图像保存到文件。`quality` 为 JPEG 质量参数（`1`–`100`），默认 `90`。返回 `0` 成功。
+
+```cpp
+output->ToFile("output.jpg", 95);
+output->ToFile("output.png");  // PNG 忽略 quality 参数
+```
+
+---
+
+#### 数据访问
+
+| 方法 | 说明 |
+| --- | --- |
+| `Width() const` | 图像宽度（像素） |
+| `Height() const` | 图像高度（像素） |
+| `Stride() const` | 行步长（字节） |
+| `Size() const` | 像素数据总大小（字节） |
+| `GetFormat() const` | 当前像素格式（`Format` 枚举） |
+| `Data() const` | 原始像素数据指针（单平面格式） |
+| `DataY() const` | Y 平面数据指针（I420 专用） |
+| `DataU() const` | U 平面数据指针（I420 专用） |
+| `DataV() const` | V 平面数据指针（I420 专用） |
+| `StrideY() const` | Y 平面行步长（I420 专用） |
+| `StrideU() const` | U 平面行步长（I420 专用） |
+| `StrideV() const` | V 平面行步长（I420 专用） |
+| `DataUV() const` | UV 平面数据指针（NV12/NV21 专用） |
+| `StrideUV() const` | UV 平面行步长（NV12/NV21 专用） |
+| `Texture() const` | OpenGL 纹理句柄（`Texture` 格式专用），无纹理返回 `0` |
+| `Buffer() const` | 底层 `ImageBuffer` 智能指针（高级用法） |
+| `MirrorHorizontal() const` | 是否设置了水平镜像标志 |
+| `MirrorVertical() const` | 是否设置了垂直镜像标志 |
+
+#### 公共字段
+
+| 字段 | 类型 | 默认值 | 说明 |
+| --- | --- | --- | --- |
+| `type` | `FrameType` | `FrameType::Video` | 处理模式：视频流或单张图片 |
+
+---
+
+## 回调与事件
+
+### EngineEventCode
+
+引擎事件码枚举。
+
+```cpp
+enum class EngineEventCode {
+  LicenseValidationSuccess   = 0,    // 授权验证成功
+  LicenseValidationFailed    = 1,    // 授权验证失败（message 包含详细原因）
+  EngineInitializationComplete = 100, // 引擎初始化完成（滤镜已加载）
+  EngineInitializationFailed = 101,  // 引擎初始化失败
+};
+```
+
+### EngineCallbacks
+
+引擎回调函数集合结构体。
+
+```cpp
+struct EngineCallbacks {
+  // 人脸关键点回调（每帧触发，results 可能为空）
+  std::function<void(const std::vector<FaceDetectionResult>& results)>
+      on_face_landmarks = nullptr;
+
+  // 引擎事件回调（授权验证、初始化状态等）
+  std::function<void(int code, const std::string& message)>
+      on_engine_event = nullptr;
+};
+```
+
+---
+
+## 数据结构
+
+### Point2d
+
+二维坐标点，坐标归一化到 `[0.0, 1.0]`。
+
+```cpp
+struct Point2d {
+  float x;  // X 坐标
+  float y;  // Y 坐标
+};
+```
+
+### Rect
+
+归一化矩形区域。
+
+```cpp
+struct Rect {
+  float x;       // 左上角 X 坐标（归一化）
+  float y;       // 左上角 Y 坐标（归一化）
+  float width;   // 宽度（归一化）
+  float height;  // 高度（归一化）
+};
+```
+
+### FaceDetectionResult
+
+单张人脸的检测结果。
+
+**字段说明：**
+- `rect`：人脸 ROI 区域（归一化矩形）
+- `key_points`：111 个归一化人脸关键点坐标（`vector<Point2d>`）
+- `visibility`：111 个关键点的可见度评分 `[0.0, 1.0]`（`vector<float>`）
+- `face_id`：人脸唯一 ID（跨帧追踪），未检测到为 `-1`
+- `face_action`：人脸动作位掩码（如张嘴、眨眼），未检测到为 `-1`
+- `score`：人脸置信度 `[0.0, 1.0]`
+- `pitch`：俯仰角（上仰为负，下低为正），范围 `[-π, π]`
+- `roll`：翻滚角（左倾为负，右倾为正），范围 `[-π, π]`
+- `yaw`：偏航角（左转为负，右转为正），范围 `[-π, π]`
+
+```cpp
+struct FaceDetectionResult {
+  Rect               rect;
+  std::vector<Point2d> key_points;
+  std::vector<float>   visibility;
+  int   face_id     = -1;
+  int   face_action = -1;
+  float score       = 0.0f;
+  float pitch       = 0.0f;
+  float roll        = 0.0f;
+  float yaw         = 0.0f;
+};
+```
+
+**使用示例：**
+
+```cpp
+cbs.on_face_landmarks = [](const std::vector<FaceDetectionResult>& faces) {
+    for (const auto& face : faces) {
+        // 打印每张人脸的关键点数量和置信度
+        printf("face_id=%d, score=%.2f, keypoints=%zu\n",
+               face.face_id, face.score, face.key_points.size());
+
+        // 访问第 0 个关键点（鼻尖附近）
+        if (!face.key_points.empty()) {
+            const auto& pt = face.key_points[0];
+            printf("  point[0]: (%.3f, %.3f)\n", pt.x, pt.y);
+        }
+    }
+};
+```
+
+---
+
+## 美颜参数枚举
+
+### BeautyType
+
+```cpp
+enum class BeautyType {
+  Basic = 0,         // 基础美颜
+  Reshape,           // 美型
+  Makeup,            // 美妆
+  VirtualBackground, // 虚拟背景
+  ChromaKey,         // 绿幕抠图
+  Filter,            // 滤镜（LUT）
+  Sticker,           // 贴纸特效
+};
+```
+
+### beauty_params::Basic
+
+```cpp
+enum class Basic {
+  Smoothing  = 0,  // 磨皮
+  Sharpening,      // 锐化
+  Whitening,       // 美白
+  Rosiness,        // 红润
+};
+```
+
+### beauty_params::Reshape
+
+```cpp
+enum class Reshape {
+  FaceThin    = 0,  // 瘦脸
+  FaceVShape,       // V脸
+  FaceNarrow,       // 窄脸
+  FaceShort,        // 短脸
+  Cheekbone,        // 瘦颧骨
+  Jawbone,          // 瘦下颌
+  Chin,             // 瘦下巴
+  NoseSlim,         // 瘦鼻梁
+  EyeSize,          // 大眼
+  EyeDistance,      // 眼距
+};
+```
+
+### beauty_params::Makeup
+
+```cpp
+enum class Makeup {
+  Lipstick,  // 口红
+  Blush,     // 腮红
+};
+```
+
+### beauty_params::ChromaKey
+
+```cpp
+enum class ChromaKey {
+  KeyColor    = 0,  // 键控颜色：0=绿色，1=蓝色，2=红色
+  Similarity,       // 相似度阈值 [0.0, 1.0]
+  Smoothness,       // 边缘平滑度 [0.0, 1.0]
+  Desaturation,     // 去饱和度 [0.0, 1.0]
+};
+```
+
+### beauty_params::BackgroundMode
+
+```cpp
+enum class BackgroundMode {
+  None  = 0,  // 关闭虚拟背景
+  Blur,       // 背景模糊
+  Image,      // 背景图片替换
+};
+```
+
+### beauty_params::VirtualBackgroundOptions
+
+```cpp
+struct VirtualBackgroundOptions {
+  BackgroundMode mode = BackgroundMode::None;
+  std::shared_ptr<const ImageFrame> background_image = nullptr;
+
+  VirtualBackgroundOptions() = default;
+  explicit VirtualBackgroundOptions(BackgroundMode m) : mode(m) {}
+};
+```
+
+---
+
+## 使用注意事项
+
+### 线程安全
+`BeautyEffectEngine` 不是线程安全的，多线程环境下需要在调用侧加锁。
+
+### 内存管理
+所有工厂方法（`Create`、`CreateWithXxx`）返回 `std::shared_ptr`，内存由智能指针自动管理，无需手动释放。
+
+### 数据只读
+`Data()` 等返回的指针为只读指针，不可直接修改像素数据。需要修改时，应创建新的 `ImageFrame`。
+
+### `SetRenderView` 不适用
+该方法仅在 iOS / macOS 平台有效，Windows 和 Linux 上请勿调用。

@@ -1,0 +1,199 @@
+---
+title: "Changelog"
+description: "Facebetter SDK Release Note"
+---
+
+## v1.5.1
+
+2026-08-03
+
+1. fix: with `SetSkinOnlyBeauty` enabled, processing images of varying resolutions could cause a memory out-of-bounds access (on Web: `memory access out of bounds`; only a full page reload recovered)
+2. improvement: inference performance
+
+## v1.5.0
+
+2026-07-30
+
+1. feature: offline license — download from the Dashboard and initialize with `licenseJson` (no network required; all platforms)
+2. docs: add [License & Auth](./license) guide for online and offline authentication
+
+## v1.4.7
+
+2026-07-29
+
+1. feature: lipstick and blush style selection APIs
+2. improvement: plan renewals / upgrades take effect immediately on the next online auth
+3. fix: Web `SetSkinOnlyBeauty` crash
+4. fix: rare crashes and black-frame issues during image processing
+
+## v1.4.6
+
+2026-06-22
+
+1. improvement: more stable face tracking when the face moves quickly
+
+## v1.4.5
+
+2026-06-09
+
+1. platform: Flutter SDK for Android and iOS
+2. docs: Flutter documentation
+3. fix: stickers could show a black screen in external texture mode
+
+## v1.4.4
+
+2026-06-02
+
+1. fix: filters and stickers not applying correctly in external texture mode
+2. fix: iOS RGBA texture output in external texture mode
+
+## v1.4.3
+
+2026-05-04
+
+1. feature: lipstick and blush makeup effects
+2. feature: additional built-in stickers
+3. fix: remove-sticker API not taking effect in some cases
+
+## v1.4.2
+
+2026-04-23
+
+1. fix: Web license validation edge cases
+
+## v1.4.1
+
+2026-04-12
+
+1. platform: Windows SDK includes both 32-bit and 64-bit libraries
+
+## v1.4.0
+
+2026-03-24
+
+1. feature: skin segmentation — new `SetSkinOnlyBeauty` API to apply beauty only on skin areas
+
+## v1.3.2
+
+2026-03-10
+
+1. improvement: free version displays watermark after 10 minutes
+2. platform: added Windows SDK and Linux SDK support
+
+## v1.3.1
+
+2026-03-03
+
+1. web: web npm version upgraded to 1.3.0
+2. improvement: added mirror interface documentation
+3. deprecation: deprecated enable beauty type interface
+
+## v1.3.0
+
+2026-02-20
+
+1. improvement: optimized processing performance
+2. platform: Android supports Maven repository dependency
+3. platform: iOS and macOS Demo support CocoaPods installation
+4. feature: support style filters and stickers
+5. docs: updated filter and sticker development documentation
+
+## v1.2.5
+
+2026-01-15
+
+1. improvement: optimized authentication and reporting logic
+2. platform: support WebAssembly authentication and reporting
+
+## v1.2.2
+
+2026-01-08
+
+1. feature: free version limited to 5000 calls per month
+2. feature: support pay-as-you-go billing
+
+## v1.2.1
+
+2025-12-20
+
+1. feature: added watermark filter
+2. improvement: network verification changed to async + callback notification
+3. price: price plan adjustment, added Ultra tier
+
+## v1.2.0
+
+2025-12-01
+
+1. platform: full platform support (Android, iOS, macOS, Windows, Linux, Web)
+2. feature: virtual background
+3. feature: style filters
+4. feature: sticker effects
+5. feature: online authentication upgrade
+6. improvement: optimized keypoint stability
+
+## v1.1.3
+
+2025-11-10
+
+1. feature: free version limited to 5000 calls per month
+2. feature: pay-as-you-go billing
+
+## v1.1.2
+
+2025-10-28
+
+1. improvement: optimized keypoint stability
+2. fix: fixed keypoint jitter issue
+
+## v1.1.1
+
+2025-10-15
+
+1. feature: LUT filter
+2. feature: face keypoint callback
+3. feature: green screen matting
+4. feature: support binding app ID
+5. feature: online authentication v2
+6. feature: multi-project support
+
+## v1.1.0
+
+2025-09-20
+
+1. feature: support external texture processing
+2. improvement: optimized API usability
+
+## v1.0.6
+
+2025-09-05
+
+1. improvement: optimized Android, iOS and macOS Demo
+2. fix: fixed Android layout display issue
+3. platform: added Android camera permission check
+
+## v1.0.5
+
+2025-08-18
+
+1. improvement: optimized beauty parameter adjustment
+
+## v1.0.4
+
+2025-08-01
+
+1. improvement: optimized face detection accuracy
+2. improvement: resource file size optimization
+
+## v1.0.3
+
+2025-07-15
+
+1. fix: fixed makeup only applying to one face when multiple faces detected
+
+## v1.0.2
+
+2025-07-01
+
+1. feature: virtual background support
+2. web: Web Chinese and English documentation
+3. web: npm installation support

@@ -1,0 +1,105 @@
+---
+title: "API 参考"
+description: "Linux 平台 Facebetter SDK C++ API 参考"
+---
+
+Linux 平台使用的 C++ SDK 接口与 Windows 平台**完全相同**，请参阅：
+
+👉 [Windows C++ API 参考](/zh/windows/api-reference)
+
+以下仅列出 Linux 平台特有的注意事项。
+
+---
+
+## Linux 特有注意事项
+
+### 动态库加载
+
+Linux 上 SDK 以共享库 `libfacebetter.so` 形式发布。运行时需确保系统可以找到该库：
+
+```bash
+# 方法一：设置 LD_LIBRARY_PATH（推荐开发/测试阶段）
+export LD_LIBRARY_PATH=/path/to/facebetter-sdk/lib:$LD_LIBRARY_PATH
+./your_app
+
+# 方法二：将库目录写入 /etc/ld.so.conf（系统级安装）
+echo "/path/to/facebetter-sdk/lib" | sudo tee /etc/ld.so.conf.d/facebetter.conf
+sudo ldconfig
+
+# 方法三：安装到系统库目录
+sudo cp libfacebetter.so /usr/local/lib/
+sudo ldconfig
+```
+
+### CMake 链接配置
+
+在 `CMakeLists.txt` 中链接 SDK：
+
+```cmake
+# 设置头文件路径
+target_include_directories(your_target PRIVATE
+    /path/to/facebetter-sdk/include
+)
+
+# 链接共享库
+target_link_libraries(your_target PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/lib/libfacebetter.so
+    # OpenGL 相关依赖
+    GL
+    glfw
+)
+```
+
+### OpenGL 环境
+
+Linux 上使用 SDK 需要有效的 OpenGL 上下文。请确保已安装必要的图形库：
+
+```bash
+# Ubuntu / Debian
+sudo apt install libgl1-mesa-dev libglu1-mesa-dev libglfw3-dev
+
+# Fedora / RHEL
+sudo dnf install mesa-libGL-devel mesa-libGLU-devel glfw-devel
+```
+
+如在无头（headless）服务器环境运行，可使用 Mesa 的离屏渲染：
+
+```bash
+# Ubuntu / Debian
+sudo apt install libosmesa6-dev
+```
+
+### `external_context` 字段
+
+在 Linux 上，如果应用程序已经管理了 OpenGL 上下文（例如使用 GLFW），请设置：
+
+```cpp
+EngineConfig cfg;
+cfg.external_context = true;  // 使用调用方提供的 GL 上下文
+```
+
+设置为 `true` 时，SDK 不会创建内部 GL 上下文，所有 GPU 调用将在当前线程的已激活上下文中执行。
+
+### `SetRenderView` 不适用
+
+该方法仅在 iOS / macOS 平台有效，Linux 上请勿调用。
+
+### DISPLAY 环境变量
+
+使用 GLFW 显示窗口时需要 X11 或 Wayland 显示服务器，确保环境变量已设置：
+
+```bash
+echo $DISPLAY   # 应输出类似 :0 或 :1
+```
+
+若在 SSH 会话中运行，需开启 X11 转发：
+
+```bash
+ssh -X user@host
+```
+
+---
+
+## 完整 API 文档
+
+所有方法、枚举、结构体的完整说明，请参阅 [Windows C++ API 参考](/zh/windows/api-reference)，该文档同样适用于 Linux 平台。

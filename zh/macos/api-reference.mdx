@@ -1,0 +1,410 @@
+---
+title: "API 参考"
+description: "macOS API 参考"
+---
+
+## 日志相关
+
+### 日志级别
+
+日志级别枚举，用于控制日志输出级别。
+
+```objc
+typedef NS_ENUM(NSInteger, FBLogLevel) {
+  FBLogLevel_Trace = 0,
+  FBLogLevel_Debug,
+  FBLogLevel_Info,
+  FBLogLevel_Warn,
+  FBLogLevel_Error,
+  FBLogLevel_Critical,
+};
+```
+
+### 日志配置类
+
+日志配置类，用于配置日志输出方式和级别。
+
+**字段说明：**
+- `consoleEnabled`: 是否启用控制台输出
+- `fileEnabled`: 是否启用文件输出
+- `level`: 日志级别
+- `fileName`: 日志文件路径（仅在 `fileEnabled` 为 `YES` 时有效）
+
+```objc
+FB_OBJC_API @interface FBLogConfig : NSObject
+
+@property(nonatomic, assign) BOOL consoleEnabled;
+@property(nonatomic, assign) BOOL fileEnabled;
+@property(nonatomic, assign) FBLogLevel level;
+@property(nonatomic, copy, nullable) NSString* fileName;
+
+- (instancetype)init;
+
+@end
+```
+
+## 引擎相关
+
+
+### 引擎配置
+
+引擎配置类，用于初始化美颜引擎。
+
+**字段说明：**
+- `appId`: 应用 ID（可选，如果提供了 `licenseJson` 则不需要）
+- `appKey`: 应用密钥（可选，如果提供了 `licenseJson` 则不需要）
+- `licenseJson`: 授权数据 JSON 字符串（可选，如果提供了则优先使用，不需要 `appId` 和 `appKey`）
+- `externalContext`: 是否使用外部 OpenGL 上下文（默认 `NO`）
+  - `YES`: 使用调用方提供的 GL 上下文，SDK 不再创建/管理内部上下文
+  - `NO`: 使用内部默认上下文
+
+**验证方式优先级：**
+- 如果 `licenseJson` 不为空，使用授权数据验证（支持在线响应和离线授权）
+- 否则使用 `appId` 和 `appKey` 进行自动联网验证
+
+```objc
+FB_OBJC_API @interface FBEngineConfig : NSObject
+
+@property(nonatomic, copy) NSString* appId;
+@property(nonatomic, copy) NSString* appKey;
+@property(nonatomic, copy, nullable) NSString* licenseJson;  // 授权数据JSON字符串（可选）
+@property(nonatomic, assign) BOOL externalContext;  // 是否使用外部 OpenGL 上下文
+
+- (instancetype)init;
+@end
+```
+
+### 引擎接口
+
+美颜效果引擎主类，提供美颜功能的入口。
+
+**静态方法：**
+- `setLogConfig:`: 设置日志配置
+
+**实例方法：**
+
+#### 美颜类型控制（已弃用）
+
+<Warning>
+**已弃用**
+
+以下接口已弃用，请使用 `setBasicParam`、`setVirtualBackground`、`setFilter`、`setSticker` 等参数驱动接口。
+</Warning>
+
+- `setBeautyTypeEnabled:enabled:`: [已弃用] 启用或禁用美颜类型（参数驱动模式下无效果）
+- `isBeautyTypeEnabled:`: [已弃用] 检查美颜类型是否已启用（始终返回 NO）
+- `disableAllBeautyTypes`: [已弃用] 禁用所有美颜类型（请通过置零参数重置效果）
+
+#### 参数设置
+- `setBasicParam:floatValue:`: 设置基础美颜参数（范围 0.0 - 1.0）
+- `setReshapeParam:floatValue:`: 设置面部重塑参数（范围 0.0 - 1.0）
+- `setMakeupParam:floatValue:`: 设置美妆参数（范围 0.0 - 1.0）
+- `setLipstickStyle:`: 设置口红样式（Rouge / Coral / Pink）
+- `setBlushStyle:`: 设置腮红样式（Classic / Peach / Rose）
+- `setSkinOnlyBeauty:`: 设置美颜是否仅作用于皮肤区域
+  - 参数：`enabled` 为 `YES` 时启用皮肤区域美颜，为 `NO` 时美颜作用于整张图像
+- `setChromaKeyParam:floatValue:`: 设置绿幕抠图参数
+- `setVirtualBackground:`: 设置虚拟背景参数
+
+#### 滤镜与贴纸管理
+- `setFilter:`: 设置当前使用的滤镜 ID（如 `"chuxin"`），传空字符串可清除滤镜
+- `setFilterIntensity:`: 设置当前滤镜的强度（范围 0.0 - 1.0）
+- `setSticker:`: 设置当前使用的贴纸 ID，传空字符串可清除贴纸
+- `registerFilter:fbdFilePath:`: 从文件路径注册滤镜资源
+- `registerFilter:fbdData:`: 从内存数据注册滤镜资源
+- `registerSticker:fbdFilePath:`: 从文件路径注册贴纸资源
+- `registerSticker:fbdData:`: 从内存数据注册贴纸资源
+- `unregisterFilter:`: 注销指定滤镜并释放资源
+- `unregisterAllFilters`: 注销所有滤镜
+- `unregisterSticker:`: 注销指定贴纸并释放资源
+- `unregisterAllStickers`: 注销所有贴纸
+- `getRegisteredFilters`: 获取已注册的滤镜 ID 列表
+- `getRegisteredStickers`: 获取已注册的贴纸 ID 列表
+
+#### 图像处理
+- `processImage:`: 处理图像帧
+  - 帧类型通过 `imageFrame.type` 属性获取（`FBFrameTypeImage` 或 `FBFrameTypeVideo`）
+  - 处理后的图像帧会保持相同的帧类型
+
+**返回值说明：**
+- 方法返回 `int` 类型：`0` 表示成功，其他值表示错误码
+- `processImage:` 返回 `FBImageFrame`：处理后的图像帧，失败时返回 `nil`
+
+```objc
+FB_OBJC_API @interface FBBeautyEffectEngine : NSObject
+
++ (int)setLogConfig:(FBLogConfig*)config;
++ (instancetype)createEngineWithConfig:(FBEngineConfig*)config;
+
+- (int)setBasicParam:(FBBasicParam)param floatValue:(float)value;
+- (int)setReshapeParam:(FBReshapeParam)param floatValue:(float)value;
+- (int)setMakeupParam:(FBMakeupParam)param floatValue:(float)value;
+- (int)setLipstickStyle:(FBLipstickStyle)style;
+- (int)setBlushStyle:(FBBlushStyle)style;
+- (int)setSkinOnlyBeauty:(BOOL)enabled;
+- (int)setVirtualBackground:(FBVirtualBackgroundOptions*)options;
+
+- (int)setFilter:(NSString *)filterId;
+- (int)setFilterIntensity:(float)intensity;
+- (int)setSticker:(NSString *)stickerId;
+
+- (int)registerFilter:(NSString *)filterId fbdFilePath:(NSString *)fbdFilePath;
+- (int)registerSticker:(NSString *)stickerId fbdFilePath:(NSString *)fbdFilePath;
+
+- (int)unregisterFilter:(NSString *)filterId;
+- (int)unregisterAllFilters;
+- (int)unregisterSticker:(NSString *)stickerId;
+- (int)unregisterAllStickers;
+
+- (NSArray<NSString *> *)getRegisteredFilters;
+- (NSArray<NSString *> *)getRegisteredStickers;
+
+- (FBImageFrame* _Nullable)processImage:(FBImageFrame*)imageFrame;
+
+// Deprecated APIs
+- (int)setBeautyTypeEnabled:(FBBeautyType)type enabled:(BOOL)enabled;
+- (BOOL)isBeautyTypeEnabled:(FBBeautyType)type;
+- (int)disableAllBeautyTypes;
+
+@end
+```
+
+## 美颜参数
+
+美颜参数枚举类，包含所有美颜相关的参数类型定义。
+
+### 美颜类型
+
+定义可用的美颜功能类型。
+
+```objc
+typedef NS_ENUM(NSInteger, FBBeautyType) {
+  FBBeautyType_Basic = 0,     // 基础美颜
+  FBBeautyType_Reshape,       // 面部重塑
+  FBBeautyType_Makeup,        // 美妆效果
+  FBBeautyType_VirtualBackground,  // 虚拟背景
+};
+```
+
+### 基础美颜参数
+
+基础美颜效果的参数类型，所有参数值范围均为 `0.0 - 1.0`。
+
+```objc
+typedef NS_ENUM(NSInteger, FBBasicParam) {
+  FBBasicParam_Smoothing = 0,  // 磨皮
+  FBBasicParam_Sharpening,     // 锐化
+  FBBasicParam_Whitening,      // 美白
+  FBBasicParam_Rosiness,       // 红润
+};
+```
+
+### 面部重塑参数
+
+面部重塑效果的参数类型，所有参数值范围均为 `0.0 - 1.0`。
+
+```objc
+typedef NS_ENUM(NSInteger, FBReshapeParam) {
+  FBReshapeParam_FaceThin = 0,  // 瘦脸
+  FBReshapeParam_FaceVShape,    // V脸
+  FBReshapeParam_FaceNarrow,    // 窄脸
+  FBReshapeParam_FaceShort,     // 短脸
+  FBReshapeParam_Cheekbone,     // 颧骨
+  FBReshapeParam_Jawbone,       // 下颌骨
+  FBReshapeParam_Chin,          // 下巴
+  FBReshapeParam_NoseSlim,      // 瘦鼻梁
+  FBReshapeParam_EyeSize,       // 大眼
+  FBReshapeParam_EyeDistance,   // 眼距
+};
+```
+
+### 美妆参数
+
+美妆效果的参数类型，所有参数值范围均为 `0.0 - 1.0`。
+
+```objc
+typedef NS_ENUM(NSInteger, FBMakeupParam) {
+  FBMakeupParam_Lipstick = 0,  // 口红
+  FBMakeupParam_Blush,         // 腮红
+};
+
+typedef NS_ENUM(NSInteger, FBLipstickStyle) {
+  FBLipstickStyle_Rouge = 0,  // 玫瑰红
+  FBLipstickStyle_Coral,      // 珊瑚橙
+  FBLipstickStyle_Pink,       // 粉色（默认）
+};
+
+typedef NS_ENUM(NSInteger, FBBlushStyle) {
+  FBBlushStyle_Classic = 0,  // 经典（默认）
+  FBBlushStyle_Peach,        // 蜜桃
+  FBBlushStyle_Rose,         // 玫瑰
+};
+```
+
+### 虚拟背景选项
+
+虚拟背景效果的配置选项。
+
+```objc
+FB_OBJC_API @interface FBVirtualBackgroundOptions : NSObject
+@property(nonatomic, assign) FBBackgroundMode mode;
+@property(nonatomic, strong, nullable) FBImageFrame *backgroundImage;
+
+- (instancetype)init;
+- (instancetype)initWithMode:(FBBackgroundMode)mode;
+@end;;
+```
+
+## 图像相关
+
+### FBImageFrame
+
+图像帧类，用于封装图像数据和处理。
+
+**创建方法：**
+- `createWithFile:`: 从文件创建（支持 PNG、JPG）
+- `createWithRGBA:width:height:stride:`: 从 RGBA 数据创建
+- `createWithBGRA:width:height:stride:`: 从 BGRA 数据创建
+- `createWithRGB:width:height:stride:`: 从 RGB 数据创建
+- `createWithBGR:width:height:stride:`: 从 BGR 数据创建
+- `createWithI420:...`: 从 I420 YUV 数据创建
+- `createWithNV12:...`: 从 NV12 YUV 数据创建
+- `createWithNV21:...`: 从 NV21 YUV 数据创建
+- `createWithTexture:width:height:stride:`: 从 GPU 纹理创建（外部纹理输入）
+- `createWithNSImage:`: 从 NSImage 创建（macOS 专用）
+
+**图像操作：**
+- `rotate:`: 旋转图像（返回 0 表示成功）
+- `mirror:`: 镜像图像（返回 0 表示成功）
+  - 参数：`mode` 镜像模式，可以是 "horizontal"（水平）、"vertical"（垂直）或 "both"（两者）（不区分大小写）
+- `setMirror:`: 设置引擎处理时的镜像模式（避免额外的格式转换）
+  - 参数：`mode` 镜像模式，可以是 "horizontal"（水平）、"vertical"（垂直）或 "both"（两者）（不区分大小写）
+  - 注意：这仅设置镜像标志，实际的镜像发生在引擎处理期间
+
+**格式转换与访问：**
+- `convert:`: 格式转换方法，返回转换后的 `FBImageFrame`
+- `toFile:quality:`: 保存图像到文件（指定质量 0-100）
+- `toFile:`: 保存图像到文件（使用默认质量 90）
+
+```objc
+FB_OBJC_API @interface FBImageFrame : NSObject
+
++ (FBImageFrame *_Nullable)createWithFile:(NSString *)filePath;
++ (FBImageFrame *_Nullable)createWithRGBA:(const uint8_t *)data
+                                    width:(int)width
+                                   height:(int)height
+                                   stride:(int)stride;
++ (FBImageFrame *_Nullable)createWithBGRA:(const uint8_t *)data
+                                    width:(int)width
+                                   height:(int)height
+                                   stride:(int)stride;
++ (FBImageFrame *_Nullable)createWithRGB:(const uint8_t *)data
+                                  width:(int)width
+                                 height:(int)height
+                                 stride:(int)stride;
++ (FBImageFrame *_Nullable)createWithBGR:(const uint8_t *)data
+                                  width:(int)width
+                                 height:(int)height
+                                 stride:(int)stride;
++ (FBImageFrame *_Nullable)createWithI420:(int)width
+                                   height:(int)height
+                                    dataY:(const uint8_t *)dataY
+                                  strideY:(int)strideY
+                                    dataU:(const uint8_t *)dataU
+                                  strideU:(int)strideU
+                                    dataV:(const uint8_t *)dataV
+                                  strideV:(int)strideV;
++ (FBImageFrame *_Nullable)createWithNV12:(int)width
+                                   height:(int)height
+                                    dataY:(const uint8_t *)dataY
+                                  strideY:(int)strideY
+                                   dataUV:(const uint8_t *)dataUV
+                                 strideUV:(int)strideUV;
++ (FBImageFrame *_Nullable)createWithNV21:(int)width
+                                   height:(int)height
+                                    dataY:(const uint8_t *)dataY
+                                  strideY:(int)strideY
+                                   dataUV:(const uint8_t *)dataUV
+                                 strideUV:(int)strideUV;
++ (FBImageFrame *_Nullable)createWithTexture:(uint32_t)texture
+                                      width:(int)width
+                                     height:(int)height
+                                     stride:(int)stride;
++ (FBImageFrame *_Nullable)createWithNSImage:(NSImage *)image;
+
+- (int)rotate:(FBImageRotation)rotation;
+- (int)mirror:(NSString *)mode;
+- (void)setMirror:(NSString *)mode;
+
+- (FBImageFrame *_Nullable)convert:(FBImageFormat)format;
+- (int)toFile:(NSString *)filePath quality:(int)quality;
+- (int)toFile:(NSString *)filePath;
+
+// 属性访问方法
+- (int32_t)width;
+- (int32_t)height;
+- (int32_t)stride;
+- (int32_t)size;
+- (const uint8_t *_Nullable)data;
+- (FBImageFormat)format;
+- (uint32_t)texture;
+
+@property(nonatomic, assign) FBFrameType type;
+
+// YUV 相关方法
+- (const uint8_t *_Nullable)dataY;
+- (const uint8_t *_Nullable)dataU;
+- (const uint8_t *_Nullable)dataV;
+- (const uint8_t *_Nullable)dataUV;
+- (int32_t)strideY;
+- (int32_t)strideU;
+- (int32_t)strideV;
+- (int32_t)strideUV;
+
+@end
+```
+
+### 枚举类型
+
+#### FBImageFormat
+
+图像格式枚举。
+
+```objc
+typedef NS_ENUM(NSInteger, FBImageFormat) {
+  FBImageFormatI420,
+  FBImageFormatNV12,
+  FBImageFormatNV21,
+  FBImageFormatBGRA,
+  FBImageFormatRGBA,
+  FBImageFormatBGR,
+  FBImageFormatRGB,
+  FBImageFormatTexture,
+};
+
+#### FBFrameType
+
+图像帧类型枚举，用于标识图像帧的处理模式。
+
+- `FBFrameTypeImage`: 图像模式，适合单张图片处理
+- `FBFrameTypeVideo`: 视频模式，适合视频流和直播场景，性能更优
+
+```objc
+typedef NS_ENUM(NSInteger, FBFrameType) {
+  FBFrameTypeImage = 0,  // 图像模式
+  FBFrameTypeVideo = 1   // 视频模式
+};
+```
+
+#### FBImageRotation
+
+图像旋转角度枚举。
+
+```objc
+typedef NS_ENUM(NSInteger, FBImageRotation) {
+  FBImageRotation0,    // 0度
+  FBImageRotation90,   // 顺时针旋转90度
+  FBImageRotation180,  // 顺时针旋转180度
+  FBImageRotation270,  // 顺时针旋转270度
+};
+```

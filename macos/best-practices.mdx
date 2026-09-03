@@ -1,0 +1,645 @@
+---
+title: "Best Practices"
+description: "macOS Beauty SDK Best Practices Guide"
+---
+
+## Performance Optimization
+
+### 1. Choose the Right Processing Mode
+
+**Video Mode (FBProcessModeVideo)**
+- Suitable for real-time video streams and live streaming scenarios
+- Better performance and faster processing speed
+- Recommended for camera preview, video calls, and similar scenarios
+
+**Image Mode (FBProcessModeImage)**
+- Suitable for single image processing
+- Higher quality and better effects
+- Recommended for photo editing and image beautification scenarios
+
+```objc
+// Real-time video processing
+FBImageFrame *output = [engine processImage:input processMode:FBProcessModeVideo];
+
+// High-quality image processing
+FBImageFrame *output = [engine processImage:input processMode:FBProcessModeImage];
+```
+
+### 2. Parameter Adjustment Recommendations
+
+**Beauty Parameter Adjustment Principles**
+- Start with smaller values to avoid over-beautification
+- Recommend reducing parameter values in real-time scenarios for smooth performance
+- Static images can have appropriately higher parameter values
+- Adjust parameter ranges based on user groups and scenarios
+
+**Recommended Parameter Ranges**
+```objc
+// Basic beauty parameters (real-time scenarios)
+[self.beautyEngine setBasicParam:FBBasicParam_Smoothing floatValue:0.2f];  // Smoothing
+[self.beautyEngine setBasicParam:FBBasicParam_Whitening floatValue:0.1f];  // Whitening
+[self.beautyEngine setBasicParam:FBBasicParam_Rosiness floatValue:0.1f];   // Rosiness
+
+// Face reshaping parameters (real-time scenarios)
+[self.beautyEngine setReshapeParam:FBReshapeParam_FaceThin floatValue:0.1f];    // Face thinning
+[self.beautyEngine setReshapeParam:FBReshapeParam_EyeSize floatValue:0.1f];     // Eye enlargement
+```
+
+### 3. Memory Optimization
+
+**Use ARC for Memory Management**
+```objc
+// Recommended: Use ARC automatic management
+@property (nonatomic, strong) FBImageFrame *reusableFrame;
+
+// Avoid: Manual memory management (unless necessary)
+// FBImageFrame *frame = [[FBImageFrame alloc] init];
+// [frame release];
+```
+
+**Release Resources Timely**
+```objc
+@interface BeautyProcessor : NSObject
+@property (nonatomic, strong) FBImageFrame *reusableFrame; // Reusable object
+@end
+
+@implementation BeautyProcessor
+
+- (FBImageFrame *)processImage:(NSData *)imageData {
+    // Reuse FBImageFrame object
+    if (self.reusableFrame == nil) {
+        self.reusableFrame = [FBImageFrame createWithRGBA:data width:width height:height stride:stride];
+    }
+    
+    // Process image
+    FBImageFrame *output = [self.beautyEngine processImage:self.reusableFrame processMode:FBProcessModeVideo];
+    
+    return output;
+}
+
+- (void)release {
+    self.reusableFrame = nil; // ARC will automatically release
+}
+
+@end
+```
+
+## Architecture Design
+
+### 1. Singleton Pattern for Engine Management
+
+```objc
+@interface BeautyEngineManager : NSObject
+@property (nonatomic, strong, readonly) FBBeautyEffectEngine *engine;
+
++ (instancetype)sharedManager;
+- (void)releaseEngine;
+@end
+
+@implementation BeautyEngineManager
+
++ (instancetype)sharedManager {
+    static BeautyEngineManager *instance = nil;
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{
+        instance = [[BeautyEngineManager alloc] init];
+    });
+    return instance;
+}
+
+- (instancetype)init {
+    self = [super init];
+    if (self) {
+        [self initEngine];
+    }
+    return self;
+}
+
+- (void)initEngine {
+    FBEngineConfig *config = [[FBEngineConfig alloc] init];
+    config.appId = @"your_app_id";
+    config.appKey = @"your_app_key";
+    _engine = [FBBeautyEffectEngine createEngineWithConfig:config];
+}
+
+- (void)releaseEngine {
+    _engine = nil;
+}
+
+@end
+```
+
+### 2. Asynchronous Image Processing
+
+```objc
+@interface AsyncBeautyProcessor : NSObject
+@property (nonatomic, strong) dispatch_queue_t processingQueue;
+@property (nonatomic, strong) FBBeautyEffectEngine *engine;
+@end
+
+@implementation AsyncBeautyProcessor
+
+- (instancetype)init {
+    self = [super init];
+    if (self) {
+        self.processingQueue = dispatch_queue_create("com.facebetter.processing", DISPATCH_QUEUE_SERIAL);
+        self.engine = [BeautyEngineManager sharedManager].engine;
+    }
+    return self;
+}
+
+- (void)processImageAsync:(FBImageFrame *)input completion:(void(^)(FBImageFrame *result, NSError *error))completion {
+    dispatch_async(self.processingQueue, ^{
+        @try {
+            FBImageFrame *output = [self.engine processImage:input processMode:FBProcessModeVideo];
+            
+            // Switch to main thread for callback
+            dispatch_async(dispatch_get_main_queue(), ^{
+                completion(output, nil);
+            });
+        } @catch (NSException *exception) {
+            NSError *error = [NSError errorWithDomain:@"FacebetterError" 
+                                                code:-1 
+                                            userInfo:@{NSLocalizedDescriptionKey: exception.reason}];
+            dispatch_async(dispatch_get_main_queue(), ^{
+                completion(nil, error);
+            });
+        }
+    });
+}
+
+@end
+```
+
+## Error Handling
+
+### 1. Comprehensive Error Handling Mechanism
+
+```objc
+@interface RobustBeautyProcessor : NSObject
+@property (nonatomic, strong) FBBeautyEffectEngine *engine;
+@end
+
+@implementation RobustBeautyProcessor
+
+- (BOOL)processImage:(FBImageFrame *)input output:(FBImageFrame *)output {
+    // Parameter validation
+    if (self.engine == nil) {
+        NSLog(@"Engine not initialized");
+        return NO;
+    }
+    
+    if (input == nil) {
+        NSLog(@"Invalid input image");
+        return NO;
+    }
+    
+    @try {
+        // Process image
+        FBImageFrame *result = [self.engine processImage:input processMode:FBProcessModeVideo];
+        if (result == nil) {
+            NSLog(@"Failed to process image");
+            return NO;
+        }
+        
+        // Copy result to output
+        [self copyImageFrame:result to:output];
+        
+        return YES;
+    } @catch (NSException *exception) {
+        NSLog(@"Exception during processing: %@", exception.reason);
+        return NO;
+    }
+}
+
+- (void)copyImageFrame:(FBImageFrame *)src to:(FBImageFrame *)dst {
+    // Implement image copying logic
+}
+
+@end
+```
+
+### 2. Retry Mechanism
+
+```objc
+@interface RetryBeautyProcessor : NSObject
+@property (nonatomic, strong) FBBeautyEffectEngine *engine;
+@end
+
+@implementation RetryBeautyProcessor
+
+static const int MAX_RETRY_COUNT = 3;
+static const NSTimeInterval RETRY_DELAY = 0.1;
+
+- (FBImageFrame *)processImageWithRetry:(FBImageFrame *)input {
+    for (int i = 0; i < MAX_RETRY_COUNT; i++) {
+        @try {
+            FBImageFrame *result = [self.engine processImage:input processMode:FBProcessModeVideo];
+            if (result != nil) {
+                return result;
+            }
+        } @catch (NSException *exception) {
+            NSLog(@"Attempt %d failed: %@", i + 1, exception.reason);
+        }
+        
+        if (i < MAX_RETRY_COUNT - 1) {
+            [NSThread sleepForTimeInterval:RETRY_DELAY];
+        }
+    }
+    
+    NSLog(@"All retry attempts failed");
+    return nil;
+}
+
+@end
+```
+
+## Lifecycle Management
+
+<Tip>
+The beauty engine is a singleton and is automatically released when the app ends. Manual management is not required. However, stopping beauty processing when leaving a page/ViewController can save resources.
+</Tip>
+
+### 1. NSViewController Lifecycle Handling
+
+```objc
+@interface BeautyViewController : NSViewController
+@property (nonatomic, strong) BeautyEngineManager *beautyManager;
+@end
+
+@implementation BeautyViewController
+
+- (void)viewDidLoad {
+    [super viewDidLoad];
+    
+    // Initialize beauty engine
+    self.beautyManager = [BeautyEngineManager sharedManager];
+}
+
+- (void)viewWillAppear {
+    [super viewWillAppear];
+    // Resume beauty processing
+}
+
+- (void)viewWillDisappear {
+    [super viewWillDisappear];
+    // Pause beauty processing
+}
+
+- (void)dealloc {
+    // Release beauty engine (if no longer needed)
+    // [self.beautyManager releaseEngine];
+}
+
+@end
+```
+
+### 2. Application Lifecycle Handling
+
+```objc
+- (void)applicationDidFinishLaunching:(NSNotification *)notification {
+    // Initialize beauty engine when app launches
+    [[BeautyEngineManager sharedManager] initEngine];
+}
+
+- (void)applicationWillTerminate:(NSNotification *)notification {
+    // Release beauty engine when app terminates
+    [[BeautyEngineManager sharedManager] releaseEngine];
+}
+
+- (void)applicationDidResignActive:(NSNotification *)notification {
+    // Pause beauty processing when app loses focus
+    [[BeautyEngineManager sharedManager] pauseProcessing];
+}
+
+- (void)applicationDidBecomeActive:(NSNotification *)notification {
+    // Resume beauty processing when app gains focus
+    [[BeautyEngineManager sharedManager] resumeProcessing];
+}
+```
+
+## Performance Monitoring
+
+### 1. Performance Metrics Monitoring
+
+```objc
+@interface BeautyPerformanceMonitor : NSObject
+@property (nonatomic, assign) NSTimeInterval startTime;
+@property (nonatomic, assign) NSInteger frameCount;
+@property (nonatomic, assign) NSTimeInterval totalProcessTime;
+@end
+
+@implementation BeautyPerformanceMonitor
+
+- (void)startFrame {
+    self.startTime = [[NSDate date] timeIntervalSince1970];
+}
+
+- (void)endFrame {
+    NSTimeInterval processTime = [[NSDate date] timeIntervalSince1970] - self.startTime;
+    self.totalProcessTime += processTime;
+    self.frameCount++;
+    
+    // Calculate average processing time
+    if (self.frameCount % 30 == 0) { // Calculate every 30 frames
+        NSTimeInterval avgTime = self.totalProcessTime / self.frameCount;
+        NSLog(@"Average process time: %.2fms", avgTime * 1000);
+        
+        // Reset counters
+        self.totalProcessTime = 0;
+        self.frameCount = 0;
+    }
+}
+
+- (BOOL)isPerformanceGood {
+    return (self.totalProcessTime / MAX(self.frameCount, 1)) < 0.033; // 30fps
+}
+
+@end
+```
+
+### 2. Memory Usage Monitoring
+
+```objc
+@interface MemoryMonitor : NSObject
+@end
+
+@implementation MemoryMonitor
+
+- (void)logMemoryUsage:(NSString *)tag {
+    struct mach_task_basic_info info;
+    mach_msg_type_number_t size = MACH_TASK_BASIC_INFO_COUNT;
+    kern_return_t kerr = task_info(mach_task_self(), MACH_TASK_BASIC_INFO, (task_info_t)&info, &size);
+    
+    if (kerr == KERN_SUCCESS) {
+        NSLog(@"%@ - Used: %.2fMB, Resident: %.2fMB", tag, 
+              info.resident_size / 1024.0 / 1024.0,
+              info.resident_size / 1024.0 / 1024.0);
+    }
+}
+
+- (BOOL)isMemoryLow {
+    struct mach_task_basic_info info;
+    mach_msg_type_number_t size = MACH_TASK_BASIC_INFO_COUNT;
+    kern_return_t kerr = task_info(mach_task_self(), MACH_TASK_BASIC_INFO, (task_info_t)&info, &size);
+    
+    if (kerr == KERN_SUCCESS) {
+        // macOS has more memory, threshold can be set higher
+        return info.resident_size > 500 * 1024 * 1024; // 500MB
+    }
+    return NO;
+}
+
+@end
+```
+
+## Configuration Management
+
+### 1. Beauty Configuration Management
+
+```objc
+@interface BeautyConfigManager : NSObject
+@property (nonatomic, strong) NSUserDefaults *userDefaults;
+@end
+
+@implementation BeautyConfigManager
+
+- (instancetype)init {
+    self = [super init];
+    if (self) {
+        self.userDefaults = [NSUserDefaults standardUserDefaults];
+    }
+    return self;
+}
+
+- (void)saveBeautyConfig:(BeautyConfig *)config {
+    NSDictionary *configDict = @{
+        @"smoothing": @(config.smoothing),
+        @"whitening": @(config.whitening),
+        @"face_thin": @(config.faceThin),
+        @"basic_enabled": @(config.basicEnabled),
+        @"reshape_enabled": @(config.reshapeEnabled)
+    };
+    
+    [self.userDefaults setObject:configDict forKey:@"beauty_config"];
+    [self.userDefaults synchronize];
+}
+
+- (BeautyConfig *)loadBeautyConfig {
+    BeautyConfig *config = [[BeautyConfig alloc] init];
+    NSDictionary *configDict = [self.userDefaults objectForKey:@"beauty_config"];
+    
+    if (configDict) {
+        config.smoothing = [configDict[@"smoothing"] floatValue];
+        config.whitening = [configDict[@"whitening"] floatValue];
+        config.faceThin = [configDict[@"face_thin"] floatValue];
+        config.basicEnabled = [configDict[@"basic_enabled"] boolValue];
+        config.reshapeEnabled = [configDict[@"reshape_enabled"] boolValue];
+    }
+    
+    return config;
+}
+
+@end
+
+@interface BeautyConfig : NSObject
+@property (nonatomic, assign) float smoothing;
+@property (nonatomic, assign) float whitening;
+@property (nonatomic, assign) float faceThin;
+@property (nonatomic, assign) BOOL basicEnabled;
+@property (nonatomic, assign) BOOL reshapeEnabled;
+@end
+
+@implementation BeautyConfig
+
+- (instancetype)init {
+    self = [super init];
+    if (self) {
+        self.smoothing = 0.3f;
+        self.whitening = 0.2f;
+        self.faceThin = 0.1f;
+        self.basicEnabled = YES;
+        self.reshapeEnabled = NO;
+    }
+    return self;
+}
+
+@end
+```
+
+## macOS-Specific Optimizations
+
+### 1. Multi-Display Support
+
+```objc
+@interface MultiDisplayManager : NSObject
+@property (nonatomic, strong) NSArray<NSScreen *> *screens;
+@end
+
+@implementation MultiDisplayManager
+
+- (void)setupMultiDisplaySupport {
+    self.screens = [NSScreen screens];
+    
+    for (NSScreen *screen in self.screens) {
+        CGFloat scaleFactor = screen.backingScaleFactor;
+        
+        if (scaleFactor > 1.0) {
+            // Retina display optimization
+            NSLog(@"Retina display detected with scale factor: %.1f", scaleFactor);
+            // Adjust processing parameters based on scale factor
+        }
+    }
+}
+
+- (void)handleDisplayChange:(NSNotification *)notification {
+    // Reconfigure when display configuration changes
+    [self setupMultiDisplaySupport];
+}
+
+@end
+```
+
+### 2. Window Management
+
+```objc
+@interface WindowManager : NSObject
+@property (nonatomic, weak) NSWindow *mainWindow;
+@end
+
+@implementation WindowManager
+
+- (void)handleWindowStateChange:(NSNotification *)notification {
+    NSWindow *window = notification.object;
+    
+    if (window.isMiniaturized) {
+        // Pause processing when window is minimized
+        [[BeautyEngineManager sharedManager] pauseProcessing];
+        NSLog(@"Window minimized, pausing beauty processing");
+    } else if (window.isVisible) {
+        // Resume processing when window is visible
+        [[BeautyEngineManager sharedManager] resumeProcessing];
+        NSLog(@"Window visible, resuming beauty processing");
+    }
+}
+
+- (void)handleWindowDidResize:(NSNotification *)notification {
+    NSWindow *window = notification.object;
+    NSSize newSize = window.frame.size;
+    
+    // Adjust processing parameters when window size changes
+    NSLog(@"Window resized to: %.0fx%.0f", newSize.width, newSize.height);
+    // Adjust beauty parameters based on new size
+}
+
+@end
+```
+
+### 3. System Performance Monitoring
+
+```objc
+@interface SystemPerformanceMonitor : NSObject
+@end
+
+@implementation SystemPerformanceMonitor
+
+- (void)monitorSystemPerformance {
+    NSProcessInfo *processInfo = [NSProcessInfo processInfo];
+    NSUInteger processorCount = processInfo.processorCount;
+    NSUInteger activeProcessorCount = processInfo.activeProcessorCount;
+    
+    float systemLoad = (float)activeProcessorCount / processorCount;
+    
+    if (systemLoad < 0.3) {
+        // Low system load, can use high quality mode
+        NSLog(@"System load low (%.1f%%), using high quality mode", systemLoad * 100);
+    } else if (systemLoad < 0.7) {
+        // Medium system load, use medium quality mode
+        NSLog(@"System load medium (%.1f%%), using medium quality mode", systemLoad * 100);
+    } else {
+        // High system load, use low quality mode
+        NSLog(@"System load high (%.1f%%), using low quality mode", systemLoad * 100);
+    }
+}
+
+@end
+```
+
+## Testing Recommendations
+
+### 1. Unit Testing
+
+```objc
+@interface BeautyEffectTests : XCTestCase
+@property (nonatomic, strong) FBBeautyEffectEngine *beautyEngine;
+@end
+
+@implementation BeautyEffectTests
+
+- (void)setUp {
+    [super setUp];
+    
+    FBEngineConfig *config = [[FBEngineConfig alloc] init];
+    config.appId = @"test_app_id";
+    config.appKey = @"test_app_key";
+    self.beautyEngine = [FBBeautyEffectEngine createEngineWithConfig:config];
+}
+
+- (void)testBeautyEngineInitialization {
+    XCTAssertNotNil(self.beautyEngine, @"Engine should be created");
+}
+
+- (void)testImageProcessing {
+    // Create test image
+    uint8_t *data = malloc(640 * 480 * 4);
+    FBImageFrame *input = [FBImageFrame createWithRGBA:data width:640 height:480 stride:640 * 4];
+    
+    // Process image
+    FBImageFrame *output = [self.beautyEngine processImage:input processMode:FBProcessModeVideo];
+    
+    XCTAssertNotNil(output, @"Output should not be null");
+    
+    free(data);
+}
+
+- (void)tearDown {
+    self.beautyEngine = nil;
+    [super tearDown];
+}
+
+@end
+```
+
+### 2. Performance Testing
+
+```objc
+- (void)testPerformance {
+    [self measureBlock:^{
+        NSTimeInterval startTime = [[NSDate date] timeIntervalSince1970];
+        
+        for (int i = 0; i < 100; i++) {
+            // Process test image
+            [self processTestImage];
+        }
+        
+        NSTimeInterval endTime = [[NSDate date] timeIntervalSince1970];
+        NSTimeInterval totalTime = endTime - startTime;
+        NSTimeInterval avgTime = totalTime / 100;
+        
+        // macOS has better performance, threshold can be set lower
+        XCTAssertLessThan(avgTime, 0.03, @"Average process time should be less than 30ms");
+    }];
+}
+```
+
+## Summary
+
+Following these best practices can help you:
+
+1. **Improve Performance**: Through memory management, multi-threading, and image optimization
+2. **Improve User Experience**: Through progressive loading and smooth transitions
+3. **Improve Code Quality**: Through modular design and error handling
+4. **Ensure Stability**: Through comprehensive testing strategies
+5. **macOS Optimization**: Through multi-display support and window management
+
+Remember to adjust these practices based on specific needs and continuously monitor application performance. The macOS platform has more memory and stronger processing capabilities compared to iOS, allowing support for higher quality beauty effects.

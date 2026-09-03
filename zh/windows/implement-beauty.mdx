@@ -1,0 +1,347 @@
+---
+title: "实现美颜"
+description: "在 Windows 平台使用 C++ 接口集成 Facebetter SDK 实现美颜效果"
+---
+
+Windows 桌面平台通过 C++ 接口调用 Facebetter SDK。本文以 [C++ Demo](https://github.com/pixpark/facebetter-sdk) 为参考，介绍完整的集成流程。
+
+## 引入头文件
+
+```cpp
+#include <facebetter/beauty_effect_engine.h>
+#include <facebetter/beauty_params.h>
+#include <facebetter/image_frame.h>
+#include <facebetter/type_defines.h>
+
+using namespace facebetter;
+using namespace facebetter::beauty_params;
+```
+
+## 集成流程概览
+
+```
+配置日志 → 创建引擎 → 启用美颜类型 → 设置参数 → 逐帧处理 → 渲染结果
+```
+
+---
+
+## 1. 配置日志（可选）
+
+日志配置须在创建引擎前调用，否则引擎初始化过程中的日志无法捕获。
+
+```cpp
+LogConfig log_cfg;
+log_cfg.console_enabled = true;   // 输出到控制台
+log_cfg.file_enabled    = false;  // 不写文件
+log_cfg.level           = LogLevel::Info;
+BeautyEffectEngine::SetLogConfig(log_cfg);
+```
+
+日志级别（从低到高）：`Trace` / `Debug` / `Info` / `Warn` / `Error` / `Critical`。
+
+---
+
+## 2. 创建引擎
+
+```cpp
+EngineConfig eng_cfg;
+eng_cfg.app_id        = "your_app_id";
+eng_cfg.app_key       = "your_app_key";
+eng_cfg.resource_path = "resource/resource.fbd";  // 相对或绝对路径均可
+eng_cfg.external_context = false;                 // 由 SDK 自行管理 OpenGL 上下文
+
+std::shared_ptr<BeautyEffectEngine> engine = BeautyEffectEngine::Create(eng_cfg);
+if (!engine) {
+    // 创建失败，检查 app_id / app_key / resource_path
+    return -1;
+}
+```
+
+> `resource_path` 指向 SDK 提供的 `resource.fbd` 文件，该文件包含模型和滤镜资源。
+
+---
+
+## 3. 启用美颜类型
+
+SDK 默认所有美颜类型均为**关闭**状态，需显式启用：
+
+```cpp
+engine->SetBeautyTypeEnabled(BeautyType::Basic,   true);  // 基础美颜
+engine->SetBeautyTypeEnabled(BeautyType::Reshape, true);  // 美型
+engine->SetBeautyTypeEnabled(BeautyType::Makeup,  true);  // 美妆
+engine->SetBeautyTypeEnabled(BeautyType::Sticker, true);  // 贴纸
+```
+
+---
+
+## 4. 设置美颜参数
+
+所有参数值范围均为 `[0.0, 1.0]`，`0` 表示关闭。
+
+### 基础美颜
+
+```cpp
+engine->SetBeautyParam(Basic::Smoothing, 0.5f);  // 磨皮
+engine->SetBeautyParam(Basic::Whitening, 0.3f);  // 美白
+engine->SetBeautyParam(Basic::Rosiness,  0.2f);  // 红润
+engine->SetBeautyParam(Basic::Sharpening, 0.4f); // 锐化
+```
+
+### 美颜仅作用于皮肤区域
+
+通过 `SetSkinOnlyBeauty` 接口，设置美颜是否仅作用于皮肤区域。当启用时，美颜效果（磨皮、美白等）仅会应用于检测到的皮肤区域，非皮肤区域保持不变。
+
+```cpp
+// 启用美颜仅作用于皮肤区域
+engine->SetSkinOnlyBeauty(true);
+
+// 禁用美颜仅作用于皮肤区域（美颜作用于整张图像）
+engine->SetSkinOnlyBeauty(false);
+```
+
+<Tip>
+启用皮肤区域美颜后，即使美颜参数值较高，非皮肤区域（如背景、衣物等）也不会受到影响。
+</Tip>
+
+### 美型
+
+```cpp
+engine->SetBeautyParam(Reshape::FaceThin,    0.4f); // 瘦脸
+engine->SetBeautyParam(Reshape::FaceVShape,  0.3f); // V脸
+engine->SetBeautyParam(Reshape::FaceNarrow,  0.2f); // 窄脸
+engine->SetBeautyParam(Reshape::FaceShort,   0.2f); // 短脸
+engine->SetBeautyParam(Reshape::Cheekbone,   0.3f); // 瘦颧骨
+engine->SetBeautyParam(Reshape::Jawbone,     0.2f); // 瘦下颌
+engine->SetBeautyParam(Reshape::Chin,        0.2f); // 瘦下巴
+engine->SetBeautyParam(Reshape::NoseSlim,    0.3f); // 瘦鼻梁
+engine->SetBeautyParam(Reshape::EyeSize,     0.4f); // 大眼
+engine->SetBeautyParam(Reshape::EyeDistance, 0.1f); // 眼距
+```
+
+### 美妆
+
+```cpp
+engine->SetBeautyParam(Makeup::Lipstick, 0.6f); // 口红
+engine->SetBeautyParam(Makeup::Blush,    0.4f); // 腮红
+engine->SetLipstickStyle(LipstickStyle::Rouge); // 口红样式
+engine->SetBlushStyle(BlushStyle::Classic);     // 腮红样式
+```
+
+### 贴纸
+
+贴纸通过 ID 字符串设置；传空字符串表示关闭。资源包内置的贴纸 ID 可在 `resource.fbd` 中查看：
+
+```cpp
+engine->SetSticker("rabbit");  // 启用 rabbit 贴纸
+engine->SetSticker("");        // 关闭贴纸
+```
+
+### 滤镜
+
+```cpp
+engine->SetFilter("chuxin");        // 应用滤镜
+engine->SetFilterIntensity(0.8f);   // 滤镜强度
+engine->SetFilter("");              // 关闭滤镜
+```
+
+---
+
+## 5. 处理帧
+
+每帧按以下流程处理：
+
+```cpp
+// 从内存 RGBA 数据创建输入帧（视频流场景）
+auto input_frame = ImageFrame::CreateWithRGBA(
+    rgba_data, width, height, stride);
+
+// 设置帧类型：Video（实时流）/ Image（单帧图片）
+input_frame->type = FrameType::Video;
+
+// 调用引擎处理
+auto output_frame = engine->ProcessImage(input_frame);
+
+if (output_frame && output_frame->Data()) {
+    int w = output_frame->Width();
+    int h = output_frame->Height();
+    const uint8_t* data = output_frame->Data(); // 输出格式与输入一致（RGBA）
+}
+```
+
+**从文件加载图片**（单帧处理场景）：
+
+```cpp
+auto input_frame = ImageFrame::CreateWithFile("input.jpg");
+input_frame->type = FrameType::Image;  // 图片模式
+auto output_frame = engine->ProcessImage(input_frame);
+```
+
+**格式转换**（如需要 BGRA 或 I420 输出）：
+
+```cpp
+auto bgra_frame = output_frame->Convert(Format::BGRA);
+auto i420_frame = output_frame->Convert(Format::I420);
+```
+
+---
+
+## 6. 与 OpenGL 集成（渲染预览）
+
+将处理后的 RGBA 数据上传为 OpenGL 纹理并显示：
+
+```cpp
+// 首次创建纹理
+GLuint tex;
+glGenTextures(1, &tex);
+glBindTexture(GL_TEXTURE_2D, tex);
+glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+// 每帧更新纹理数据
+glBindTexture(GL_TEXTURE_2D, tex);
+glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA,
+             output_frame->Width(), output_frame->Height(),
+             0, GL_RGBA, GL_UNSIGNED_BYTE, output_frame->Data());
+
+// 使用 ImGui::Image 或自定义 quad 渲染到屏幕
+ImGui::Image(
+    static_cast<ImTextureID>(static_cast<intptr_t>(tex)),
+    ImVec2(img_w, img_h));
+```
+
+---
+
+## 7. 完整示例（实时处理循环）
+
+以下代码摘自 Demo，展示帧率限制下的完整处理循环：
+
+```cpp
+#include <facebetter/beauty_effect_engine.h>
+#include <facebetter/beauty_params.h>
+#include <facebetter/image_frame.h>
+#include <glad/glad.h>
+#include <GLFW/glfw3.h>
+
+using namespace facebetter;
+using namespace facebetter::beauty_params;
+
+// --- 初始化 ---
+LogConfig log_cfg;
+log_cfg.console_enabled = true;
+log_cfg.level = LogLevel::Info;
+BeautyEffectEngine::SetLogConfig(log_cfg);
+
+EngineConfig eng_cfg;
+eng_cfg.app_id        = "your_app_id";
+eng_cfg.app_key       = "your_app_key";
+eng_cfg.resource_path = "resource/resource.fbd";
+eng_cfg.external_context = false;
+
+auto engine = BeautyEffectEngine::Create(eng_cfg);
+engine->SetBeautyTypeEnabled(BeautyType::Basic,   true);
+engine->SetBeautyTypeEnabled(BeautyType::Reshape, true);
+engine->SetBeautyTypeEnabled(BeautyType::Makeup,  true);
+engine->SetBeautyTypeEnabled(BeautyType::Sticker, true);
+
+engine->SetBeautyParam(Basic::Smoothing, 0.5f);
+engine->SetBeautyParam(Reshape::FaceThin, 0.4f);
+engine->SetBeautyParam(Makeup::Lipstick, 0.6f);
+
+// --- 处理循环（约 30fps）---
+double last_time = 0.0;
+const double kInterval = 1.0 / 30.0;
+GLuint preview_tex = 0;
+
+while (!glfwWindowShouldClose(window)) {
+    glfwPollEvents();
+    double now = glfwGetTime();
+    if (now - last_time >= kInterval) {
+        auto input = ImageFrame::CreateWithRGBA(
+            rgba_buffer, width, height, stride);
+        input->type = FrameType::Video;
+
+        auto output = engine->ProcessImage(input);
+        if (output && output->Data()) {
+            if (preview_tex == 0) {
+                glGenTextures(1, &preview_tex);
+                glBindTexture(GL_TEXTURE_2D, preview_tex);
+                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+            }
+            glBindTexture(GL_TEXTURE_2D, preview_tex);
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA,
+                         output->Width(), output->Height(),
+                         0, GL_RGBA, GL_UNSIGNED_BYTE, output->Data());
+        }
+        last_time = now;
+    }
+    // ... ImGui render ...
+}
+
+// --- 释放 ---
+if (preview_tex) glDeleteTextures(1, &preview_tex);
+engine.reset();
+```
+
+---
+
+## 参数速查表
+
+### BeautyType 枚举
+
+| 枚举值 | 说明 |
+| --- | --- |
+| `BeautyType::Basic` | 基础美颜 |
+| `BeautyType::Reshape` | 美型 |
+| `BeautyType::Makeup` | 美妆 |
+| `BeautyType::Sticker` | 贴纸 |
+
+### Basic 参数
+
+| 参数 | 说明 |
+| --- | --- |
+| `Basic::Smoothing` | 磨皮 |
+| `Basic::Whitening` | 美白 |
+| `Basic::Rosiness` | 红润 |
+| `Basic::Sharpening` | 锐化 |
+
+### 皮肤区域美颜
+
+| 方法 | 说明 |
+| --- | --- |
+| `SetSkinOnlyBeauty(true)` | 启用美颜仅作用于皮肤区域 |
+| `SetSkinOnlyBeauty(false)` | 禁用皮肤区域美颜 |
+
+### Reshape 参数
+
+| 参数 | 说明 |
+| --- | --- |
+| `Reshape::FaceThin` | 瘦脸 |
+| `Reshape::FaceVShape` | V脸 |
+| `Reshape::FaceNarrow` | 窄脸 |
+| `Reshape::FaceShort` | 短脸 |
+| `Reshape::Cheekbone` | 瘦颧骨 |
+| `Reshape::Jawbone` | 瘦下颌 |
+| `Reshape::Chin` | 瘦下巴 |
+| `Reshape::NoseSlim` | 瘦鼻梁 |
+| `Reshape::EyeSize` | 大眼 |
+| `Reshape::EyeDistance` | 眼距 |
+
+### Makeup 参数
+
+| 参数 | 说明 |
+| --- | --- |
+| `Makeup::Lipstick` | 口红 |
+| `Makeup::Blush` | 腮红 |
+
+### ImageFrame 创建方法
+
+| 方法 | 说明 |
+| --- | --- |
+| `ImageFrame::CreateWithFile(path)` | 从文件（JPEG/PNG/BMP）加载 |
+| `ImageFrame::CreateWithRGBA(data, w, h, stride)` | 从内存 RGBA 数据创建 |
+| `ImageFrame::CreateWithBGRA(data, w, h, stride)` | 从内存 BGRA 数据创建 |
+| `ImageFrame::CreateWithRGB(data, w, h, stride)` | 从内存 RGB 数据创建 |
+| `ImageFrame::CreateWithI420(w, h, y, sy, u, su, v, sv)` | 从 I420 YUV 数据创建 |
+| `ImageFrame::CreateWithNV12(w, h, y, sy, uv, suv)` | 从 NV12 数据创建 |
+| `frame->Convert(Format::RGBA)` | 格式转换（返回新帧） |

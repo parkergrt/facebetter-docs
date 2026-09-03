@@ -1,0 +1,147 @@
+---
+title: "FAQ"
+description: "Android Beauty SDK Common Questions and Answers"
+---
+
+## Integration Issues
+
+### Q: What to do if engine creation fails?
+A: Check the following points:
+- Confirm that `appId` and `appKey` are correct
+- Check if network connection is normal
+- View log output for detailed error information
+- Confirm if SDK version is latest
+
+### Q: Can't find classes or methods during compilation?
+A: Possible reasons:
+- Confirm that `facebetter.aar` dependency has been properly added
+- Check if `build.gradle` configuration is correct
+- Try Clean Project and rebuild
+- Confirm using the correct package name `net.pixpark.facebetter`
+
+### Q: UnsatisfiedLinkError at runtime?
+A: Solutions:
+- Confirm if device architecture is supported (arm64-v8a, armeabi-v7a)
+- Check if AAR file is complete
+- Confirm native methods are not obfuscated
+
+## Functionality Issues
+
+### Q: Beauty effects are not obvious?
+A: You can try:
+- Increase beauty parameter values (range 0.0-1.0)
+- Ensure corresponding beauty types are enabled
+- Check if image quality is clear enough
+- Confirm if face detection is working normally
+
+### Q: Beauty effects are excessive or distorted?
+A: Recommendations:
+- Reduce beauty parameter values
+- Check if parameter combinations are reasonable
+- Avoid enabling too many beauty types simultaneously
+- Adjust parameters based on image quality
+
+### Q: Virtual background not working?
+A: Check:
+- Confirm `BeautyType.VIRTUAL_BACKGROUND` is enabled
+- Check if background image path is correct
+- Confirm if image format is supported (PNG, JPG)
+- Check if image file exists and is readable
+
+## Performance Issues
+
+### Q: What to do if processing is slow?
+A: Optimization suggestions:
+- Use VIDEO mode for real-time processing
+- Reduce image resolution
+- Reduce number of simultaneously enabled beauty types
+- Release unused image objects timely
+- Avoid image processing on main thread
+
+### Q: High memory usage?
+A: Solutions:
+- Use `ByteBuffer.allocateDirect()` to create direct memory buffers
+- Call `release()` method timely to release resources
+- Avoid frequent creation and destruction of engine instances
+- Reuse `ImageFrame` objects
+
+### Q: App crashes or ANR?
+A: Troubleshooting steps:
+- Check if image processing is done on main thread
+- Confirm resource release is complete
+- View exception information in logs
+- Check if parameter values are within valid range
+
+## Image Processing Issues
+
+### Q: How to handle different image formats?
+A: Use `ImageFrame`'s format conversion methods:
+- `toRGBA()` - Convert to RGBA format
+- `toI420()` - Convert to I420 format
+- `toNV21()` - Convert to NV21 format (Android camera default format)
+- `toBGRA()` - Convert to BGRA format
+
+### Q: Camera preview image processing?
+A: Recommended process:
+1. Get YUV data from camera
+2. Use `createWithAndroid420()` to create ImageFrame
+3. Call `processImage()` to process
+4. Convert to target format for display
+
+### Q: Image rotation issues?
+A: Solutions:
+- Use `ImageFrame.rotate()` method to rotate images
+- Supports 0°, 90°, 180°, 270° rotation
+- Rotation operation modifies original image data
+
+## Permission Issues
+
+### Q: File access permission issues?
+A: Need to add permissions:
+```xml
+<uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+<uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+```
+
+### Q: Camera permission issues?
+A: Need to add permissions:
+```xml
+<uses-permission android:name="android.permission.CAMERA" />
+```
+
+## Debugging Issues
+
+### Q: How to enable debug logging?
+A: Configure before creating engine:
+```java
+BeautyEffectEngine.LogConfig logConfig = new BeautyEffectEngine.LogConfig();
+logConfig.consoleEnabled = true;
+logConfig.fileEnabled = true;
+logConfig.level = BeautyEffectEngine.LogLevel.DEBUG;
+BeautyEffectEngine.setLogConfig(logConfig);
+```
+
+### Q: How to get detailed error information?
+A: Methods:
+- Enable DEBUG level logging
+- Check API return values (0 indicates success)
+- View file log output
+- Use Android Studio's Logcat to view logs
+
+## Version Compatibility
+
+### Q: Which Android versions are supported?
+A: Supports Android 5.0 (API 21) and above
+
+### Q: Which device architectures are supported?
+A: Supports:
+- arm64-v8a (64-bit ARM)
+- armeabi-v7a (32-bit ARM)
+
+### Q: How to upgrade SDK version?
+A: Steps:
+1. Download new version SDK
+2. Replace old AAR file
+3. Clean project cache
+4. Rebuild project
+5. Test if functionality works normally

@@ -1,53 +1,39 @@
 {
   "$schema": "https://mintlify.com/docs.json",
   "theme": "mint",
-  "name": "facebetter",
+  "name": "Facebetter",
+  "description": "Realtime AI beauty SDK documentation",
   "colors": {
-    "primary": "#16A34A",
-    "light": "#07C983",
-    "dark": "#15803D"
+    "primary": "#30A46C",
+    "light": "#34D399",
+    "dark": "#18794E"
   },
-  "favicon": "/favicon.svg",
-  "navigation": {
-    "pages": [
-      {
-        "group": "Getting Started",
-        "pages": [
-          "index",
-          "quickstart"
-        ]
-      }
-    ],
-    "global": {
-      "anchors": [
-        {
-          "anchor": "Documentation",
-          "href": "https://mintlify.com/docs",
-          "icon": "book-open-cover"
-        },
-        {
-          "anchor": "Blog",
-          "href": "https://mintlify.com/blog",
-          "icon": "newspaper"
-        }
-      ]
-    }
-  },
+  "favicon": "/favicon.png",
   "logo": {
-    "light": "/logo/light.svg",
-    "dark": "/logo/dark.svg"
+    "light": "/logo/light.png",
+    "dark": "/logo/dark.png",
+    "href": "https://facebetter.net"
   },
   "navbar": {
     "links": [
       {
-        "label": "Support",
-        "href": "mailto:hi@mintlify.com"
+        "label": "Website",
+        "href": "https://facebetter.net"
+      },
+      {
+        "label": "Dashboard",
+        "href": "https://facebetter.net/dashboard"
       }
     ],
     "primary": {
       "type": "button",
-      "label": "Dashboard",
-      "href": "https://app.mintlify.com"
+      "label": "Download",
+      "href": "https://facebetter.net/download"
+    }
+  },
+  "footer": {
+    "socials": {
+      "github": "https://github.com/pixpark/facebetter-sdk"
     }
   },
   "contextual": {
@@ -62,11 +48,313 @@
       "vscode"
     ]
   },
-  "footer": {
-    "socials": {
-      "x": "https://x.com/mintlify",
-      "github": "https://github.com/mintlify",
-      "linkedin": "https://linkedin.com/company/mintlify"
+  "navigation": {
+    "languages": [
+      {
+        "language": "en",
+        "tabs": [
+          {
+            "tab": "SDK Docs",
+            "groups": [
+              {
+                "group": "Introduction",
+                "pages": [
+                  "index",
+                  "intro/overview",
+                  "intro/pricing",
+                  "intro/enable-service",
+                  "intro/license",
+                  "intro/release-note"
+                ],
+                "icon": "book-open",
+                "iconType": "solid"
+              },
+              {
+                "group": "Android",
+                "pages": [
+                  "android/quick-start",
+                  "android/implement-beauty",
+                  "android/error-handling",
+                  "android/api-reference",
+                  "android/best-practices",
+                  "android/faq"
+                ],
+                "icon": "android",
+                "iconType": "brands"
+              },
+              {
+                "group": "iOS",
+                "pages": [
+                  "ios/quick-start",
+                  "ios/implement-beauty",
+                  "ios/error-handling",
+                  "ios/api-reference",
+                  "ios/best-practices",
+                  "ios/faq"
+                ],
+                "icon": "apple",
+                "iconType": "brands"
+              },
+              {
+                "group": "macOS",
+                "pages": [
+                  "macos/quick-start",
+                  "macos/implement-beauty",
+                  "macos/error-handling",
+                  "macos/api-reference",
+                  "macos/best-practices",
+                  "macos/faq"
+                ],
+                "icon": "laptop",
+                "iconType": "solid"
+              },
+              {
+                "group": "Windows",
+                "pages": [
+                  "windows/quick-start",
+                  "windows/implement-beauty",
+                  "windows/error-handling",
+                  "windows/api-reference",
+                  "windows/best-practices",
+                  "windows/faq"
+                ],
+                "icon": "windows",
+                "iconType": "brands"
+              },
+              {
+                "group": "Linux",
+                "pages": [
+                  "linux/quick-start",
+                  "linux/implement-beauty",
+                  "linux/error-handling",
+                  "linux/api-reference",
+                  "linux/best-practices",
+                  "linux/faq"
+                ],
+                "icon": "linux",
+                "iconType": "brands"
+              },
+              {
+                "group": "Web",
+                "pages": [
+                  "web/quick-start",
+                  "web/implement-beauty",
+                  "web/error-handling",
+                  "web/api-reference",
+                  "web/best-practices",
+                  "web/faq"
+                ],
+                "icon": "globe",
+                "iconType": "solid"
+              },
+              {
+                "group": "Flutter",
+                "pages": [
+                  "flutter/quick-start",
+                  "flutter/implement-beauty",
+                  "flutter/api-reference",
+                  "flutter/trtc-integration"
+                ],
+                "icon": "mobile",
+                "iconType": "solid"
+              }
+            ]
+          },
+          {
+            "tab": "Effect Creator",
+            "groups": [
+              {
+                "group": "Effect Creator",
+                "pages": [
+                  "effect-creator/introduction",
+                  "effect-creator/face-sticker",
+                  "effect-creator/screen-sticker",
+                  "effect-creator/face-makeup"
+                ],
+                "icon": "wand-magic-sparkles",
+                "iconType": "solid"
+              }
+            ]
+          }
+        ],
+        "navbar": {
+          "links": [
+            {
+              "label": "Website",
+              "href": "https://facebetter.net"
+            },
+            {
+              "label": "Dashboard",
+              "href": "https://facebetter.net/dashboard"
+            },
+            {
+              "label": "Download",
+              "href": "https://facebetter.net/download"
+            }
+          ]
+        }
+      },
+      {
+        "language": "zh",
+        "tabs": [
+          {
+            "tab": "SDK 文档",
+            "groups": [
+              {
+                "group": "产品介绍",
+                "pages": [
+                  "zh/index",
+                  "zh/intro/overview",
+                  "zh/intro/pricing",
+                  "zh/intro/enable-service",
+                  "zh/intro/license",
+                  "zh/intro/release-note"
+                ],
+                "icon": "book-open",
+                "iconType": "solid"
+              },
+              {
+                "group": "Android",
+                "pages": [
+                  "zh/android/quick-start",
+                  "zh/android/implement-beauty",
+                  "zh/android/error-handling",
+                  "zh/android/api-reference",
+                  "zh/android/best-practices",
+                  "zh/android/faq"
+                ],
+                "icon": "android",
+                "iconType": "brands"
+              },
+              {
+                "group": "iOS",
+                "pages": [
+                  "zh/ios/quick-start",
+                  "zh/ios/implement-beauty",
+                  "zh/ios/error-handling",
+                  "zh/ios/api-reference",
+                  "zh/ios/best-practices",
+                  "zh/ios/faq"
+                ],
+                "icon": "apple",
+                "iconType": "brands"
+              },
+              {
+                "group": "macOS",
+                "pages": [
+                  "zh/macos/quick-start",
+                  "zh/macos/implement-beauty",
+                  "zh/macos/error-handling",
+                  "zh/macos/api-reference",
+                  "zh/macos/best-practices",
+                  "zh/macos/faq"
+                ],
+                "icon": "laptop",
+                "iconType": "solid"
+              },
+              {
+                "group": "Windows",
+                "pages": [
+                  "zh/windows/quick-start",
+                  "zh/windows/implement-beauty",
+                  "zh/windows/error-handling",
+                  "zh/windows/api-reference",
+                  "zh/windows/best-practices",
+                  "zh/windows/faq"
+                ],
+                "icon": "windows",
+                "iconType": "brands"
+              },
+              {
+                "group": "Linux",
+                "pages": [
+                  "zh/linux/quick-start",
+                  "zh/linux/implement-beauty",
+                  "zh/linux/error-handling",
+                  "zh/linux/api-reference",
+                  "zh/linux/best-practices",
+                  "zh/linux/faq"
+                ],
+                "icon": "linux",
+                "iconType": "brands"
+              },
+              {
+                "group": "Web",
+                "pages": [
+                  "zh/web/quick-start",
+                  "zh/web/implement-beauty",
+                  "zh/web/error-handling",
+                  "zh/web/api-reference",
+                  "zh/web/best-practices",
+                  "zh/web/faq"
+                ],
+                "icon": "globe",
+                "iconType": "solid"
+              },
+              {
+                "group": "Flutter",
+                "pages": [
+                  "zh/flutter/quick-start",
+                  "zh/flutter/implement-beauty",
+                  "zh/flutter/api-reference",
+                  "zh/flutter/trtc-integration"
+                ],
+                "icon": "mobile",
+                "iconType": "solid"
+              }
+            ]
+          },
+          {
+            "tab": "贴纸制作",
+            "groups": [
+              {
+                "group": "贴纸制作",
+                "pages": [
+                  "zh/effect-creator/introduction",
+                  "zh/effect-creator/face-sticker",
+                  "zh/effect-creator/screen-sticker",
+                  "zh/effect-creator/face-makeup"
+                ],
+                "icon": "wand-magic-sparkles",
+                "iconType": "solid"
+              }
+            ]
+          }
+        ],
+        "navbar": {
+          "links": [
+            {
+              "label": "官网",
+              "href": "https://facebetter.net/zh"
+            },
+            {
+              "label": "控制台",
+              "href": "https://facebetter.net/zh/dashboard"
+            },
+            {
+              "label": "下载",
+              "href": "https://facebetter.net/zh/download"
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "redirects": [
+    {
+      "source": "/docs/:slug*",
+      "destination": "/:slug*"
+    },
+    {
+      "source": "/zh/docs/:slug*",
+      "destination": "/zh/:slug*"
+    },
+    {
+      "source": "/en/:slug*",
+      "destination": "/:slug*"
     }
+  ],
+  "icons": {
+    "library": "fontawesome"
   }
 }

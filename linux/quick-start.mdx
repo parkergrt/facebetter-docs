@@ -1,0 +1,122 @@
+---
+title: "Quick Start"
+description: "Build and run the Facebetter C++ desktop demo on Linux (GLFW + ImGui)"
+---
+
+This guide explains how to build and run the Facebetter C++ desktop demo on Linux. The demo is built with **GLFW + Dear ImGui + OpenGL 3**: the left panel shows a live beauty-processed preview, while the right panel provides sliders to control each effect in real time.
+
+## Requirements
+
+| Tool | Version |
+| --- | --- |
+| GCC or Clang | C++17 support required (GCC 7+ / Clang 5+) |
+| CMake | 3.16+ |
+| Ninja | Any recent version (`apt install ninja-build` / `dnf install ninja-build`) |
+| OpenGL dev libraries | `libgl1-mesa-dev` (Ubuntu/Debian) or `mesa-libGL-devel` (Fedora/RHEL) |
+| X11 / Wayland dev libraries | Required by GLFW (see install commands below) |
+
+### Install Dependencies (Ubuntu / Debian)
+
+```bash
+sudo apt update
+sudo apt install -y build-essential cmake ninja-build \
+    libgl1-mesa-dev libglu1-mesa-dev \
+    libx11-dev libxrandr-dev libxinerama-dev \
+    libxcursor-dev libxi-dev
+```
+
+### Install Dependencies (Fedora / RHEL)
+
+```bash
+sudo dnf install -y gcc-c++ cmake ninja-build \
+    mesa-libGL-devel mesa-libGLU-devel \
+    libX11-devel libXrandr-devel libXinerama-devel \
+    libXcursor-devel libXi-devel
+```
+
+## Step 1: Clone the Repository
+
+```bash
+git clone https://github.com/pixpark/facebetter-sdk.git
+cd facebetter-sdk
+```
+
+## Step 2: Place the SDK Files
+
+Place the Linux SDK files under `demo/cpp/sdk/`:
+
+```
+demo/cpp/sdk/
+├── include/
+│   └── facebetter/
+│       ├── beauty_effect_engine.h
+│       ├── beauty_params.h
+│       ├── image_frame.h
+│       └── type_defines.h
+├── lib/
+│   └── libfacebetter.so    ← shared library
+└── resource/
+    └── resource.fbd        ← model and resource pack
+```
+
+<Tip>
+The SDK download link is available on the [Download](https://facebetter.net/download) page or in your dashboard.
+</Tip>
+
+## Step 3: Build
+
+```bash
+cd demo/cpp
+cmake -B build -G "Ninja" -DCMAKE_BUILD_TYPE=Release
+cmake --build build
+```
+
+After the build, CMake automatically copies `resource/resource.fbd` and `demo.png` (if present) to `build/resource/`.
+
+## Step 4: Prepare a Preview Image (optional)
+
+Place any face photo named `demo.png` in `demo/cpp/`:
+
+```
+demo/cpp/demo.png
+```
+
+The engine will process the image at ~30 fps and display the result in the left panel.
+
+## Step 5: Run
+
+```bash
+cd demo/cpp/build
+
+# Option A: add the library path at runtime
+LD_LIBRARY_PATH=../sdk/lib ./facebetter_demo
+
+# Option B: copy the shared library next to the executable
+cp ../sdk/lib/libfacebetter.so .
+./facebetter_demo
+```
+
+Once running, the window shows:
+
+- **Left panel** – live beauty-processed preview
+- **Right panel** – Beauty Control Panel:
+  - **Basic Beauty**: Smoothing / Whitening / Rosiness / Sharpening
+  - **Face Reshape**: Face Thin / V Face / Narrow Face / Short Face / Cheekbone / Jawbone / Chin / Nose Slim / Eye Size / Eye Distance
+  - **Makeup**: Lipstick / Blush
+  - **Sticker**: dropdown (Off / rabbit)
+
+Click **Reset All** to restore all parameters to zero.
+
+## Troubleshooting
+
+**Q: `libfacebetter.so: cannot open shared object file`**  
+A: Run with `LD_LIBRARY_PATH=../sdk/lib ./facebetter_demo`, copy the library to the executable directory, or add the path to `/etc/ld.so.conf` and run `ldconfig`.
+
+**Q: CMake cannot find OpenGL**  
+A: Install `libgl1-mesa-dev` (Ubuntu) or `mesa-libGL-devel` (Fedora), then re-run CMake.
+
+**Q: Window shows "Put demo.png …"**  
+A: Place a face photo named `demo.png` in `demo/cpp/` and restart the demo.
+
+**Q: `GLFW: X11: Display variable not set`**  
+A: Make sure you are running in a graphical session, or set the `DISPLAY` environment variable.

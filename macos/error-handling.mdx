@@ -1,0 +1,503 @@
+---
+title: "Error Handling"
+description: "macOS Beauty SDK Error Handling Guide"
+---
+
+## Error Code Handling
+
+### 1. Check API Return Values
+
+All API calls should check return values:
+
+```objc
+// Check engine creation
+FBEngineConfig *config = [[FBEngineConfig alloc] init];
+config.appId = @"your_app_id";
+config.appKey = @"your_app_key";
+self.engine = [FBBeautyEffectEngine createEngineWithConfig:config];
+
+if (self.engine == nil) {
+    NSLog(@"Failed to create beauty engine");
+    return;
+}
+
+// Check parameter setting
+int ret = [self.engine setBasicParam:FBBeautyParam_Smoothing floatValue:0.5f];
+if (ret == 0) {
+    NSLog(@"Successfully set basic beauty parameters");
+} else {
+    NSLog(@"Failed to set smoothing param, error code: %d", ret);
+}
+```
+
+### 2. Common Error Codes
+
+According to API documentation, main error codes:
+- **0**: Success
+- **-1**: Engine not initialized
+
+```objc
+@interface BeautyErrorHandler : NSObject
+@end
+
+@implementation BeautyErrorHandler
+
++ (void)handleError:(int)errorCode operation:(NSString *)operation {
+    switch (errorCode) {
+        case 0:
+            NSLog(@"%@ succeeded", operation);
+            break;
+        case -1:
+            NSLog(@"%@ failed: Engine not initialized", operation);
+            break;
+        default:
+            NSLog(@"%@ failed: Unknown error code %d", operation, errorCode);
+            break;
+    }
+}
+
+@end
+```
+
+## Handle Image Data
+
+### 1. Input Image Validation
+
+```objc
+@interface ImageValidator : NSObject
++ (BOOL)validateImageFrame:(FBImageFrame *)imageFrame;
+@end
+
+@implementation ImageValidator
+
++ (BOOL)validateImageFrame:(FBImageFrame *)imageFrame {
+    if (imageFrame == nil) {
+        NSLog(@"ImageFrame is nil");
+        return NO;
+    }
+    
+    // Check image dimensions
+    int width = imageFrame.width;
+    int height = imageFrame.height;
+    if (width <= 0 || height <= 0) {
+        NSLog(@"Invalid image dimensions: %dx%d", width, height);
+        return NO;
+    }
+    
+    // macOS can support larger images
+    if (width > 8192 || height > 8192) {
+        NSLog(@"Image too large: %dx%d", width, height);
+        return NO;
+    }
+    
+    return YES;
+}
+
+@end
+```
+
+### 2. Image Processing Error Handling
+
+```objc
+@interface ImageProcessor : NSObject
+@property (nonatomic, strong) FBBeautyEffectEngine *engine;
+@end
+
+@implementation ImageProcessor
+
+- (FBImageFrame *)processImageSafely:(FBImageFrame *)input {
+    // Validate input
+    if (![ImageValidator validateImageFrame:input]) {
+        return nil;
+    }
+    
+    @try {
+        // Process image
+        input.type = FBFrameTypeVideo;
+        FBImageFrame *output = [self.engine processImage:input];
+        
+        if (output == nil) {
+            NSLog(@"Failed to process image: output is nil");
+            return nil;
+        }
+        
+        return output;
+    } @catch (NSException *exception) {
+        NSLog(@"Exception during image processing: %@", exception.reason);
+        return nil;
+    }
+}
+
+@end
+```
+
+### 3. Memory Management
+
+```objc
+@interface SafeImageProcessor : NSObject
+@property (nonatomic, strong) FBBeautyEffectEngine *engine;
+@end
+
+@implementation SafeImageProcessor
+
+- (BOOL)processImageSafe:(FBImageFrame *)input output:(FBImageFrame *)output {
+    FBImageFrame *result = nil;
+    
+    @try {
+        // Process image
+        result = [self.engine processImage:input processMode:FBProcessModeVideo];
+        
+        if (result == nil) {
+            NSLog(@"Processing returned nil");
+            return NO;
+        }
+        
+        // Copy result to output
+        [self copyImageFrame:result to:output];
+        
+        return YES;
+    } @catch (NSException *exception) {
+        NSLog(@"Exception during processing: %@", exception.reason);
+        return NO;
+    }
+}
+
+- (void)copyImageFrame:(FBImageFrame *)src to:(FBImageFrame *)dst {
+    // Implement image copying logic
+    FBImageBuffer *srcBuffer = [src toRGBA];
+    FBImageBuffer *dstBuffer = [dst toRGBA];
+    
+    if (srcBuffer != nil && dstBuffer != nil) {
+        const uint8_t *srcData = [srcBuffer data];
+        uint8_t *dstData = (uint8_t *)[dstBuffer data];
+        
+        if (srcData != nil && dstData != nil) {
+            memcpy(dstData, srcData, MIN(srcBuffer.size, dstBuffer.size));
+        }
+    }
+}
+
+@end
+```
+
+## Logging and File Operations
+
+### 1. Log Configuration Error Handling
+
+```objc
+@interface LogConfigHandler : NSObject
++ (BOOL)configureLogging:(BOOL)enableConsole 
+              enableFile:(BOOL)enableFile 
+             logFilePath:(NSString *)logFilePath;
+@end
+
+@implementation LogConfigHandler
+
++ (BOOL)configureLogging:(BOOL)enableConsole 
+              enableFile:(BOOL)enableFile 
+             logFilePath:(NSString *)logFilePath {
+    @try {
+        FBLogConfig *logConfig = [[FBLogConfig alloc] init];
+        logConfig.consoleEnabled = enableConsole;
+        logConfig.fileEnabled = enableFile;
+        logConfig.level = FBLogLevel_Info;
+        
+        if (enableFile && logFilePath != nil && logFilePath.length > 0) {
+            // Check if directory exists
+            NSString *logDir = [logFilePath stringByDeletingLastPathComponent];
+            NSFileManager *fileManager = [NSFileManager defaultManager];
+            
+            if (![fileManager fileExistsAtPath:logDir]) {
+                NSError *error = nil;
+                if (![fileManager createDirectoryAtPath:logDir 
+                             withIntermediateDirectories:YES 
+                                              attributes:nil 
+                                                   error:&error]) {
+                    NSLog(@"Failed to create log directory: %@", error.localizedDescription);
+                    return NO;
+                }
+            }
+            
+            logConfig.fileName = logFilePath;
+        }
+        
+        int ret = [FBBeautyEffectEngine setLogConfig:logConfig];
+        return ret == 0;
+    } @catch (NSException *exception) {
+        NSLog(@"Failed to configure logging: %@", exception.reason);
+        return NO;
+    }
+}
+
+@end
+```
+
+### 2. File Write Error Handling
+
+```objc
+@interface FileWriteHandler : NSObject
++ (BOOL)saveImageBuffer:(FBImageBuffer *)buffer toPath:(NSString *)filePath;
+@end
+
+@implementation FileWriteHandler
+
++ (BOOL)saveImageBuffer:(FBImageBuffer *)buffer toPath:(NSString *)filePath {
+    if (buffer == nil) {
+        NSLog(@"ImageBuffer is nil");
+        return NO;
+    }
+    
+    NSFileManager *fileManager = [NSFileManager defaultManager];
+    NSString *dir = [filePath stringByDeletingLastPathComponent];
+    
+    // Create directory
+    if (![fileManager fileExistsAtPath:dir]) {
+        NSError *error = nil;
+        if (![fileManager createDirectoryAtPath:dir 
+                     withIntermediateDirectories:YES 
+                                      attributes:nil 
+                                           error:&error]) {
+            NSLog(@"Failed to create directory: %@", error.localizedDescription);
+            return NO;
+        }
+    }
+    
+    // Write file
+    const uint8_t *data = [buffer data];
+    NSData *nsData = [NSData dataWithBytes:data length:buffer.size];
+    
+    NSError *error = nil;
+    BOOL success = [nsData writeToFile:filePath options:NSDataWritingAtomic error:&error];
+    
+    if (!success) {
+        NSLog(@"Failed to write file: %@", error.localizedDescription);
+        return NO;
+    }
+    
+    NSLog(@"Image saved successfully: %@", filePath);
+    return YES;
+}
+
+@end
+```
+
+## Exception Handling
+
+### 1. Catch and Handle Exceptions
+
+```objc
+@interface ExceptionHandler : NSObject
++ (void)safeExecute:(void(^)(void))block operation:(NSString *)operation;
+@end
+
+@implementation ExceptionHandler
+
++ (void)safeExecute:(void(^)(void))block operation:(NSString *)operation {
+    @try {
+        if (block != nil) {
+            block();
+        }
+    } @catch (NSInvalidArgumentException *exception) {
+        NSLog(@"%@ failed: Invalid argument - %@", operation, exception.reason);
+    } @catch (NSException *exception) {
+        NSLog(@"%@ failed: Unexpected exception - %@", operation, exception.reason);
+    }
+}
+
+@end
+```
+
+### 2. Retry Mechanism
+
+```objc
+@interface RetryHandler : NSObject
+@property (nonatomic, strong) FBBeautyEffectEngine *engine;
+@end
+
+@implementation RetryHandler
+
+static const int MAX_RETRY = 3;
+static const NSTimeInterval RETRY_DELAY = 0.1;
+
+- (FBImageFrame *)processImageWithRetry:(FBImageFrame *)input {
+    for (int i = 0; i < MAX_RETRY; i++) {
+        @try {
+            FBImageFrame *result = [self.engine processImage:input processMode:FBProcessModeVideo];
+            if (result != nil) {
+                return result;
+            }
+        } @catch (NSException *exception) {
+            NSLog(@"Attempt %d failed: %@", i + 1, exception.reason);
+        }
+        
+        if (i < MAX_RETRY - 1) {
+            [NSThread sleepForTimeInterval:RETRY_DELAY];
+        }
+    }
+    
+    NSLog(@"All retry attempts failed");
+    return nil;
+}
+
+@end
+```
+
+## macOS-Specific Error Handling
+
+### 1. Sandbox Permission Handling
+
+```objc
+@interface SandboxPermissionHandler : NSObject
++ (BOOL)requestFileAccessPermission:(NSURL *)fileURL;
++ (BOOL)hasFileAccessPermission:(NSURL *)fileURL;
+@end
+
+@implementation SandboxPermissionHandler
+
++ (BOOL)requestFileAccessPermission:(NSURL *)fileURL {
+    // macOS sandbox environment requires file access permission request
+    NSError *error = nil;
+    BOOL success = [fileURL startAccessingSecurityScopedResource];
+    
+    if (!success) {
+        NSLog(@"Failed to request file access permission: %@", error.localizedDescription);
+    }
+    
+    return success;
+}
+
++ (BOOL)hasFileAccessPermission:(NSURL *)fileURL {
+    // Check if file access permission exists
+    NSFileManager *fileManager = [NSFileManager defaultManager];
+    return [fileManager isReadableFileAtPath:fileURL.path];
+}
+
+@end
+```
+
+### 2. Multi-Display Environment Error Handling
+
+```objc
+@interface MultiDisplayErrorHandler : NSObject
++ (void)handleDisplayChange:(NSNotification *)notification;
++ (BOOL)validateDisplayConfiguration;
+@end
+
+@implementation MultiDisplayErrorHandler
+
++ (void)handleDisplayChange:(NSNotification *)notification {
+    // Handle display configuration changes
+    NSArray *screens = [NSScreen screens];
+    
+    for (NSScreen *screen in screens) {
+        CGFloat scaleFactor = screen.backingScaleFactor;
+        
+        if (scaleFactor > 1.0) {
+            // Retina display
+            NSLog(@"Retina display detected with scale factor: %.1f", scaleFactor);
+        }
+    }
+    
+    // Revalidate configuration
+    if (![self validateDisplayConfiguration]) {
+        NSLog(@"Display configuration validation failed");
+    }
+}
+
++ (BOOL)validateDisplayConfiguration {
+    NSArray *screens = [NSScreen screens];
+    
+    if (screens.count == 0) {
+        NSLog(@"No displays detected");
+        return NO;
+    }
+    
+    // Validate all display configurations
+    for (NSScreen *screen in screens) {
+        if (screen.frame.size.width <= 0 || screen.frame.size.height <= 0) {
+            NSLog(@"Invalid screen dimensions");
+            return NO;
+        }
+    }
+    
+    return YES;
+}
+
+@end
+```
+
+## Debugging Tips
+
+### 1. Error Information Collection
+
+```objc
+@interface DebugInfoCollector : NSObject
++ (NSString *)collectErrorInfo:(int)errorCode operation:(NSString *)operation exception:(NSException *)exception;
+@end
+
+@implementation DebugInfoCollector
+
++ (NSString *)collectErrorInfo:(int)errorCode operation:(NSString *)operation exception:(NSException *)exception {
+    NSMutableString *info = [NSMutableString string];
+    [info appendFormat:@"Operation: %@\n", operation];
+    [info appendFormat:@"Error Code: %d\n", errorCode];
+    [info appendFormat:@"Timestamp: %lld\n", (long long)([[NSDate date] timeIntervalSince1970] * 1000)];
+    
+    if (exception != nil) {
+        [info appendFormat:@"Exception: %@\n", exception.name];
+        [info appendFormat:@"Reason: %@\n", exception.reason];
+    }
+    
+    // Add system information
+    [info appendString:@"System Info:\n"];
+    NSProcessInfo *processInfo = [NSProcessInfo processInfo];
+    [info appendFormat:@"Processor Count: %lu\n", (unsigned long)processInfo.processorCount];
+    [info appendFormat:@"Active Processor Count: %lu\n", (unsigned long)processInfo.activeProcessorCount];
+    
+    return [info copy];
+}
+
+@end
+```
+
+### 2. Performance Monitoring
+
+```objc
+@interface PerformanceMonitor : NSObject
+@property (nonatomic, assign) NSTimeInterval startTime;
+@property (nonatomic, assign) NSInteger errorCount;
+@end
+
+@implementation PerformanceMonitor
+
+- (void)startOperation {
+    self.startTime = [[NSDate date] timeIntervalSince1970];
+}
+
+- (void)endOperation:(NSString *)operation success:(BOOL)success {
+    NSTimeInterval duration = [[NSDate date] timeIntervalSince1970] - self.startTime;
+    
+    if (!success) {
+        self.errorCount++;
+        NSLog(@"%@ failed after %.2fms (Error count: %ld)", 
+              operation, duration * 1000, (long)self.errorCount);
+    } else if (duration > 0.05) {
+        // macOS has better performance, threshold can be set lower
+        NSLog(@"%@ took %.2fms (slow operation)", operation, duration * 1000);
+    }
+}
+
+@end
+```
+
+## Summary
+
+Following these error handling best practices can help you:
+
+1. **Improve App Stability**: Through API return value checking and exception handling
+2. **Improve User Experience**: Through friendly error prompts and recovery mechanisms
+3. **Facilitate Problem Troubleshooting**: Through detailed logging and error information collection
+4. **Optimize Performance**: Through reasonable error recovery strategies and resource management
+5. **macOS Optimization**: Through sandbox permission handling and multi-display environment support
+
+Remember to adjust error handling logic based on actual SDK error code definitions and continuously monitor and improve error handling mechanisms. The macOS platform has more memory and stronger processing capabilities compared to iOS, but also need to pay attention to special handling for sandbox permissions and multi-display environments.

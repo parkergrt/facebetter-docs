@@ -1,0 +1,440 @@
+---
+title: "Error Handling"
+description: "Web Beauty SDK Error Handling Guide"
+---
+
+## Error Handling Basics
+
+### 1. Use try-catch
+
+All asynchronous operations should use try-catch for error handling:
+
+```javascript
+try {
+    const config = new EngineConfig({
+        appId: 'your-app-id',
+        appKey: 'your-app-key'
+        // Optional: If licenseJson is provided, license data verification takes priority
+        // licenseJson: 'your license json string'
+    });
+    
+    const engine = new BeautyEffectEngine(config);
+    await engine.init();
+    
+    console.log('Engine initialized successfully');
+} catch (error) {
+    if (error instanceof FacebetterError) {
+        console.error('Facebetter error:', error.message);
+        console.error('Error code:', error.code);
+    } else {
+        console.error('Unknown error:', error);
+    }
+}
+```
+
+### 2. Check Engine Initialization
+
+```javascript
+let engine = null;
+
+try {
+    const config = new EngineConfig({
+        appId: 'your-app-id',
+        appKey: 'your-app-key'
+    });
+    
+    engine = new BeautyEffectEngine(config);
+    await engine.init();
+    
+    if (!engine || !engine.initialized) {
+        throw new Error('Engine initialization failed');
+    }
+} catch (error) {
+    console.error('Engine initialization failed:', error);
+    // Handle error, e.g., show user prompt
+    showErrorToUser('Beauty engine initialization failed, please refresh the page and try again');
+}
+```
+
+### 3. Check API Call Results
+
+```javascript
+try {
+    engine.setBasicParam(BasicParam.Smoothing, 0.5);
+    console.log('Successfully set basic beauty parameters');
+} catch (error) {
+    console.error('Failed to set basic beauty parameters:', error);
+}
+```
+
+## Common Error Codes
+
+### FacebetterError Error Codes
+
+FacebetterError error codes can be numbers or strings:
+
+**Numeric error codes** (from WASM layer):
+- **0**: Success
+- **-1**: General error (engine not initialized, invalid parameters, etc.)
+- **Other negative numbers**: Error codes returned by specific operations
+
+**String error codes** (from JS layer):
+- **'TIMEOUT'**: Operation timeout (WASM loading timeout, authentication timeout, etc.)
+- **'NETWORK_ERROR'**: Network error (online authentication failure, etc.)
+- **'WASM_LOAD_ERROR'**: WASM module loading failed
+- **'LICENSE_ERROR'**: License verification failed
+- **'AUTH_TIMEOUT'**: Online authentication timeout
+- **'AUTH_EMPTY_RESPONSE'**: Online authentication returned empty response
+- **'ENGINE_CREATE_FAILED'**: Engine creation failed (may be due to license or resource path issues)
+- **'UNKNOWN_ERROR'**: Unknown error
+
+```javascript
+try {
+    await engine.init();
+} catch (error) {
+    if (error instanceof FacebetterError) {
+        if (typeof error.code === 'string') {
+            // String error code
+            switch (error.code) {
+                case 'TIMEOUT':
+                    console.error('Operation timeout:', error.message);
+                    break;
+                case 'NETWORK_ERROR':
+                    console.error('Network error:', error.message);
+                    break;
+                case 'WASM_LOAD_ERROR':
+                    console.error('WASM loading failed:', error.message);
+                    break;
+                case 'LICENSE_ERROR':
+                case 'ENGINE_CREATE_FAILED':
+                    console.error('License error:', error.message);
+                    break;
+                default:
+                    console.error('Error:', error.code, error.message);
+            }
+        } else {
+            // Numeric error code
+            switch (error.code) {
+                case -1:
+                    console.error('General error:', error.message);
+                    break;
+                default:
+                    console.error('Error code:', error.code, error.message);
+            }
+        }
+    }
+}
+```
+
+## Image Data Error Handling
+
+### 1. Input Image Validation
+
+```javascript
+function validateImageData(imageData) {
+    if (!imageData) {
+        throw new Error('Image data cannot be empty');
+    }
+    
+    if (!(imageData instanceof ImageData)) {
+        throw new Error('Image data must be ImageData type');
+    }
+    
+    if (imageData.width <= 0 || imageData.height <= 0) {
+        throw new Error('Invalid image dimensions');
+    }
+    
+    if (!imageData.data || imageData.data.length === 0) {
+        throw new Error('Image data is empty');
+    }
+    
+    return true;
+}
+
+function processImageSafe(imageData, engine) {
+    try {
+        // Validate input
+        validateImageData(imageData);
+        
+        // Process image (synchronous method)
+        const result = engine.processImage(
+            imageData, 
+            imageData.width, 
+            imageData.height, 
+            FrameType.Video
+        );
+        
+        return result;
+    } catch (error) {
+        console.error('Image processing failed:', error);
+        throw error;
+    }
+}
+```
+
+### 2. Canvas Error Handling
+
+```javascript
+function getImageDataFromCanvas(canvas) {
+    try {
+        if (!canvas) {
+            throw new Error('Canvas element does not exist');
+        }
+        
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+            throw new Error('Cannot get Canvas context');
+        }
+        
+        if (canvas.width === 0 || canvas.height === 0) {
+            throw new Error('Invalid Canvas dimensions');
+        }
+        
+        return ctx.getImageData(0, 0, canvas.width, canvas.height);
+    } catch (error) {
+        console.error('Failed to get Canvas image data:', error);
+        throw error;
+    }
+}
+```
+
+## Network Error Handling
+
+### 1. Online Verification Error
+
+```javascript
+async function initEngineWithRetry(config, maxRetries = 3) {
+    for (let i = 0; i < maxRetries; i++) {
+        try {
+            const engine = new BeautyEffectEngine(config);
+            await engine.init();
+            return engine;
+        } catch (error) {
+            if (error.message.includes('network') || error.message.includes('fetch')) {
+                console.warn(`Initialization failed (attempt ${i + 1}/${maxRetries}):`, error.message);
+                
+                if (i < maxRetries - 1) {
+                    // Wait before retry
+                    await new Promise(resolve => setTimeout(resolve, 1000 * (i + 1)));
+                    continue;
+                }
+            }
+            
+            throw error;
+        }
+    }
+}
+
+// Usage
+try {
+    const engine = await initEngineWithRetry(config);
+} catch (error) {
+    console.error('Initialization failed after multiple retries:', error);
+}
+```
+
+### 2. WASM Loading Error
+
+```javascript
+async function loadEngineWithFallback() {
+    try {
+        const engine = new BeautyEffectEngine(config);
+        await engine.init();
+        return engine;
+    } catch (error) {
+        if (error.message.includes('WASM') || error.message.includes('wasm')) {
+            console.error('WASM loading failed:', error);
+            // Can try to reload or use fallback solution
+            showErrorToUser('Beauty feature temporarily unavailable, please refresh the page and try again');
+        }
+        throw error;
+    }
+}
+```
+
+## Error Handling Best Practices
+
+### 1. Unified Error Handler
+
+```javascript
+class ErrorHandler {
+    static handle(error, context = '') {
+        console.error(`[${context}] Error:`, error);
+        
+        if (error instanceof FacebetterError) {
+            // Facebetter specific error
+            this.handleFacebetterError(error, context);
+        } else if (error instanceof Error) {
+            // General error
+            this.handleGenericError(error, context);
+        } else {
+            // Unknown error
+            console.error('Unknown error type:', error);
+        }
+    }
+    
+    static handleFacebetterError(error, context) {
+        switch (error.code) {
+            case -1:
+                console.error('Facebetter general error:', error.message);
+                break;
+            default:
+                console.error('Facebetter error:', error.code, error.message);
+        }
+    }
+    
+    static handleGenericError(error, context) {
+        if (error.message.includes('network')) {
+            console.error('Network error:', error.message);
+        } else if (error.message.includes('WASM')) {
+            console.error('WASM error:', error.message);
+        } else {
+            console.error('General error:', error.message);
+        }
+    }
+}
+
+// Usage
+try {
+    await engine.init();
+} catch (error) {
+    ErrorHandler.handle(error, 'Engine initialization');
+}
+```
+
+### 2. User-Friendly Error Messages
+
+```javascript
+function showErrorToUser(message) {
+    // Show user-friendly error message
+    const errorDiv = document.createElement('div');
+    errorDiv.className = 'error-message';
+    errorDiv.textContent = message;
+    document.body.appendChild(errorDiv);
+    
+    // Auto-hide after 3 seconds
+    setTimeout(() => {
+        errorDiv.remove();
+    }, 3000);
+}
+
+try {
+    await engine.init();
+} catch (error) {
+    let userMessage = 'Beauty engine initialization failed';
+    
+    if (error.message.includes('network')) {
+        userMessage = 'Network connection failed, please check network and try again';
+    } else if (error.message.includes('WASM')) {
+        userMessage = 'Browser not supported or loading failed, please refresh the page and try again';
+    } else if (error.message.includes('appId') || error.message.includes('appKey')) {
+        userMessage = 'Configuration error, please contact technical support';
+    }
+    
+    showErrorToUser(userMessage);
+    console.error('Detailed error:', error);
+}
+```
+
+### 3. Error Logging
+
+```javascript
+class ErrorLogger {
+    static log(error, context = '', userInfo = {}) {
+        const errorLog = {
+            timestamp: new Date().toISOString(),
+            context: context,
+            error: {
+                message: error.message,
+                code: error.code || 'N/A',
+                stack: error.stack
+            },
+            userInfo: userInfo,
+            userAgent: navigator.userAgent,
+            url: window.location.href
+        };
+        
+        // Send to server (optional)
+        if (window.fetch) {
+            fetch('/api/errors', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(errorLog)
+            }).catch(err => console.error('Failed to send error log:', err));
+        }
+        
+        // Console output
+        console.error('Error log:', errorLog);
+    }
+}
+
+// Usage
+try {
+    await engine.init();
+} catch (error) {
+    ErrorLogger.log(error, 'Engine initialization', {
+        appId: config.appId ? 'provided' : 'missing'
+    });
+}
+```
+
+## Preventive Error Handling
+
+### 1. Parameter Validation
+
+```javascript
+function validateBeautyParam(value) {
+    if (typeof value !== 'number') {
+        throw new TypeError('Parameter value must be a number');
+    }
+    
+    if (value < 0.0 || value > 1.0) {
+        throw new RangeError('Parameter value must be between 0.0-1.0');
+    }
+    
+    return true;
+}
+
+function setBasicParamSafe(engine, param, value) {
+    try {
+        validateBeautyParam(value);
+        engine.setBasicParam(param, value);
+    } catch (error) {
+        console.error('Failed to set parameter:', error);
+        throw error;
+    }
+}
+```
+
+### 2. State Checking
+
+```javascript
+function processImageWithValidation(engine, imageData) {
+    if (!engine) {
+        throw new Error('Engine not created');
+    }
+    
+    if (!engine.initialized) {
+        throw new Error('Engine not initialized');
+    }
+    
+    if (!imageData) {
+        throw new Error('Image data cannot be empty');
+    }
+    
+    // Process image (synchronous method)
+    return engine.processImage(
+        imageData, 
+        imageData.width, 
+        imageData.height, 
+        FrameType.Video
+    );
+}
+```
+
+## Related Documentation
+
+- [Best Practices](/web/best-practices) - Performance optimization and error prevention
+- [FAQ](/web/faq) - Common errors and solutions
+- [API Reference](/web/api-reference) - Complete API documentation
+

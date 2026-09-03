@@ -1,0 +1,56 @@
+---
+title: "Quick Start"
+description: "Run the Flutter example app"
+---
+
+## Requirements
+
+- **Flutter**: `3.10.0` or later
+- **Dart**: `3.0.0` or later
+- **iOS**: `iOS 12.0` or later
+- **Android**: `Android 5.0` (API 21) or later
+- **IDE**: Android Studio / VS Code
+
+## Clone the Repository
+
+```bash
+git clone https://github.com/pixpark/facebetter-sdk.git
+```
+
+## Create Flutter Project
+
+The demo only contains business code. Create the Flutter project first:
+
+```bash
+cd facebetter-sdk/demo/flutter
+flutter create --org net.pixpark --project-name fbexample .
+```
+
+## Configure License
+
+Follow the [Enable Service](/intro/enable-service) guide to get your `appId` and `appKey`, then update `lib/main.dart`:
+
+```dart
+await FBBeautyEffectEngine.init(
+  FBEngineConfig(appId: 'your appId', appKey: 'your appKey'),
+);
+```
+
+## Install Dependencies
+
+```bash
+flutter pub get
+cd ios && pod install && cd ..
+```
+
+## Run
+
+```bash
+flutter run -d <device-id>
+```
+
+List available devices:
+
+```bash
+flutter devices
+```

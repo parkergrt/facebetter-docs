@@ -1,0 +1,100 @@
+---
+title: "Quick Start"
+description: "Run Web example"
+---
+
+## Requirements
+
+- **Browser**: Modern browsers
+  - Chrome 57+
+  - Firefox 52+
+  - Safari 11+
+  - Edge 16+
+- **Language**: JavaScript (ES6+)
+- **Build Tools**: Optional (Vite, Webpack, Parcel, etc.)
+
+## Install SDK
+
+Install via npm:
+
+```bash
+npm install facebetter
+```
+
+**Using ES Module (Recommended):**
+
+```javascript
+import { 
+  BeautyEffectEngine, 
+  EngineConfig, 
+  BeautyType, 
+  BasicParam,
+  ProcessMode 
+} from 'facebetter';
+```
+
+**Using CommonJS:**
+
+```javascript
+const { BeautyEffectEngine, EngineConfig } = require('facebetter');
+```
+
+## Get Example Source Code
+
+Clone the [github repository](https://github.com/pixpark/facebetter-sdk) to local, navigate to `demo/web/vue` or `demo/web/react` directory
+
+```bash
+# clone 
+git clone https://github.com/pixpark/facebetter-sdk.git
+
+# Vue example
+cd demo/web/vue
+
+# Or React example
+cd demo/web/react
+```
+
+## Configure Application Information and Keys
+
+### Bind Application Domain
+
+Follow the instructions on [this page](/intro/enable-service#bind-application-information) to bind your Web application domain in the console, for example: `example.com`
+
+### Get AppID and AppKey
+
+Follow the instructions on [this page](/intro/enable-service#get-appid-and-appkey) to get `appId` and `appKey`, open `src/views/CameraPreview.vue` (Vue) or `src/views/CameraPreview.jsx` (React) and modify the configuration:
+
+```javascript
+const config = new EngineConfig({
+  appId: 'your appId',
+  appKey: 'your appKey'
+  // Optional: If licenseJson is provided, license data verification takes priority, appId and appKey are not required
+  // licenseJson: 'your license json string'
+})
+```
+
+<Tip>
+`licenseJson` takes priority over `appId` + `appKey`. For offline download and details, see [License & Auth](/intro/license).
+</Tip>
+
+## Run Example
+
+Install dependencies and start the development server:
+
+```bash
+# Install dependencies
+npm install
+
+# Start development server
+npm run dev
+```
+
+Then access the displayed address in your browser (usually `http://localhost:5173`)
+
+## Verify Running
+
+1. Open browser developer tools (F12)
+2. Check console for error messages
+3. If you see "Engine initialized successfully", it's running correctly
+4. You can click function buttons to test beauty effects
+

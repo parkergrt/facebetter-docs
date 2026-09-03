@@ -1,0 +1,76 @@
+---
+title: "License & Auth"
+description: "Facebetter SDK online auth and offline license guide"
+---
+
+The SDK supports two license modes. Pick one when creating the engine:
+
+| Mode | Config fields | When to use |
+|------|---------------|-------------|
+| Online | `appId` + `appKey` | Device can reach the network |
+| Offline | `licenseJson` | Offline / weak network / private networks |
+
+**Priority**: If `licenseJson` is set, the SDK validates it locally and does **not** call the network. You do not need `appId` / `appKey` in that case.
+
+<Tip>
+Complete [Subscribe](./enable-service) first: bind your app identifiers in the Dashboard (Bundle ID / package name / domain, etc.) and enable a plan.
+</Tip>
+
+## Online auth
+
+Copy `AppID` / `AppKey` from the Dashboard and pass them when creating the engine. See each platform’s Quick Start for examples.
+
+## Offline license
+
+### Download
+
+1. Sign in to the [Dashboard](https://facebetter.net/dashboard)
+2. Select a project, then on the **AppID & AppKey** card click **Download** for Offline License
+3. You get: `facebetter-offline-license.json`
+
+Validity matches your current subscription. After renewing or changing the plan, download again and replace the license in your app.
+
+### Integrate
+
+Pass the **entire file contents** as a string to `licenseJson`. The same approach works on all platforms.
+
+**iOS / macOS**
+
+```objc
+FBEngineConfig *config = [[FBEngineConfig alloc] init];
+config.licenseJson = @"/* full file contents */";
+self.beautyEffectEngine = [FBBeautyEffectEngine createEngineWithConfig:config];
+```
+
+**Android**
+
+```java
+BeautyEffectEngine.EngineConfig config = new BeautyEffectEngine.EngineConfig();
+config.licenseJson = "/* full file contents */";
+mBeautyEngine = new BeautyEffectEngine(this, config);
+```
+
+**Web**
+
+```js
+const config = new EngineConfig({
+  licenseJson: '/* full file contents */',
+});
+```
+
+**Flutter**
+
+```dart
+await FBBeautyEffectEngine.init(
+  FBEngineConfig(licenseJson: '/* full file contents */'),
+);
+```
+
+Prefer shipping the JSON as an app asset and loading it at runtime instead of hard-coding it in source.
+
+### Notes
+
+- The offline license is bound to the app identifiers configured in the Dashboard; a mismatch fails validation.
+- Not expired: features follow your subscription plan.
+- Expired: the engine can still initialize, but capabilities fall back to the free plan. Renew and download a new license.
+- Requires **SDK 1.5.0 or later**.

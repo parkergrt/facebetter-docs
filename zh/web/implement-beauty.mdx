@@ -1,0 +1,559 @@
+---
+title: "实现美颜"
+description: "实现Web美颜"
+---
+
+## 集成 SDK
+
+通过 npm 安装：
+
+```bash
+npm install facebetter
+```
+
+**使用 ES Module（推荐）：**
+
+```javascript
+import { 
+  BeautyEffectEngine, 
+  EngineConfig, 
+  BeautyType, 
+  BasicParam,
+  ReshapeParam,
+  MakeupParam,
+  BackgroundMode,
+  VirtualBackgroundOptions,
+  ProcessMode 
+} from 'facebetter';
+```
+
+**使用 CommonJS：**
+
+```javascript
+const { BeautyEffectEngine, EngineConfig } = require('facebetter');
+```
+
+## 日志配置
+
+默认日志是关闭的，可以按需开启：
+
+<Warning>
+日志配置需要在引擎初始化**之前**调用。
+</Warning>
+
+```javascript
+await engine.setLogConfig({
+    consoleEnabled: true,  // 控制台日志
+    fileEnabled: false,    // 文件日志（浏览器环境不支持）
+    level: 0,              // 日志级别：0=DEBUG, 1=INFO, 2=WARN, 3=ERROR
+    fileName: 'facebetter.log'  // 日志文件名（可选，仅当 fileEnabled 为 true 时有效）
+});
+```
+
+**注意**：日志配置需要在引擎初始化之前调用。
+
+## 创建配置引擎
+
+按照 [此页面](/zh/intro/enable-service#获取-appid-和-appkey) 指引，获取 `appId` 和 `appKey`
+
+**验证方式优先级：**
+- 如果提供了 `licenseJson`，使用授权数据验证（支持在线响应和离线授权）
+- 否则使用 `appId` 和 `appKey` 进行自动联网验证
+
+```javascript
+import { BeautyEffectEngine, EngineConfig } from 'facebetter';
+
+const config = new EngineConfig({
+    appId: 'your appId',     // 配置你的 appid（可选，如果提供了 licenseJson 则不需要）
+    appKey: 'your appKey'    // 配置你的 appkey（可选，如果提供了 licenseJson 则不需要）
+    // 可选：使用授权数据验证（如果提供则优先使用）
+    // licenseJson: 'your license json string'
+});
+const engine = new BeautyEffectEngine(config);
+```
+
+### 错误处理
+
+创建引擎后建议检查是否成功：
+
+```javascript
+try {
+    await engine.init();
+    console.log('引擎初始化成功');
+} catch (error) {
+    console.error('引擎初始化失败:', error);
+    // 处理错误
+}
+```
+
+## 调节美颜参数
+
+<Tip>
+所有美颜参数值范围为 `[0.0, 1.0]`，设置为 `0` 即禁用效果。
+</Tip>
+
+### 设置美肤参数
+
+通过 `setBasicParam` 接口，设置美肤参数，**参数范围 [0.0, 1.0]**（浮点数）；
+
+```javascript
+import { BasicParam } from 'facebetter';
+
+engine.setBasicParam(
+    BasicParam.Smoothing, 
+    0.5  // 0.0-1.0
+);
+```
+
+支持的美肤参数：
+```javascript
+BasicParam = {
+    Smoothing: 0,   // 磨皮
+    Sharpening: 1,  // 锐化
+    Whitening: 2,   // 美白
+    Rosiness: 3     // 红润
+};
+```
+
+### 设置美型参数
+
+通过 `setReshapeParam` 接口，设置美型参数，**参数范围 [0.0, 1.0]**（浮点数）；
+
+```javascript
+import { ReshapeParam } from 'facebetter';
+
+engine.setReshapeParam(
+    ReshapeParam.FaceThin, 
+    0.5  // 0.0-1.0
+);
+```
+
+支持的美型参数：
+
+```javascript
+ReshapeParam = {
+    FaceThin: 0,      // 瘦脸
+    FaceVShape: 1,    // V脸
+    FaceNarrow: 2,    // 窄脸
+    FaceShort: 3,     // 短脸
+    Cheekbone: 4,     // 颧骨
+    Jawbone: 5,       // 下颌骨
+    Chin: 6,          // 下巴
+    NoseSlim: 7,      // 瘦鼻梁
+    EyeSize: 8,       // 大眼
+    EyeDistance: 9    // 眼距
+};
+```
+
+### 设置美妆参数
+
+通过 `setMakeupParam` 接口，设置美妆参数，**参数范围 [0.0, 1.0]**（浮点数）；
+
+```javascript
+import { MakeupParam } from 'facebetter';
+
+engine.setMakeupParam(
+    MakeupParam.Lipstick, 
+    0.5  // 0.0-1.0
+);
+```
+
+支持的美妆参数：
+
+```javascript
+MakeupParam = {
+    Lipstick: 0,  // 口红
+    Blush: 1      // 腮红
+};
+```
+
+### 设置美颜仅作用于皮肤区域
+
+通过 `setSkinOnlyBeauty` 接口，设置美颜是否仅作用于皮肤区域。当启用时，美颜效果（磨皮、美白等）仅会应用于检测到的皮肤区域，非皮肤区域保持不变。
+
+```javascript
+// 启用美颜仅作用于皮肤区域
+engine.setSkinOnlyBeauty(true);
+
+// 禁用美颜仅作用于皮肤区域（美颜作用于整张图像）
+engine.setSkinOnlyBeauty(false);
+```
+
+<Tip>
+启用皮肤区域美颜后，即使美颜参数值较高，非皮肤区域（如背景、衣物等）也不会受到影响。
+</Tip>
+
+### 设置虚拟背景
+
+通过 `setVirtualBackgroundType` 接口设置虚拟背景参数即可启用效果：
+
+```javascript
+import { VirtualBackgroundType } from 'facebetter';
+
+// 设置模糊背景（参数值 > 0 表示启用）
+engine.setVirtualBackgroundType(VirtualBackgroundType.Blur, 0.5);
+
+// 设置纯色背景
+engine.setVirtualBackgroundType(VirtualBackgroundType.Color, 0.5);
+```
+
+通过 `setVirtualBackground` 接口设置虚拟背景（统一接口，与其他平台一致）：
+
+```javascript
+import { VirtualBackgroundOptions, BackgroundMode } from 'facebetter';
+
+// 设置模糊背景
+const blurOptions = new VirtualBackgroundOptions({
+  mode: BackgroundMode.Blur
+});
+engine.setVirtualBackground(blurOptions);
+
+// 设置图片背景
+const bgImage = new Image();
+bgImage.onload = () => {
+  const imageOptions = new VirtualBackgroundOptions({
+    mode: BackgroundMode.Image,
+    backgroundImage: bgImage
+  });
+  engine.setVirtualBackground(imageOptions);
+};
+bgImage.src = 'background.jpg';
+
+// 关闭虚拟背景
+const noneOptions = new VirtualBackgroundOptions({
+  mode: BackgroundMode.None
+});
+engine.setVirtualBackground(noneOptions);
+```
+
+**简化写法（也支持）：**
+
+```javascript
+// 直接传对象，不需要 new VirtualBackgroundOptions
+engine.setVirtualBackground({
+  mode: BackgroundMode.Blur
+});
+
+// 设置图片背景
+bgImage.onload = () => {
+  engine.setVirtualBackground({
+    mode: BackgroundMode.Image,
+    backgroundImage: bgImage
+  });
+};
+```
+
+## 使用滤镜和贴纸
+
+### 滤镜功能
+滤镜通过 `setFilter` 接口设置，需要先通过 `registerFilter` 注册滤镜资源。
+
+```javascript
+// 1. 注册滤镜资源 (支持 URL 路径或 Uint8Array 数据)
+const filterId = 'chuxin';
+const fbdUrl = '/assets/filters/chuxin.fbd';
+engine.registerFilter(filterId, fbdUrl);
+
+// 2. 使用滤镜
+engine.setFilter(filterId);
+
+// 3. 调节滤镜强度 (0.0 - 1.0)
+engine.setFilterIntensity(0.8);
+```
+
+### 贴纸功能
+贴纸通过 `setSticker` 接口设置，同样需要先注册。
+
+```javascript
+// 1. 注册贴纸资源
+const stickerId = 'cherry';
+const fbdUrl = '/assets/stickers/cherry.fbd';
+engine.registerSticker(stickerId, fbdUrl);
+
+// 2. 使用贴纸
+engine.setSticker(stickerId);
+
+// 3. 清除贴纸
+engine.setSticker('');
+```
+
+## 设置引擎回调
+
+监听引擎认证和初始化状态：
+
+```javascript
+engine.setEngineEventCallback((code, message) => {
+    if (code === 0) {
+        // License 验证成功或引擎初始化完成
+        console.log('引擎事件成功:', message);
+    } else {
+        // License 验证失败或引擎初始化失败
+        console.error('引擎事件失败 (code ' + code + '):', message);
+    }
+});
+```
+
+事件码：
+- `0`: License 验证成功或引擎初始化完成
+- `1`: License 验证失败
+- `101`: 引擎初始化失败
+
+## 处理图像
+
+### 从 Canvas 获取图像数据
+
+```javascript
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+```
+
+### 从图片元素获取图像数据
+
+```javascript
+const img = new Image();
+img.onload = function() {
+    const canvas = document.createElement('canvas');
+    canvas.width = img.width;
+    canvas.height = img.height;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(img, 0, 0);
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    // 处理图像...
+};
+img.src = 'image.jpg';
+```
+
+### 处理图像
+
+`processImage` 方法支持多种输入类型，`frameType` 参数包括 `FrameType.Video` 和 `FrameType.Image` 两种，`FrameType.Video` 适合直播、视频等场景使用，效率更高，`FrameType.Image` 模式适合图片处理场景。
+
+<Tip>
+引擎会自动保持输入输出格式一致。输入为 RGBA 格式，输出即为 RGBA 格式；输入为 I420 格式，输出即为 I420 格式。
+</Tip>
+
+```javascript
+import { FrameType } from 'facebetter';
+
+// 方式一：传入 ImageData 和尺寸
+const result = engine.processImage(
+    imageData, 
+    canvas.width, 
+    canvas.height, 
+    FrameType.Video  // 或 FrameType.Image
+);
+
+// 方式二：传入 HTMLImageElement（自动获取尺寸，width/height 可省略）
+const result = engine.processImage(
+    imageElement, 
+    undefined, 
+    undefined, 
+    FrameType.Image
+);
+
+// 方式三：传入 HTMLVideoElement（自动获取尺寸，width/height 可省略）
+const result = engine.processImage(
+    videoElement, 
+    undefined, 
+    undefined, 
+    FrameType.Video
+);
+
+// 方式四：传入 Uint8ClampedArray（必须提供 width/height）
+const result = engine.processImage(
+    uint8Array, 
+    640,  // 必需
+    480,  // 必需
+    FrameType.Video
+);
+```
+
+### 绘制处理后图像
+
+```javascript
+// 将处理后的图像数据绘制到 Canvas
+ctx.putImageData(result, 0, 0);
+```
+
+### 保存处理后的图片
+
+处理后的图像数据可以保存为图片文件：
+
+**方式一：使用 Canvas.toDataURL()**
+
+```javascript
+// 将处理后的图像数据绘制到 Canvas
+ctx.putImageData(result, 0, 0);
+
+// 转换为 Data URL
+const dataURL = canvas.toDataURL('image/png');
+
+// 创建下载链接
+const link = document.createElement('a');
+link.download = 'beauty-result.png';
+link.href = dataURL;
+link.click();
+```
+
+**方式二：使用 Canvas.toBlob()**
+
+```javascript
+// 将处理后的图像数据绘制到 Canvas
+ctx.putImageData(result, 0, 0);
+
+// 转换为 Blob
+canvas.toBlob(function(blob) {
+    // 创建下载链接
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.download = 'beauty-result.png';
+    link.href = url;
+    link.click();
+    
+    // 释放 URL 对象
+    URL.revokeObjectURL(url);
+}, 'image/png');
+```
+
+**方式三：保存为不同格式**
+
+```javascript
+// 保存为 PNG（无损，文件较大）
+const pngDataURL = canvas.toDataURL('image/png');
+
+// 保存为 JPEG（有损，文件较小，可设置质量）
+const jpegDataURL = canvas.toDataURL('image/jpeg', 0.9); // 质量 0-1
+
+// 创建下载
+function downloadImage(dataURL, filename, mimeType) {
+    const link = document.createElement('a');
+    link.download = filename;
+    link.href = dataURL;
+    link.click();
+}
+
+// 使用
+downloadImage(pngDataURL, 'beauty-result.png', 'image/png');
+downloadImage(jpegDataURL, 'beauty-result.jpg', 'image/jpeg');
+```
+
+**完整示例：保存处理后的图片**
+
+```javascript
+function processAndSaveImage(imageData, engine) {
+    try {
+        // 处理图像（同步方法）
+        const result = engine.processImage(
+            imageData, 
+            imageData.width, 
+            imageData.height, 
+            FrameType.Image
+        );
+        
+        // 创建临时 Canvas
+        const canvas = document.createElement('canvas');
+        canvas.width = imageData.width;
+        canvas.height = imageData.height;
+        const ctx = canvas.getContext('2d');
+        
+        // 绘制处理后的图像
+        ctx.putImageData(result, 0, 0);
+        
+        // 保存为图片
+        canvas.toBlob(function(blob) {
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.download = `beauty-${Date.now()}.png`;
+            link.href = url;
+            link.click();
+            URL.revokeObjectURL(url);
+        }, 'image/png');
+        
+        console.log('图片保存成功');
+    } catch (error) {
+        console.error('处理或保存图片失败:', error);
+    }
+}
+```
+
+## 生命周期管理
+
+<Tip>
+引擎使用完毕后调用 `destroy()` 方法释放资源，避免内存泄漏。
+</Tip>
+
+### 释放资源
+
+在页面卸载或不再使用时，务必释放引擎资源：
+
+```javascript
+// 页面卸载时
+window.addEventListener('beforeunload', () => {
+    if (engine) {
+        engine.destroy();
+        engine = null;
+    }
+});
+
+// 或在组件销毁时（Vue/React）
+onUnmounted(() => {  // Vue
+    if (engine) {
+        engine.destroy();
+        engine = null;
+    }
+});
+
+useEffect(() => {  // React
+    return () => {
+        if (engine) {
+            engine.destroy();
+            engine = null;
+        }
+    };
+}, []);
+```
+
+### 内存管理
+
+- 及时释放不再使用的 ImageData 对象
+- 避免在循环中重复创建大量图像对象
+- 建议复用 Canvas 和 ImageData 对象
+
+```javascript
+// 复用 Canvas 和 ImageData
+let canvas = null;
+let imageData = null;
+
+function processFrame() {
+    if (!canvas) {
+        canvas = document.createElement('canvas');
+        canvas.width = 640;
+        canvas.height = 480;
+    }
+    
+    const ctx = canvas.getContext('2d');
+    // 绘制图像到 canvas
+    ctx.drawImage(video, 0, 0);
+    
+    // 获取图像数据
+    imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    
+    // 处理图像
+    const result = engine.processImage(
+        imageData, 
+        canvas.width, 
+        canvas.height, 
+        FrameType.Video
+    );
+    
+    // 绘制结果
+    ctx.putImageData(result, 0, 0);
+}
+```
+
+## 相关文档
+
+- [最佳实践](/zh/web/best-practices) - 性能优化和架构设计建议
+- [常见问题](/zh/web/faq) - 常见问题解答和故障排除
+- [API 参考](/zh/web/api-reference) - 完整的 API 文档
+

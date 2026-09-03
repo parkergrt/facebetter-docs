@@ -1,0 +1,54 @@
+---
+title: "订阅与凭证"
+description: "开通 Facebetter SDK 订阅服务并获取 AppID & AppKey，开始使用美颜功能"
+---
+
+ 
+# 订阅服务
+  
+## 注册/登录
+
+注册登录到后台页面，会创建默认项目，且显示当前项目订阅信息和统计信息。默认项目为免费版本。
+
+<Frame>
+  <img src="/images/dash-overview.jpg" alt="控制台订阅信息" />
+</Frame>
+ 
+## 绑定应用信息
+
+Facebetter SDK 在验证许可证时需要校验应用的身份信息，确保授权应用与实际使用的应用相符。请根据应用所属平台填写相应的标识：
+
+- **iOS/macOS**：Bundle ID（例如：com.example.app）
+- **Android**：应用包名（App Package Name，例如：com.example.app）
+- **Windows**：应用名称或可执行文件名
+- **Linux**：应用名称或包名
+- **Web**：应用域名（例如：example.com）
+- **HarmonyOS**：应用包名（Bundle Name）
+
+点击仪表板中的 **"编辑工程"** 按钮，根据您的应用平台填写对应的标识信息，完成应用绑定。
+
+<Frame>
+  <img src="/images/dash-edit-project.jpg" alt="控制台编辑工程" />
+</Frame>
+ 
+## 开通订阅
+
+点击仪表板中 "Your Subscription" 卡片上的 **"Subscribe"** 按钮进入订阅方案页面。按照以下步骤完成开通：
+
+1. **选择计费周期**：支持按量计费、按月付费或按年付费（年付可享受买 10 送 2 优惠）。
+2. **选择订阅方案**：根据项目需求选择对应的功能版本（如 Pro+）。
+3. **确认并支付**：在右侧订单摘要确认信息无误后，点击“立即开始”跳转至 Stripe 完成安全支付。
+ 
+<Frame>
+  <img src="/images/dash-subscribe.jpg" alt="控制台订阅方案" />
+</Frame>
+
+## 获取 appid 和 appkey
+
+控制台页面, AppID & AppKey 卡片，可以查看到 `appid` 和 `appkey`
+
+<Frame>
+  <img src="/images/dash-appid-appkey.jpg" alt="控制台 AppID & AppKey" />
+</Frame>
+
+同一卡片可下载 **离线 License**（`facebetter-offline-license.json`），用于无网环境。详见 [授权认证](./license)。

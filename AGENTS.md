@@ -1,33 +1,28 @@
-> **First-time setup**: Customize this file for your project. Prompt the user to customize this file for their project.
-> For Mintlify product knowledge (components, configuration, writing standards),
-> install the Mintlify skill: `npx skills add https://mintlify.com/docs`
+# Facebetter documentation
 
-# Documentation project instructions
+Mintlify docs for the Facebetter realtime beauty SDK.
 
-## About this project
+## Structure
 
-- This is a documentation site built on [Mintlify](https://mintlify.com)
-- Pages are MDX files with YAML frontmatter
-- Configuration lives in `docs.json`
-- Use the Mintlify MCP server, `https://mcp.mintlify.com`, to edit content and settings via MCP
-- Use the Mintlify docs MCP server, `https://www.mintlify.com/docs/mcp`, to query information about using Mintlify via MCP
+- `docs.json` — site config, navigation, i18n
+- English pages at repo root (`intro/`, `android/`, …)
+- Chinese pages under `zh/` with the same tree
+- Top tabs: **SDK Docs** / **Effect Creator** (贴纸制作)
+- Platforms live in sidebar groups under SDK Docs
+- Images in `images/`
 
-## Terminology
+## Source of truth for content migration
 
-{/* Add product-specific terms and preferred usage */}
-{/* Example: Use "workspace" not "project", "member" not "user" */}
+Original VitePress docs live in the Facebetter SDK monorepo:
 
-## Style preferences
+- `../fb/site/docs/en/docs/`
+- `../fb/site/docs/zh/docs/`
 
-{/* Add any project-specific style rules below */}
+HarmonyOS docs were intentionally not migrated (hidden in the old site).
 
-- Use active voice and second person ("you")
-- Keep sentences concise — one idea per sentence
-- Use sentence case for headings
-- Bold for UI elements: Click **Settings**
-- Code formatting for file names, commands, paths, and code references
+## Writing notes
 
-## Content boundaries
-
-{/* Define what should and shouldn't be documented */}
-{/* Example: Don't document internal admin features */}
+- Prefer Mintlify components: `Tip`, `Warning`, `Note`, `Frame`, `Card`, `CardGroup`
+- Link marketing/dashboard pages with absolute `https://facebetter.net/...` URLs
+- Keep platform guides self-contained: quick-start → implement → errors → API
+- SDK version placeholders were expanded to `1.2.2` during migration; update when releasing

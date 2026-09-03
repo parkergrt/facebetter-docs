@@ -1,0 +1,119 @@
+---
+title: "Implement Beauty"
+description: "Implement beauty effects in Flutter"
+---
+
+## Add SDK Dependency
+
+Add to your `pubspec.yaml`:
+
+```yaml
+dependencies:
+  facebetter_flutter: ^1.4.4
+```
+
+Then run:
+
+```bash
+flutter pub get
+```
+
+For iOS:
+
+```bash
+cd ios && pod install
+```
+
+## Import
+
+```dart
+import 'package:facebetter_flutter/facebetter_flutter.dart';
+```
+
+## Configure Logging
+
+```dart
+FBBeautyEffectEngine.setLogConfig(
+  FBLogConfig(consoleEnabled: true, level: FBLogLevel.debug),
+);
+```
+
+<Warning>
+Call `setLogConfig` **before** `init()` to see initialization logs.
+</Warning>
+
+## Initialize Engine
+
+```dart
+await FBBeautyEffectEngine.init(
+  FBEngineConfig(appId: 'your appId', appKey: 'your appKey'),
+);
+final engine = FBBeautyEffectEngine.sharedInstance;
+```
+
+## Set Beauty Parameters
+
+<Tip>
+All parameter values range from `[0.0, 1.0]`. Set to `0` to disable.
+</Tip>
+
+### Basic Beauty
+
+```dart
+await engine.setBasicParam(FBBasicParam.smoothing, 0.8);
+await engine.setBasicParam(FBBasicParam.whitening, 0.6);
+```
+
+### Face Reshape
+
+```dart
+await engine.setReshapeParam(FBReshapeParam.faceThin, 0.5);
+await engine.setReshapeParam(FBReshapeParam.eyeSize, 0.3);
+```
+
+### Makeup
+
+```dart
+await engine.setMakeupParam(FBMakeupParam.lipstick, 0.5);
+```
+
+### Virtual Background
+
+```dart
+await engine.setVirtualBackground(FBBackgroundMode.blur);
+await engine.setVirtualBackground(FBBackgroundMode.image,
+    backgroundImage: FBImageFrame(...));
+```
+
+## Filters & Stickers
+
+```dart
+await engine.registerFilter('chuxin', '/path/to/chuxin.fbd');
+await engine.setFilter('chuxin');
+await engine.setFilterIntensity(0.8);
+
+await engine.registerSticker('cherry', '/path/to/cherry.fbd');
+await engine.setSticker('cherry');
+```
+
+## Process Images
+
+```dart
+final inputFrame = FBImageFrame(
+  width: 1080, height: 1920, stride: 4320,
+  data: rgbaBytes, format: FBImageFormat.rgba,
+);
+final outputFrame = await engine.processImage(inputFrame);
+```
+
+## Release
+
+```dart
+await engine.release();
+```
+
+## Related Docs
+
+- [API Reference](/flutter/api-reference)
+- [TRTC Integration](/flutter/trtc-integration)
+- [License & Auth](/intro/license)

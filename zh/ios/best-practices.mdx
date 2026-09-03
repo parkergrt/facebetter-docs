@@ -1,0 +1,530 @@
+---
+title: "最佳实践"
+description: "iOS 美颜 SDK 最佳实践指南"
+---
+
+## 性能优化
+
+### 1. 选择合适的处理模式
+
+**视频模式（FBFrameTypeVideo）**
+- 适合实时视频流、直播场景
+- 性能更优，处理速度快
+- 建议用于相机预览、视频通话等场景
+
+**图像模式（FBFrameTypeImage）**
+- 适合单张图片处理
+- 质量更高，效果更好
+- 建议用于照片编辑、图片美化等场景
+
+```objc
+// 实时视频处理
+input.type = FBFrameTypeVideo;
+FBImageFrame *output = [engine processImage:input];
+
+// 高质量图片处理
+input.type = FBFrameTypeImage;
+FBImageFrame *output = [engine processImage:input];
+```
+
+### 2. 参数调节建议
+
+**美颜参数调节原则**
+- 从较小值开始调节，避免过度美颜
+- 实时场景下建议降低参数值以保证流畅度
+- 静态图片可以适当提高参数值
+- 根据用户群体和场景调整参数范围
+
+**推荐参数范围**
+```objc
+// 基础美颜参数（实时场景）
+[self.beautyEngine setBasicParam:FBBasicParam_Smoothing floatValue:0.2f];  // 磨皮
+[self.beautyEngine setBasicParam:FBBasicParam_Whitening floatValue:0.1f];  // 美白
+[self.beautyEngine setBasicParam:FBBasicParam_Rosiness floatValue:0.1f];   // 红润
+
+// 面部重塑参数（实时场景）
+[self.beautyEngine setReshapeParam:FBReshapeParam_FaceThin floatValue:0.1f];    // 瘦脸
+[self.beautyEngine setReshapeParam:FBReshapeParam_EyeSize floatValue:0.1f];     // 大眼
+```
+
+### 3. 内存优化
+
+**使用 ARC 管理内存**
+```objc
+// 推荐：使用 ARC 自动管理
+@property (nonatomic, strong) FBImageFrame *reusableFrame;
+
+// 避免：手动管理内存（除非必要）
+// FBImageFrame *frame = [[FBImageFrame alloc] init];
+// [frame release];
+```
+
+**及时释放资源**
+```objc
+@interface BeautyProcessor : NSObject
+@property (nonatomic, strong) FBImageFrame *reusableFrame; // 复用对象
+@end
+
+@implementation BeautyProcessor
+
+- (FBImageFrame *)processImage:(NSData *)imageData {
+    // 复用 FBImageFrame 对象
+    if (self.reusableFrame == nil) {
+        self.reusableFrame = [FBImageFrame createWithRGBA:data width:width height:height stride:stride];
+    }
+    
+    // 处理图像
+    self.reusableFrame.type = FBFrameTypeVideo;
+    FBImageFrame *output = [self.beautyEngine processImage:self.reusableFrame];
+    
+    return output;
+}
+
+- (void)release {
+    self.reusableFrame = nil; // ARC 会自动释放
+}
+
+@end
+```
+
+## 架构设计
+
+### 1. 单例模式管理引擎
+
+```objc
+@interface BeautyEngineManager : NSObject
+@property (nonatomic, strong, readonly) FBBeautyEffectEngine *engine;
+
++ (instancetype)sharedManager;
+- (void)releaseEngine;
+@end
+
+@implementation BeautyEngineManager
+
++ (instancetype)sharedManager {
+    static BeautyEngineManager *instance = nil;
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{
+        instance = [[BeautyEngineManager alloc] init];
+    });
+    return instance;
+}
+
+- (instancetype)init {
+    self = [super init];
+    if (self) {
+        [self initEngine];
+    }
+    return self;
+}
+
+- (void)initEngine {
+    FBEngineConfig *config = [[FBEngineConfig alloc] init];
+    config.appId = @"your_app_id";
+    config.appKey = @"your_app_key";
+    _engine = [FBBeautyEffectEngine createEngineWithConfig:config];
+}
+
+- (void)releaseEngine {
+    _engine = nil;
+}
+
+@end
+```
+
+### 2. 异步处理图像
+
+```objc
+@interface AsyncBeautyProcessor : NSObject
+@property (nonatomic, strong) dispatch_queue_t processingQueue;
+@property (nonatomic, strong) FBBeautyEffectEngine *engine;
+@end
+
+@implementation AsyncBeautyProcessor
+
+- (instancetype)init {
+    self = [super init];
+    if (self) {
+        self.processingQueue = dispatch_queue_create("com.facebetter.processing", DISPATCH_QUEUE_SERIAL);
+        self.engine = [BeautyEngineManager sharedManager].engine;
+    }
+    return self;
+}
+
+- (void)processImageAsync:(FBImageFrame *)input completion:(void(^)(FBImageFrame *result, NSError *error))completion {
+    dispatch_async(self.processingQueue, ^{
+        @try {
+            input.type = FBFrameTypeVideo;
+            FBImageFrame *output = [self.engine processImage:input];
+            
+            // 切换到主线程回调
+            dispatch_async(dispatch_get_main_queue(), ^{
+                completion(output, nil);
+            });
+        } @catch (NSException *exception) {
+            NSError *error = [NSError errorWithDomain:@"FacebetterError" 
+                                                code:-1 
+                                            userInfo:@{NSLocalizedDescriptionKey: exception.reason}];
+            dispatch_async(dispatch_get_main_queue(), ^{
+                completion(nil, error);
+            });
+        }
+    });
+}
+
+@end
+```
+
+## 错误处理
+
+### 1. 完善的错误处理机制
+
+```objc
+@interface RobustBeautyProcessor : NSObject
+@property (nonatomic, strong) FBBeautyEffectEngine *engine;
+@end
+
+@implementation RobustBeautyProcessor
+
+- (BOOL)processImage:(FBImageFrame *)input output:(FBImageFrame *)output {
+    // 参数检查
+    if (self.engine == nil) {
+        NSLog(@"Engine not initialized");
+        return NO;
+    }
+    
+    if (input == nil) {
+        NSLog(@"Invalid input image");
+        return NO;
+    }
+    
+    @try {
+        // 处理图像
+        input.type = FBFrameTypeVideo;
+        FBImageFrame *result = [self.engine processImage:input];
+        if (result == nil) {
+            NSLog(@"Failed to process image");
+            return NO;
+        }
+        
+        // 复制结果到输出
+        [self copyImageFrame:result to:output];
+        
+        return YES;
+    } @catch (NSException *exception) {
+        NSLog(@"Exception during processing: %@", exception.reason);
+        return NO;
+    }
+}
+
+- (void)copyImageFrame:(FBImageFrame *)src to:(FBImageFrame *)dst {
+    // 实现图像复制逻辑
+}
+
+@end
+```
+
+### 2. 重试机制
+
+```objc
+@interface RetryBeautyProcessor : NSObject
+@property (nonatomic, strong) FBBeautyEffectEngine *engine;
+@end
+
+@implementation RetryBeautyProcessor
+
+static const int MAX_RETRY_COUNT = 3;
+static const NSTimeInterval RETRY_DELAY = 0.1;
+
+- (FBImageFrame *)processImageWithRetry:(FBImageFrame *)input {
+    for (int i = 0; i < MAX_RETRY_COUNT; i++) {
+        @try {
+            input.type = FBFrameTypeVideo;
+        FBImageFrame *result = [self.engine processImage:input];
+            if (result != nil) {
+                return result;
+            }
+        } @catch (NSException *exception) {
+            NSLog(@"Attempt %d failed: %@", i + 1, exception.reason);
+        }
+        
+        if (i < MAX_RETRY_COUNT - 1) {
+            [NSThread sleepForTimeInterval:RETRY_DELAY];
+        }
+    }
+    
+    NSLog(@"All retry attempts failed");
+    return nil;
+}
+
+@end
+```
+
+## 生命周期管理
+
+<Tip>
+美颜引擎是单例，App 结束时自动释放，无需手动管理。但在页面/ViewController 退出时停止美颜处理可以节省资源。
+</Tip>
+
+### 1. ViewController 生命周期处理
+
+```objc
+@interface BeautyViewController : UIViewController
+@property (nonatomic, strong) BeautyEngineManager *beautyManager;
+@end
+
+@implementation BeautyViewController
+
+- (void)viewDidLoad {
+    [super viewDidLoad];
+    
+    // 初始化美颜引擎
+    self.beautyManager = [BeautyEngineManager sharedManager];
+}
+
+- (void)viewWillAppear:(BOOL)animated {
+    [super viewWillAppear:animated];
+    // 恢复美颜处理
+}
+
+- (void)viewWillDisappear:(BOOL)animated {
+    [super viewWillDisappear:animated];
+    // 暂停美颜处理
+}
+
+- (void)dealloc {
+    // 释放美颜引擎（如果不再需要）
+    // [self.beautyManager releaseEngine];
+}
+
+@end
+```
+
+### 2. 应用生命周期处理
+
+```objc
+- (void)applicationDidEnterBackground:(UIApplication *)application {
+    // 应用进入后台时暂停美颜处理
+    [[BeautyEngineManager sharedManager] pauseProcessing];
+}
+
+- (void)applicationWillEnterForeground:(UIApplication *)application {
+    // 应用回到前台时恢复美颜处理
+    [[BeautyEngineManager sharedManager] resumeProcessing];
+}
+```
+
+## 性能监控
+
+### 1. 性能指标监控
+
+```objc
+@interface BeautyPerformanceMonitor : NSObject
+@property (nonatomic, assign) NSTimeInterval startTime;
+@property (nonatomic, assign) NSInteger frameCount;
+@property (nonatomic, assign) NSTimeInterval totalProcessTime;
+@end
+
+@implementation BeautyPerformanceMonitor
+
+- (void)startFrame {
+    self.startTime = [[NSDate date] timeIntervalSince1970];
+}
+
+- (void)endFrame {
+    NSTimeInterval processTime = [[NSDate date] timeIntervalSince1970] - self.startTime;
+    self.totalProcessTime += processTime;
+    self.frameCount++;
+    
+    // 计算平均处理时间
+    if (self.frameCount % 30 == 0) { // 每30帧计算一次
+        NSTimeInterval avgTime = self.totalProcessTime / self.frameCount;
+        NSLog(@"Average process time: %.2fms", avgTime * 1000);
+        
+        // 重置计数器
+        self.totalProcessTime = 0;
+        self.frameCount = 0;
+    }
+}
+
+- (BOOL)isPerformanceGood {
+    return (self.totalProcessTime / MAX(self.frameCount, 1)) < 0.033; // 30fps
+}
+
+@end
+```
+
+### 2. 内存使用监控
+
+```objc
+@interface MemoryMonitor : NSObject
+@end
+
+@implementation MemoryMonitor
+
+- (void)logMemoryUsage:(NSString *)tag {
+    struct mach_task_basic_info info;
+    mach_msg_type_number_t size = MACH_TASK_BASIC_INFO_COUNT;
+    kern_return_t kerr = task_info(mach_task_self(), MACH_TASK_BASIC_INFO, (task_info_t)&info, &size);
+    
+    if (kerr == KERN_SUCCESS) {
+        NSLog(@"%@ - Used: %.2fMB, Resident: %.2fMB", tag, 
+              info.resident_size / 1024.0 / 1024.0,
+              info.resident_size / 1024.0 / 1024.0);
+    }
+}
+
+- (BOOL)isMemoryLow {
+    struct mach_task_basic_info info;
+    mach_msg_type_number_t size = MACH_TASK_BASIC_INFO_COUNT;
+    kern_return_t kerr = task_info(mach_task_self(), MACH_TASK_BASIC_INFO, (task_info_t)&info, &size);
+    
+    if (kerr == KERN_SUCCESS) {
+        // 检查内存使用是否过高（这里需要根据实际情况调整阈值）
+        return info.resident_size > 100 * 1024 * 1024; // 100MB
+    }
+    return NO;
+}
+
+@end
+```
+
+## 配置管理
+
+### 1. 美颜配置管理
+
+```objc
+@interface BeautyConfigManager : NSObject
+@property (nonatomic, strong) NSUserDefaults *userDefaults;
+@end
+
+@implementation BeautyConfigManager
+
+- (instancetype)init {
+    self = [super init];
+    if (self) {
+        self.userDefaults = [NSUserDefaults standardUserDefaults];
+    }
+    return self;
+}
+
+- (void)saveBeautyConfig:(BeautyConfig *)config {
+    NSDictionary *configDict = @{
+        @"smoothing": @(config.smoothing),
+        @"whitening": @(config.whitening),
+        @"face_thin": @(config.faceThin),
+        @"basic_enabled": @(config.basicEnabled),
+        @"reshape_enabled": @(config.reshapeEnabled)
+    };
+    
+    [self.userDefaults setObject:configDict forKey:@"beauty_config"];
+    [self.userDefaults synchronize];
+}
+
+- (BeautyConfig *)loadBeautyConfig {
+    BeautyConfig *config = [[BeautyConfig alloc] init];
+    NSDictionary *configDict = [self.userDefaults objectForKey:@"beauty_config"];
+    
+    if (configDict) {
+        config.smoothing = [configDict[@"smoothing"] floatValue];
+        config.whitening = [configDict[@"whitening"] floatValue];
+        config.faceThin = [configDict[@"face_thin"] floatValue];
+        config.basicEnabled = [configDict[@"basic_enabled"] boolValue];
+        config.reshapeEnabled = [configDict[@"reshape_enabled"] boolValue];
+    }
+    
+    return config;
+}
+
+@end
+
+@interface BeautyConfig : NSObject
+@property (nonatomic, assign) float smoothing;
+@property (nonatomic, assign) float whitening;
+@property (nonatomic, assign) float faceThin;
+@property (nonatomic, assign) BOOL basicEnabled;
+@property (nonatomic, assign) BOOL reshapeEnabled;
+@end
+
+@implementation BeautyConfig
+
+- (instancetype)init {
+    self = [super init];
+    if (self) {
+        self.smoothing = 0.3f;
+        self.whitening = 0.2f;
+        self.faceThin = 0.1f;
+        self.basicEnabled = YES;
+        self.reshapeEnabled = NO;
+    }
+    return self;
+}
+
+@end
+```
+
+## 测试建议
+
+### 1. 单元测试
+
+```objc
+@interface BeautyEffectTests : XCTestCase
+@property (nonatomic, strong) FBBeautyEffectEngine *beautyEngine;
+@end
+
+@implementation BeautyEffectTests
+
+- (void)setUp {
+    [super setUp];
+    
+    FBEngineConfig *config = [[FBEngineConfig alloc] init];
+    config.appId = @"test_app_id";
+    config.appKey = @"test_app_key";
+    self.beautyEngine = [FBBeautyEffectEngine createEngineWithConfig:config];
+}
+
+- (void)testBeautyEngineInitialization {
+    XCTAssertNotNil(self.beautyEngine, @"Engine should be created");
+}
+
+- (void)testImageProcessing {
+    // 创建测试图像
+    uint8_t *data = malloc(640 * 480 * 4);
+    FBImageFrame *input = [FBImageFrame createWithRGBA:data width:640 height:480 stride:640 * 4];
+    
+    // 处理图像
+    FBImageFrame *output = [self.beautyEngine processImage:input processMode:FBProcessModeVideo];
+    
+    XCTAssertNotNil(output, @"Output should not be null");
+    
+    free(data);
+}
+
+- (void)tearDown {
+    self.beautyEngine = nil;
+    [super tearDown];
+}
+
+@end
+```
+
+### 2. 性能测试
+
+```objc
+- (void)testPerformance {
+    [self measureBlock:^{
+        NSTimeInterval startTime = [[NSDate date] timeIntervalSince1970];
+        
+        for (int i = 0; i < 100; i++) {
+            // 处理测试图像
+            [self processTestImage];
+        }
+        
+        NSTimeInterval endTime = [[NSDate date] timeIntervalSince1970];
+        NSTimeInterval totalTime = endTime - startTime;
+        NSTimeInterval avgTime = totalTime / 100;
+        
+        XCTAssertLessThan(avgTime, 0.05, @"Average process time should be less than 50ms");
+    }];
+}
+```

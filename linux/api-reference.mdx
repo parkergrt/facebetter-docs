@@ -1,0 +1,101 @@
+---
+title: "API Reference"
+description: "Facebetter SDK C++ API reference for Linux"
+---
+
+The Linux C++ SDK API is **identical** to the Windows API. Please refer to:
+
+👉 [Windows C++ API Reference](/windows/api-reference)
+
+The sections below cover Linux-specific notes only.
+
+---
+
+## Linux-Specific Notes
+
+### Shared Library Loading
+
+The SDK ships as a shared library `libfacebetter.so`. At runtime the OS must be able to locate it:
+
+```bash
+# Option 1: LD_LIBRARY_PATH (recommended during development)
+export LD_LIBRARY_PATH=/path/to/facebetter-sdk/lib:$LD_LIBRARY_PATH
+./your_app
+
+# Option 2: Add to ldconfig (system-wide installation)
+echo "/path/to/facebetter-sdk/lib" | sudo tee /etc/ld.so.conf.d/facebetter.conf
+sudo ldconfig
+
+# Option 3: Copy to a system library directory
+sudo cp libfacebetter.so /usr/local/lib/
+sudo ldconfig
+```
+
+### CMake Linkage
+
+```cmake
+target_include_directories(your_target PRIVATE
+    /path/to/facebetter-sdk/include
+)
+
+target_link_libraries(your_target PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/lib/libfacebetter.so
+    # OpenGL dependencies
+    GL
+    glfw
+)
+```
+
+### OpenGL Environment
+
+A valid OpenGL context is required. Install the necessary graphics libraries first:
+
+```bash
+# Ubuntu / Debian
+sudo apt install libgl1-mesa-dev libglu1-mesa-dev libglfw3-dev
+
+# Fedora / RHEL
+sudo dnf install mesa-libGL-devel mesa-libGLU-devel glfw-devel
+```
+
+For headless servers (no display), use Mesa's off-screen rendering:
+
+```bash
+# Ubuntu / Debian
+sudo apt install libosmesa6-dev
+```
+
+### `external_context` Field
+
+If your application already manages an OpenGL context (e.g. via GLFW), set:
+
+```cpp
+EngineConfig cfg;
+cfg.external_context = true;  // Use the caller's current GL context
+```
+
+When `true`, the SDK does not create an internal GL context; all GPU calls run on the calling thread's active context.
+
+### `SetRenderView` Not Available
+
+This method exists only on iOS and macOS. Do not call it on Linux.
+
+### DISPLAY Environment Variable
+
+When using a windowed GLFW display, an X11 or Wayland server must be present:
+
+```bash
+echo $DISPLAY   # should print something like :0 or :1
+```
+
+For remote SSH sessions, enable X11 forwarding:
+
+```bash
+ssh -X user@host
+```
+
+---
+
+## Full API Documentation
+
+For the complete reference covering all methods, enumerations, and data structures, see the [Windows C++ API Reference](/windows/api-reference) — it applies equally to Linux.

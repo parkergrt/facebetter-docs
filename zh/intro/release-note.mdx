@@ -1,0 +1,199 @@
+---
+title: "更新日志"
+description: "Facebetter SDK 更新日志"
+---
+
+## v1.5.1
+
+2026-08-03
+
+1. fix: 启用 `SetSkinOnlyBeauty` 后，连续处理不同分辨率图片可能触发内存越界（Web 端表现为 `memory access out of bounds`，且需刷新页面才能恢复）
+2. improvement: 推理侧性能优化
+
+## v1.5.0
+
+2026-07-30
+
+1. feature: 离线 License — 可在控制台下载，并通过 `licenseJson` 初始化（无需联网，全平台可用）
+2. docs: 新增 [授权认证](./license) 说明，覆盖在线与离线授权
+
+## v1.4.7
+
+2026-07-29
+
+1. feature: 口红 / 腮红样式选择接口
+2. improvement: 订阅续费或升级后，下次在线鉴权即可立即生效
+3. fix: Web 端 `SetSkinOnlyBeauty` 崩溃
+4. fix: 图像处理过程中偶发的崩溃与黑屏问题
+
+## v1.4.6
+
+2026-06-22
+
+1. improvement: 人脸快速移动时跟踪更稳定
+
+## v1.4.5
+
+2026-06-09
+
+1. platform: 新增 Flutter SDK（Android / iOS）
+2. docs: Flutter 文档
+3. fix: 外部纹理模式下贴纸可能黑屏的问题
+
+## v1.4.4
+
+2026-06-02
+
+1. fix: 外部纹理模式下滤镜 / 贴纸未正确生效
+2. fix: iOS 外部纹理模式下 RGBA 纹理输出异常
+
+## v1.4.3
+
+2026-05-04
+
+1. feature: 口红、腮红美妆效果
+2. feature: 更多内置贴纸
+3. fix: 移除贴纸接口在部分场景不生效
+
+## v1.4.2
+
+2026-04-23
+
+1. fix: Web 端授权校验边界问题
+
+## v1.4.1
+
+2026-04-12
+
+1. platform: Windows SDK 同时提供 32 位与 64 位库
+
+## v1.4.0
+
+2026-03-24
+
+1. feature: 皮肤分割 — 新增 `SetSkinOnlyBeauty` 接口，仅对皮肤区域应用美颜
+
+## v1.3.2
+
+2026-03-10
+
+1. improvement: 免费版超过 10 分钟显示水印
+2. platform: 新增 Windows SDK 和 Linux SDK 支持
+
+## v1.3.1
+
+2026-03-03
+
+1. web: web npm 版本升级到 1.3.0
+2. improvement: 文档添加镜像接口说明
+3. deprecation: 废弃 enable beauty type 接口
+
+## v1.3.0
+
+2026-02-20
+
+1. improvement: 优化处理性能
+2. platform: Android 支持 Maven 仓库依赖
+3. platform: iOS 和 macOS Demo 支持 CocoaPods 安装
+4. feature: 支持风格滤镜和贴纸
+5. docs: 更新滤镜和贴纸开发文档
+
+## v1.2.5
+
+2026-01-15
+
+1. improvement: 优化认证和上报逻辑
+2. platform: 支持 WebAssembly 端认证和上报
+
+## v1.2.2
+
+2026-01-08
+
+1. feature: 免费版每月最多 5000 次调用
+2. feature: 支持按量付费
+
+## v1.2.1
+
+2025-12-20
+
+1. feature: 添加水印滤镜
+2. improvement: 联网验证改为异步+回调通知
+3. price: 价格方案调整，新增 Ultra 档位
+
+## v1.2.0
+
+2025-12-01
+
+1. platform: 全平台支持（Android、iOS、macOS、Windows、Linux、Web）
+2. feature: 虚拟背景
+3. feature: 风格滤镜
+4. feature: 贴纸特效
+5. feature: 在线认证升级
+6. improvement: 优化关键点稳定性
+
+## v1.1.3
+
+2025-11-10
+
+1. feature: 免费版每月最多 5000 次调用
+2. feature: 按量付费功能
+
+## v1.1.2
+
+2025-10-28
+
+1. improvement: 优化关键点稳定性
+2. fix: 修复关键点抖动问题
+
+## v1.1.1
+
+2025-10-15
+
+1. feature: LUT 滤镜
+2. feature: 人脸关键点回调
+3. feature: 绿幕抠图
+4. feature: 支持绑定应用 ID
+5. feature: 在线认证 v2
+6. feature: 多项目支持
+
+## v1.1.0
+
+2025-09-20
+
+1. feature: 支持外部纹理处理
+2. improvement: 优化接口易用性
+
+## v1.0.6
+
+2025-09-05
+
+1. improvement: 优化 Android、iOS 和 macOS Demo
+2. fix: 修复 Android 布局显示问题
+3. platform: 添加 Android 相机权限检查
+
+## v1.0.5
+
+2025-08-18
+
+1. improvement: 优化美颜参数调节
+
+## v1.0.4
+
+2025-08-01
+
+1. improvement: 优化人脸检测准确度
+2. improvement: 资源文件体积优化
+
+## v1.0.3
+
+2025-07-15
+
+1. fix: 修复多张人脸时美妆只生效一张的问题
+
+## v1.0.2
+
+2025-07-01
+
+1. feature: 支持虚拟背景
+2. web: Web 中英文文档
+3. web: 支持 npm 安装

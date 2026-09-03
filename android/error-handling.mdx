@@ -1,0 +1,382 @@
+---
+title: "Error Handling"
+description: "Android Beauty SDK Error Handling Guide"
+---
+
+## Error Code Handling
+
+### 1. Check API Return Values
+
+All API calls should check return values:
+
+```java
+// Check engine creation
+BeautyEffectEngine.EngineConfig config = new BeautyEffectEngine.EngineConfig();
+config.appId = "your_app_id";
+config.appKey = "your_app_key";
+// Optional: If licenseJson is provided, license data verification takes priority
+// config.licenseJson = "your license json string";
+mBeautyEngine = new BeautyEffectEngine(this, config);
+
+if (mBeautyEngine == null) {
+    Log.e("BeautyEngine", "Failed to create beauty engine");
+    return;
+}
+
+// Check parameter setting
+int ret = mBeautyEngine.setBeautyParam(BasicParam.SMOOTHING, 0.5f);
+if (ret == 0) {
+    Log.d("BeautyEngine", "Successfully set basic beauty parameters");
+} else {
+    Log.e("BeautyEngine", "Failed to set smoothing param, error code: " + ret);
+}
+```
+
+### 2. Common Error Codes
+
+According to API documentation, main error codes:
+- **0**: Success
+- **-1**: Engine not initialized
+
+```java
+public class BeautyErrorHandler {
+    public static void handleError(int errorCode, String operation) {
+        switch (errorCode) {
+            case 0:
+                Log.d("BeautyErrorHandler", operation + " succeeded");
+                break;
+            case -1:
+                Log.e("BeautyErrorHandler", operation + " failed: Engine not initialized");
+                break;
+            default:
+                Log.e("BeautyErrorHandler", operation + " failed: Unknown error code " + errorCode);
+                break;
+        }
+    }
+}
+```
+
+## Handle Image Data
+
+### 1. Input Image Validation
+
+```java
+public class ImageValidator {
+    public static boolean validateImageFrame(ImageFrame imageFrame) {
+        if (imageFrame == null) {
+            Log.e("ImageValidator", "ImageFrame is null");
+            return false;
+        }
+        
+        // Check image dimensions
+        int width = imageFrame.getWidth();
+        int height = imageFrame.getHeight();
+        if (width <= 0 || height <= 0) {
+            Log.e("ImageValidator", "Invalid image dimensions: " + width + "x" + height);
+            return false;
+        }
+        
+        return true;
+    }
+}
+```
+
+### 2. Image Processing Error Handling
+
+```java
+public class ImageProcessor {
+    private BeautyEffectEngine mEngine;
+    
+    public ImageFrame processImageSafely(ImageFrame input) {
+        // Validate input
+        if (!ImageValidator.validateImageFrame(input)) {
+            return null;
+        }
+        
+        try {
+            // Process image
+            input.type = ImageFrame.FrameType.VIDEO;
+            ImageFrame output = mEngine.processImage(input);
+            
+            if (output == null) {
+                Log.e("ImageProcessor", "Failed to process image: output is null");
+                return null;
+            }
+            
+            return output;
+        } catch (Exception e) {
+            Log.e("ImageProcessor", "Exception during image processing", e);
+            return null;
+        }
+    }
+}
+```
+
+### 3. Memory Management
+
+```java
+public class SafeImageProcessor {
+    public boolean processImageSafe(ImageFrame input, ImageFrame output) {
+        ImageFrame result = null;
+        
+        try {
+            // Process image
+            result = mEngine.processImage(input, ProcessMode.VIDEO);
+            
+            if (result == null) {
+                Log.e("SafeImageProcessor", "Processing returned null");
+                return false;
+            }
+            
+            // Copy result to output
+            copyImageFrame(result, output);
+            
+            return true;
+        } catch (OutOfMemoryError e) {
+            Log.e("SafeImageProcessor", "Out of memory during processing", e);
+            System.gc(); // Trigger garbage collection
+            return false;
+        } catch (Exception e) {
+            Log.e("SafeImageProcessor", "Exception during processing", e);
+            return false;
+        } finally {
+            // Ensure resource release
+            if (result != null) {
+                result.release();
+            }
+        }
+    }
+    
+    private void copyImageFrame(ImageFrame src, ImageFrame dst) {
+        // Implement image copying logic
+        ImageBuffer srcBuffer = src.toRGBA();
+        ImageBuffer dstBuffer = dst.toRGBA();
+        
+        if (srcBuffer != null && dstBuffer != null) {
+            ByteBuffer srcData = srcBuffer.getData();
+            ByteBuffer dstData = dstBuffer.getData();
+            
+            if (srcData != null && dstData != null) {
+                dstData.put(srcData);
+            }
+        }
+        
+        if (srcBuffer != null) {
+            srcBuffer.release();
+        }
+        if (dstBuffer != null) {
+            dstBuffer.release();
+        }
+    }
+}
+```
+
+## Logging and File Operations
+
+### 1. Log Configuration Error Handling
+
+```java
+public class LogConfigHandler {
+    public static boolean configureLogging(boolean enableConsole, boolean enableFile, String logFilePath) {
+        try {
+            BeautyEffectEngine.LogConfig logConfig = new BeautyEffectEngine.LogConfig();
+            logConfig.consoleEnabled = enableConsole;
+            logConfig.fileEnabled = enableFile;
+            logConfig.level = BeautyEffectEngine.LogLevel.INFO;
+            
+            if (enableFile && logFilePath != null && !logFilePath.isEmpty()) {
+                // Check if directory exists
+                File logFile = new File(logFilePath);
+                File logDir = logFile.getParentFile();
+                if (logDir != null && !logDir.exists()) {
+                    if (!logDir.mkdirs()) {
+                        Log.e("LogConfigHandler", "Failed to create log directory: " + logDir.getPath());
+                        return false;
+                    }
+                }
+                
+                logConfig.fileName = logFilePath;
+            }
+            
+            BeautyEffectEngine.setLogConfig(logConfig);
+            return true;
+        } catch (Exception e) {
+            Log.e("LogConfigHandler", "Failed to configure logging", e);
+            return false;
+        }
+    }
+}
+```
+
+### 2. File Write Error Handling
+
+```java
+public class FileWriteHandler {
+    public static boolean saveImageBuffer(ImageBuffer buffer, String filePath) {
+        if (buffer == null) {
+            Log.e("FileWriteHandler", "ImageBuffer is null");
+            return false;
+        }
+        
+        FileOutputStream fos = null;
+        try {
+            File file = new File(filePath);
+            File parentDir = file.getParentFile();
+            
+            // Create directory
+            if (parentDir != null && !parentDir.exists()) {
+                if (!parentDir.mkdirs()) {
+                    Log.e("FileWriteHandler", "Failed to create directory: " + parentDir.getPath());
+                    return false;
+                }
+            }
+            
+            // Write file
+            fos = new FileOutputStream(file);
+            ByteBuffer data = buffer.getData();
+            if (data != null) {
+                byte[] array = new byte[data.remaining()];
+                data.get(array);
+                fos.write(array);
+                fos.flush();
+            }
+            
+            Log.d("FileWriteHandler", "Image saved successfully: " + filePath);
+            return true;
+        } catch (IOException e) {
+            Log.e("FileWriteHandler", "IO error while saving file: " + filePath, e);
+            return false;
+        } finally {
+            if (fos != null) {
+                try {
+                    fos.close();
+                } catch (IOException e) {
+                    Log.e("FileWriteHandler", "Failed to close file stream", e);
+                }
+            }
+        }
+    }
+}
+```
+
+## Exception Handling
+
+### 1. Catch and Handle Exceptions
+
+```java
+public class ExceptionHandler {
+    public static void safeExecute(Runnable runnable, String operation) {
+        try {
+            runnable.run();
+        } catch (NullPointerException e) {
+            Log.e("ExceptionHandler", operation + " failed: Null pointer exception", e);
+        } catch (IllegalArgumentException e) {
+            Log.e("ExceptionHandler", operation + " failed: Invalid argument", e);
+        } catch (OutOfMemoryError e) {
+            Log.e("ExceptionHandler", operation + " failed: Out of memory", e);
+            System.gc(); // Trigger garbage collection
+        } catch (Exception e) {
+            Log.e("ExceptionHandler", operation + " failed: Unexpected exception", e);
+        }
+    }
+}
+```
+
+### 2. Retry Mechanism
+
+```java
+public class RetryHandler {
+    private static final int MAX_RETRY_COUNT = 3;
+    private static final long RETRY_DELAY_MS = 100;
+    
+    public ImageFrame processImageWithRetry(ImageFrame input) {
+        for (int i = 0; i < MAX_RETRY_COUNT; i++) {
+            try {
+                ImageFrame result = mBeautyEngine.processImage(input, ProcessMode.VIDEO);
+                if (result != null) {
+                    return result;
+                }
+            } catch (Exception e) {
+                Log.w("RetryHandler", "Attempt " + (i + 1) + " failed", e);
+            }
+            
+            if (i < MAX_RETRY_COUNT - 1) {
+                try {
+                    Thread.sleep(RETRY_DELAY_MS);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    break;
+                }
+            }
+        }
+        
+        Log.e("RetryHandler", "All retry attempts failed");
+        return null;
+    }
+}
+```
+
+## Debugging Tips
+
+### 1. Error Information Collection
+
+```java
+public class DebugInfoCollector {
+    public static String collectErrorInfo(int errorCode, String operation, Exception e) {
+        StringBuilder info = new StringBuilder();
+        info.append("Operation: ").append(operation).append("\n");
+        info.append("Error Code: ").append(errorCode).append("\n");
+        info.append("Timestamp: ").append(System.currentTimeMillis()).append("\n");
+        
+        if (e != null) {
+            info.append("Exception: ").append(e.getClass().getName()).append("\n");
+            info.append("Message: ").append(e.getMessage()).append("\n");
+        }
+        
+        // Add memory information
+        Runtime runtime = Runtime.getRuntime();
+        info.append("Memory - Total: ").append(runtime.totalMemory() / 1024 / 1024).append("MB\n");
+        info.append("Memory - Free: ").append(runtime.freeMemory() / 1024 / 1024).append("MB\n");
+        
+        return info.toString();
+    }
+}
+```
+
+### 2. Performance Monitoring
+
+```java
+public class PerformanceMonitor {
+    private long mStartTime;
+    private int mErrorCount;
+    
+    public void startOperation() {
+        mStartTime = System.currentTimeMillis();
+    }
+    
+    public void endOperation(String operation, boolean success) {
+        long duration = System.currentTimeMillis() - mStartTime;
+        
+        if (!success) {
+            mErrorCount++;
+            Log.w("PerformanceMonitor", 
+                String.format("%s failed after %dms (Error count: %d)", 
+                operation, duration, mErrorCount));
+        } else if (duration > 100) {
+            Log.w("PerformanceMonitor", 
+                String.format("%s took %dms (slow operation)", operation, duration));
+        }
+    }
+}
+```
+
+## Summary
+
+Following these error handling best practices can help you:
+
+1. **Improve App Stability**: Through API return value checking and exception handling
+2. **Improve User Experience**: Through friendly error prompts and recovery mechanisms
+3. **Facilitate Problem Troubleshooting**: Through detailed logging and error information collection
+4. **Optimize Performance**: Through reasonable error recovery strategies and resource management
+
+Remember to adjust error handling logic based on actual SDK error code definitions and continuously monitor and improve error handling mechanisms.

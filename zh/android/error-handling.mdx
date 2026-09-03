@@ -1,0 +1,382 @@
+---
+title: "错误处理"
+description: "Android 美颜 SDK 错误处理指南"
+---
+
+## 错误码处理
+
+### 1. 检查 API 返回值
+
+所有 API 调用都应该检查返回值：
+
+```java
+// 检查引擎创建
+BeautyEffectEngine.EngineConfig config = new BeautyEffectEngine.EngineConfig();
+config.appId = "your_app_id";
+config.appKey = "your_app_key";
+// 可选：如果提供了 licenseJson，则优先使用授权数据验证
+// config.licenseJson = "your license json string";
+mBeautyEngine = new BeautyEffectEngine(this, config);
+
+if (mBeautyEngine == null) {
+    Log.e("BeautyEngine", "Failed to create beauty engine");
+    return;
+}
+
+// 检查参数设置
+int ret = mBeautyEngine.setBeautyParam(BasicParam.SMOOTHING, 0.5f);
+if (ret == 0) {
+    Log.d("BeautyEngine", "Successfully set basic beauty parameters");
+} else {
+    Log.e("BeautyEngine", "Failed to set smoothing param, error code: " + ret);
+}
+```
+
+### 2. 常见错误码
+
+根据 API 文档，主要错误码：
+- **0**: 成功
+- **-1**: 引擎未初始化
+
+```java
+public class BeautyErrorHandler {
+    public static void handleError(int errorCode, String operation) {
+        switch (errorCode) {
+            case 0:
+                Log.d("BeautyErrorHandler", operation + " succeeded");
+                break;
+            case -1:
+                Log.e("BeautyErrorHandler", operation + " failed: Engine not initialized");
+                break;
+            default:
+                Log.e("BeautyErrorHandler", operation + " failed: Unknown error code " + errorCode);
+                break;
+        }
+    }
+}
+```
+
+## 处理图像数据
+
+### 1. 输入图像验证
+
+```java
+public class ImageValidator {
+    public static boolean validateImageFrame(ImageFrame imageFrame) {
+        if (imageFrame == null) {
+            Log.e("ImageValidator", "ImageFrame is null");
+            return false;
+        }
+        
+        // 检查图像尺寸
+        int width = imageFrame.getWidth();
+        int height = imageFrame.getHeight();
+        if (width <= 0 || height <= 0) {
+            Log.e("ImageValidator", "Invalid image dimensions: " + width + "x" + height);
+            return false;
+        }
+        
+        return true;
+    }
+}
+```
+
+### 2. 图像处理错误处理
+
+```java
+public class ImageProcessor {
+    private BeautyEffectEngine mEngine;
+    
+    public ImageFrame processImageSafely(ImageFrame input) {
+        // 验证输入
+        if (!ImageValidator.validateImageFrame(input)) {
+            return null;
+        }
+        
+        try {
+            // 处理图像
+            input.type = ImageFrame.FrameType.VIDEO;
+            ImageFrame output = mEngine.processImage(input);
+            
+            if (output == null) {
+                Log.e("ImageProcessor", "Failed to process image: output is null");
+                return null;
+            }
+            
+            return output;
+        } catch (Exception e) {
+            Log.e("ImageProcessor", "Exception during image processing", e);
+            return null;
+        }
+    }
+}
+```
+
+### 3. 内存管理
+
+```java
+public class SafeImageProcessor {
+    public boolean processImageSafe(ImageFrame input, ImageFrame output) {
+        ImageFrame result = null;
+        
+        try {
+            // 处理图像
+            result = mEngine.processImage(input, ProcessMode.VIDEO);
+            
+            if (result == null) {
+                Log.e("SafeImageProcessor", "Processing returned null");
+                return false;
+            }
+            
+            // 复制结果到输出
+            copyImageFrame(result, output);
+            
+            return true;
+        } catch (OutOfMemoryError e) {
+            Log.e("SafeImageProcessor", "Out of memory during processing", e);
+            System.gc(); // 触发垃圾回收
+            return false;
+        } catch (Exception e) {
+            Log.e("SafeImageProcessor", "Exception during processing", e);
+            return false;
+        } finally {
+            // 确保释放资源
+            if (result != null) {
+                result.release();
+            }
+        }
+    }
+    
+    private void copyImageFrame(ImageFrame src, ImageFrame dst) {
+        // 实现图像复制逻辑
+        ImageBuffer srcBuffer = src.toRGBA();
+        ImageBuffer dstBuffer = dst.toRGBA();
+        
+        if (srcBuffer != null && dstBuffer != null) {
+            ByteBuffer srcData = srcBuffer.getData();
+            ByteBuffer dstData = dstBuffer.getData();
+            
+            if (srcData != null && dstData != null) {
+                dstData.put(srcData);
+            }
+        }
+        
+        if (srcBuffer != null) {
+            srcBuffer.release();
+        }
+        if (dstBuffer != null) {
+            dstBuffer.release();
+        }
+    }
+}
+```
+
+## 日志和文件操作
+
+### 1. 日志配置错误处理
+
+```java
+public class LogConfigHandler {
+    public static boolean configureLogging(boolean enableConsole, boolean enableFile, String logFilePath) {
+        try {
+            BeautyEffectEngine.LogConfig logConfig = new BeautyEffectEngine.LogConfig();
+            logConfig.consoleEnabled = enableConsole;
+            logConfig.fileEnabled = enableFile;
+            logConfig.level = BeautyEffectEngine.LogLevel.INFO;
+            
+            if (enableFile && logFilePath != null && !logFilePath.isEmpty()) {
+                // 检查目录是否存在
+                File logFile = new File(logFilePath);
+                File logDir = logFile.getParentFile();
+                if (logDir != null && !logDir.exists()) {
+                    if (!logDir.mkdirs()) {
+                        Log.e("LogConfigHandler", "Failed to create log directory: " + logDir.getPath());
+                        return false;
+                    }
+                }
+                
+                logConfig.fileName = logFilePath;
+            }
+            
+            BeautyEffectEngine.setLogConfig(logConfig);
+            return true;
+        } catch (Exception e) {
+            Log.e("LogConfigHandler", "Failed to configure logging", e);
+            return false;
+        }
+    }
+}
+```
+
+### 2. 文件写入错误处理
+
+```java
+public class FileWriteHandler {
+    public static boolean saveImageBuffer(ImageBuffer buffer, String filePath) {
+        if (buffer == null) {
+            Log.e("FileWriteHandler", "ImageBuffer is null");
+            return false;
+        }
+        
+        FileOutputStream fos = null;
+        try {
+            File file = new File(filePath);
+            File parentDir = file.getParentFile();
+            
+            // 创建目录
+            if (parentDir != null && !parentDir.exists()) {
+                if (!parentDir.mkdirs()) {
+                    Log.e("FileWriteHandler", "Failed to create directory: " + parentDir.getPath());
+                    return false;
+                }
+            }
+            
+            // 写入文件
+            fos = new FileOutputStream(file);
+            ByteBuffer data = buffer.getData();
+            if (data != null) {
+                byte[] array = new byte[data.remaining()];
+                data.get(array);
+                fos.write(array);
+                fos.flush();
+            }
+            
+            Log.d("FileWriteHandler", "Image saved successfully: " + filePath);
+            return true;
+        } catch (IOException e) {
+            Log.e("FileWriteHandler", "IO error while saving file: " + filePath, e);
+            return false;
+        } finally {
+            if (fos != null) {
+                try {
+                    fos.close();
+                } catch (IOException e) {
+                    Log.e("FileWriteHandler", "Failed to close file stream", e);
+                }
+            }
+        }
+    }
+}
+```
+
+## 异常处理
+
+### 1. 捕获和处理异常
+
+```java
+public class ExceptionHandler {
+    public static void safeExecute(Runnable runnable, String operation) {
+        try {
+            runnable.run();
+        } catch (NullPointerException e) {
+            Log.e("ExceptionHandler", operation + " failed: Null pointer exception", e);
+        } catch (IllegalArgumentException e) {
+            Log.e("ExceptionHandler", operation + " failed: Invalid argument", e);
+        } catch (OutOfMemoryError e) {
+            Log.e("ExceptionHandler", operation + " failed: Out of memory", e);
+            System.gc(); // 触发垃圾回收
+        } catch (Exception e) {
+            Log.e("ExceptionHandler", operation + " failed: Unexpected exception", e);
+        }
+    }
+}
+```
+
+### 2. 重试机制
+
+```java
+public class RetryHandler {
+    private static final int MAX_RETRY_COUNT = 3;
+    private static final long RETRY_DELAY_MS = 100;
+    
+    public ImageFrame processImageWithRetry(ImageFrame input) {
+        for (int i = 0; i < MAX_RETRY_COUNT; i++) {
+            try {
+                ImageFrame result = mBeautyEngine.processImage(input, ProcessMode.VIDEO);
+                if (result != null) {
+                    return result;
+                }
+            } catch (Exception e) {
+                Log.w("RetryHandler", "Attempt " + (i + 1) + " failed", e);
+            }
+            
+            if (i < MAX_RETRY_COUNT - 1) {
+                try {
+                    Thread.sleep(RETRY_DELAY_MS);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    break;
+                }
+            }
+        }
+        
+        Log.e("RetryHandler", "All retry attempts failed");
+        return null;
+    }
+}
+```
+
+## 调试技巧
+
+### 1. 错误信息收集
+
+```java
+public class DebugInfoCollector {
+    public static String collectErrorInfo(int errorCode, String operation, Exception e) {
+        StringBuilder info = new StringBuilder();
+        info.append("Operation: ").append(operation).append("\n");
+        info.append("Error Code: ").append(errorCode).append("\n");
+        info.append("Timestamp: ").append(System.currentTimeMillis()).append("\n");
+        
+        if (e != null) {
+            info.append("Exception: ").append(e.getClass().getName()).append("\n");
+            info.append("Message: ").append(e.getMessage()).append("\n");
+        }
+        
+        // 添加内存信息
+        Runtime runtime = Runtime.getRuntime();
+        info.append("Memory - Total: ").append(runtime.totalMemory() / 1024 / 1024).append("MB\n");
+        info.append("Memory - Free: ").append(runtime.freeMemory() / 1024 / 1024).append("MB\n");
+        
+        return info.toString();
+    }
+}
+```
+
+### 2. 性能监控
+
+```java
+public class PerformanceMonitor {
+    private long mStartTime;
+    private int mErrorCount;
+    
+    public void startOperation() {
+        mStartTime = System.currentTimeMillis();
+    }
+    
+    public void endOperation(String operation, boolean success) {
+        long duration = System.currentTimeMillis() - mStartTime;
+        
+        if (!success) {
+            mErrorCount++;
+            Log.w("PerformanceMonitor", 
+                String.format("%s failed after %dms (Error count: %d)", 
+                operation, duration, mErrorCount));
+        } else if (duration > 100) {
+            Log.w("PerformanceMonitor", 
+                String.format("%s took %dms (slow operation)", operation, duration));
+        }
+    }
+}
+```
+
+## 总结
+
+遵循这些错误处理最佳实践可以帮助你：
+
+1. **提高应用稳定性**: 通过检查 API 返回值和异常处理
+2. **改善用户体验**: 通过友好的错误提示和恢复机制
+3. **便于问题排查**: 通过详细的日志记录和错误信息收集
+4. **优化性能**: 通过合理的错误恢复策略和资源管理
+
+记住要根据实际 SDK 的错误码定义调整错误处理逻辑，并持续监控和改进错误处理机制。

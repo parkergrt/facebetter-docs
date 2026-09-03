@@ -1,0 +1,54 @@
+---
+title: "Subscribe"
+description: "Enable Facebetter SDK subscription service and obtain AppID & AppKey to start using beauty features"
+---
+
+ 
+# Enable Subscription Service
+  
+## Register/Login
+
+After registering and logging in to the dashboard, a default project will be created, displaying current subscription information and statistics. The default project is the free version.
+
+<Frame>
+  <img src="/images/dash-overview.jpg" alt="Dashboard Subscription Info" />
+</Frame>
+ 
+## Bind Application Information
+
+Facebetter SDK needs to verify the application's identity information during license validation to ensure the authorized application matches the actual application. Please provide the appropriate identifier based on your application platform:
+
+- **iOS/macOS**: Bundle ID (e.g., com.example.app)
+- **Android**: Application Package Name (e.g., com.example.app)
+- **Windows**: Application Name or Executable File Name
+- **Linux**: Application Name or Package Name
+- **Web**: Application Domain (e.g., example.com)
+- **HarmonyOS**: Application Bundle Name
+
+Click the **"Edit Project"** button on the dashboard, select the corresponding identifier type for your application platform, enter the application identifier, and complete the application binding.
+
+<Frame>
+  <img src="/images/dash-edit-project.jpg" alt="Console Edit Project" />
+</Frame>
+ 
+## Subscribe to a Plan
+
+Click the **"Subscribe"** button on the "Your Subscription" card in the dashboard to enter the subscription selection page. Follow these steps to complete your subscription:
+
+1. **Select Billing Cycle**: Choose between Pay-as-you-go, Monthly, or Yearly billing (Yearly plans offer a "12 months for the price of 10" discount).
+2. **Select Subscription Plan**: Choose the functional version that suits your project needs (e.g., Pro+).
+3. **Confirm and Pay**: Verify the information in the order summary on the right, then click "Start Now" to proceed to Stripe for secure payment.
+ 
+<Frame>
+  <img src="/images/dash-subscribe.jpg" alt="Console Subscription Plan" />
+</Frame>
+
+## Get AppID and AppKey
+
+In the Dashboard page, on the AppID & AppKey card, you can view your `appid` and `appkey`.
+
+<Frame>
+  <img src="/images/dash-appid-appkey.jpg" alt="Console AppID & AppKey" />
+</Frame>
+
+From the same card you can download an **offline license** (`facebetter-offline-license.json`) for offline use. See [License & Auth](./license).

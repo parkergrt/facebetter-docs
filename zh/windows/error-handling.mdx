@@ -1,0 +1,193 @@
+---
+title: "错误处理"
+description: "Windows 平台 Facebetter SDK 错误处理与故障排除指南"
+---
+
+## 返回值约定
+
+SDK 中大多数方法返回 `int` 类型：
+
+| 返回值 | 含义 |
+| --- | --- |
+| `0` | 操作成功 |
+| 非 `0` | 操作失败，结合日志查看详细原因 |
+
+`BeautyEffectEngine::Create()` 返回 `std::shared_ptr`，失败时返回 `nullptr`。
+
+---
+
+## 常见错误与处理
+
+### 1. 引擎创建失败（`Create` 返回 `nullptr`）
+
+**可能原因**：
+
+- `app_id` / `app_key` 错误或未激活
+- `resource_path` 指向的 `resource.fbd` 文件不存在或路径错误
+- `facebetter.dll` 未找到或版本不匹配
+- 网络不通（在线验证失败）
+
+**排查方法**：
+
+```cpp
+// 先开启日志，Create 前调用
+LogConfig log_cfg;
+log_cfg.console_enabled = true;
+log_cfg.level           = LogLevel::Debug;
+BeautyEffectEngine::SetLogConfig(log_cfg);
+
+auto engine = BeautyEffectEngine::Create(eng_cfg);
+if (!engine) {
+    std::cerr << "[Error] Engine creation failed. Check log output." << std::endl;
+    return -1;
+}
+```
+
+**常见解决方法**：
+
+1. 确认 `resource.fbd` 路径正确，可使用绝对路径排除相对路径问题：
+   ```cpp
+   #include <filesystem>
+   eng_cfg.resource_path =
+       (std::filesystem::current_path() / "resource" / "resource.fbd").string();
+   ```
+2. 确认 `facebetter.dll` 与可执行文件在同一目录（CMake 构建时自动复制）。
+3. 从控制台获取最新的 `app_id` 和 `app_key` 重试。
+
+---
+
+### 2. `facebetter.dll` 运行时加载失败
+
+**错误信息**：启动时弹窗 "找不到 facebetter.dll" 或类似提示。
+
+**解决方法**：
+
+```bat
+:: 检查 facebetter.dll 是否在可执行文件同目录
+dir build\facebetter.dll
+
+:: 若缺失，手动复制
+copy sdk\lib\facebetter.dll build\
+```
+
+或重新执行 `cmake --build build`，CMake 构建后会自动复制 DLL。
+
+---
+
+### 3. `ProcessImage` 返回 `nullptr`
+
+**可能原因**：
+
+- 输入 `ImageFrame` 为空指针（文件不存在、格式不支持等）
+- 引擎尚未成功初始化
+- 内存不足
+
+**处理方法**：
+
+```cpp
+// 检查输入帧是否有效
+auto input = ImageFrame::CreateWithFile("input.jpg");
+if (!input || !input->Data()) {
+    std::cerr << "[Error] Failed to load input image." << std::endl;
+    return;
+}
+
+auto output = engine->ProcessImage(input);
+if (!output || !output->Data()) {
+    std::cerr << "[Error] ProcessImage failed." << std::endl;
+    return;
+}
+```
+
+---
+
+### 4. 美颜效果不生效
+
+**可能原因**：
+
+- 对应 `BeautyType` 未通过 `SetBeautyTypeEnabled` 启用
+- 参数值设为 `0`（等同关闭）
+- 输入帧未检测到人脸（美型/美妆需要人脸检测通过）
+
+**排查示例**：
+
+```cpp
+// 确保启用对应类型
+engine->SetBeautyTypeEnabled(BeautyType::Basic,   true);
+engine->SetBeautyTypeEnabled(BeautyType::Reshape, true);
+engine->SetBeautyTypeEnabled(BeautyType::Makeup,  true);
+engine->SetBeautyTypeEnabled(BeautyType::Sticker, true);
+
+// 确保参数值 > 0
+engine->SetBeautyParam(Basic::Smoothing, 0.5f);  // 0 表示关闭
+```
+
+---
+
+### 5. `SetBeautyParam` 返回非 0
+
+**可能原因**：
+
+- 引擎未初始化（`engine` 为 `nullptr`）
+- 参数值超出范围 `[0.0, 1.0]`
+
+**处理方法**：
+
+```cpp
+int ret = engine->SetBeautyParam(Basic::Smoothing, 0.5f);
+if (ret != 0) {
+    std::cerr << "[Error] SetBeautyParam failed, code: " << ret << std::endl;
+}
+```
+
+---
+
+### 6. OpenGL / 显示异常
+
+**可能原因**：
+
+- GLFW 初始化失败（驱动问题或无 OpenGL 3.0+ 支持）
+- `gladLoadGLLoader` 失败
+
+**排查方法**：
+
+```cpp
+if (!glfwInit()) {
+    std::cerr << "[Error] GLFW init failed." << std::endl;
+    return 1;
+}
+// 检查 OpenGL 版本（需要 3.0+）
+glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
+```
+
+确认显卡驱动已更新，或在虚拟机/远程桌面环境中可能不支持硬件 OpenGL。
+
+---
+
+## 日志调试
+
+开发阶段建议打开 `Debug` 级别日志：
+
+```cpp
+LogConfig log_cfg;
+log_cfg.console_enabled = true;
+log_cfg.file_enabled    = true;
+log_cfg.level           = LogLevel::Debug;
+log_cfg.file_name       = "facebetter.log";
+BeautyEffectEngine::SetLogConfig(log_cfg);
+```
+
+日志文件默认写入可执行文件同目录下的 `facebetter.log`。
+
+---
+
+## 错误码速查
+
+| 错误码 | 含义 |
+| --- | --- |
+| `0` | 成功 |
+| `-1` | 引擎未初始化 |
+| `-2` | 无效参数 |
+| `-3` | 资源文件未找到 |
+| `-4` | 处理失败 |

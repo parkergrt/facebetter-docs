@@ -1,0 +1,191 @@
+---
+title: "Error Handling"
+description: "Facebetter SDK error handling and troubleshooting guide for Windows"
+---
+
+## Return Value Convention
+
+Most SDK methods return `int`:
+
+| Return value | Meaning |
+| --- | --- |
+| `0` | Success |
+| Non-zero | Failure — check the log output for details |
+
+`BeautyEffectEngine::Create()` returns a `std::shared_ptr`; it returns `nullptr` on failure.
+
+---
+
+## Common Errors and Fixes
+
+### 1. Engine Creation Fails (`Create` Returns `nullptr`)
+
+**Possible causes:**
+
+- Invalid or inactive `app_id` / `app_key`
+- `resource.fbd` file not found at `resource_path`
+- `facebetter.dll` missing or version mismatch
+- No network access (online authentication failed)
+
+**How to diagnose:**
+
+```cpp
+// Enable logging BEFORE calling Create
+LogConfig log_cfg;
+log_cfg.console_enabled = true;
+log_cfg.level           = LogLevel::Debug;
+BeautyEffectEngine::SetLogConfig(log_cfg);
+
+auto engine = BeautyEffectEngine::Create(eng_cfg);
+if (!engine) {
+    std::cerr << "[Error] Engine creation failed. Check log output." << std::endl;
+    return -1;
+}
+```
+
+**Common fixes:**
+
+1. Use an absolute path to rule out relative path issues:
+   ```cpp
+   #include <filesystem>
+   eng_cfg.resource_path =
+       (std::filesystem::current_path() / "resource" / "resource.fbd").string();
+   ```
+2. Make sure `facebetter.dll` is in the same directory as the executable (CMake copies it automatically after build).
+3. Get fresh `app_id` and `app_key` from the dashboard.
+
+---
+
+### 2. `facebetter.dll` Not Found at Runtime
+
+**Symptom:** A Windows dialog reports "facebetter.dll was not found" on startup.
+
+**Fix:**
+
+```bat
+:: Check whether the DLL is next to the executable
+dir build\facebetter.dll
+
+:: If missing, copy manually
+copy sdk\lib\facebetter.dll build\
+```
+
+Or re-run `cmake --build build` — CMake automatically copies the DLL after every build.
+
+---
+
+### 3. `ProcessImage` Returns `nullptr`
+
+**Possible causes:**
+
+- Input `ImageFrame` is null (file not found, unsupported format, etc.)
+- Engine was not initialized successfully
+- Out of memory
+
+**How to handle:**
+
+```cpp
+auto input = ImageFrame::CreateWithFile("input.jpg");
+if (!input || !input->Data()) {
+    std::cerr << "[Error] Failed to load input image." << std::endl;
+    return;
+}
+
+auto output = engine->ProcessImage(input);
+if (!output || !output->Data()) {
+    std::cerr << "[Error] ProcessImage failed." << std::endl;
+    return;
+}
+```
+
+---
+
+### 4. Beauty Effects Have No Visible Impact
+
+**Possible causes:**
+
+- The relevant `BeautyType` was not enabled via `SetBeautyTypeEnabled`
+- Parameter value is `0` (effect is off)
+- No face detected in the frame (reshape/makeup require face detection to succeed)
+
+**Checklist:**
+
+```cpp
+// Enable each type you need
+engine->SetBeautyTypeEnabled(BeautyType::Basic,   true);
+engine->SetBeautyTypeEnabled(BeautyType::Reshape, true);
+engine->SetBeautyTypeEnabled(BeautyType::Makeup,  true);
+engine->SetBeautyTypeEnabled(BeautyType::Sticker, true);
+
+// Ensure the parameter value is greater than 0
+engine->SetBeautyParam(Basic::Smoothing, 0.5f);  // 0 = disabled
+```
+
+---
+
+### 5. `SetBeautyParam` Returns Non-Zero
+
+**Possible causes:**
+
+- `engine` is `nullptr` (engine creation failed earlier)
+- Value out of range `[0.0, 1.0]`
+
+**How to handle:**
+
+```cpp
+int ret = engine->SetBeautyParam(Basic::Smoothing, 0.5f);
+if (ret != 0) {
+    std::cerr << "[Error] SetBeautyParam failed, code: " << ret << std::endl;
+}
+```
+
+---
+
+### 6. OpenGL / Display Issues
+
+**Possible causes:**
+
+- GLFW initialization failed (driver issue or OpenGL 3.0+ not available)
+- `gladLoadGLLoader` returned false
+
+**How to diagnose:**
+
+```cpp
+if (!glfwInit()) {
+    std::cerr << "[Error] GLFW init failed." << std::endl;
+    return 1;
+}
+glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
+```
+
+Make sure your GPU driver is up to date. Hardware OpenGL is usually unavailable in virtual machines or Remote Desktop sessions.
+
+---
+
+## Enabling Debug Logs
+
+During development, enable `Debug`-level logging for maximum detail:
+
+```cpp
+LogConfig log_cfg;
+log_cfg.console_enabled = true;
+log_cfg.file_enabled    = true;
+log_cfg.level           = LogLevel::Debug;
+log_cfg.file_name       = "facebetter.log";
+BeautyEffectEngine::SetLogConfig(log_cfg);
+```
+
+The log file is written to the same directory as the executable.
+
+---
+
+## Error Code Reference
+
+| Code | Meaning |
+| --- | --- |
+| `0` | Success |
+| `-1` | Engine not initialized |
+| `-2` | Invalid parameter |
+| `-3` | Resource file not found |
+| `-4` | Processing failed |

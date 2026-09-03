@@ -1,0 +1,227 @@
+---
+title: "常见问题"
+description: "macOS 美颜 SDK 常见问题解答"
+---
+
+## 集成问题
+
+### Q: 引擎创建失败怎么办？
+A: 检查以下几点：
+- 确认 `appId` 和 `appKey` 是否正确
+- 检查网络连接是否正常
+- 查看日志输出获取详细错误信息
+- 确认 SDK 版本是否最新
+- 检查 Framework 是否正确链接
+
+### Q: 编译时找不到头文件或类？
+A: 可能的原因：
+- 确认已正确添加 `Facebetter.framework` 到项目
+- 检查 Framework 的 "Embed & Sign" 设置是否正确
+- 确认导入语句：`#import <Facebetter/FBBeautyEffectEngine.h>`
+- 尝试 Clean Build Folder 后重新构建
+
+### Q: 运行时出现链接错误？
+A: 解决方案：
+- 确认设备架构是否支持（x86_64, arm64）
+- 检查 Framework 文件是否完整
+- 确认 Framework 的部署目标设置正确
+- 检查是否有其他 Framework 冲突
+
+## 功能问题
+
+### Q: 美颜效果不明显？
+A: 可以尝试：
+- 增加美颜参数值（范围 0.0-1.0）
+- 确保启用了对应的美颜类型
+- 检查图像质量是否足够清晰
+- 确认人脸检测是否正常
+
+### Q: 美颜效果过度或失真？
+A: 建议：
+- 降低美颜参数值
+- 检查参数组合是否合理
+- 避免同时启用过多美颜类型
+- 根据图像质量调整参数
+
+### Q: 虚拟背景不生效？
+A: 检查：
+- 确认已启用 `FBBeautyType_VirtualBackground`
+- 检查背景图片路径是否正确
+- 确认图片格式是否支持（PNG、JPG）
+- 检查图片文件是否存在且可读
+
+## 性能问题
+
+### Q: 处理速度慢怎么办？
+A: 优化建议：
+- 使用 `FBFrameTypeVideo` 进行实时处理
+- 降低图像分辨率
+- 减少同时启用的美颜类型
+- 避免在主线程进行图像处理
+- 使用多线程处理图像
+- 利用 macOS 的多核优势
+
+### Q: 内存占用过高？
+A: 解决方案：
+- 及时释放 `FBImageFrame` 和 `FBImageBuffer` 对象
+- 避免频繁创建和销毁引擎实例
+- 复用 `FBImageFrame` 对象
+- 使用对象池模式管理图像缓冲区
+- 监控系统内存使用情况
+
+### Q: 应用崩溃或卡顿？
+A: 排查步骤：
+- 检查是否在主线程进行图像处理
+- 确认资源释放是否完整
+- 查看日志中的异常信息
+- 检查参数值是否在有效范围内
+- 使用 Instruments 工具分析内存和性能
+- 检查多显示器环境下的兼容性
+
+## 图像处理问题
+
+### Q: 如何处理不同格式的图像？
+A: 使用 `FBImageFrame` 的格式转换方法：
+- `toRGBA` - 转换为 RGBA 格式
+- `toI420` - 转换为 I420 格式
+- `toNV12` - 转换为 NV12 格式
+- `toBGRA` - 转换为 BGRA 格式
+
+### Q: 相机预览图像处理？
+A: 建议流程：
+1. 从 AVCaptureSession 获取 CVPixelBuffer
+2. 使用 `createWithData` 创建 FBImageFrame
+3. 调用 `processImage` 处理
+4. 转换为目标格式显示
+
+### Q: 图像旋转问题？
+A: 解决方案：
+- 使用 `FBImageFrame` 的 `rotate` 方法旋转图像
+- 支持 0°、90°、180°、270° 旋转
+- 旋转操作会修改原始图像数据
+
+## 权限问题
+
+### Q: 相机权限问题？
+A: 需要添加权限描述：
+```xml
+<key>NSCameraUsageDescription</key>
+<string>需要相机权限进行美颜拍照</string>
+```
+
+### Q: 麦克风权限问题？
+A: 需要添加权限描述：
+```xml
+<key>NSMicrophoneUsageDescription</key>
+<string>需要麦克风权限进行音视频录制</string>
+```
+
+## 调试问题
+
+### Q: 如何开启调试日志？
+A: 在创建引擎前配置：
+```objc
+FBLogConfig *logConfig = [[FBLogConfig alloc] init];
+logConfig.consoleEnabled = YES;
+logConfig.fileEnabled = YES;
+logConfig.level = FBLogLevel_Debug;
+[FBBeautyEffectEngine setLogConfig:logConfig];
+```
+
+### Q: 如何获取详细错误信息？
+A: 方法：
+- 开启 DEBUG 级别日志
+- 检查 API 返回值（0 表示成功）
+- 查看文件日志输出
+- 使用 Xcode 的 Console 查看日志
+- 使用 Console.app 查看系统日志
+
+## 版本兼容性
+
+### Q: 支持哪些 macOS 版本？
+A: 支持 macOS 10.14 及以上版本
+
+### Q: 支持哪些设备架构？
+A: 支持：
+- x86_64（Intel Mac）
+- arm64（Apple Silicon Mac）
+
+### Q: 如何升级 SDK 版本？
+A: 步骤：
+1. 下载新版本 SDK
+2. 替换旧的 Framework 文件
+3. 清理项目缓存
+4. 重新构建项目
+5. 测试功能是否正常
+
+## ARC 相关问题
+
+### Q: 如何处理内存管理？
+A: macOS 使用 ARC，但需要注意：
+- 及时将对象设置为 nil
+- 避免循环引用
+- 使用 weak 引用避免强引用循环
+
+### Q: 如何处理 CVPixelBuffer？
+A: 建议：
+- 使用 `CVPixelBufferRetain` 和 `CVPixelBufferRelease` 管理
+- 或者使用 `__bridge_transfer` 和 `__bridge_retained` 转换
+
+## 多线程问题
+
+### Q: 如何在后台线程处理图像？
+A: 建议：
+- 使用 `dispatch_async` 在后台队列处理
+- 避免在主线程进行图像处理
+- 使用 `dispatch_async(dispatch_get_main_queue())` 更新 UI
+
+### Q: 如何处理并发访问？
+A: 解决方案：
+- 使用 `@synchronized` 保护共享资源
+- 使用串行队列处理图像
+- 避免多线程同时访问引擎实例
+
+## macOS 特有问题
+
+### Q: 多显示器支持问题？
+A: 解决方案：
+- 检查不同显示器的分辨率和缩放比例
+- 适配 Retina 显示器的高分辨率
+- 处理窗口在不同显示器间移动的情况
+
+### Q: 窗口状态管理问题？
+A: 建议：
+- 监听窗口最小化/恢复事件
+- 在窗口不可见时暂停处理
+- 在窗口重新显示时恢复处理
+
+### Q: 系统性能监控？
+A: 方法：
+- 使用 `NSProcessInfo` 监控系统负载
+- 根据系统性能动态调整处理质量
+- 监听系统内存警告通知
+
+## 部署问题
+
+### Q: Mac App Store 审核被拒？
+A: 可能原因：
+- 缺少必要的权限描述
+- 使用了私有 API
+- 内存泄漏问题
+- 崩溃问题
+- 沙盒权限配置问题
+
+### Q: 如何优化 App 大小？
+A: 建议：
+- 移除未使用的架构（如 x86_64）
+- 压缩资源文件
+- 使用 App Thinning
+- 移除未使用的 Framework 部分
+- 针对不同架构分别打包
+
+### Q: 如何支持 Universal Binary？
+A: 步骤：
+1. 确保 Framework 包含 x86_64 和 arm64 架构
+2. 在 Xcode 中设置 "Architectures" 为 "Standard Architectures"
+3. 使用 `lipo` 命令验证架构支持
+4. 测试在不同架构 Mac 上的运行情况

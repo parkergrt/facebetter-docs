@@ -1,0 +1,431 @@
+---
+title: "API Reference"
+description: "Android API Reference"
+---
+
+## Logging Related
+
+### Log Levels
+
+Log level enumeration for controlling log output levels.
+
+```java
+public enum LogLevel {
+  TRACE(0, "TRACE"),
+  DEBUG(1, "DEBUG"),
+  INFO(2, "INFO"),
+  WARN(3, "WARN"),
+  ERROR(4, "ERROR"),
+  CRITICAL(5, "CRITICAL");
+}
+```
+
+### Log Configuration Class
+
+Log configuration class for configuring log output methods and levels.
+
+**Field Descriptions:**
+- `consoleEnabled`: Whether to enable console output
+- `fileEnabled`: Whether to enable file output
+- `level`: Log level
+- `fileName`: Log file path (only effective when `fileEnabled` is `true`)
+
+```java
+public static class LogConfig {
+  public boolean consoleEnabled;
+  public boolean fileEnabled;
+  public LogLevel level;
+  public String fileName;
+
+  public LogConfig();
+  public LogConfig(boolean consoleEnabled, boolean fileEnabled, LogLevel level, String fileName);
+}
+```
+
+## Engine Related
+
+### Process Mode
+
+Image processing mode enumeration.
+
+- `IMAGE`: Image mode, suitable for single image processing
+- `VIDEO`: Video mode, suitable for video streams and live streaming scenarios, better performance
+
+```java
+public enum ProcessMode {
+  IMAGE(0), // Image mode
+  VIDEO(1); // Video mode
+}
+```
+
+### Engine Configuration
+
+Engine configuration class for initializing the beauty engine.
+
+**Field Descriptions:**
+- `appId`: Application ID (optional, not required if `licenseJson` is provided)
+- `appKey`: Application key (optional, not required if `licenseJson` is provided)
+- `licenseJson`: License data JSON string (optional, if provided, takes priority and `appId` and `appKey` are not required)
+- `externalContext`: Whether to use external OpenGL context (default `false`)
+  - `true`: Use the caller-provided GL context, SDK will not create/manage internal context
+  - `false`: Use internal default context
+
+**Methods:**
+- `isValid()`: Validate if configuration is valid
+  - If `licenseJson` is provided, use license data verification
+  - Otherwise, require `appId` and `appKey` for automatic online verification
+
+**Verification Priority:**
+- If `licenseJson` is not empty, use license data verification (supports online response and offline license)
+- Otherwise, use `appId` and `appKey` for automatic online verification
+
+```java
+public static class EngineConfig {
+  public String appId;
+  public String appKey;
+  public String licenseJson;  // License data JSON string (optional)
+  public boolean externalContext = false;  // Whether to use external OpenGL context
+
+  public EngineConfig();
+  public EngineConfig(String appId, String appKey);
+  public boolean isValid();
+}
+```
+
+### Engine Interface
+
+Main beauty effect engine class providing entry point for beauty functionality.
+
+**Static Methods:**
+- `setLogConfig(LogConfig config)`: Set log configuration
+
+**Instance Methods:**
+
+#### Initialization and Release
+- `BeautyEffectEngine(Context context, EngineConfig config)`: Constructor, create engine instance
+- `void release()`: Release engine resources
+
+#### Parameter Settings
+- `int setBeautyParam(BasicParam param, float value)`: Set basic beauty parameters (range 0.0 - 1.0)
+- `int setBeautyParam(ReshapeParam param, float value)`: Set face reshape parameters (range 0.0 - 1.0)
+- `int setBeautyParam(MakeupParam param, float value)`: Set makeup parameters (range 0.0 - 1.0)
+- `int setLipstickStyle(LipstickStyle style)`: Set lipstick style (Rouge / Coral / Pink)
+- `int setBlushStyle(BlushStyle style)`: Set blush style (Classic / Peach / Rose)
+- `int setSkinOnlyBeauty(boolean enabled)`: Set whether beauty is applied only to skin regions
+  - Parameter: `enabled` - `true` to enable skin-only beauty, `false` to apply to entire image
+  - Return value: `0` indicates success, `-1` indicates engine not initialized
+- `int setVirtualBackground(VirtualBackgroundOptions options)`: Set virtual background
+  - Parameter: `VirtualBackgroundOptions` object containing background mode and background image
+  - Return value: `0` indicates success, `-1` indicates engine not initialized, `-2` indicates invalid parameters (options is null or invalid)
+
+#### Filters & Stickers Management
+- `int setFilter(String filterId)`: Set filter
+  - Parameter: `filterId` unique filter identifier
+- `int setFilterIntensity(float intensity)`: Set filter intensity
+  - Parameter: `intensity` intensity value (range 0.0 - 1.0)
+- `int setSticker(String stickerId)`: Set sticker
+  - Parameter: `stickerId` unique sticker identifier, pass an empty string to clear the sticker
+- `int registerFilter(String filterId, String fbdFilePath)`: Register filter from file
+- `int registerFilter(String filterId, byte[] fbdData)`: Register filter from memory
+- `int registerSticker(String stickerId, String fbdFilePath)`: Register sticker from file
+- `int registerSticker(String stickerId, byte[] fbdData)`: Register sticker from memory
+- `int unregisterFilter(String filterId)`: Unload filter
+- `int unregisterAllFilters()`: Unload all filters
+- `int unregisterSticker(String stickerId)`: Unload sticker
+- `int unregisterAllStickers()`: Unload all stickers
+- `String[] getRegisteredFilters()`: Get list of registered filters
+- `String[] getRegisteredStickers()`: Get list of registered stickers
+
+#### Callbacks
+- `void setEngineEventCallback(OnEngineEventCallback callback)`: Set engine event callback to monitor license verification and engine initialization status
+  - Callback provides: `int code` (event code), `String message` (event description)
+  - Code 0 indicates success, non-zero indicates failure
+
+#### Image Processing
+- `ImageFrame processImage(ImageFrame inputFrame)`: Process image frame
+  - Frame type is obtained from `inputFrame.type` field (`FrameType.IMAGE` or `FrameType.VIDEO`)
+  - The processed image frame will maintain the same frame type
+
+**Return Value Descriptions:**
+- Methods return `int` type:
+  - `0` indicates success
+  - `-1` indicates engine not initialized
+  - `-2` indicates invalid parameters (only for `setVirtualBackground` method)
+- `processImage` returns `ImageFrame`: Processed image frame, returns `null` on failure
+
+```java
+public class BeautyEffectEngine {
+  public static void setLogConfig(LogConfig config);
+  
+  public BeautyEffectEngine(Context context, EngineConfig config);
+  public void release();
+  
+  public int setBeautyParam(BasicParam param, float value);
+  public int setBeautyParam(ReshapeParam param, float value);
+  public int setBeautyParam(MakeupParam param, float value);
+  public int setLipstickStyle(LipstickStyle style);
+  public int setBlushStyle(BlushStyle style);
+  public int setSkinOnlyBeauty(boolean enabled);
+  public int setVirtualBackground(VirtualBackgroundOptions options);
+  
+  public int setFilter(String filterId);
+  public int setFilterIntensity(float intensity);
+  public int setSticker(String stickerId);
+  public int registerFilter(String filterId, String fbdFilePath);
+  public int registerFilter(String filterId, byte[] fbdData);
+  public int registerSticker(String stickerId, String fbdFilePath);
+  public int registerSticker(String stickerId, byte[] fbdData);
+  public int unregisterFilter(String filterId);
+  public int unregisterAllFilters();
+  public int unregisterSticker(String stickerId);
+  public int unregisterAllStickers();
+  public String[] getRegisteredFilters();
+  public String[] getRegisteredStickers();
+  
+  public void setEngineEventCallback(OnEngineEventCallback callback);
+  
+  public ImageFrame processImage(ImageFrame inputFrame);
+
+  // Deprecated APIs
+  public int enableBeautyType(BeautyType type, boolean enabled);
+  public boolean isBeautyTypeEnabled(BeautyType type);
+  public int disableAllBeautyTypes();
+}
+```
+
+## Beauty Parameters
+
+Beauty parameter enumeration classes containing all beauty-related parameter type definitions.
+
+### Beauty Types
+
+Define available beauty functionality types.
+
+```java
+public enum BeautyType {
+  BASIC(0),        // Basic beauty
+  RESHAPE(1),      // Face reshape
+  MAKEUP(2),       // Makeup effects
+  VIRTUAL_BACKGROUND(3); // Virtual background
+}
+```
+
+### Basic Beauty Parameters
+
+Basic beauty effect parameter types, all parameter value ranges are `0.0 - 1.0`.
+
+```java
+public enum BasicParam {
+  SMOOTHING(0),  // Smoothing
+  SHARPENING(1), // Sharpening
+  WHITENING(2),  // Whitening
+  ROSINESS(3);   // Rosiness
+}
+```
+
+### Face Reshape Parameters
+
+Face reshape effect parameter types, all parameter value ranges are `0.0 - 1.0`.
+
+```java
+public enum ReshapeParam {
+  FACE_THIN(0),      // Face thinning
+  FACE_V_SHAPE(1),   // V-shaped face
+  FACE_NARROW(2),    // Narrow face
+  FACE_SHORT(3),     // Short face
+  CHEEKBONE(4),      // Cheekbone
+  JAWBONE(5),        // Jawbone
+  CHIN(6),           // Chin
+  NOSE_SLIM(7),      // Nose slimming
+  EYE_SIZE(8),       // Eye enlargement
+  EYE_DISTANCE(9);   // Eye distance
+}
+```
+
+### Makeup Parameters
+
+Makeup effect parameter types, all parameter value ranges are `0.0 - 1.0`.
+
+```java
+public enum MakeupParam {
+  LIPSTICK(0),  // Lipstick
+  BLUSH(1);     // Blush
+}
+```
+
+### Lipstick Style
+
+```java
+public enum LipstickStyle {
+  ROUGE(0),  // Rose red
+  CORAL(1),  // Coral
+  PINK(2);   // Pink (default)
+}
+```
+
+### Blush Style
+
+```java
+public enum BlushStyle {
+  CLASSIC(0),  // Classic (default)
+  PEACH(1),    // Peach
+  ROSE(2);     // Rose
+}
+```
+
+### Virtual Background Options
+
+Virtual background effect configuration options.
+
+```java
+public static class VirtualBackgroundOptions {
+  public BackgroundMode mode = BackgroundMode.NONE;
+  public ImageFrame backgroundImage = null;
+  
+  public VirtualBackgroundOptions() {}
+  
+  public VirtualBackgroundOptions(BackgroundMode mode) {
+    this.mode = mode;
+  }
+}
+```
+
+## Image Related
+
+### ImageFrame
+
+Image frame class for encapsulating image data and processing.
+
+**Creation Methods:**
+- `createWithFile(String filePath)`: Create from file (supports PNG, JPG)
+- `createWithRGBA(ByteBuffer data, int width, int height, int stride)`: Create from RGBA data
+- `createWithBGRA(ByteBuffer data, int width, int height, int stride)`: Create from BGRA data
+- `createWithRGB(ByteBuffer data, int width, int height, int stride)`: Create from RGB data
+- `createWithBGR(ByteBuffer data, int width, int height, int stride)`: Create from BGR data
+- `createWithI420(...)`: Create from I420 YUV data
+- `createWithNV12(...)`: Create from NV12 YUV data
+- `createWithNV21(...)`: Create from NV21 YUV data
+- `createWithAndroid420(...)`: Create from Android Camera2 YUV_420_888 format
+- `createWithTexture(int texture, int width, int height, int stride)`: Create from GPU texture (external texture input)
+- `createWithBitmap(Bitmap bitmap)`: Create from Android Bitmap (Android only)
+
+**Image Operations:**
+- `int rotate(Rotation rotation)`: Rotate image (returns 0 for success)
+- `int mirror(String mode)`: Mirror image (returns 0 for success)
+  - Parameter: `mode` mirror mode, can be "horizontal", "vertical", or "both" (case insensitive)
+- `void setMirror(String mode)`: Set mirror mode for engine processing (avoids extra format conversion)
+  - Parameter: `mode` mirror mode, can be "horizontal", "vertical", or "both" (case insensitive)
+  - Note: This only sets the mirror flag, actual mirroring happens during engine processing
+- `ImageFrame convert(Format format)`: Format conversion method, returns converted ImageFrame
+- `int toFile(String path, int quality)`: Save image to file (specify quality 1-100)
+- `int toFile(String path)`: Save image to file (use default quality 90)
+- `boolean isValid()`: Check if image frame is valid
+
+**Resource Management:**
+- `void release()`: Release native resources
+
+```java
+public class ImageFrame {
+  public static ImageFrame createWithFile(String filePath);
+  public static ImageFrame createWithRGBA(ByteBuffer data, int width, int height, int stride);
+  public static ImageFrame createWithBGRA(ByteBuffer data, int width, int height, int stride);
+  public static ImageFrame createWithRGB(ByteBuffer data, int width, int height, int stride);
+  public static ImageFrame createWithBGR(ByteBuffer data, int width, int height, int stride);
+  public static ImageFrame createWithI420(int width, int height, ByteBuffer yBuffer, int strideY,
+      ByteBuffer uBuffer, int strideU, ByteBuffer vBuffer, int strideV);
+  public static ImageFrame createWithNV12(int width, int height, ByteBuffer yBuffer, int strideY,
+      ByteBuffer uvBuffer, int strideUV);
+  public static ImageFrame createWithNV21(int width, int height, ByteBuffer yBuffer, int strideY,
+      ByteBuffer vuBuffer, int strideVU);
+  public static ImageFrame createWithAndroid420(int width, int height, ByteBuffer yBuffer,
+      int strideY, ByteBuffer uBuffer, int strideU, ByteBuffer vBuffer, int strideV,
+      int pixelStrideUV);
+  public static ImageFrame createWithTexture(int texture, int width, int height, int stride);
+  public static ImageFrame createWithBitmap(Bitmap bitmap);
+  
+  public int rotate(Rotation rotation);
+  public int mirror(String mode);
+  public void setMirror(String mode);
+  public ImageFrame convert(Format format);
+  public int toFile(String path, int quality);
+  public int toFile(String path);
+  public boolean isValid();
+  
+  // Property access methods
+  public int getWidth();
+  public int getHeight();
+  public int getStride();
+  public int getSize();
+  public ByteBuffer getData();
+  public Format getFormat();
+  public int getTexture();
+  
+  public FrameType type;  // Frame type (FrameType.IMAGE or FrameType.VIDEO)
+  
+  // YUV related methods
+  public ByteBuffer getDataY();
+  public ByteBuffer getDataU();
+  public ByteBuffer getDataV();
+  public ByteBuffer getDataUV();
+  public int getStrideY();
+  public int getStrideU();
+  public int getStrideV();
+  public int getStrideUV();
+  
+  public void release();
+}
+```
+
+### Enum Types
+
+#### Format
+
+Image format enumeration.
+
+```java
+public enum Format {
+  I420(0),     // YUV 4:2:0 12bpp (3 planes, Y, U, V)
+  NV12(1),     // YUV 4:2:0 12bpp (2 planes, Y + UV)
+  NV21(2),     // YUV 4:2:0 12bpp (2 planes, Y + VU, Android default)
+  BGRA(3),     // BGRA 8:8:8:8 32bpp
+  RGBA(4),     // RGBA 8:8:8:8 32bpp
+  BGR(5),      // BGR 8:8:8 24bpp
+  RGB(6),      // RGB 8:8:8 24bpp
+  Texture(7);  // Texture format
+}
+```
+
+#### Rotation
+
+Image rotation angle enumeration.
+
+```java
+public enum Rotation {
+  ROTATION_0(0),    // 0 degrees
+  ROTATION_90(1),   // Clockwise 90 degrees
+  ROTATION_180(2),  // Clockwise 180 degrees
+  ROTATION_270(3);  // Clockwise 270 degrees
+}
+```
+
+## Deprecated APIs
+
+<Warning>
+**Deprecated**
+
+The following APIs are deprecated.
+</Warning>
+
+### Beauty Type Control
+
+- `int enableBeautyType(BeautyType type, boolean enabled)`
+  - **Description**: [Deprecated] Enable or disable beauty type (No effect in parameter-driven mode)
+  - **Return Value**: `0` indicates success
+
+- `boolean isBeautyTypeEnabled(BeautyType type)`
+  - **Description**: [Deprecated] Check if beauty type is enabled (Always returns false)
+  - **Return Value**: `false`
+
+- `int disableAllBeautyTypes()`
+  - **Description**: [Deprecated] Disable all beauty types (Please reset effects by zeroing parameters)
+  - **Return Value**: `0` indicates success

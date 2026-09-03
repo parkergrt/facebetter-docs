@@ -1,0 +1,100 @@
+---
+title: "快速开始"
+description: "跑通 Web 示例程序"
+---
+
+## 环境要求
+
+- **浏览器**: 支持现代浏览器
+  - Chrome 57+
+  - Firefox 52+
+  - Safari 11+
+  - Edge 16+
+- **开发语言**: JavaScript (ES6+)
+- **构建工具**: 可选（Vite、Webpack、Parcel 等）
+
+## 安装 SDK
+
+通过 npm 安装：
+
+```bash
+npm install facebetter
+```
+
+**使用 ES Module（推荐）：**
+
+```javascript
+import { 
+  BeautyEffectEngine, 
+  EngineConfig, 
+  BeautyType, 
+  BasicParam,
+  ProcessMode 
+} from 'facebetter';
+```
+
+**使用 CommonJS：**
+
+```javascript
+const { BeautyEffectEngine, EngineConfig } = require('facebetter');
+```
+
+## 获取示例源码
+
+克隆 [github 仓库](https://github.com/pixpark/facebetter-sdk) 到本地，进入 `demo/web/vue` 或 `demo/web/react` 目录
+
+```bash
+# clone 
+git clone https://github.com/pixpark/facebetter-sdk.git
+
+# Vue 示例
+cd demo/web/vue
+
+# 或 React 示例
+cd demo/web/react
+```
+
+## 配置应用信息与密钥
+
+### 绑定应用域名
+
+按照 [此页面](/zh/intro/enable-service#绑定应用信息) 指引，在控制台绑定您的 Web 应用域名，例如：`example.com`
+
+### 获取 AppID 和 AppKey
+
+按照 [此页面](/zh/intro/enable-service#获取-appid-和-appkey) 指引，获取 `appId` 和 `appKey`，打开 `src/views/CameraPreview.vue`（Vue）或 `src/views/CameraPreview.jsx`（React），修改配置：
+
+```javascript
+const config = new EngineConfig({
+  appId: 'your appId',
+  appKey: 'your appKey'
+  // 可选：如果提供了 licenseJson，则优先使用授权数据验证，不需要 appId 和 appKey
+  // licenseJson: 'your license json string'
+})
+```
+
+<Tip>
+`licenseJson` 优先级高于 `appId` + `appKey`。离线文件下载与完整说明见 [授权认证](/zh/intro/license)。
+</Tip>
+
+## 运行示例
+
+安装依赖并启动开发服务器：
+
+```bash
+# 安装依赖
+npm install
+
+# 启动开发服务器
+npm run dev
+```
+
+然后在浏览器中访问显示的地址（通常是 `http://localhost:5173`）
+
+## 验证运行
+
+1. 打开浏览器开发者工具（F12）
+2. 查看控制台是否有错误信息
+3. 如果看到 "引擎初始化成功"，说明运行正常
+4. 可以点击功能按钮测试美颜效果
+

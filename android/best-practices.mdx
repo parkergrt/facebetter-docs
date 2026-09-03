@@ -1,0 +1,471 @@
+---
+title: "Best Practices"
+description: "Android Beauty SDK Best Practices Guide"
+---
+
+## Performance Optimization
+
+### 1. Choose the Right Processing Mode
+
+**Video Mode (VIDEO)**
+- Suitable for real-time video streams and live streaming scenarios
+- Better performance and faster processing speed
+- Recommended for camera preview, video calls, and similar scenarios
+
+**Image Mode (IMAGE)**
+- Suitable for single image processing
+- Higher quality and better effects
+- Recommended for photo editing and image beautification scenarios
+
+```java
+// Real-time video processing
+input.type = ImageFrame.FrameType.VIDEO;
+ImageFrame output = engine.processImage(input);
+
+// High-quality image processing
+input.type = ImageFrame.FrameType.IMAGE;
+ImageFrame output = engine.processImage(input);
+```
+
+### 2. Parameter Adjustment Recommendations
+
+**Beauty Parameter Adjustment Principles**
+- Start with smaller values to avoid over-beautification
+- Recommend reducing parameter values in real-time scenarios for smooth performance
+- Static images can have appropriately higher parameter values
+- Adjust parameter ranges based on user groups and scenarios
+
+**Recommended Parameter Ranges**
+```java
+// Basic beauty parameters (real-time scenarios)
+mBeautyEngine.setBeautyParam(BasicParam.SMOOTHING, 0.2f);  // Smoothing
+mBeautyEngine.setBeautyParam(BasicParam.WHITENING, 0.1f);  // Whitening
+mBeautyEngine.setBeautyParam(BasicParam.ROSINESS, 0.1f);   // Rosiness
+
+// Face reshaping parameters (real-time scenarios)
+mBeautyEngine.setBeautyParam(ReshapeParam.FACE_THIN, 0.1f);    // Face thinning
+mBeautyEngine.setBeautyParam(ReshapeParam.EYE_SIZE, 0.1f);     // Eye enlargement
+```
+
+### 3. Memory Optimization
+
+**Use Direct Memory Buffers**
+```java
+// Recommended: Use direct memory
+ByteBuffer data = ByteBuffer.allocateDirect(width * height * 4);
+
+// Avoid: Use heap memory
+ByteBuffer data = ByteBuffer.allocate(width * height * 4);
+```
+
+**Release Resources Timely**
+```java
+public class BeautyProcessor {
+    private ImageFrame mReusableFrame; // Reusable object
+    
+    public ImageFrame processImage(byte[] imageData) {
+        // Reuse ImageFrame object
+        if (mReusableFrame == null) {
+            mReusableFrame = ImageFrame.createWithRGBA(data, width, height, stride);
+        }
+        
+        // Process image
+        mReusableFrame.type = ImageFrame.FrameType.VIDEO;
+        ImageFrame output = mBeautyEngine.processImage(mReusableFrame);
+        
+        return output;
+    }
+    
+    public void release() {
+        if (mReusableFrame != null) {
+            mReusableFrame.release();
+            mReusableFrame = null;
+        }
+    }
+}
+```
+
+## Architecture Design
+
+### 1. Singleton Pattern for Engine Management
+
+```java
+public class BeautyEngineManager {
+    private static BeautyEngineManager sInstance;
+    private BeautyEffectEngine mEngine;
+    private Context mContext;
+    
+    private BeautyEngineManager(Context context) {
+        mContext = context.getApplicationContext();
+        initEngine();
+    }
+    
+    public static synchronized BeautyEngineManager getInstance(Context context) {
+        if (sInstance == null) {
+            sInstance = new BeautyEngineManager(context);
+        }
+        return sInstance;
+    }
+    
+    private void initEngine() {
+        BeautyEffectEngine.EngineConfig config = new BeautyEffectEngine.EngineConfig();
+        config.appId = "your_app_id";
+        config.appKey = "your_app_key";
+        mEngine = new BeautyEffectEngine(mContext, config);
+    }
+    
+    public BeautyEffectEngine getEngine() {
+        return mEngine;
+    }
+    
+    public void release() {
+        if (mEngine != null) {
+            mEngine.release();
+            mEngine = null;
+        }
+        sInstance = null;
+    }
+}
+```
+
+### 2. Asynchronous Image Processing
+
+```java
+public class AsyncBeautyProcessor {
+    private ExecutorService mExecutor;
+    private BeautyEffectEngine mEngine;
+    
+    public AsyncBeautyProcessor() {
+        mExecutor = Executors.newSingleThreadExecutor();
+    }
+    
+    public void processImageAsync(ImageFrame input, BeautyCallback callback) {
+        mExecutor.execute(() -> {
+            try {
+                input.type = ImageFrame.FrameType.VIDEO;
+                ImageFrame output = mEngine.processImage(input);
+                
+                // Switch to main thread for callback
+                new Handler(Looper.getMainLooper()).post(() -> {
+                    callback.onSuccess(output);
+                });
+            } catch (Exception e) {
+                new Handler(Looper.getMainLooper()).post(() -> {
+                    callback.onError(e);
+                });
+            }
+        });
+    }
+    
+    public interface BeautyCallback {
+        void onSuccess(ImageFrame result);
+        void onError(Exception error);
+    }
+}
+```
+
+## Error Handling
+
+### 1. Comprehensive Error Handling Mechanism
+
+```java
+public class RobustBeautyProcessor {
+    private BeautyEffectEngine mEngine;
+    
+    public boolean processImage(ImageFrame input, ImageFrame output) {
+        // Parameter validation
+        if (mEngine == null) {
+            Log.e("BeautyProcessor", "Engine not initialized");
+            return false;
+        }
+        
+        if (input == null || !input.isValid()) {
+            Log.e("BeautyProcessor", "Invalid input image");
+            return false;
+        }
+        
+        try {
+            // Process image
+            ImageFrame result = mEngine.processImage(input, ProcessMode.VIDEO);
+            if (result == null) {
+                Log.e("BeautyProcessor", "Failed to process image");
+                return false;
+            }
+            
+            // Copy result to output
+            copyImageFrame(result, output);
+            result.release();
+            
+            return true;
+        } catch (Exception e) {
+            Log.e("BeautyProcessor", "Exception during processing", e);
+            return false;
+        }
+    }
+    
+    private void copyImageFrame(ImageFrame src, ImageFrame dst) {
+        // Implement image copying logic
+    }
+}
+```
+
+### 2. Retry Mechanism
+
+```java
+public class RetryBeautyProcessor {
+    private static final int MAX_RETRY_COUNT = 3;
+    private static final long RETRY_DELAY_MS = 100;
+    
+    public ImageFrame processImageWithRetry(ImageFrame input) {
+        for (int i = 0; i < MAX_RETRY_COUNT; i++) {
+            try {
+                ImageFrame result = mBeautyEngine.processImage(input, ProcessMode.VIDEO);
+                if (result != null) {
+                    return result;
+                }
+            } catch (Exception e) {
+                Log.w("BeautyProcessor", "Attempt " + (i + 1) + " failed", e);
+            }
+            
+            if (i < MAX_RETRY_COUNT - 1) {
+                try {
+                    Thread.sleep(RETRY_DELAY_MS);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    break;
+                }
+            }
+        }
+        
+        Log.e("BeautyProcessor", "All retry attempts failed");
+        return null;
+    }
+}
+```
+
+## Lifecycle Management
+
+<Warning>
+The beauty engine requires manual `release()` to free resources. ImageFrame and other objects also need to call `release()` after use, otherwise it will cause memory leaks.
+</Warning>
+
+### 1. Activity Lifecycle Handling
+
+```java
+public class BeautyActivity extends AppCompatActivity {
+    private BeautyEngineManager mBeautyManager;
+    
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        
+        // Initialize beauty engine
+        mBeautyManager = BeautyEngineManager.getInstance(this);
+    }
+    
+    @Override
+    protected void onResume() {
+        super.onResume();
+        // Resume beauty processing
+    }
+    
+    @Override
+    protected void onPause() {
+        super.onPause();
+        // Pause beauty processing
+    }
+    
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        // Release beauty engine (if no longer needed)
+        // mBeautyManager.release();
+    }
+}
+```
+
+### 2. Fragment Lifecycle Handling
+
+```java
+public class BeautyFragment extends Fragment {
+    private BeautyEffectEngine mBeautyEngine;
+    
+    @Override
+    public void onAttach(Context context) {
+        super.onAttach(context);
+        // Initialize beauty engine
+        initBeautyEngine();
+    }
+    
+    @Override
+    public void onDetach() {
+        super.onDetach();
+        // Release beauty engine
+        if (mBeautyEngine != null) {
+            mBeautyEngine.release();
+            mBeautyEngine = null;
+        }
+    }
+}
+```
+
+## Performance Monitoring
+
+### 1. Performance Metrics Monitoring
+
+```java
+public class BeautyPerformanceMonitor {
+    private long mStartTime;
+    private int mFrameCount;
+    private long mTotalProcessTime;
+    
+    public void startFrame() {
+        mStartTime = System.currentTimeMillis();
+    }
+    
+    public void endFrame() {
+        long processTime = System.currentTimeMillis() - mStartTime;
+        mTotalProcessTime += processTime;
+        mFrameCount++;
+        
+        // Calculate average processing time
+        if (mFrameCount % 30 == 0) { // Calculate every 30 frames
+            long avgTime = mTotalProcessTime / mFrameCount;
+            Log.d("BeautyPerformance", "Average process time: " + avgTime + "ms");
+            
+            // Reset counters
+            mTotalProcessTime = 0;
+            mFrameCount = 0;
+        }
+    }
+    
+    public boolean isPerformanceGood() {
+        return mTotalProcessTime / Math.max(mFrameCount, 1) < 33; // 30fps
+    }
+}
+```
+
+### 2. Memory Usage Monitoring
+
+```java
+public class MemoryMonitor {
+    private Runtime mRuntime;
+    
+    public MemoryMonitor() {
+        mRuntime = Runtime.getRuntime();
+    }
+    
+    public void logMemoryUsage(String tag) {
+        long totalMemory = mRuntime.totalMemory();
+        long freeMemory = mRuntime.freeMemory();
+        long usedMemory = totalMemory - freeMemory;
+        long maxMemory = mRuntime.maxMemory();
+        
+        Log.d("MemoryMonitor", tag + " - Used: " + (usedMemory / 1024 / 1024) + "MB, " +
+              "Max: " + (maxMemory / 1024 / 1024) + "MB");
+    }
+    
+    public boolean isMemoryLow() {
+        long usedMemory = mRuntime.totalMemory() - mRuntime.freeMemory();
+        long maxMemory = mRuntime.maxMemory();
+        return usedMemory > maxMemory * 0.8; // Over 80% usage
+    }
+}
+```
+
+## Configuration Management
+
+### 1. Beauty Configuration Management
+
+```java
+public class BeautyConfigManager {
+    private SharedPreferences mPrefs;
+    private static final String PREF_NAME = "beauty_config";
+    
+    public BeautyConfigManager(Context context) {
+        mPrefs = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
+    }
+    
+    public void saveBeautyConfig(BeautyConfig config) {
+        SharedPreferences.Editor editor = mPrefs.edit();
+        editor.putFloat("smoothing", config.smoothing);
+        editor.putFloat("whitening", config.whitening);
+        editor.putFloat("face_thin", config.faceThin);
+        editor.putBoolean("basic_enabled", config.basicEnabled);
+        editor.putBoolean("reshape_enabled", config.reshapeEnabled);
+        editor.apply();
+    }
+    
+    public BeautyConfig loadBeautyConfig() {
+        BeautyConfig config = new BeautyConfig();
+        config.smoothing = mPrefs.getFloat("smoothing", 0.3f);
+        config.whitening = mPrefs.getFloat("whitening", 0.2f);
+        config.faceThin = mPrefs.getFloat("face_thin", 0.1f);
+        config.basicEnabled = mPrefs.getBoolean("basic_enabled", true);
+        config.reshapeEnabled = mPrefs.getBoolean("reshape_enabled", false);
+        return config;
+    }
+    
+    public static class BeautyConfig {
+        public float smoothing = 0.3f;
+        public float whitening = 0.2f;
+        public float faceThin = 0.1f;
+        public boolean basicEnabled = true;
+        public boolean reshapeEnabled = false;
+    }
+}
+```
+
+## Testing Recommendations
+
+### 1. Unit Testing
+
+```java
+@Test
+public void testBeautyEngineInitialization() {
+    BeautyEffectEngine.EngineConfig config = new BeautyEffectEngine.EngineConfig();
+    config.appId = "test_app_id";
+    config.appKey = "test_app_key";
+    
+    BeautyEffectEngine engine = new BeautyEffectEngine(mContext, config);
+    assertNotNull("Engine should be created", engine);
+    
+    engine.release();
+}
+
+@Test
+public void testImageProcessing() {
+    // Create test image
+    ByteBuffer data = ByteBuffer.allocateDirect(640 * 480 * 4);
+    ImageFrame input = ImageFrame.createWithRGBA(data, 640, 480, 640 * 4);
+    
+    // Process image
+    ImageFrame output = mBeautyEngine.processImage(input, ProcessMode.VIDEO);
+    
+    assertNotNull("Output should not be null", output);
+    assertTrue("Output should be valid", output.isValid());
+    
+    input.release();
+    output.release();
+}
+```
+
+### 2. Performance Testing
+
+```java
+@Test
+public void testPerformance() {
+    long startTime = System.currentTimeMillis();
+    
+    for (int i = 0; i < 100; i++) {
+        // Process test image
+        processTestImage();
+    }
+    
+    long endTime = System.currentTimeMillis();
+    long totalTime = endTime - startTime;
+    long avgTime = totalTime / 100;
+    
+    assertTrue("Average process time should be less than 50ms", avgTime < 50);
+}
+```

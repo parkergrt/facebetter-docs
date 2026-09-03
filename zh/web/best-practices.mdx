@@ -1,0 +1,452 @@
+---
+title: "最佳实践"
+description: "Web 美颜 SDK 最佳实践指南"
+---
+
+## 性能优化
+
+### 1. 选择合适的处理模式
+
+**视频模式（ProcessMode.Video）**
+- 适合实时视频流、直播场景
+- 性能更优，处理速度快
+- 建议用于相机预览、视频通话等场景
+
+**图像模式（ProcessMode.Image）**
+- 适合单张图片处理
+- 质量更高，效果更好
+- 建议用于照片编辑、图片美化等场景
+
+```javascript
+// 实时视频处理
+const result = engine.processImage(
+    imageData, 
+    imageData.width, 
+    imageData.height, 
+    ProcessMode.Video
+);
+
+// 高质量图片处理
+const result = engine.processImage(
+    imageData, 
+    imageData.width, 
+    imageData.height, 
+    ProcessMode.Image
+);
+```
+
+### 2. 参数调节建议
+
+**美颜参数调节原则**
+- 从较小值开始调节，避免过度美颜
+- 实时场景下建议降低参数值以保证流畅度
+- 静态图片可以适当提高参数值
+- 根据用户群体和场景调整参数范围
+
+**推荐参数范围**
+
+```javascript
+// 基础美颜参数（实时场景）
+engine.setBasicParam(BasicParam.Smoothing, 0.2);  // 磨皮 (0.0-1.0)
+engine.setBasicParam(BasicParam.Whitening, 0.1);  // 美白 (0.0-1.0)
+engine.setBasicParam(BasicParam.Rosiness, 0.1);   // 红润 (0.0-1.0)
+
+// 面部重塑参数（实时场景）
+engine.setReshapeParam(ReshapeParam.FaceThin, 0.1);    // 瘦脸 (0.0-1.0)
+engine.setReshapeParam(ReshapeParam.EyeSize, 0.1);     // 大眼 (0.0-1.0)
+
+// 静态图片可以适当提高参数值
+engine.setBasicParam(BasicParam.Smoothing, 0.5);
+engine.setBasicParam(BasicParam.Whitening, 0.3);
+```
+
+### 3. 内存优化
+
+**复用 Canvas 和 ImageData 对象**
+
+```javascript
+class ImageProcessor {
+    constructor() {
+        this.canvas = null;
+        this.ctx = null;
+        this.imageData = null;
+    }
+    
+    initCanvas(width, height) {
+        if (!this.canvas) {
+            this.canvas = document.createElement('canvas');
+            this.canvas.width = width;
+            this.canvas.height = height;
+            this.ctx = this.canvas.getContext('2d');
+        } else {
+            // 如果尺寸变化，更新 Canvas
+            if (this.canvas.width !== width || this.canvas.height !== height) {
+                this.canvas.width = width;
+                this.canvas.height = height;
+            }
+        }
+    }
+    
+    async processFrame(videoElement, engine) {
+        this.initCanvas(videoElement.videoWidth, videoElement.videoHeight);
+        
+        // 绘制视频帧到 Canvas
+        this.ctx.drawImage(videoElement, 0, 0);
+        
+        // 获取图像数据（复用 ImageData）
+        this.imageData = this.ctx.getImageData(0, 0, this.canvas.width, this.canvas.height);
+        
+        // 处理图像
+        const result = engine.processImage(
+            this.imageData, 
+            this.canvas.width, 
+            this.canvas.height, 
+            ProcessMode.Video
+        );
+        
+        // 绘制结果
+        this.ctx.putImageData(result, 0, 0);
+        
+        return this.canvas;
+    }
+}
+```
+
+**及时释放资源**
+
+```javascript
+// 页面卸载时释放资源
+window.addEventListener('beforeunload', () => {
+    if (engine) {
+        engine.destroy();
+        engine = null;
+    }
+});
+
+// Vue 组件
+onUnmounted(() => {
+    if (engine) {
+        engine.destroy();
+        engine = null;
+    }
+});
+
+// React 组件
+useEffect(() => {
+    return () => {
+        if (engine) {
+            engine.destroy();
+            engine = null;
+        }
+    };
+}, []);
+```
+
+### 4. 使用 Web Worker（可选）
+
+对于大量图像处理，可以考虑使用 Web Worker 避免阻塞主线程：
+
+```javascript
+// worker.js
+import { BeautyEffectEngine, EngineConfig, BasicParam } from 'facebetter';
+
+let engine = null;
+
+self.onmessage = async function(e) {
+    const { type, data } = e.data;
+    
+    switch (type) {
+        case 'init':
+            try {
+                const config = new EngineConfig(data.config);
+                engine = new BeautyEffectEngine(config);
+                await engine.init();
+                self.postMessage({ type: 'init', success: true });
+            } catch (error) {
+                self.postMessage({ type: 'init', success: false, error: error.message });
+            }
+            break;
+            
+        case 'process':
+            try {
+                const result = engine.processImage(
+                    data.imageData, 
+                    data.width, 
+                    data.height, 
+                    data.processMode || ProcessMode.Video
+                );
+                self.postMessage({ 
+                    type: 'process', 
+                    success: true, 
+                    result: result 
+                });
+            } catch (error) {
+                self.postMessage({ 
+                    type: 'process', 
+                    success: false, 
+                    error: error.message 
+                });
+            }
+            break;
+    }
+};
+```
+
+## 架构设计
+
+### 1. 单例模式管理引擎
+
+```javascript
+class BeautyEngineManager {
+    static instance = null;
+    static engine = null;
+    
+    static async getInstance(config) {
+        if (!this.instance) {
+            this.instance = new BeautyEngineManager();
+            await this.instance.init(config);
+        }
+        return this.instance;
+    }
+    
+    async init(config) {
+        if (!this.engine) {
+            const engineConfig = new EngineConfig(config);
+            this.engine = new BeautyEffectEngine(engineConfig);
+            await this.engine.init();
+        }
+    }
+    
+    getEngine() {
+        return this.engine;
+    }
+    
+    destroy() {
+        if (this.engine) {
+            this.engine.destroy();
+            this.engine = null;
+        }
+        this.instance = null;
+    }
+}
+
+// 使用
+const manager = await BeautyEngineManager.getInstance({
+    appId: 'your-app-id',
+    appKey: 'your-app-key'
+});
+const engine = manager.getEngine();
+```
+
+### 2. 参数管理类
+
+```javascript
+class BeautyParamManager {
+    constructor(engine) {
+        this.engine = engine;
+        this.params = {
+            basic: {
+                smoothing: 0,
+                whitening: 0,
+                rosiness: 0
+            },
+            reshape: {
+                faceThin: 0,
+                eyeSize: 0
+            },
+            makeup: {
+                lipstick: 0,
+                blush: 0
+            }
+        };
+    }
+    
+    setBasicParam(type, value) {
+        this.params.basic[type] = value;
+        this.engine.setBasicParam(BasicParam[type], value);
+    }
+    
+    setReshapeParam(type, value) {
+        this.params.reshape[type] = value;
+        this.engine.setReshapeParam(ReshapeParam[type], value);
+    }
+    
+    setMakeupParam(type, value) {
+        this.params.makeup[type] = value;
+        this.engine.setMakeupParam(MakeupParam[type], value);
+    }
+    
+    reset() {
+        Object.keys(this.params.basic).forEach(key => {
+            this.setBasicParam(key, 0);
+        });
+        Object.keys(this.params.reshape).forEach(key => {
+            this.setReshapeParam(key, 0);
+        });
+        Object.keys(this.params.makeup).forEach(key => {
+            this.setMakeupParam(key, 0);
+        });
+    }
+    
+    getParams() {
+        return JSON.parse(JSON.stringify(this.params));
+    }
+}
+```
+
+### 3. 图像处理管道
+
+```javascript
+class ImageProcessingPipeline {
+    constructor(engine) {
+        this.engine = engine;
+        this.canvas = document.createElement('canvas');
+        this.ctx = this.canvas.getContext('2d');
+    }
+    
+    processImage(source, options = {}) {
+        try {
+            // 1. 准备 Canvas
+            this.canvas.width = source.width || source.videoWidth;
+            this.canvas.height = source.height || source.videoHeight;
+            
+            // 2. 绘制源图像
+            this.ctx.drawImage(source, 0, 0);
+            
+            // 3. 获取图像数据
+            const imageData = this.ctx.getImageData(0, 0, this.canvas.width, this.canvas.height);
+            
+            // 4. 处理图像（同步方法，无需 await）
+            const result = this.engine.processImage(
+                imageData, 
+                this.canvas.width, 
+                this.canvas.height, 
+                options.processMode || ProcessMode.Video
+            );
+            
+            // 5. 绘制结果
+            this.ctx.putImageData(result, 0, 0);
+            
+            return this.canvas;
+        } catch (error) {
+            console.error('图像处理失败:', error);
+            throw error;
+        }
+    }
+}
+```
+
+## 用户体验优化
+
+### 1. 加载状态提示
+
+```javascript
+async function initEngineWithLoading(config) {
+    showLoading('正在初始化美颜引擎...');
+    
+    try {
+        const engine = new BeautyEffectEngine(config);
+        await engine.init();
+        hideLoading();
+        showSuccess('美颜引擎初始化成功');
+        return engine;
+    } catch (error) {
+        hideLoading();
+        showError('美颜引擎初始化失败: ' + error.message);
+        throw error;
+    }
+}
+```
+
+### 2. 渐进式加载
+
+```javascript
+async function initEngineProgressive(config) {
+    // 1. 显示加载提示
+    updateLoadingStatus('正在加载 WASM 模块...');
+    
+    const engine = new BeautyEffectEngine(config);
+    
+    // 2. 初始化（内部会加载 WASM）
+    updateLoadingStatus('正在初始化引擎...');
+    await engine.init();
+    
+    // 3. 设置美颜参数
+    updateLoadingStatus('正在配置美颜参数...');
+    engine.setBasicParam(BasicParam.Smoothing, 0.5);
+    
+    updateLoadingStatus('完成');
+    return engine;
+}
+```
+
+### 3. 错误重试机制
+
+```javascript
+async function initEngineWithRetry(config, maxRetries = 3) {
+    for (let i = 0; i < maxRetries; i++) {
+        try {
+            const engine = new BeautyEffectEngine(config);
+            await engine.init();
+            return engine;
+        } catch (error) {
+            if (i < maxRetries - 1) {
+                console.warn(`初始化失败，${1000 * (i + 1)}ms 后重试...`);
+                await new Promise(resolve => setTimeout(resolve, 1000 * (i + 1)));
+            } else {
+                throw error;
+            }
+        }
+    }
+}
+```
+
+## 安全建议
+
+### 1. 保护 AppID 和 AppKey
+
+**不要在前端代码中硬编码密钥：**
+
+```javascript
+// ❌ 不推荐：硬编码在代码中
+const config = new EngineConfig({
+    appId: 'your-app-id',
+    appKey: 'your-app-key'
+    // 或使用 licenseJson: 'your license json string'
+});
+
+// ✅ 推荐：从服务器获取或使用环境变量
+async function getConfig() {
+    const response = await fetch('/api/config');
+    const { appId, appKey, licenseJson } = await response.json();
+    // 如果提供了 licenseJson，则优先使用；否则使用 appId 和 appKey
+    return new EngineConfig(licenseJson ? { licenseJson } : { appId, appKey });
+}
+```
+
+### 2. 使用 HTTPS
+
+确保在生产环境中使用 HTTPS，保护数据传输安全。
+
+### 3. 验证用户输入
+
+```javascript
+function validateConfig(config) {
+    if (!config.appId || typeof config.appId !== 'string') {
+        throw new Error('appId 必须是字符串');
+    }
+    
+    if (!config.appKey || typeof config.appKey !== 'string') {
+        throw new Error('appKey 必须是字符串');
+    }
+    
+    return true;
+}
+```
+
+## 相关文档
+
+- [错误处理](/zh/web/error-handling) - 详细的错误处理指南
+- [常见问题](/zh/web/faq) - 常见问题和解决方案
+- [API 参考](/zh/web/api-reference) - 完整的 API 文档
+

@@ -1,0 +1,524 @@
+---
+title: "API 参考"
+description: "Web API 参考"
+---
+
+## 错误类
+
+### FacebetterError
+
+Facebetter 错误类，继承自 `Error`。
+
+**属性：**
+- `message`: 错误消息
+- `code`: 错误代码（默认为 -1）
+- `name`: 错误名称（固定为 'FacebetterError'）
+
+```javascript
+class FacebetterError extends Error {
+    constructor(message, code = -1)
+}
+```
+
+**示例：**
+
+```javascript
+try {
+    // 某些操作
+} catch (error) {
+    if (error instanceof FacebetterError) {
+        console.error('Facebetter 错误:', error.message);
+        console.error('错误代码:', error.code);
+    }
+}
+```
+
+## 配置类
+
+### EngineConfig
+
+引擎配置类，用于初始化美颜引擎。
+
+**构造函数：**
+
+```javascript
+new EngineConfig(config)
+```
+
+**参数：**
+- `config.appId` (string, 可选): 应用 ID（如果未提供 licenseJson 则必需）
+- `config.appKey` (string, 可选): 应用密钥（如果未提供 licenseJson 则必需）
+- `config.licenseJson` (string, 可选): 许可证 JSON 字符串（如果提供，则不需要 appId 和 appKey）
+- `config.externalContext` (boolean, 可选): 是否使用外部 OpenGL 上下文（Web/WASM 环境下该字段保留用于对齐配置结构，但当前实现中不会生效）
+
+**方法：**
+
+- `isValid()`: 验证配置是否有效
+- `toString()`: 返回配置的字符串表示
+
+**验证方式优先级：**
+- 如果 `licenseJson` 不为空，使用授权数据验证（支持在线响应和离线授权）
+- 否则使用 `appId` 和 `appKey` 进行自动联网验证
+
+**示例：**
+
+```javascript
+const config = new EngineConfig({
+    appId: 'your-app-id',
+    appKey: 'your-app-key'
+});
+
+// 或使用 licenseJson
+const config = new EngineConfig({
+    licenseJson: '{"license": "..."}'
+});
+```
+
+## 枚举类型
+
+### BeautyType
+
+美颜类型枚举。
+
+```javascript
+BeautyType = {
+    Basic: 0,          // 基础美颜
+    Reshape: 1,        // 面部重塑
+    Makeup: 2,         // 美妆效果
+    VirtualBackground: 3    // 虚拟背景
+};
+```
+
+### BasicParam
+
+基础美颜参数枚举。
+
+```javascript
+BasicParam = {
+    Smoothing: 0,   // 磨皮
+    Sharpening: 1,  // 锐化
+    Whitening: 2,   // 美白
+    Rosiness: 3     // 红润
+};
+```
+
+### ReshapeParam
+
+面部重塑参数枚举。
+
+```javascript
+ReshapeParam = {
+    FaceThin: 0,      // 瘦脸
+    FaceVShape: 1,    // V脸
+    FaceNarrow: 2,    // 窄脸
+    FaceShort: 3,     // 短脸
+    Cheekbone: 4,     // 颧骨
+    Jawbone: 5,       // 下颌骨
+    Chin: 6,          // 下巴
+    NoseSlim: 7,      // 瘦鼻梁
+    EyeSize: 8,       // 大眼
+    EyeDistance: 9    // 眼距
+};
+```
+
+### MakeupParam
+
+美妆参数枚举。
+
+```javascript
+MakeupParam = {
+    Lipstick: 0,  // 口红
+    Blush: 1      // 腮红
+};
+```
+
+### LipstickStyle
+
+口红样式枚举。
+
+```javascript
+LipstickStyle = {
+    Rouge: 0,  // 玫瑰红
+    Coral: 1,  // 珊瑚橙
+    Pink: 2    // 粉色（默认）
+};
+```
+
+### BlushStyle
+
+腮红样式枚举。
+
+```javascript
+BlushStyle = {
+    Classic: 0,  // 经典（默认）
+    Peach: 1,    // 蜜桃
+    Rose: 2      // 玫瑰
+};
+```
+
+### MirrorMode
+
+镜像模式枚举，在处理前应用于输入。
+
+```javascript
+MirrorMode = {
+    None: 0,        // 无镜像
+    Horizontal: 1,  // 水平镜像（例如前置摄像头自拍）
+    Vertical: 2,    // 垂直镜像
+    Both: 3         // 双向镜像
+};
+```
+
+#### 资源管理
+- `setFilter(filterId)`: 设置滤镜
+  - 参数：`filterId` (string) 滤镜唯一标识符。传入空字符串可清除。
+- `setFilterIntensity(intensity)`: 设置滤镜强度
+  - 参数：`intensity` (number) 强度值，范围 [0.0, 1.0]。
+- `setSticker(stickerId)`: 设置贴纸
+  - 参数：`stickerId` (string) 贴纸唯一标识符。传入空字符串可清除。
+- `registerFilter(filterId, resource)`: 注册滤镜
+  - 参数：
+    - `filterId` (string): 滤镜唯一标识符
+    - `resource` (string|Uint8Array): 资源路径（.fbd 文件）或 Uint8Array 数据
+- `registerSticker(stickerId, resource)`: 注册贴纸
+  - 参数：
+    - `stickerId` (string): 贴纸唯一标识符
+    - `resource` (string|Uint8Array): 资源路径（.fbd 文件）或 Uint8Array 数据
+- `unregisterFilter(filterId)`: 卸载滤镜
+- `unregisterAllFilters()`: 卸载所有滤镜
+- `unregisterSticker(stickerId)`: 卸载贴纸
+- `unregisterAllStickers()`: 卸载所有贴纸
+- `getRegisteredFilters()`: 获取已注册滤镜列表
+  - 返回: `string[]`
+- `getRegisteredStickers()`: 获取已注册贴纸列表
+  - 返回: `string[]`
+
+### FrameType
+
+图像帧类型枚举。
+
+```javascript
+FrameType = {
+    Image: 0,   // 图像模式，适合单张图片处理
+    Video: 1    // 视频模式，适合视频流和直播场景，性能更优
+};
+```
+
+### BackgroundMode
+
+背景模式枚举。
+
+```javascript
+BackgroundMode = {
+    None: 0,   // 无背景处理
+    Blur: 1,   // 模糊背景
+    Image: 2   // 背景图片替换
+};
+```
+
+### VirtualBackgroundOptions
+
+虚拟背景选项类，用于设置虚拟背景参数。
+
+**构造函数：**
+
+```javascript
+new VirtualBackgroundOptions(options)
+```
+
+**参数：**
+- `options` (Object, 可选): 选项对象
+  - `mode` (BackgroundMode, 可选): 背景模式，默认为 `BackgroundMode.None`
+  - `backgroundImage` (ImageData|HTMLImageElement|HTMLCanvasElement, 可选): 背景图片，当 mode 为 `Image` 时必需
+
+**方法：**
+- `isValid()`: 验证选项是否有效
+  - 返回: `boolean`
+  - 当 mode 为 `Image` 时，会检查 `backgroundImage` 是否存在
+
+**示例：**
+
+```javascript
+import { VirtualBackgroundOptions, BackgroundMode } from 'facebetter';
+
+// 创建模糊背景选项
+const blurOptions = new VirtualBackgroundOptions({
+  mode: BackgroundMode.Blur
+});
+
+// 创建图片背景选项
+const bgImage = new Image();
+bgImage.src = 'background.jpg';
+const imageOptions = new VirtualBackgroundOptions({
+  mode: BackgroundMode.Image,
+  backgroundImage: bgImage
+});
+
+// 验证选项
+if (imageOptions.isValid()) {
+  engine.setVirtualBackground(imageOptions);
+}
+```
+
+## 引擎类
+
+### BeautyEffectEngine
+
+美颜效果引擎主类，提供美颜功能的入口。
+
+**构造函数：**
+
+```javascript
+new BeautyEffectEngine(config)
+```
+
+**参数：**
+- `config` (EngineConfig): 引擎配置对象
+
+**实例方法：**
+
+#### 初始化
+
+- `init(options)`: 初始化引擎
+  - 参数:
+    - `options` (Object, 可选): 初始化选项
+      - `timeout` (number, 可选): WASM 模块加载超时时间（毫秒），默认 30000
+      - `authTimeout` (number, 可选): 在线认证超时时间（毫秒），默认 10000
+  - 返回: `Promise<void>`
+  - 示例: 
+    ```javascript
+    await engine.init();
+    // 或指定超时时间
+    await engine.init({
+      timeout: 60000,      // WASM 加载超时 60 秒
+      authTimeout: 15000   // 认证超时 15 秒
+    });
+    ```
+
+- `setLogConfig(config)`: 设置日志配置
+  - 参数:
+    - `config.consoleEnabled` (boolean, 可选): 是否启用控制台日志，默认 false
+    - `config.fileEnabled` (boolean, 可选): 是否启用文件日志，默认 false（浏览器环境不支持）
+    - `config.level` (number, 可选): 日志级别（0=DEBUG, 1=INFO, 2=WARN, 3=ERROR），默认 0
+    - `config.fileName` (string, 可选): 日志文件名，默认空字符串
+  - 返回: `Promise<void>`
+  - 注意: 可以在 `init()` 之前或之后调用，但建议在 `init()` 之前调用
+
+#### 参数设置
+
+- `setBasicParam(param, value)`: 设置基础美颜参数
+  - 参数:
+    - `param` (BasicParam): 参数类型
+    - `value` (number): 参数值，范围 [0.0, 1.0]（浮点数）
+  - 返回: `void`
+  - 示例: `engine.setBasicParam(BasicParam.Whitening, 0.5);`
+
+- `setReshapeParam(param, value)`: 设置面部重塑参数
+  - 参数:
+    - `param` (ReshapeParam): 参数类型
+    - `value` (number): 参数值，范围 [0.0, 1.0]（浮点数）
+  - 返回: `void`
+  - 示例: `engine.setReshapeParam(ReshapeParam.FaceThin, 0.5);`
+
+- `setMakeupParam(param, value)`: 设置美妆参数
+  - 参数:
+    - `param` (MakeupParam): 参数类型
+    - `value` (number): 参数值，范围 [0.0, 1.0]（浮点数）
+  - 返回: `void`
+  - 示例: `engine.setMakeupParam(MakeupParam.Lipstick, 0.5);`
+
+- `setLipstickStyle(style)`: 设置口红样式
+  - 参数:
+    - `style` (LipstickStyle): 口红样式
+  - 返回: `void`
+  - 示例: `engine.setLipstickStyle(LipstickStyle.Rouge);`
+
+- `setBlushStyle(style)`: 设置腮红样式
+  - 参数:
+    - `style` (BlushStyle): 腮红样式
+  - 返回: `void`
+  - 示例: `engine.setBlushStyle(BlushStyle.Classic);`
+
+- `setSkinOnlyBeauty(enabled)`: 设置美颜是否仅作用于皮肤区域
+  - 参数:
+    - `enabled` (boolean): `true` 启用皮肤区域美颜，`false` 美颜作用于整张图像
+  - 返回: `void`
+  - 示例: 
+    ```javascript
+    // 启用美颜仅作用于皮肤区域
+    engine.setSkinOnlyBeauty(true);
+    
+    // 禁用美颜仅作用于皮肤区域
+    engine.setSkinOnlyBeauty(false);
+    ```
+
+- `setVirtualBackground(options)`: 设置虚拟背景（统一接口，与其他平台一致）
+  - 参数:
+    - `options` (VirtualBackgroundOptions|Object): 虚拟背景选项
+      - `mode` (BackgroundMode): 背景模式（None、Blur、Image）
+      - `backgroundImage` (ImageData|HTMLImageElement|HTMLCanvasElement, 可选): 背景图片（当 mode 为 Image 时必需）
+  - 返回: `void`
+  - 示例: 
+    ```javascript
+    import { VirtualBackgroundOptions, BackgroundMode } from 'facebetter';
+    
+    // 设置模糊背景
+    const blurOptions = new VirtualBackgroundOptions({
+      mode: BackgroundMode.Blur
+    });
+    engine.setVirtualBackground(blurOptions);
+    
+    // 设置图片背景
+    const bgImage = new Image();
+    bgImage.onload = () => {
+      const imageOptions = new VirtualBackgroundOptions({
+        mode: BackgroundMode.Image,
+        backgroundImage: bgImage
+      });
+      engine.setVirtualBackground(imageOptions);
+    };
+    bgImage.src = 'background.jpg';
+    
+    // 简化写法
+    engine.setVirtualBackground({
+      mode: BackgroundMode.Blur
+    });
+    ```
+
+#### 图像处理
+
+- `processImage(input, width, height, frameType, mirrorMode)`: 处理图像
+  - 参数:
+    - `input` (ImageData | HTMLImageElement | HTMLCanvasElement | HTMLVideoElement | Uint8ClampedArray): 输入图像
+    - `width` (number, 可选): 图像宽度
+      - 当 `input` 为 `ImageData` 时：可选（会自动使用 `imageData.width`）
+      - 当 `input` 为 `HTMLImageElement` 或 `HTMLVideoElement` 时：可选（会自动获取元素尺寸）
+      - 当 `input` 为 `Uint8ClampedArray` 时：**必需**
+    - `height` (number, 可选): 图像高度
+      - 当 `input` 为 `ImageData` 时：可选（会自动使用 `imageData.height`）
+      - 当 `input` 为 `HTMLImageElement` 或 `HTMLVideoElement` 时：可选（会自动获取元素尺寸）
+      - 当 `input` 为 `Uint8ClampedArray` 时：**必需**
+    - `frameType` (FrameType, 可选): 帧类型，默认为 `FrameType.Video`
+    - `mirrorMode` (MirrorMode, 可选): 处理前应用于输入的镜像模式，默认为 `MirrorMode.None`
+  - 返回: `ImageData`（同步返回，非 Promise）
+  - 示例: 
+    ```javascript
+    // 使用 ImageData（width/height 可选）
+    const result = engine.processImage(
+        imageData, 
+        imageData.width,  // 可选，会自动使用 imageData.width
+        imageData.height, // 可选，会自动使用 imageData.height
+        FrameType.Video,
+        MirrorMode.Horizontal
+    );
+    
+    // 使用 HTMLImageElement（width/height 可省略，自动获取）
+    const result = engine.processImage(
+        imageElement, 
+        undefined, 
+        undefined, 
+        FrameType.Image,
+        MirrorMode.Horizontal
+    );
+    
+    // 使用 HTMLVideoElement（width/height 可省略，自动获取）
+    const result = engine.processImage(
+        videoElement, 
+        undefined, 
+        undefined, 
+        FrameType.Video,
+        MirrorMode.Horizontal
+    );
+    
+    // 使用 Uint8ClampedArray（width/height 必需）
+    const result = engine.processImage(
+        uint8Array, 
+        640,  // 必需
+        480,  // 必需
+        FrameType.Video,
+        MirrorMode.Horizontal
+    );
+    ```
+
+#### 资源管理
+
+- `destroy()`: 销毁引擎并释放资源
+  - 返回: `void`
+  - 注意: 在不再使用引擎时调用，释放内存和 WASM 资源
+  - 示例: `engine.destroy();`
+
+## 使用示例
+
+### 完整示例
+
+```javascript
+import { 
+    BeautyEffectEngine, 
+    EngineConfig, 
+    BeautyType, 
+    BasicParam,
+    ProcessMode 
+} from 'facebetter';
+
+// 创建配置
+const config = new EngineConfig({
+    appId: 'your-app-id',
+    appKey: 'your-app-key'
+});
+
+// 创建引擎
+const engine = new BeautyEffectEngine(config);
+
+// 设置日志
+await engine.setLogConfig({
+    consoleEnabled: true,
+    level: 1
+});
+
+// 初始化
+await engine.init();
+
+// 设置参数
+engine.setBasicParam(BasicParam.Whitening, 0.5);
+engine.setBasicParam(BasicParam.Smoothing, 0.5);
+
+// 处理图像
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+
+const result = engine.processImage(
+    imageData, 
+    canvas.width, 
+    canvas.height, 
+    FrameType.Video
+);
+
+// 绘制结果
+ctx.putImageData(result, 0, 0);
+
+// 释放资源
+engine.destroy();
+```
+
+## 已废弃接口 (Deprecated APIs)
+
+<Warning>
+**已弃用**
+
+以下接口已弃用。
+</Warning>
+
+### 美颜类型控制
+
+- `setBeautyTypeEnabled(beautyType, enabled)`
+  - **说明**: [已弃用] 启用或禁用美颜类型（参数驱动模式下无效果）
+  - **返回值**: `void`
+
+- `isBeautyTypeEnabled(beautyType)`
+  - **说明**: [已弃用] 检查美颜类型是否已启用（始终返回 false）
+  - **返回值**: `false`
+
+- `disableAllBeautyTypes()`
+  - **说明**: [已弃用] 禁用所有美颜类型（请通过置零参数重置效果）
+  - **返回值**: `void`

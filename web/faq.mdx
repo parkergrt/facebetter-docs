@@ -1,0 +1,438 @@
+---
+title: "FAQ"
+description: "Web Beauty SDK FAQ"
+---
+
+## Integration Issues
+
+### Q: What to do if engine creation fails?
+
+A: Check the following:
+- Confirm `appId` and `appKey` are correct
+- Check if network connection is normal (online verification required)
+- Check browser console for error messages
+- Confirm SDK version is latest
+- Check if browser supports modern web technologies
+
+```javascript
+// Check browser support
+if (typeof WebAssembly === 'undefined') {
+    console.error('Browser does not support required web technologies');
+}
+```
+
+### Q: How to check if SDK loaded successfully?
+
+A: You can check in the following ways:
+
+```javascript
+// ES Module
+import { BeautyEffectEngine } from 'facebetter';
+console.log('SDK imported successfully');
+
+// CommonJS
+const { BeautyEffectEngine } = require('facebetter');
+console.log('SDK imported successfully');
+```
+
+### Q: Module loading error at runtime?
+
+A: Possible causes and solutions:
+- **Network issue**: Check network connection, ensure npm registry is accessible
+- **CORS issue**: Ensure server has correct CORS headers configured
+- **File path error**: Check if file path is correct
+- **Browser not supported**: Use modern browsers (Chrome 57+, Firefox 52+, Safari 11+, or Edge 16+)
+
+```javascript
+// Check browser support
+if (typeof WebAssembly === 'undefined') {
+    alert('Your browser version is too old, please use Chrome 57+, Firefox 52+, Safari 11+, or Edge 16+');
+}
+```
+
+### Q: How to update version?
+
+A: Update the npm package:
+
+```bash
+npm update facebetter
+```
+
+Or specify a version:
+
+```bash
+npm install facebetter@latest
+```
+
+## Function Issues
+
+### Q: Beauty effect is not obvious?
+
+A: You can try:
+- Increase beauty parameter values (range 0.0-1.0)
+- Ensure corresponding beauty type is enabled
+- Check if image quality is clear enough
+- Confirm face detection is working normally
+- Try using `FrameType.Image` mode for better effects
+
+```javascript
+// Increase parameter value
+engine.setBasicParam(BasicParam.Whitening, 0.8); // Increase from 0.5 to 0.8
+
+// Use image mode
+const result = engine.processImage(
+    imageData, 
+    imageData.width, 
+    imageData.height, 
+    FrameType.Image  // Use image mode
+);
+```
+
+### Q: Beauty effect is excessive or distorted?
+
+A: Recommendations:
+- Lower beauty parameter values
+- Check if parameter combinations are reasonable
+- Avoid enabling too many beauty types simultaneously
+- Adjust parameters based on image quality
+
+```javascript
+// Lower parameter value
+engine.setBasicParam(BasicParam.Whitening, 0.2); // Lower from 0.5 to 0.2
+
+// Set necessary beauty parameters
+engine.setBasicParam(BasicParam.Smoothing, 0.5);
+```
+
+### Q: Virtual background not working?
+
+A: Check:
+- Set virtual background options
+- Check if background image is correctly loaded
+- Confirm image format is supported (PNG, JPG)
+- Check if image file exists and is readable
+
+```javascript
+import { VirtualBackgroundOptions, BackgroundMode } from 'facebetter';
+
+// Set virtual background (automatically enables the effect)
+const options = new VirtualBackgroundOptions({
+  mode: BackgroundMode.Blur
+});
+engine.setVirtualBackground(options);
+
+// Set blur background
+const blurOptions = new VirtualBackgroundOptions({
+  mode: BackgroundMode.Blur
+});
+engine.setVirtualBackground(blurOptions);
+
+// Set image background
+const bgImage = new Image();
+bgImage.onload = () => {
+  const imageOptions = new VirtualBackgroundOptions({
+    mode: BackgroundMode.Image,
+    backgroundImage: bgImage
+  });
+  engine.setVirtualBackground(imageOptions);
+};
+bgImage.src = '/path/to/background.png';
+```
+
+### Q: Processed image is black?
+
+A: Possible causes:
+- Image data format is incorrect
+- Canvas context acquisition failed
+- Image dimensions are 0
+
+```javascript
+// Check image data
+if (!imageData || !imageData.data) {
+    console.error('Invalid image data');
+    return;
+}
+
+// Check Canvas
+const canvas = document.getElementById('canvas');
+if (!canvas) {
+    console.error('Canvas element does not exist');
+    return;
+}
+
+const ctx = canvas.getContext('2d');
+if (!ctx) {
+    console.error('Cannot get Canvas context');
+    return;
+}
+
+// Check dimensions
+if (canvas.width === 0 || canvas.height === 0) {
+    console.error('Invalid Canvas dimensions');
+    return;
+}
+```
+
+## Performance Issues
+
+### Q: Processing speed is slow?
+
+A: Optimization recommendations:
+- Use `FrameType.Video` for real-time processing
+- Lower image resolution
+- Reduce number of simultaneously enabled beauty types
+- Avoid image processing on main thread
+- Use OffscreenCanvas (if supported)
+
+```javascript
+// Use video mode (synchronous method)
+const result = engine.processImage(
+    imageData, 
+    imageData.width, 
+    imageData.height, 
+    FrameType.Video  // Video mode is faster
+);
+
+// Lower resolution
+const smallCanvas = document.createElement('canvas');
+smallCanvas.width = Math.floor(canvas.width / 2);
+smallCanvas.height = Math.floor(canvas.height / 2);
+const smallCtx = smallCanvas.getContext('2d');
+smallCtx.drawImage(sourceCanvas, 0, 0, smallCanvas.width, smallCanvas.height);
+const smallImageData = smallCtx.getImageData(0, 0, smallCanvas.width, smallCanvas.height);
+```
+
+### Q: High memory usage?
+
+A: Solutions:
+- Release `ImageData` objects promptly
+- Avoid frequently creating and destroying engine instances
+- Reuse Canvas and ImageData objects
+- Use object pool pattern to manage image buffers
+
+```javascript
+// Reuse Canvas
+let reusableCanvas = null;
+let reusableCtx = null;
+
+function getReusableCanvas(width, height) {
+    if (!reusableCanvas) {
+        reusableCanvas = document.createElement('canvas');
+        reusableCanvas.width = width;
+        reusableCanvas.height = height;
+        reusableCtx = reusableCanvas.getContext('2d');
+    } else if (reusableCanvas.width !== width || reusableCanvas.height !== height) {
+        reusableCanvas.width = width;
+        reusableCanvas.height = height;
+    }
+    return { canvas: reusableCanvas, ctx: reusableCtx };
+}
+```
+
+### Q: Application lagging or crashing?
+
+A: Troubleshooting steps:
+- Check if image processing is on main thread
+- Confirm resource release is complete
+- Check console for error messages
+- Check if parameter values are within valid range (0.0-1.0)
+- Use browser performance analysis tools
+
+```javascript
+// Optimize with requestAnimationFrame
+function processFrame() {
+    requestAnimationFrame(() => {
+        try {
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            // processImage is a synchronous method
+            const result = engine.processImage(
+                imageData, 
+                canvas.width, 
+                canvas.height, 
+                FrameType.Video
+            );
+            ctx.putImageData(result, 0, 0);
+        } catch (error) {
+            console.error('Processing failed:', error);
+        }
+        
+        // Continue next frame
+        if (isProcessing) {
+            processFrame();
+        }
+    });
+}
+```
+
+## Compatibility Issues
+
+### Q: Which browsers are supported?
+
+A: Modern browsers with WebAssembly support:
+- Chrome 57+
+- Firefox 52+
+- Safari 11+
+- Edge 16+
+
+```javascript
+// Detect browser support
+function checkBrowserSupport() {
+    if (typeof WebAssembly === 'undefined') {
+        return {
+            supported: false,
+            message: 'Your browser does not support WebAssembly'
+        };
+    }
+    
+    return {
+        supported: true,
+        message: 'Browser supports WebAssembly'
+    };
+}
+```
+
+### Q: What to note when using on mobile?
+
+A: Recommendations:
+- Lower image resolution to improve performance
+- Use `FrameType.Video` mode
+- Appropriately lower beauty parameter values
+- Pay attention to memory usage, release resources promptly
+
+```javascript
+// Mobile optimization
+const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
+if (isMobile) {
+    // Lower resolution
+    canvas.width = Math.min(canvas.width, 640);
+    canvas.height = Math.min(canvas.height, 480);
+    
+    // Use video mode
+    processMode = FrameType.Video;
+    
+    // Lower parameter values
+    engine.setBasicParam(BasicParam.Whitening, 0.3);
+}
+```
+
+## Other Issues
+
+### Q: How to use in Vue/React?
+
+A: Refer to the following examples:
+
+**Vue 3:**
+
+```vue
+<template>
+  <canvas ref="canvasRef"></canvas>
+</template>
+
+<script setup>
+import { ref, onMounted, onUnmounted } from 'vue';
+import { BeautyEffectEngine, EngineConfig } from 'facebetter';
+
+const canvasRef = ref(null);
+let engine = null;
+
+onMounted(async () => {
+  const config = new EngineConfig({
+    appId: 'your-app-id',
+    appKey: 'your-app-key'
+  });
+  
+  engine = new BeautyEffectEngine(config);
+  await engine.init();
+});
+
+onUnmounted(() => {
+  if (engine) {
+    engine.destroy();
+  }
+});
+</script>
+```
+
+**React:**
+
+```jsx
+import { useEffect, useRef } from 'react';
+import { BeautyEffectEngine, EngineConfig } from 'facebetter';
+
+function BeautyComponent() {
+  const canvasRef = useRef(null);
+  const engineRef = useRef(null);
+  
+  useEffect(() => {
+    async function init() {
+      const config = new EngineConfig({
+        appId: 'your-app-id',
+        appKey: 'your-app-key'
+      });
+      
+      engineRef.current = new BeautyEffectEngine(config);
+      await engineRef.current.init();
+    }
+    
+    init();
+    
+    return () => {
+      if (engineRef.current) {
+        engineRef.current.destroy();
+      }
+    };
+  }, []);
+  
+  return <canvas ref={canvasRef} />;
+}
+```
+
+### Q: How to handle beauty effects after image upload?
+
+A: Example code:
+
+```javascript
+function handleFileUpload(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    
+    const reader = new FileReader();
+    reader.onload = async function(e) {
+        const img = new Image();
+        img.onload = async function() {
+            const canvas = document.createElement('canvas');
+            canvas.width = img.width;
+            canvas.height = img.height;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0);
+            
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const result = engine.processImage(
+                imageData, 
+                canvas.width, 
+                canvas.height, 
+                FrameType.Image
+            );
+            
+            ctx.putImageData(result, 0, 0);
+            
+            // Display processed image
+            const resultImg = document.createElement('img');
+            resultImg.src = canvas.toDataURL();
+            document.body.appendChild(resultImg);
+        };
+        img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+}
+```
+
+## Related Documentation
+
+- [Quick Start](/web/quick-start) - Quick integration guide
+- [Implement Beauty](/web/implement-beauty) - Detailed usage instructions
+- [Error Handling](/web/error-handling) - Error handling guide
+- [Best Practices](/web/best-practices) - Performance optimization recommendations
+- [API Reference](/web/api-reference) - Complete API documentation
+

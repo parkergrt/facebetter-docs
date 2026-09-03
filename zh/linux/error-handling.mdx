@@ -1,0 +1,167 @@
+---
+title: "错误处理"
+description: "Linux 平台 Facebetter SDK 错误处理与故障排除指南"
+---
+
+Linux 平台使用与 Windows 相同的 C++ API，大部分错误处理逻辑一致。本文额外列出 Linux 特有的问题。
+
+## 返回值约定
+
+| 返回值 | 含义 |
+| --- | --- |
+| `0` | 操作成功 |
+| 非 `0` | 操作失败，结合日志查看详细原因 |
+
+`BeautyEffectEngine::Create()` 失败时返回 `nullptr`。
+
+---
+
+## 常见错误与处理
+
+### 1. 引擎创建失败（`Create` 返回 `nullptr`）
+
+参考原因与解决方式与 Windows 一致，请先开启日志定位：
+
+```cpp
+LogConfig log_cfg;
+log_cfg.console_enabled = true;
+log_cfg.level           = LogLevel::Debug;
+BeautyEffectEngine::SetLogConfig(log_cfg);
+
+auto engine = BeautyEffectEngine::Create(eng_cfg);
+if (!engine) {
+    std::cerr << "[Error] Engine creation failed." << std::endl;
+    return -1;
+}
+```
+
+**常见原因**：`app_id` / `app_key` 无效、`resource.fbd` 路径错误、网络不通。
+
+---
+
+### 2. `libfacebetter.so` 运行时加载失败
+
+**错误信息**：
+
+```
+./facebetter_demo: error while loading shared libraries:
+libfacebetter.so: cannot open shared object file: No such file or directory
+```
+
+**解决方法**（三选一）：
+
+```bash
+# 方式一：运行时指定库路径
+LD_LIBRARY_PATH=/path/to/sdk/lib ./facebetter_demo
+
+# 方式二：将库复制到可执行文件同目录
+cp sdk/lib/libfacebetter.so build/
+cd build && ./facebetter_demo
+
+# 方式三：将路径写入系统库配置
+echo "/path/to/sdk/lib" | sudo tee /etc/ld.so.conf.d/facebetter.conf
+sudo ldconfig
+./facebetter_demo
+```
+
+---
+
+### 3. `ProcessImage` 返回 `nullptr`
+
+```cpp
+auto input = ImageFrame::CreateWithFile("input.jpg");
+if (!input || !input->Data()) {
+    std::cerr << "[Error] Failed to load input image." << std::endl;
+    return;
+}
+auto output = engine->ProcessImage(input);
+if (!output || !output->Data()) {
+    std::cerr << "[Error] ProcessImage failed." << std::endl;
+    return;
+}
+```
+
+---
+
+### 4. 美颜效果不生效
+
+确认每个 `BeautyType` 已启用，且参数值大于 `0`：
+
+```cpp
+engine->SetBeautyTypeEnabled(BeautyType::Basic,   true);
+engine->SetBeautyTypeEnabled(BeautyType::Reshape, true);
+engine->SetBeautyTypeEnabled(BeautyType::Makeup,  true);
+engine->SetBeautyTypeEnabled(BeautyType::Sticker, true);
+
+engine->SetBeautyParam(Basic::Smoothing, 0.5f);
+```
+
+---
+
+### 5. GLFW 无法打开显示器
+
+**错误信息**：
+
+```
+Error: GLFW: X11: Display variable not set
+```
+
+**解决方法**：
+
+```bash
+# 确认在图形会话中运行
+echo $DISPLAY        # 应输出如 :0 或 :1
+
+# 如果为空，手动设置（Xorg）
+export DISPLAY=:0
+./facebetter_demo
+
+# Wayland 环境
+export WAYLAND_DISPLAY=wayland-0
+./facebetter_demo
+```
+
+---
+
+### 6. OpenGL 初始化失败
+
+**可能原因**：系统缺少 OpenGL 驱动或 Mesa 库。
+
+**解决方法**：
+
+```bash
+# Ubuntu
+sudo apt install libgl1-mesa-glx libglu1-mesa
+
+# Fedora
+sudo dnf install mesa-libGL mesa-libGLU
+
+# 验证 OpenGL 支持
+glxinfo | grep "OpenGL version"
+# 需要 3.0 以上
+```
+
+---
+
+## 日志调试
+
+```cpp
+LogConfig log_cfg;
+log_cfg.console_enabled = true;
+log_cfg.file_enabled    = true;
+log_cfg.level           = LogLevel::Debug;
+log_cfg.file_name       = "facebetter.log";
+BeautyEffectEngine::SetLogConfig(log_cfg);
+```
+
+---
+
+## 错误码速查
+
+| 错误码 | 含义 |
+| --- | --- |
+| `0` | 成功 |
+| `-1` | 引擎未初始化 |
+| `-2` | 无效参数 |
+| `-3` | 资源文件未找到 |
+| `-4` | 处理失败 |

@@ -1,0 +1,75 @@
+---
+title: "快速开始"
+description: "跑通 iOS 示例程序"
+---
+
+## 环境要求
+
+- **iOS 版本**: `iOS 12.0` 及以上
+- **开发语言**: `Objective-C`
+- **架构支持**: `arm64`
+
+## 获取示例源码
+
+克隆 [github 仓库](https://github.com/pixpark/facebetter-sdk) 到本地, 进入 `demo/ios` 目录
+
+```bash
+# clone 
+git clone https://github.com/pixpark/facebetter-sdk.git
+
+# 进入 iOS Demo 目录
+cd facebetter-sdk/demo/ios
+
+# 安装依赖
+pod install
+```
+
+<Warning>
+**Xcode 15+ 编译错误处理**
+
+如果你使用的是 **Xcode 15** 或更高版本，可能会在编译时遇到 `Sandbox: rsync.samba deny(1)` 错误。这是由于 Xcode 默认开启了 **User Script Sandboxing** 导致的。
+
+**解决方法：**
+1. 在 Xcode 中选择您的 **Project**。
+2. 进入 **Build Settings** 选项卡。
+3. 搜索 `ENABLE_USER_SCRIPT_SANDBOXING`。
+4. 将该选项的值从 `Yes` 修改为 **`No`**。
+</Warning>
+
+## 配置应用信息与密钥
+
+### 绑定应用 Bundle ID
+
+按照 [此页面](/zh/intro/enable-service#绑定应用信息) 指引，在控制台绑定您的 iOS 应用 Bundle ID，例如：`com.example.app`
+
+### 获取 AppID 和 AppKey
+
+按照 [此页面](/zh/intro/enable-service#获取-appid-和-appkey) 指引，获取 `appid` 和 `appkey`, 打开工程中 `ViewController.m`, 修改 `appid` 和 `appkey`
+
+```objc
+  FBEngineConfig *engineConfig = [[FBEngineConfig alloc] init];
+  engineConfig.appId = @"your appId";
+  engineConfig.appKey = @"your appkey";
+  // 可选：如果提供了 licenseJson，则优先使用授权数据验证，不需要 appId 和 appKey
+  // engineConfig.licenseJson = @"your license json string";
+ 
+  self.beautyEffectEngine = [FBBeautyEffectEngine createEngineWithConfig:engineConfig];
+
+```
+
+<Tip>
+`licenseJson` 优先级高于 `appId` + `appKey`。离线文件下载与完整说明见 [授权认证](/zh/intro/license)。
+</Tip>
+
+## 运行工程
+
+打开 `demo/ios/FBExampleObjc.xcworkspace` 
+1. 确保 Xcode 工程签名正确
+<Frame>
+  <img src="/images/ios-1.png" alt="Xcode 签名" />
+</Frame>
+
+2. 编译运行 
+
+选择实体机设备，点击编译运行按钮即可
+ 

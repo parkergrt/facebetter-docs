@@ -1,0 +1,282 @@
+---
+title: "TRTC 集成"
+description: "在 TRTC Flutter 项目中集成 FaceBetter 美颜 SDK"
+---
+
+本文档说明如何在 TRTC Flutter 项目中集成 FaceBetter 美颜 SDK。
+
+## 架构概述
+
+```
+Flutter 层                    原生层
+┌──────────────────┐         ┌─────────────────────────────────┐
+│ FBBeautyEffect   │         │ TRTC 采集视频帧                   │
+│ Engine.init()    │         │   ↓ (纹理 ID)                    │
+│ engine.set*()    │         │ onProcessVideoFrame()            │
+│ 设置美颜参数      │         │   ↓                              │
+└──────────────────┘         │ FB引擎.processImage(纹理帧)       │
+                             │   ↓                              │
+                             │ 输出纹理 → TRTC 推流              │
+                             └─────────────────────────────────┘
+```
+
+Flutter 层负责初始化引擎和设置美颜参数，原生层负责在 TRTC 的视频帧回调中处理纹理。
+
+## 前置条件
+
+- 已集成 TRTC Flutter SDK（`tencent_trtc_cloud`）
+- 已添加 `facebetter_flutter` 依赖
+- FaceBetter SDK 有效授权（appId / appKey）
+
+## 第一步：Flutter 层初始化
+
+在进入 TRTC 房间之前初始化 FaceBetter 引擎并设置美颜参数：
+
+```dart
+import 'package:facebetter_flutter/facebetter_flutter.dart';
+
+// 初始化引擎
+await FBBeautyEffectEngine.init(
+  FBEngineConfig(appId: 'your_app_id', appKey: 'your_app_key'),
+);
+
+final engine = FBBeautyEffectEngine.sharedInstance;
+
+// 设置美颜参数
+await engine.setBasicParam(FBBasicParam.smoothing, 0.8);
+await engine.setBasicParam(FBBasicParam.whitening, 0.6);
+await engine.setReshapeParam(FBReshapeParam.faceThin, 0.3);
+```
+
+## 第二步：iOS 原生层集成
+
+### 2.1 添加依赖
+
+在 iOS 的 `Podfile` 中添加 TRTC 美颜抽象层：
+
+```ruby
+pod 'TXCustomBeautyProcesserPlugin', '1.0.2'
+```
+
+### 2.2 实现美颜处理器
+
+创建 `FBBeautyProcesser.swift`：
+
+```swift
+import Facebetter
+import facebetter_flutter
+
+class FBBeautyProcesser: NSObject, ITXCustomBeautyProcesser {
+
+    func getSupportedPixelFormat() -> ITXCustomBeautyPixelFormat {
+        return .Texture2D
+    }
+
+    func getSupportedBufferType() -> ITXCustomBeautyBufferType {
+        return .Texture
+    }
+
+    func onProcessVideoFrame(srcFrame: ITXCustomBeautyVideoFrame,
+                             dstFrame: ITXCustomBeautyVideoFrame) -> ITXCustomBeautyVideoFrame {
+        guard let engine = FacebetterPlugin.sharedInstance().engine else {
+            return srcFrame
+        }
+
+        let inputFrame = FBImageFrame.createWithTexture(
+            srcFrame.texture.textureId,
+            width: srcFrame.width,
+            height: srcFrame.height,
+            stride: srcFrame.width * 4
+        )
+        inputFrame.type = .video
+
+        guard let outputFrame = engine.processImage(inputFrame) else {
+            return srcFrame
+        }
+
+        dstFrame.texture.textureId = outputFrame.texture
+        return dstFrame
+    }
+}
+
+class FBBeautyProcesserFactory: NSObject, ITXCustomBeautyProcesserFactory {
+    private var processer: FBBeautyProcesser?
+
+    func createCustomBeautyProcesser() -> ITXCustomBeautyProcesser {
+        if processer == nil {
+            processer = FBBeautyProcesser()
+        }
+        return processer!
+    }
+
+    func destroyCustomBeautyProcesser() {
+        processer = nil
+    }
+}
+```
+
+### 2.3 注册到 TRTC
+
+在 `AppDelegate.swift` 的 `application(_:didFinishLaunchingWithOptions:)` 中注册：
+
+```swift
+import tencent_trtc_cloud
+
+func application(_ application: UIApplication,
+                 didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
+    GeneratedPluginRegistrant.register(with: self)
+
+    // 注册 FaceBetter 美颜处理器到 TRTC [!code focus]
+    TencentTRTCCloud.register(FBBeautyProcesserFactory())
+
+    return super.application(application, didFinishLaunchingWithOptions: launchOptions)
+}
+```
+
+<Warning>
+必须在 `GeneratedPluginRegistrant.register(with:)` **之后**调用，确保 FaceBetter 插件已初始化。
+</Warning>
+
+### 2.4 Bridging Header
+
+如果项目使用 Swift，需要在 Bridging Header 中导入 ObjC 头文件：
+
+```objc
+#import "FacebetterPlugin.h"
+```
+
+## 第三步：Android 原生层集成
+
+### 3.1 添加依赖
+
+在 Android 的 `app/build.gradle` 中添加：
+
+```groovy
+dependencies {
+    implementation 'com.tencent.liteav:custom-video-processor:latest.release'
+}
+```
+
+### 3.2 实现美颜处理器
+
+创建 `FBBeautyProcesser.kt`：
+
+```kotlin
+package net.pixpark.fbexample  // 替换为你的包名
+
+import com.tencent.trtc.custom.video.process.*
+import net.pixpark.facebetter.*
+import net.pixpark.facebetter.flutter.FacebetterPlugin
+
+class FBBeautyProcesser : ITXCustomBeautyProcesser {
+
+    override fun getSupportedPixelFormat(): TXCustomBeautyPixelFormat {
+        return TXCustomBeautyPixelFormat.Texture2D
+    }
+
+    override fun getSupportedBufferType(): TXCustomBeautyBufferType {
+        return TXCustomBeautyBufferType.Texture
+    }
+
+    override fun onProcessVideoFrame(srcFrame: TXCustomBeautyVideoFrame,
+                                      dstFrame: TXCustomBeautyVideoFrame) {
+        val engine = FacebetterPlugin.sharedInstance?.getEngine() ?: return
+
+        val inputFrame = ImageFrame.createWithTexture(
+            srcFrame.texture.textureId,
+            srcFrame.width, srcFrame.height,
+            srcFrame.width * 4
+        )
+        inputFrame.type = ImageFrame.FrameType.VIDEO
+
+        val outputFrame = engine.processImage(inputFrame) ?: return
+
+        dstFrame.texture.textureId = outputFrame.texture
+    }
+}
+
+class FBBeautyProcesserFactory : ITXCustomBeautyProcesserFactory {
+    private var processer: FBBeautyProcesser? = null
+
+    override fun createCustomBeautyProcesser(): ITXCustomBeautyProcesser {
+        if (processer == null) {
+            processer = FBBeautyProcesser()
+        }
+        return processer!!
+    }
+
+    override fun destroyCustomBeautyProcesser() {
+        processer = null
+    }
+}
+```
+
+### 3.3 注册到 TRTC
+
+在 `MainActivity.kt` 中注册：
+
+```kotlin
+import com.tencent.trtc.custom.video.process.TXCustomVideoProcessRegisterer
+import io.flutter.embedding.android.FlutterActivity
+
+class MainActivity : FlutterActivity() {
+    override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
+        super.configureFlutterEngine(flutterEngine)
+
+        // 注册 FaceBetter 美颜处理器到 TRTC [!code focus]
+        TXCustomVideoProcessRegisterer.register(FBBeautyProcesserFactory())
+    }
+}
+```
+
+## 第四步：Flutter 层开启自定义视频处理
+
+```dart
+// 开启 TRTC 自定义美颜
+await trtcCloud.enableCustomVideoProcess(true);
+```
+
+## 动态调整美颜参数
+
+在 TRTC 通话过程中，可以随时调整美颜参数：
+
+```dart
+final engine = FBBeautyEffectEngine.sharedInstance;
+
+// 调整磨皮
+await engine.setBasicParam(FBBasicParam.smoothing, 0.9);
+
+// 调整瘦脸
+await engine.setReshapeParam(FBReshapeParam.faceThin, 0.5);
+
+// 切换滤镜
+await engine.setFilter('new_filter');
+
+// 清除贴纸
+await engine.setSticker('');
+```
+
+参数变更立即生效，下一帧视频就会使用新参数处理。
+
+## 资源释放
+
+退出 TRTC 房间后释放引擎：
+
+```dart
+await FBBeautyEffectEngine.sharedInstance.release();
+```
+
+## 注意事项
+
+1. **GL 线程**：`onProcessVideoFrame` 在 GL 线程中调用，FaceBetter 引擎的 `processImage` 是线程安全的。
+
+2. **初始化时机**：必须在 `enableCustomVideoProcess(true)` 之前完成 `FBBeautyEffectEngine.init()`。
+
+3. **单例模式**：FaceBetter 引擎是单例，整个 App 生命周期只创建一次。
+
+4. **纹理格式**：FaceBetter 使用 OpenGL ES 2D 纹理，与 TRTC 的纹理格式完全匹配。
+
+## 相关文档
+
+- [Flutter 美颜实现](/zh/flutter/implement-beauty) - Flutter 美颜参数设置
+- [Flutter API 参考](/zh/flutter/api-reference) - 完整的 Flutter API 文档

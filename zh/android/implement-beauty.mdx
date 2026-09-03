@@ -1,0 +1,618 @@
+---
+title: "实现美颜"
+description: "实现 Android 美颜"
+---
+
+## 添加 SDK 依赖
+
+### 方法 A：Maven 在线集成（推荐）
+
+在项目根目录的 `build.gradle` 或 `settings.gradle` 中添加 Maven 仓库地址：
+
+```groovy
+repositories {
+    mavenCentral()
+}
+```
+
+在模块的 `build.gradle` 中添加依赖：
+
+```groovy
+dependencies {
+    implementation 'net.pixpark:facebetter:1.2.2'
+}
+```
+
+或者，如果你使用现代的 **Version Catalog** (`libs.versions.toml`) 管理依赖（推荐方式，Demo 中即采用此方式）：
+
+1. 在 `gradle/libs.versions.toml` 中添加：
+```toml
+[versions]
+facebetter = "1.2.2"
+
+[libraries]
+facebetter = { group = "net.pixpark", name = "facebetter", version.ref = "facebetter" }
+```
+
+2. 在模块的 `build.gradle` 中使用：
+```groovy
+dependencies {
+    implementation libs.facebetter
+}
+```
+
+### 方法 B：手动集成 AAR
+
+前往 [下载](https://facebetter.net/zh/download) 页面，获取最新版的 SDK，然后解压。
+
+将 SDK 包内 `facebetter.aar` 库，拷贝到你的项目路径下， 如 `libs` 目录。
+
+修改项目的 `build.gradle` 在 `dependencies` 部分添加 `facebetter.aar` 依赖：
+
+```groovy
+dependencies {
+    implementation files('libs/facebetter.aar')
+    implementation libs.appcompat
+    implementation libs.material
+}
+```
+
+### 权限配置
+在 `AndroidManifest.xml` 中添加必要权限：
+
+```xml
+<!-- 网络权限（必需）：用于 appId 和 appKey 的联网验证 -->
+<uses-permission android:name="android.permission.INTERNET" />
+<uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+
+<!-- 存储权限（可选）：仅在需要写日志文件时使用 -->
+<uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+<uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+
+<!-- 相机权限（可选）：仅在 demo 使用相机采集时才需要 -->
+<uses-permission android:name="android.permission.CAMERA" />
+```
+
+**权限说明：**
+- **网络权限**：必需。SDK 需要联网验证 `appId` 和 `appKey`，确保应用正常运行。
+- **存储权限**：可选。仅在配置了文件日志（`logConfig.fileEnabled = true`）时需要。
+- **相机权限**：可选。仅在应用中使用相机采集图像进行美颜处理时需要，如果只处理已有图片不需要此权限。
+
+## 导入类
+Facebetter 引擎主要有三个类需要用到，需要导入到使用的文件中:
+
+```java
+import net.pixpark.facebetter.BeautyEffectEngine;
+import net.pixpark.facebetter.BeautyParams.*;
+import net.pixpark.facebetter.ImageFrame;
+```
+## 日志配置
+默认日志是关闭的，可以按需开启，支持控制台日志和文件日志开关。
+
+<Warning>
+开启日志要放到美颜引擎创建**之前**，否则可能看不到初始化日志。
+</Warning>
+
+```java
+BeautyEffectEngine.LogConfig logConfig = new BeautyEffectEngine.LogConfig();
+// 控制台日志
+logConfig.consoleEnabled = true;
+// 文件日志
+logConfig.fileEnabled = true;
+// 日志级别
+logConfig.level = BeautyEffectEngine.LogLevel.INFO;
+// 日志存储路径
+logConfig.fileName = "xx/xx/facebetter.log";
+BeautyEffectEngine.setLogConfig(logConfig);
+```
+
+## 创建配置引擎
+
+按照 [此页面](/zh/intro/enable-service#获取-appid-和-appkey) 指引，获取 `appid` 和 `appkey`
+
+**验证方式优先级：**
+- 如果提供了 `licenseJson`，使用授权数据验证（支持在线响应和离线授权）
+- 否则使用 `appId` 和 `appKey` 进行自动联网验证
+
+```java
+BeautyEffectEngine.EngineConfig config = new BeautyEffectEngine.EngineConfig();
+config.appId = "your appId"; // 配置你的 appid（可选，如果提供了 licenseJson 则不需要）
+config.appKey = "your appkey"; // 配置你的 appkey（可选，如果提供了 licenseJson 则不需要）
+// 可选：使用授权数据验证（如果提供则优先使用）
+// config.licenseJson = "your license json string";
+mBeautyEngine = new BeautyEffectEngine(this, config);
+```
+
+### 错误处理
+创建引擎后建议检查是否成功：
+
+```java
+if (mBeautyEngine == null) {
+    Log.e("BeautyEngine", "Failed to create beauty engine");
+    return;
+}
+```
+
+## 调节美颜参数
+
+<Tip>
+所有美颜参数值范围为 `[0.0, 1.0]`，设置为 `0` 即禁用效果。
+</Tip>
+
+### 设置美肤参数
+通过 `setBeautyParam` 接口，设置美肤参数，**参数范围 [0.0, 1.0]**;
+
+```java
+float value = 0.5; // 取值范围[0.0, 1.0]
+int ret = mBeautyEngine.setBeautyParam(BasicParam.SMOOTHING, value);
+```
+
+支持的美肤参数：
+```java
+public static enum BasicParam {
+    SMOOTHING(0),   // 磨皮
+    SHARPENING(1),  // 锐化
+    WHITENING(2),   // 美白
+    ROSINESS(3);    // 红润
+}
+
+```
+
+### 设置美颜仅作用于皮肤区域
+通过 `setSkinOnlyBeauty` 接口，设置美颜是否仅作用于皮肤区域。当启用时，美颜效果（磨皮、美白等）仅会应用于检测到的皮肤区域，非皮肤区域保持不变。
+
+```java
+// 启用美颜仅作用于皮肤区域
+int ret = mBeautyEngine.setSkinOnlyBeauty(true);
+
+// 禁用美颜仅作用于皮肤区域（美颜作用于整张图像）
+ret = mBeautyEngine.setSkinOnlyBeauty(false);
+```
+
+<Tip>
+启用皮肤区域美颜后，即使美颜参数值较高，非皮肤区域（如背景、衣物等）也不会受到影响。
+</Tip>
+
+### 设置美型参数
+通过 `setBeautyParam` 接口，设置美型参数，**参数范围 [0.0, 1.0]**;
+
+```java
+beautyEffectEngine.setBeautyParam(BeautyParams.ReshapeParam.FACE_THIN, 0.5f);
+```
+
+支持的美型参数：
+
+```java
+public enum ReshapeParam {
+  FACE_THIN(0),      // 瘦脸
+  FACE_V_SHAPE(1),   // V脸
+  FACE_NARROW(2),    // 窄脸
+  FACE_SHORT(3),     // 短脸
+  CHEEKBONE(4),      // 颧骨
+  JAWBONE(5),        // 下颌骨
+  CHIN(6),           // 下巴
+  NOSE_SLIM(7),      // 瘦鼻梁
+  EYE_SIZE(8),       // 大眼
+  EYE_DISTANCE(9);   // 眼距
+}
+```
+
+### 设置美妆参数
+
+```java
+beautyEffectEngine.setBeautyParam(BeautyParams.MakeupParam.LIPSTICK, 0.5f);
+```
+支持的美妆参数:
+
+```java
+public enum MakeupParam {
+  LIPSTICK(0),  // 口红
+  BLUSH(1);     // 腮红
+}
+```
+
+### 设置虚拟背景
+通过 `setVirtualBackground` 接口设置虚拟背景：
+
+```java
+// 设置背景模式
+BeautyParams.VirtualBackgroundOptions options = new BeautyParams.VirtualBackgroundOptions();
+options.mode = BeautyParams.BackgroundMode.BLUR;  // 模糊背景
+beautyEffectEngine.setVirtualBackground(options);
+
+// 设置背景图片（需要先设置为 IMAGE 模式）
+BeautyParams.VirtualBackgroundOptions imageOptions = new BeautyParams.VirtualBackgroundOptions();
+imageOptions.mode = BeautyParams.BackgroundMode.IMAGE;
+imageOptions.backgroundImage = imageFrame;  // ImageFrame 对象
+beautyEffectEngine.setVirtualBackground(imageOptions);
+```
+
+## 使用滤镜和贴纸
+
+### 滤镜功能
+滤镜通过 `setFilter` 接口设置，需要先通过 `registerFilter` 注册滤镜资源文件（`.fbd`）。
+
+```java
+// 1. 注册滤镜资源
+String filterId = "chuxin";
+String fbdPath = getFilesDir() + "/filters/chuxin.fbd";
+mBeautyEngine.registerFilter(filterId, fbdPath);
+
+// 2. 使用滤镜
+mBeautyEngine.setFilter(filterId);
+
+// 3. 调节滤镜强度 (0.0 - 1.0)
+mBeautyEngine.setFilterIntensity(0.8f);
+```
+
+### 贴纸功能
+贴纸通过 `setSticker` 接口设置，同样需要先注册。
+
+```java
+// 1. 注册贴纸资源
+String stickerId = "cherry";
+String fbdPath = getFilesDir() + "/stickers/cherry.fbd";
+mBeautyEngine.registerSticker(stickerId, fbdPath);
+
+// 2. 使用贴纸
+mBeautyEngine.setSticker(stickerId);
+
+// 3. 清除贴纸
+mBeautyEngine.setSticker("");
+```
+
+## 设置回调
+
+监听License验证和引擎初始化状态：
+
+```java
+EngineCallbacks callbacks = new EngineCallbacks();
+callbacks.onEngineEvent = (code, message) -> {
+    if (code == EngineEventCode.LICENSE_VALIDATION_SUCCESS) {
+        // License验证成功
+        Log.d(TAG, "License验证成功");
+    } else if (code == EngineEventCode.LICENSE_VALIDATION_FAILED) {
+        // License验证失败
+        Log.e(TAG, "License验证失败: " + message);
+    } else if (code == EngineEventCode.INITIALIZATION_COMPLETE) {
+        // 引擎初始化完成
+        Log.d(TAG, "引擎初始化完成");
+    } else if (code == EngineEventCode.INITIALIZATION_FAILED) {
+        // 引擎初始化失败
+        Log.e(TAG, "引擎初始化失败: " + message);
+    }
+};
+beautyEffectEngine.setCallbacks(callbacks);
+```
+
+事件码：
+- `EngineEventCode.LICENSE_VALIDATION_SUCCESS` (0)：License验证成功
+- `EngineEventCode.LICENSE_VALIDATION_FAILED` (1)：License验证失败
+- `EngineEventCode.INITIALIZATION_COMPLETE` (100)：引擎初始化完成
+- `EngineEventCode.INITIALIZATION_FAILED` (101)：引擎初始化失败
+
+## 处理图像
+
+<Warning>
+ImageFrame 对象使用完毕后必须调用 `release()` 释放，否则会导致内存泄漏。
+</Warning>
+
+### 创建图像
+图像数据通过 `ImageFrame` 封装，支持格式: `I420`, `NV12`, `NV21`, `RGB`, `RGBA`, `BGR`, `BGRA`
+
+**通过 RGBA 创建 ImageFrame**
+```java
+ByteBuffer data = ByteBuffer.allocateDirect(width * height * 4);
+ImageFrame inputImage = ImageFrame.createWithRGBA(data, width, height, stride);
+```
+
+**通过图片创建 ImageFrame**
+```java
+ImageFrame inputImage = ImageFrame.createWithFile("xxx.png");
+```
+### 旋转图像
+ImageFrame 内置图像旋转方法, 可根据需要使用
+
+```java
+int result = inputImage.rotate(ImageFrame.Rotation.ROTATION_90);
+```
+
+旋转角度
+```java
+public enum Rotation {
+  ROTATION_0(0),    // 0度
+  ROTATION_90(1),   // 顺时针旋转90度
+  ROTATION_180(2),  // 顺时针旋转180度
+  ROTATION_270(3);  // 顺时针旋转270度
+}
+```
+
+### 处理图像
+帧类型包括 `VIDEO` 和 `IMAGE` 两种，`VIDEO` 适合直播、视频等场景使用，效率更高，`IMAGE` 模式适合图片处理场景。
+
+通过设置 `ImageFrame.type` 字段来指定帧类型：
+
+```java
+// 视频模式（默认）
+inputImage.type = ImageFrame.FrameType.VIDEO;
+ImageFrame outputImage = beautyEffectEngine.processImage(inputImage);
+
+// 图像模式
+inputImage.type = ImageFrame.FrameType.IMAGE;
+ImageFrame outputImage = beautyEffectEngine.processImage(inputImage);
+```
+
+<Tip>
+引擎会自动保持输入输出格式一致。输入为 NV21 格式，输出即为 NV21 格式；输入为 RGBA 格式，输出即为 RGBA 格式。
+</Tip>
+### 获取处理后图像数据
+
+**获取 RGBA 格式数据**：
+
+```java
+// 如果输出格式是 RGBA，直接获取数据
+if (outputImage.getFormat() == ImageFrame.Format.RGBA) {
+    ByteBuffer data = outputImage.getData();
+    int dataSize = outputImage.getSize();
+    int width = outputImage.getWidth();
+    int height = outputImage.getHeight();
+    int stride = outputImage.getStride();
+}
+```
+
+**获取 I420 格式数据**：
+
+```java
+// 如果输出格式是 I420，直接获取 Y、U、V 分量数据
+if (outputImage.getFormat() == ImageFrame.Format.I420) {
+    // 独立获取 Y, U, V 分量数据
+    ByteBuffer dataY = outputImage.getDataY();
+    ByteBuffer dataU = outputImage.getDataU();
+    ByteBuffer dataV = outputImage.getDataV();
+    
+    int strideY = outputImage.getStrideY();
+    int strideU = outputImage.getStrideU();
+    int strideV = outputImage.getStrideV();
+    
+    int width = outputImage.getWidth();
+    int height = outputImage.getHeight();
+}
+```
+
+**格式转换**：
+
+如果需要将 ImageFrame 转换为其他格式，可以使用 `convert()` 方法：
+
+```java
+// 转换为 I420 格式
+ImageFrame i420Frame = outputImage.convert(ImageFrame.Format.I420);
+if (i420Frame != null) {
+    ByteBuffer dataY = i420Frame.getDataY();
+    ByteBuffer dataU = i420Frame.getDataU();
+    ByteBuffer dataV = i420Frame.getDataV();
+    // 使用完毕后记得释放
+    i420Frame.release();
+}
+
+// 转换为 RGBA 格式
+ImageFrame rgbaFrame = outputImage.convert(ImageFrame.Format.RGBA);
+if (rgbaFrame != null) {
+    ByteBuffer data = rgbaFrame.getData();
+    // 使用完毕后记得释放
+    rgbaFrame.release();
+}
+```
+
+`ImageFrame` 支持转换为以下格式: `I420`, `NV12`, `NV21`, `RGB`, `RGBA`, `BGR`, `BGRA`。
+
+## 外部纹理处理
+
+<Warning>
+使用外部纹理处理时，必须确保 OpenGL 上下文在主线程，且在引擎初始化时传入 `externalContext = true`。
+</Warning>
+
+### 使用场景
+外部纹理处理适用于以下场景：
+- **OpenGL/OpenGL ES 渲染管线集成**：当你的应用已经使用 OpenGL 进行渲染时，可以直接使用纹理作为输入和输出，避免 CPU-GPU 之间的数据拷贝
+- **实时视频处理**：在视频渲染回调中直接处理纹理，减少内存拷贝开销
+- **性能优化**：避免将纹理数据下载到 CPU 内存再上传回 GPU，提升处理效率
+
+### 配置外部上下文
+使用外部纹理处理时，需要在创建引擎时启用 `externalContext` 选项：
+
+```java
+BeautyEffectEngine.EngineConfig config = new BeautyEffectEngine.EngineConfig();
+config.appId = "your appId";
+config.appKey = "your appKey";
+config.externalContext = true;  // 启用外部上下文模式
+
+BeautyEffectEngine engine = new BeautyEffectEngine(context, config);
+```
+
+**重要提示**：
+- `externalContext = true` 时，引擎不会创建自己的 OpenGL 上下文，而是使用当前线程的 OpenGL 上下文
+- 必须在有效的 OpenGL 上下文中创建引擎和处理图像
+- 输入和输出的纹理必须在同一个 OpenGL 上下文中
+
+### 创建纹理帧
+使用 `ImageFrame.createWithTexture()` 方法从 OpenGL 纹理创建图像帧：
+
+```java
+// 从 OpenGL 纹理创建 ImageFrame
+int textureId = ...;  // 你的 OpenGL 纹理 ID
+int width = 1920;
+int height = 1080;
+int stride = width * 4;  // RGBA 格式，每像素 4 字节
+
+ImageFrame inputFrame = ImageFrame.createWithTexture(textureId, width, height, stride);
+if (inputFrame == null) {
+    Log.e(TAG, "Failed to create ImageFrame from texture");
+    return;
+}
+```
+
+**参数说明**：
+- `textureId`：OpenGL 纹理 ID（`GL_TEXTURE_2D` 类型）
+- `width`：纹理宽度（像素）
+- `height`：纹理高度（像素）
+- `stride`：行跨度（字节），通常为 `width * 4`（RGBA 格式）
+
+### 获取输出纹理
+处理图像后，可以直接通过 `ImageFrame.getTexture()` 获取输出纹理：
+
+```java
+// 处理图像
+ImageFrame outputFrame = engine.processImage(inputFrame, BeautyEffectEngine.ProcessMode.IMAGE);
+if (outputFrame == null) {
+    Log.e(TAG, "processImage returned null");
+    return;
+}
+
+// 获取输出纹理 ID 和尺寸
+int outputTextureId = outputFrame.getTexture();
+int outputWidth = outputFrame.getWidth();
+int outputHeight = outputFrame.getHeight();
+
+if (outputTextureId == 0) {
+    Log.e(TAG, "Output frame does not have a texture");
+    return;
+}
+```
+
+### 完整示例
+
+```java
+public class ExternalTextureActivity extends AppCompatActivity
+    implements GLTextureRenderer.OnProcessVideoFrameCallback {
+    
+    private BeautyEffectEngine engine;
+    
+    @Override
+    public int onProcessVideoFrame(
+        GLTextureRenderer.TextureFrame srcFrame, 
+        GLTextureRenderer.TextureFrame dstFrame) {
+        
+        // 延迟初始化引擎（在 OpenGL 上下文中）
+        if (engine == null) {
+            BeautyEffectEngine.EngineConfig config = new BeautyEffectEngine.EngineConfig();
+            config.appId = "your appId";
+            config.appKey = "your appKey";
+            config.externalContext = true;  // 关键：启用外部上下文
+            
+            engine = new BeautyEffectEngine(this, config);
+            engine.setBeautyParam(BasicParam.SMOOTHING, 0.5f);
+        }
+        
+        // 从输入纹理创建 ImageFrame
+        int stride = srcFrame.width * 4;
+        ImageFrame inputFrame = ImageFrame.createWithTexture(
+            srcFrame.textureId, srcFrame.width, srcFrame.height, stride);
+        if (inputFrame == null) {
+            return -1;
+        }
+        
+        // 处理图像
+        ImageFrame outputFrame = engine.processImage(
+            inputFrame, BeautyEffectEngine.ProcessMode.IMAGE);
+        if (outputFrame == null) {
+            return -2;
+        }
+        
+        // 获取输出纹理信息
+        int outputTextureId = outputFrame.getTexture();
+        if (outputTextureId == 0) {
+            return -3;
+        }
+        
+        // 设置输出纹理信息
+        dstFrame.textureId = outputTextureId;
+        dstFrame.width = outputFrame.getWidth();
+        dstFrame.height = outputFrame.getHeight();
+        
+        return 0;  // 成功
+    }
+}
+```
+
+### 注意事项
+
+#### 1. 上下文要求
+- **必须在有效的 OpenGL 上下文中创建引擎**：`externalContext = true` 时，引擎使用当前线程的 OpenGL 上下文，因此必须在 OpenGL 渲染线程中创建引擎
+- **上下文一致性**：输入纹理、引擎处理、输出纹理必须在同一个 OpenGL 上下文中
+- **线程安全**：OpenGL 操作必须在同一个线程中执行
+
+#### 2. 纹理格式要求
+- **输入纹理格式**：支持 `GL_RGBA` 格式的 `GL_TEXTURE_2D` 纹理
+- **纹理参数**：建议设置以下纹理参数以获得最佳效果：
+  ```java
+  GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_MIN_FILTER, GLES20.GL_LINEAR);
+  GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_MAG_FILTER, GLES20.GL_LINEAR);
+  GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_WRAP_S, GLES20.GL_CLAMP_TO_EDGE);
+  GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_WRAP_T, GLES20.GL_CLAMP_TO_EDGE);
+  ```
+
+#### 3. 性能优化
+- **延迟初始化**：在首次渲染回调中初始化引擎，确保在正确的 OpenGL 上下文中创建
+- **复用 ImageFrame**：如果可能，复用 `ImageFrame` 对象以减少对象创建开销
+- **处理模式选择**：
+  - `ProcessMode.VIDEO`：适合实时视频流处理，性能更高
+  - `ProcessMode.IMAGE`：适合单帧图片处理，质量更好
+
+#### 4. 内存管理
+- **及时释放资源**：使用完毕后释放 `ImageFrame` 对象
+- **纹理生命周期**：输出纹理由引擎管理，不需要手动删除，但输入纹理需要由调用方管理
+
+#### 5. 错误处理
+- **检查返回值**：所有 API 调用都应该检查返回值
+- **空指针检查**：检查 `createWithTexture()` 和 `processImage()` 的返回值是否为 `null`
+- **纹理有效性**：确保输入纹理 ID 有效且已绑定到当前 OpenGL 上下文
+
+#### 6. 常见问题
+- **引擎创建失败**：检查是否在 OpenGL 上下文中创建，以及 `externalContext` 是否正确设置
+- **纹理处理失败**：检查纹理格式是否为 RGBA，纹理参数是否正确设置
+- **上下文丢失**：如果 OpenGL 上下文被销毁，需要重新创建引擎
+
+## 生命周期管理
+
+<Warning>
+在 Activity/Fragment 销毁时必须调用 `release()` 释放引擎资源，否则会导致内存泄漏。
+</Warning>
+
+### 释放资源
+在 Activity 或 Fragment 销毁时，务必释放引擎资源：
+
+```java
+@Override
+protected void onDestroy() {
+    super.onDestroy();
+    if (mBeautyEngine != null) {
+        mBeautyEngine.release();
+        mBeautyEngine = null;
+    }
+}
+```
+
+### 内存管理
+- 及时释放 `ImageFrame` 对象
+- 避免在循环中重复创建大量图像对象
+- 建议复用 `ImageFrame` 对象
+
+```java
+// 使用完毕后释放资源
+if (inputImage != null) {
+    inputImage.release();
+}
+if (outputImage != null) {
+    outputImage.release();
+}
+// 格式转换后的 frame 也需要释放
+if (i420Frame != null) {
+    i420Frame.release();
+}
+```
+ 
+## 相关文档
+
+- [最佳实践](/zh/android/best-practices) - 性能优化和架构设计建议
+- [常见问题](/zh/android/faq) - 常见问题解答和故障排除
+- [API 参考](/zh/android/api-reference) - 完整的 API 文档

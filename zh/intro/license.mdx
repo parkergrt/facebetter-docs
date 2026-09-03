@@ -1,0 +1,76 @@
+---
+title: "授权认证"
+description: "Facebetter SDK 在线授权与离线 License 使用说明"
+---
+
+SDK 支持两种授权方式，创建引擎时二选一即可：
+
+| 方式 | 配置字段 | 适用场景 |
+|------|----------|----------|
+| 在线授权 | `appId` + `appKey` | 设备可访问网络 |
+| 离线 License | `licenseJson` | 无网 / 弱网、内网部署 |
+
+**优先级**：若提供了 `licenseJson`，将优先使用本地校验，不再请求网络，也无需再配 `appId` / `appKey`。
+
+<Tip>
+接入前请先完成 [订阅服务](./enable-service)：在控制台绑定应用标识（如 Bundle ID / 包名 / 域名等），并开通对应订阅。
+</Tip>
+
+## 在线授权
+
+在控制台复制 `AppID` / `AppKey`，创建引擎时传入即可。各平台示例见对应「快速开始」文档。
+
+## 离线 License
+
+### 下载
+
+1. 登录 [控制台](https://facebetter.net/zh/dashboard)
+2. 选择项目，在 **AppID & AppKey** 卡片中点击 **下载** 离线 License
+3. 得到文件：`facebetter-offline-license.json`
+
+有效期与当前订阅一致。订阅续期或变更套餐后，请重新下载并替换应用内的 License。
+
+### 接入
+
+将文件**全文**作为字符串赋给配置中的 `licenseJson`。各平台用法一致。
+
+**iOS / macOS**
+
+```objc
+FBEngineConfig *config = [[FBEngineConfig alloc] init];
+config.licenseJson = @"/* 文件全文 */";
+self.beautyEffectEngine = [FBBeautyEffectEngine createEngineWithConfig:config];
+```
+
+**Android**
+
+```java
+BeautyEffectEngine.EngineConfig config = new BeautyEffectEngine.EngineConfig();
+config.licenseJson = "/* 文件全文 */";
+mBeautyEngine = new BeautyEffectEngine(this, config);
+```
+
+**Web**
+
+```js
+const config = new EngineConfig({
+  licenseJson: '/* 文件全文 */',
+});
+```
+
+**Flutter**
+
+```dart
+await FBBeautyEffectEngine.init(
+  FBEngineConfig(licenseJson: '/* 文件全文 */'),
+);
+```
+
+建议将 JSON 作为应用资源打包，启动时读入再赋值，避免硬编码在源码中。
+
+### 说明
+
+- 离线 License 会校验当前应用是否与控制台绑定的平台标识一致；不一致将鉴权失败。
+- 未过期：按当前订阅套餐开通对应能力。
+- 已过期：引擎仍可初始化，但能力降为免费版；请续订后重新下载 License。
+- 请使用 **SDK 1.5.0 及以上** 版本。

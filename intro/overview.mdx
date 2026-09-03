@@ -1,0 +1,116 @@
+---
+title: "Overview"
+description: "Facebetter Beauty Effects SDK Engine Product Overview"
+---
+
+Facebetter is a real-time beauty effects engine designed for developers. It delivers high-quality AI-powered beauty processing for both images and live video streams. Built on a GPU rendering pipeline, the engine achieves low latency, minimal CPU usage, and high frame rates, and integrates seamlessly into Android, iOS, macOS, Web, and other major platforms.
+
+## Core Features
+
+### Skin Beauty
+
+Fine-grained skin enhancement with four independently adjustable parameters — smoothing, whitening, rosy tone, and sharpening. Each parameter supports an intensity range of 0–100 for precise control over the final look.
+
+### Face Reshaping
+
+Comprehensive adjustments spanning facial contour and feature proportions:
+
+- **Face shape**: face slimming, V-face, narrow face, short face
+- **Contour**: cheekbone slimming, jaw slimming, chin slimming
+- **Features**: nose bridge slimming, eye enlarging, eye distance adjustment
+
+> A single frame supports up to **5 people** being reshaped simultaneously.
+
+### Makeup
+
+Realistic layered makeup effects including lipstick (color and opacity adjustable) and blush (multiple preset shades). Multiple makeup items can be applied at the same time.
+
+> A single frame supports up to **5 people** with makeup applied simultaneously.
+
+### Filters & Styles
+
+20+ real-time style filters based on LUT (Look-Up Table) color grading, covering portrait, food, landscape, modern, and other themes. Intensity adjustment and custom LUT extension are supported.
+
+### Virtual Background
+
+Powered by real-time portrait segmentation:
+
+- **Background blur**: keeps the foreground subject sharp while applying Gaussian blur to the background
+- **Background replacement**: swaps the background with any image asset
+
+### Sticker Effects
+
+2D sticker effects including:
+
+- **Screen stickers**: overlaid at a fixed position on the frame
+- **Face-tracking stickers**: anchored to face keypoints and dynamically follow head movement
+
+Sticker resources are distributed as `.fbpack` packages with support for hot-loading and dynamic switching.
+
+### Advanced Features
+
+- **Face keypoint callbacks**: returns 106 facial landmark coordinates per frame for custom effect development and business logic
+- **Green screen keying (Chroma Key)**: precise removal of green backgrounds, suitable for live streaming and video compositing
+
+---
+
+## Input / Output Formats
+
+### Image Formats
+
+| Type | Supported Formats |
+| --- | --- |
+| Static images | `JPEG`, `PNG`, `BMP` |
+| Video frames | `YUV I420`, `NV12`, `NV21`, `RGB`, `RGBA`, `BGR`, `BGRA` |
+| GPU texture | OpenGL / OpenGL ES `Texture` |
+
+### Resolution Limits
+
+| Scenario | Maximum |
+| --- | --- |
+| Real-time video stream | `720P @ 60fps` / `1080P @ 30fps` |
+| Static image processing | Up to `4K` |
+
+Lossless conversion between all supported formats is available through a unified interface.
+
+---
+
+## Performance
+
+| Metric | Value |
+| --- | --- |
+| Render latency | ~`10ms` average at `1080P` (GPU parallel) |
+| CPU usage | < `5%` during real-time rendering |
+| Memory footprint | Primarily GPU memory; system RAM usage is low |
+
+---
+
+## Supported Platforms
+
+| Platform | OS / Version |
+| --- | --- |
+| Mobile | `iOS 10.0+`, `Android 5.0+`, `HarmonyOS 5.0+` |
+| Desktop | `macOS 10.13+`, `Windows 10+`, `Linux` |
+| Web | WebAssembly-based; compatible with Chrome, Firefox, Safari, and other modern browsers |
+
+---
+
+## Integration Languages & Interfaces
+
+| Interface | Use Case |
+| --- | --- |
+| Java / Kotlin | Android applications |
+| Objective-C / Swift | iOS and macOS applications |
+| C / C++ | Cross-platform desktop (Windows, Linux, macOS) |
+| JavaScript (WASM) | Web applications (browser and Node.js) |
+
+---
+
+## Quick Start
+
+Select your target platform and follow the integration guide:
+
+- [Android Quick Start](../android/quick-start)
+- [iOS Quick Start](../ios/quick-start)
+- [macOS Quick Start](../macos/quick-start)
+- [Web Quick Start](../web/quick-start)

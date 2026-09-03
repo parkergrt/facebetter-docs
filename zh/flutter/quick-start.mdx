@@ -1,0 +1,85 @@
+---
+title: "快速开始"
+description: "跑通 Flutter 示例程序"
+---
+
+## 环境要求
+
+- **Flutter 版本**: `3.10.0` 及以上
+- **Dart 版本**: `3.0.0` 及以上
+- **iOS 版本**: `iOS 12.0` 及以上
+- **Android 版本**: `Android 5.0`（API 21）及以上
+- **开发工具**: Android Studio / VS Code
+
+## 获取示例源码
+
+克隆 [github 仓库](https://github.com/pixpark/facebetter-sdk) 到本地：
+
+```bash
+git clone https://github.com/pixpark/facebetter-sdk.git
+```
+
+## 创建 Flutter 工程
+
+由于 Flutter Demo 项目仅保留了业务代码，需要先创建 Flutter 工程：
+
+```bash
+# 进入 demo 目录
+cd facebetter-sdk/demo/flutter
+
+# 创建 Flutter 工程（会自动生成 ios/android 等目录）
+flutter create --org net.pixpark --project-name fbexample .
+```
+
+## 配置应用信息与密钥
+
+### 绑定应用信息
+
+按照 [此页面](/zh/intro/enable-service#绑定应用信息) 指引，在控制台绑定您的应用包名：
+
+- **iOS**: Bundle Identifier（如 `net.pixpark.fbexample`）
+- **Android**: Application ID（如 `net.pixpark.fbexample`）
+
+### 获取 AppID 和 AppKey
+
+按照 [此页面](/zh/intro/enable-service#获取-appid-和-appkey) 指引，获取 `appId` 和 `appKey`，修改 `lib/main.dart`：
+
+```dart
+await FBBeautyEffectEngine.init(
+  FBEngineConfig(appId: 'your appId', appKey: 'your appKey'),
+);
+```
+
+<Tip>
+`licenseJson` 优先级高于 `appId` + `appKey`。离线文件下载与完整说明见 [授权认证](/zh/intro/license)。
+</Tip>
+
+## 安装依赖
+
+```bash
+# 获取 Flutter 依赖
+flutter pub get
+
+# iOS 安装 CocoaPods 依赖
+cd ios && pod install && cd ..
+```
+
+## 运行工程
+
+### iOS
+
+```bash
+flutter run -d <your-ios-device-id>
+```
+
+### Android
+
+```bash
+flutter run -d <your-android-device-id>
+```
+
+查看可用设备列表：
+
+```bash
+flutter devices
+```
