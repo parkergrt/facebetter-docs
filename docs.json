@@ -48,6 +48,11 @@
       "vscode"
     ]
   },
+  "seo": {
+    "metatags": {
+      "canonical": "https://docs.facebetter.net"
+    }
+  },
   "navigation": {
     "languages": [
       {
@@ -64,6 +69,7 @@
                   "intro/pricing",
                   "intro/enable-service",
                   "intro/license",
+                  "intro/use-with-ai",
                   "intro/release-note"
                 ],
                 "icon": "book-open",
@@ -208,6 +214,7 @@
                   "zh/intro/pricing",
                   "zh/intro/enable-service",
                   "zh/intro/license",
+                  "zh/intro/use-with-ai",
                   "zh/intro/release-note"
                 ],
                 "icon": "book-open",

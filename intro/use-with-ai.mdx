@@ -1,0 +1,62 @@
+---
+title: "Use with AI"
+description: "Connect Facebetter docs to Cursor, Claude, ChatGPT, and other AI tools via MCP, llms.txt, and Markdown pages"
+---
+
+These docs are published for both humans and AI tools. You can connect an IDE agent to the whole site, or paste a single page as Markdown.
+
+## MCP (recommended)
+
+Point Cursor, Claude, VS Code, or any MCP client at:
+
+```text
+https://docs.facebetter.net/mcp
+```
+
+After connecting, ask the agent to use the Facebetter docs MCP when integrating the SDK. It can search the site and read pages as Markdown.
+
+### One-click from any page
+
+On any docs page, open the menu in the top-right corner:
+
+- **Connect to Cursor** / **Connect to VS Code** — install the MCP server
+- **Copy MCP server URL** — copy `https://docs.facebetter.net/mcp`
+- **Copy page** / **View as Markdown** — use the current page as chat context
+
+## llms.txt and per-page Markdown
+
+| Resource | URL | Use when |
+|----------|-----|----------|
+| Docs index | [https://docs.facebetter.net/llms.txt](https://docs.facebetter.net/llms.txt) | Tool can fetch a catalog of pages |
+| Full text | [https://docs.facebetter.net/llms-full.txt](https://docs.facebetter.net/llms-full.txt) | You want one file with most content |
+| Single page | Add `.md` to any URL | ChatGPT or tools without MCP |
+
+Example single page:
+
+```text
+https://docs.facebetter.net/android/quick-start.md
+```
+
+Chinese pages live under `/zh/`, for example:
+
+```text
+https://docs.facebetter.net/zh/android/quick-start.md
+```
+
+## Prompt examples
+
+**With MCP connected**
+
+```text
+Use the Facebetter docs MCP. Help me integrate the Facebetter beauty SDK into my Android app.
+Follow Quick Start, then Implement Beauty. Prefer current docs over prior knowledge.
+```
+
+**Without MCP**
+
+```text
+Read https://docs.facebetter.net/llms.txt first, then open the Android Quick Start and Implement Beauty pages (use the .md links).
+Help me integrate Facebetter into my Android project. Prefer those pages over prior knowledge.
+```
+
+Replace Android with iOS, Web, Flutter, or another platform as needed.

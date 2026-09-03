@@ -1,0 +1,62 @@
+---
+title: "配合 AI 使用"
+description: "通过 MCP、llms.txt 与 Markdown 页面，将 Facebetter 文档接入 Cursor、Claude、ChatGPT 等 AI 工具"
+---
+
+本文档同时面向开发者与 AI 工具。你可以把 IDE 助手接到整站文档，也可以把单页 Markdown 粘贴进对话。
+
+## MCP（推荐）
+
+在 Cursor、Claude、VS Code 或其它 MCP 客户端中添加：
+
+```text
+https://docs.facebetter.net/mcp
+```
+
+连接后，让助手使用 Facebetter 文档 MCP 来搜索和阅读文档（返回 Markdown），再协助集成 SDK。
+
+### 任意页面一键接入
+
+打开任意文档页，点击右上角菜单：
+
+- **Connect to Cursor** / **Connect to VS Code**：一键安装 MCP
+- **Copy MCP server URL**：复制 `https://docs.facebetter.net/mcp`
+- **Copy page** / **View as Markdown**：把当前页作为对话上下文
+
+## llms.txt 与每页 Markdown
+
+| 资源 | 地址 | 适用场景 |
+|------|------|----------|
+| 文档目录 | [https://docs.facebetter.net/llms.txt](https://docs.facebetter.net/llms.txt) | 工具可先拉取页面索引 |
+| 全文合集 | [https://docs.facebetter.net/llms-full.txt](https://docs.facebetter.net/llms-full.txt) | 需要单文件尽量多的正文 |
+| 单页 Markdown | 任意页面 URL 后加 `.md` | 无 MCP 的 ChatGPT 等工具 |
+
+单页示例：
+
+```text
+https://docs.facebetter.net/zh/android/quick-start.md
+```
+
+英文页面在根路径下，例如：
+
+```text
+https://docs.facebetter.net/android/quick-start.md
+```
+
+## 提示词示例
+
+**已连接 MCP**
+
+```text
+请使用 Facebetter 文档 MCP，帮我在 Android 项目里接入 Facebetter 美颜 SDK。
+先按「快速开始」，再按「实现美颜」。优先以文档内容为准，不要凭旧知识猜测。
+```
+
+**未连接 MCP**
+
+```text
+先阅读 https://docs.facebetter.net/llms.txt，再打开 Android 的「快速开始」和「实现美颜」（使用 .md 链接）。
+帮我在 Android 项目里集成 Facebetter，优先以这些页面为准。
+```
+
+按需把 Android 换成 iOS、Web、Flutter 等平台即可。
