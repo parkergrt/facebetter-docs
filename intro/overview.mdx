@@ -3,54 +3,57 @@ title: "Overview"
 description: "Facebetter Beauty Effects SDK Engine Product Overview"
 ---
 
-Facebetter is a real-time beauty effects engine designed for developers. It delivers high-quality AI-powered beauty processing for both images and live video streams. Built on a GPU rendering pipeline, the engine achieves low latency, minimal CPU usage, and high frame rates, and integrates seamlessly into Android, iOS, macOS, Web, and other major platforms.
+Facebetter is a real-time beauty effects engine designed for developers. It delivers high-quality AI-powered beauty processing for both images and live video streams. It is GPU-accelerated for low latency and high frame rates, and integrates into Android, iOS, macOS, Windows, Linux, Web, and Flutter.
 
 ## Core Features
 
 ### Skin Beauty
 
-Fine-grained skin enhancement with four independently adjustable parameters — smoothing, whitening, rosy tone, and sharpening. Each parameter supports an intensity range of 0–100 for precise control over the final look.
+Fine-grained skin enhancement with four independently adjustable parameters — smoothing, whitening, rosy tone, and sharpening. Intensity is `[0.0, 1.0]` (`0` is off). Smoothing and whitening also have style presets.
 
 ### Face Reshaping
 
 Comprehensive adjustments spanning facial contour and feature proportions:
 
-- **Face shape**: face slimming, V-face, narrow face, short face
-- **Contour**: cheekbone slimming, jaw slimming, chin slimming
-- **Features**: nose bridge slimming, eye enlarging, eye distance adjustment
+- **Face shape**: slim, V-shape, narrow, short, small face, forehead
+- **Contour**: cheekbone, jaw, chin
+- **Features**: nose slim/length, philtrum, mouth size/position/smile, lip thickness
+- **Eyes & brows**: eye size/distance/round/position/angle/corner, lower eyelid, brow position/distance/thickness
 
-> A single frame supports up to **5 people** being reshaped simultaneously.
+Intensity range is `[-1.0, 1.0]`. See [Parameter enums](./makeup).
+
+> A single frame supports up to **5 faces** for reshape and makeup at once.
 
 ### Makeup
 
-Realistic layered makeup effects including lipstick (color and opacity adjustable) and blush (multiple preset shades). Multiple makeup items can be applied at the same time.
-
-> A single frame supports up to **5 people** with makeup applied simultaneously.
+Layered makeup: lipstick, blush, eyeshadow, eyeliner, eyebrow, eyelash, colored contacts, and contour. Intensity, shape, and color are set separately. Multiple items can be applied at once. See [Parameter enums](./makeup).
 
 ### Filters & Styles
 
-20+ real-time style filters based on LUT (Look-Up Table) color grading, covering portrait, food, landscape, modern, and other themes. Intensity adjustment and custom LUT extension are supported.
+20+ real-time style filters covering portrait, food, landscape, modern, and other themes. Intensity is adjustable. Custom filters are `.fbd` files loaded with `setFilter`.
 
 ### Virtual Background
 
 Powered by real-time portrait segmentation:
 
 - **Background blur**: keeps the foreground subject sharp while applying Gaussian blur to the background
-- **Background replacement**: swaps the background with any image asset
+- **Background replacement**: swaps the background with a JPEG / PNG image
 
 ### Sticker Effects
 
 2D sticker effects including:
 
 - **Screen stickers**: overlaid at a fixed position on the frame
-- **Face-tracking stickers**: anchored to face keypoints and dynamically follow head movement
+- **Face-tracking stickers**: anchored to face keypoints and follow head movement
 
-Sticker resources are distributed as `.fbpack` packages with support for hot-loading and dynamic switching.
+Sticker (and filter) resources are **`.fbd` files**. Apply one at a time with `setSticker` / `setFilter` (path or bytes) and remove it with `clearSticker` / `clearFilter`. Apply one at a time; the new resource takes effect on the next processed frame.
 
 ### Advanced Features
 
-- **Face keypoint callbacks**: returns 106 facial landmark coordinates per frame for custom effect development and business logic
-- **Green screen keying (Chroma Key)**: precise removal of green backgrounds, suitable for live streaming and video compositing
+- **Face keypoint callbacks**: each detected face returns **111** normalized landmarks (plus visibility, pose, and a face id) for custom effects and business logic
+- **Chroma key**: key out green, blue, or red screen as the virtual-background mask
+
+Feature availability depends on the subscription plan. Free can try most effects with a watermark. See [Plans](./pricing).
 
 ---
 
@@ -60,7 +63,7 @@ Sticker resources are distributed as `.fbpack` packages with support for hot-loa
 
 | Type | Supported Formats |
 | --- | --- |
-| Static images | `JPEG`, `PNG`, `BMP` |
+| Static images | `JPEG`, `PNG` |
 | Video frames | `YUV I420`, `NV12`, `NV21`, `RGB`, `RGBA`, `BGR`, `BGRA` |
 | GPU texture | OpenGL / OpenGL ES `Texture` |
 
@@ -71,7 +74,7 @@ Sticker resources are distributed as `.fbpack` packages with support for hot-loa
 | Real-time video stream | `720P @ 60fps` / `1080P @ 30fps` |
 | Static image processing | Up to `4K` |
 
-Lossless conversion between all supported formats is available through a unified interface.
+`ImageFrame` converts among these formats.
 
 ---
 
@@ -89,9 +92,10 @@ Lossless conversion between all supported formats is available through a unified
 
 | Platform | OS / Version |
 | --- | --- |
-| Mobile | `iOS 10.0+`, `Android 5.0+`, `HarmonyOS 5.0+` |
-| Desktop | `macOS 10.13+`, `Windows 10+`, `Linux` |
-| Web | WebAssembly-based; compatible with Chrome, Firefox, Safari, and other modern browsers |
+| Mobile | `iOS 12.0+`, `Android 7.0+` (API 24) |
+| Desktop | `macOS 10.15+`, `Windows 10+`, `Linux` |
+| Web | Chrome, Firefox, Safari, Edge |
+| Cross-platform | Flutter (`iOS 12+` / Android API 24) |
 
 ---
 
@@ -101,8 +105,9 @@ Lossless conversion between all supported formats is available through a unified
 | --- | --- |
 | Java / Kotlin | Android applications |
 | Objective-C / Swift | iOS and macOS applications |
-| C / C++ | Cross-platform desktop (Windows, Linux, macOS) |
-| JavaScript (WASM) | Web applications (browser and Node.js) |
+| C / C++ | Desktop (Windows, Linux, macOS) |
+| JavaScript | Web (browser and Node.js) |
+| Dart | Flutter (iOS / Android) |
 
 ---
 
@@ -113,4 +118,7 @@ Select your target platform and follow the integration guide:
 - [Android Quick Start](../android/quick-start)
 - [iOS Quick Start](../ios/quick-start)
 - [macOS Quick Start](../macos/quick-start)
+- [Windows Quick Start](../windows/quick-start)
+- [Linux Quick Start](../linux/quick-start)
 - [Web Quick Start](../web/quick-start)
+- [Flutter Quick Start](../flutter/quick-start)

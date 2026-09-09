@@ -1,11 +1,15 @@
 ---
 title: "Implement Beauty"
-description: "Integrate the Facebetter SDK on Windows using the C++ interface"
+description: "Integrate Facebetter SDK 2.0 on Windows with the C++ API"
 ---
 
-On Windows, the Facebetter SDK is accessed through its C++ interface. This guide follows the [C++ Desktop Demo](https://github.com/pixpark/facebetter-sdk) as a reference for the complete integration flow.
+<Note>
+SDK **2.0.0**. Headers live in `facebetter/*.h`. Makeup / reshape / style enums: [Parameter enums](/intro/makeup). Auth: [License & Auth](/intro/license).
+</Note>
 
-## Include Headers
+On Windows, Facebetter is a C++ library (`facebetter.lib` + `facebetter.dll`). This guide follows the [C++ desktop demo](https://github.com/pixpark/facebetter-sdk) (`demo/cpp`).
+
+## Include headers
 
 ```cpp
 #include <facebetter/beauty_effect_engine.h>
@@ -17,331 +21,235 @@ using namespace facebetter;
 using namespace facebetter::beauty_params;
 ```
 
-## Integration Overview
+## Integration flow
 
 ```
-Configure logging → Create engine → Enable beauty types → Set params → Process frames → Render result
+SetLogConfig → Create(EngineConfig) → set effects → ProcessImage → render
 ```
+
+There is no type-enable step. Setting an intensity above `0` turns that effect on.
 
 ---
 
-## 1. Configure Logging (optional)
+## 1. Configure logging (optional)
 
-Call this before creating the engine so that initialization log messages are captured.
+Call this **before** `Create` so initialization logs are captured.
 
 ```cpp
 LogConfig log_cfg;
-log_cfg.console_enabled = true;   // print to console
-log_cfg.file_enabled    = false;  // no log file
-log_cfg.level           = LogLevel::Info;
+log_cfg.console_enabled = true;
+log_cfg.file_enabled = false;
+log_cfg.level = LogLevel::Info;
 BeautyEffectEngine::SetLogConfig(log_cfg);
 ```
 
-Log levels (ascending): `Trace` / `Debug` / `Info` / `Warn` / `Error` / `Critical`.
+Levels (low → high): `Trace` / `Debug` / `Info` / `Warn` / `Error` / `Critical`.
 
 ---
 
-## 2. Create the Engine
+## 2. Create the engine
+
+Desktop **must** set `resource_path` to the `resource.fbd` **file**.
+
+**Auth priority:** if `license_token` is non-empty, the SDK validates that token (license token string, `{token}` JSON, or offline `.lic`) and does not call the network with `app_id` / `app_key`. Otherwise it uses `app_id` + `app_key` against `/facebetter/v2/auth`.
 
 ```cpp
-EngineConfig eng_cfg;
-eng_cfg.app_id        = "your_app_id";
-eng_cfg.app_key       = "your_app_key";
-eng_cfg.resource_path = "resource/resource.fbd";  // relative or absolute path
-eng_cfg.external_context = false;                 // SDK manages its own OpenGL context
+EngineConfig cfg;
+cfg.app_id = "your_app_id";
+cfg.app_key = "your_app_key";
+cfg.resource_path = "resource/resource.fbd";  // path to the .fbd file
+cfg.external_context = false;                 // SDK-managed OpenGL context
 
-std::shared_ptr<BeautyEffectEngine> engine = BeautyEffectEngine::Create(eng_cfg);
+// Optional: token takes priority when non-empty
+// cfg.license_token = "/* license token, {token} JSON, or .lic contents */";
+
+std::shared_ptr<BeautyEffectEngine> engine = BeautyEffectEngine::Create(cfg);
 if (!engine) {
-    // Check app_id / app_key / resource_path
+    // Check resource_path, license_token / app_id+app_key, and logs
     return -1;
 }
 ```
 
-> `resource_path` must point to the `resource.fbd` file shipped with the SDK, which contains AI models and filter assets.
+<Warning>
+`resource_path` must be the `resource.fbd` file, not a folder. Relative paths are resolved from the process working directory. Prefer an absolute path in production.
+</Warning>
 
 ---
 
-## 3. Enable Beauty Types
+## 3. Set beauty parameters
 
-All beauty types are **disabled by default** and must be explicitly enabled:
+Skin / makeup intensities are `[0.0, 1.0]`. `0` is off. Reshape is **`[-1.0, 1.0]`**. Full enum lists: [Parameter enums](/intro/makeup).
+
+### Skin
 
 ```cpp
-engine->SetBeautyTypeEnabled(BeautyType::Basic,   true);  // skin beauty
-engine->SetBeautyTypeEnabled(BeautyType::Reshape, true);  // face reshaping
-engine->SetBeautyTypeEnabled(BeautyType::Makeup,  true);  // makeup
-engine->SetBeautyTypeEnabled(BeautyType::Sticker, true);  // stickers
+engine->SetSmoothing(0.5f);
+engine->SetSmoothingStyle(SmoothingStyle::Natural);
+engine->SetWhitening(0.3f);
+engine->SetWhiteningStyle(WhiteningStyle::ColdWhite);
+engine->SetSharpening(0.2f);
+engine->SetRosiness(0.2f);
+engine->SetBeautySkinOnly(true);  // beauty only on detected skin
 ```
 
----
-
-## 4. Set Beauty Parameters
-
-All parameter values are in the range `[0.0, 1.0]`. A value of `0` disables the effect.
-
-### Basic Beauty
+### Face reshape
 
 ```cpp
-engine->SetBeautyParam(Basic::Smoothing,  0.5f); // smoothing
-engine->SetBeautyParam(Basic::Whitening,  0.3f); // whitening
-engine->SetBeautyParam(Basic::Rosiness,   0.2f); // rosy tone
-engine->SetBeautyParam(Basic::Sharpening, 0.4f); // sharpening
-```
-
-### Skin-Only Beauty
-
-Use `SetSkinOnlyBeauty` to set whether beauty effects are applied only to skin regions. When enabled, beauty effects (smoothing, whitening, etc.) will only be applied to detected skin areas, leaving non-skin areas unchanged.
-
-```cpp
-// Enable skin-only beauty
-engine->SetSkinOnlyBeauty(true);
-
-// Disable skin-only beauty (apply to entire image)
-engine->SetSkinOnlyBeauty(false);
-```
-
-<Tip>
-After enabling skin-only beauty, even with high beauty parameter values, non-skin areas (such as background, clothing, etc.) will not be affected.
-</Tip>
-
-### Face Reshape
-
-```cpp
-engine->SetBeautyParam(Reshape::FaceThin,    0.4f); // face slimming
-engine->SetBeautyParam(Reshape::FaceVShape,  0.3f); // V-face
-engine->SetBeautyParam(Reshape::FaceNarrow,  0.2f); // narrow face
-engine->SetBeautyParam(Reshape::FaceShort,   0.2f); // short face
-engine->SetBeautyParam(Reshape::Cheekbone,   0.3f); // cheekbone slimming
-engine->SetBeautyParam(Reshape::Jawbone,     0.2f); // jaw slimming
-engine->SetBeautyParam(Reshape::Chin,        0.2f); // chin slimming
-engine->SetBeautyParam(Reshape::NoseSlim,    0.3f); // nose bridge slimming
-engine->SetBeautyParam(Reshape::EyeSize,     0.4f); // eye enlarging
-engine->SetBeautyParam(Reshape::EyeDistance, 0.1f); // eye distance
+engine->SetReshape(Reshape::FaceThin, 0.4f);
+engine->SetReshape(Reshape::EyeSize, 0.3f);
+engine->SetReshape(Reshape::Chin, -0.2f);  // negative = opposite direction
 ```
 
 ### Makeup
 
+Intensity, shape, and color are separate setters. Lipstick is color-only; pupil is color-only; contour is style-only.
+
 ```cpp
-engine->SetBeautyParam(Makeup::Lipstick, 0.6f); // lipstick
-engine->SetBeautyParam(Makeup::Blush,    0.4f); // blush
-engine->SetLipstickStyle(LipstickStyle::Rouge); // lipstick style
-engine->SetBlushStyle(BlushStyle::Classic);     // blush style
+engine->SetLipstick(0.6f);
+engine->SetLipstickColor(LipstickColor::Rouge);
+
+engine->SetBlush(0.4f);
+engine->SetBlushStyle(BlushStyle::SunKissed);
+engine->SetBlushColor(BlushColor::CoralPink);
+
+engine->SetContour(0.5f);
+engine->SetContourStyle(ContourStyle::Natural);
+
+engine->SetEyeShadow(0.4f);
+engine->SetEyeShadowStyle(EyeShadowStyle::Soft);
+engine->SetEyeShadowColor(EyeShadowColor::Plum);
 ```
 
-### Stickers
+Same pattern for eyeliner, eyebrow, eyelash, and pupil (`SetEyeLiner` / `SetEyebrow` / `SetEyelash` / `SetPupil` plus Style / Color where applicable).
 
-Pass a sticker ID string to activate; pass an empty string to disable. Built-in sticker IDs are bundled in `resource.fbd`:
+---
+
+## 4. Filters, stickers, and virtual background
+
+Pass a **file path** or **encoded bytes**.
 
 ```cpp
-engine->SetSticker("rabbit");  // enable the "rabbit" sticker
-engine->SetSticker("");        // disable sticker
+engine->SetFilter("assets/filters/natural.fbd");
+engine->SetFilterIntensity(0.8f);
+engine->ClearFilter();
+
+engine->SetSticker("assets/stickers/face/black_glass.fbd");
+engine->ClearSticker();
+
+engine->SetVirtualBackgroundBlur(0.6f);           // [0, 1]; 0 clears fill
+engine->SetVirtualBackground("assets/background.jpg");
+engine->ClearVirtualBackground();
+
+engine->SetChromaKey(ChromaKeyColor::Green);
+engine->SetChromaKeySimilarity(0.4f);
+engine->SetChromaKeySmoothness(0.1f);
+engine->SetChromaKeyDesaturation(0.2f);
+engine->ClearChromaKey();  // back to portrait segmentation
 ```
 
-### Filters (LUT)
+LUT / sticker textures are created on the next `ProcessImage` call (the active GL thread).
+
+---
+
+## 5. Callbacks and stats
 
 ```cpp
-engine->SetFilter("chuxin");       // apply filter
-engine->SetFilterIntensity(0.8f);  // filter intensity
-engine->SetFilter("");             // disable filter
+EngineCallbacks cbs;
+cbs.on_engine_event = [](int code, const std::string& message) {
+    // 0 license OK, 1 license failed, 100 init complete, 101 init failed
+    printf("[event] %d %s\n", code, message.c_str());
+};
+cbs.on_face_landmarks = [](const std::vector<FaceDetectionResult>& faces) {
+    printf("faces=%zu\n", faces.size());
+};
+engine->SetCallbacks(cbs);
+
+EngineStats stats = engine->GetStats();
+printf("fps=%.1f avg=%.2fms session=%.1fs\n",
+       stats.fps, stats.avg_process_time_ms, stats.session_time_s);
 ```
 
 ---
 
-## 5. Process Frames
+## 6. Process frames
 
-Typical per-frame processing:
+Set `ImageFrame::type` to `FrameType::Video` (realtime, default) or `FrameType::Image` (single photo).
 
 ```cpp
-// Create an input frame from in-memory RGBA data (video stream)
-auto input_frame = ImageFrame::CreateWithRGBA(
-    rgba_data, width, height, stride);
+auto input = ImageFrame::CreateWithRGBA(rgba_data, width, height, stride);
+input->type = FrameType::Video;
 
-// Set frame type: Video (live stream) or Image (single photo)
-input_frame->type = FrameType::Video;
-
-// Process
-auto output_frame = engine->ProcessImage(input_frame);
-
-if (output_frame && output_frame->Data()) {
-    int w            = output_frame->Width();
-    int h            = output_frame->Height();
-    const uint8_t* p = output_frame->Data(); // RGBA, same format as input
+auto output = engine->ProcessImage(input);
+if (output && output->Data()) {
+    const uint8_t* p = output->Data();
+    int w = output->Width();
+    int h = output->Height();
 }
 ```
 
-**Load from file** (single-image mode):
+**File (photo mode):**
 
 ```cpp
-auto input_frame  = ImageFrame::CreateWithFile("input.jpg");
-input_frame->type = FrameType::Image;
-auto output_frame = engine->ProcessImage(input_frame);
+auto input = ImageFrame::CreateWithFile("input.jpg");
+input->type = FrameType::Image;
+auto output = engine->ProcessImage(input);
+output->ToFile("output.jpg", 95);
 ```
 
-**Convert output format** if needed:
+<Tip>
+The engine keeps output format aligned with input when possible (RGBA in → RGBA out, I420 in → I420 out). Use `Convert(Format::BGRA)` if you need another layout.
+</Tip>
+
+### Upload to OpenGL (preview)
 
 ```cpp
-auto bgra_frame = output_frame->Convert(Format::BGRA);
-auto i420_frame = output_frame->Convert(Format::I420);
-```
-
----
-
-## 6. OpenGL Integration (render preview)
-
-Upload the processed RGBA data to an OpenGL texture:
-
-```cpp
-// Create texture (once)
-GLuint tex;
+GLuint tex = 0;
 glGenTextures(1, &tex);
 glBindTexture(GL_TEXTURE_2D, tex);
 glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-// Upload per frame
-glBindTexture(GL_TEXTURE_2D, tex);
 glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA,
-             output_frame->Width(), output_frame->Height(),
-             0, GL_RGBA, GL_UNSIGNED_BYTE, output_frame->Data());
-
-// Render with ImGui or a custom quad
-ImGui::Image(
-    static_cast<ImTextureID>(static_cast<intptr_t>(tex)),
-    ImVec2(img_w, img_h));
+             output->Width(), output->Height(),
+             0, GL_RGBA, GL_UNSIGNED_BYTE, output->Data());
 ```
+
+Keep `facebetter.dll` next to the executable (the demo CMake copies it after build).
 
 ---
 
-## 7. Full Example (real-time processing loop)
-
-The snippet below is drawn directly from the demo and shows the complete processing loop with frame-rate limiting:
+## 7. Minimal loop
 
 ```cpp
-#include <facebetter/beauty_effect_engine.h>
-#include <facebetter/beauty_params.h>
-#include <facebetter/image_frame.h>
-#include <glad/glad.h>
-#include <GLFW/glfw3.h>
-
-using namespace facebetter;
-using namespace facebetter::beauty_params;
-
-// --- Initialization ---
 LogConfig log_cfg;
 log_cfg.console_enabled = true;
 log_cfg.level = LogLevel::Info;
 BeautyEffectEngine::SetLogConfig(log_cfg);
 
-EngineConfig eng_cfg;
-eng_cfg.app_id           = "your_app_id";
-eng_cfg.app_key          = "your_app_key";
-eng_cfg.resource_path    = "resource/resource.fbd";
-eng_cfg.external_context = false;
+EngineConfig cfg;
+cfg.app_id = "your_app_id";
+cfg.app_key = "your_app_key";
+cfg.resource_path = "resource/resource.fbd";
+auto engine = BeautyEffectEngine::Create(cfg);
+if (!engine) return -1;
 
-auto engine = BeautyEffectEngine::Create(eng_cfg);
-engine->SetBeautyTypeEnabled(BeautyType::Basic,   true);
-engine->SetBeautyTypeEnabled(BeautyType::Reshape, true);
-engine->SetBeautyTypeEnabled(BeautyType::Makeup,  true);
-engine->SetBeautyTypeEnabled(BeautyType::Sticker, true);
+engine->SetSmoothing(0.5f);
+engine->SetReshape(Reshape::FaceThin, 0.3f);
+engine->SetLipstick(0.5f);
+engine->SetLipstickColor(LipstickColor::Rouge);
 
-engine->SetBeautyParam(Basic::Smoothing,  0.5f);
-engine->SetBeautyParam(Reshape::FaceThin, 0.4f);
-engine->SetBeautyParam(Makeup::Lipstick,  0.6f);
-
-// --- Processing loop (~30 fps) ---
-double last_time = 0.0;
-const double kInterval = 1.0 / 30.0;
-GLuint preview_tex = 0;
-
-while (!glfwWindowShouldClose(window)) {
-    glfwPollEvents();
-    double now = glfwGetTime();
-    if (now - last_time >= kInterval) {
-        auto input = ImageFrame::CreateWithRGBA(
-            rgba_buffer, width, height, stride);
-        input->type = FrameType::Video;
-
-        auto output = engine->ProcessImage(input);
-        if (output && output->Data()) {
-            if (preview_tex == 0) {
-                glGenTextures(1, &preview_tex);
-                glBindTexture(GL_TEXTURE_2D, preview_tex);
-                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-            }
-            glBindTexture(GL_TEXTURE_2D, preview_tex);
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA,
-                         output->Width(), output->Height(),
-                         0, GL_RGBA, GL_UNSIGNED_BYTE, output->Data());
-        }
-        last_time = now;
-    }
-    // ... ImGui render ...
-}
-
-// --- Cleanup ---
-if (preview_tex) glDeleteTextures(1, &preview_tex);
-engine.reset();
+auto input = ImageFrame::CreateWithRGBA(rgba, width, height, stride);
+input->type = FrameType::Video;
+auto output = engine->ProcessImage(input);
 ```
 
----
+When you are done, drop the `shared_ptr` (`engine.reset()`). `BeautyEffectEngine` is **not** a singleton.
 
-## Quick Reference
+## Related
 
-### BeautyType
-
-| Value | Description |
-| --- | --- |
-| `BeautyType::Basic` | Skin beauty |
-| `BeautyType::Reshape` | Face reshaping |
-| `BeautyType::Makeup` | Makeup |
-| `BeautyType::Sticker` | Stickers |
-
-### Basic Parameters
-
-| Parameter | Description |
-| --- | --- |
-| `Basic::Smoothing` | Skin smoothing |
-| `Basic::Whitening` | Skin whitening |
-| `Basic::Rosiness` | Rosy tone |
-| `Basic::Sharpening` | Sharpening |
-
-### Skin-Only Beauty
-
-| Method | Description |
-| --- | --- |
-| `SetSkinOnlyBeauty(true)` | Enable skin-only beauty |
-| `SetSkinOnlyBeauty(false)` | Disable skin-only beauty |
-
-### Reshape Parameters
-
-| Parameter | Description |
-| --- | --- |
-| `Reshape::FaceThin` | Face slimming |
-| `Reshape::FaceVShape` | V-face |
-| `Reshape::FaceNarrow` | Narrow face |
-| `Reshape::FaceShort` | Short face |
-| `Reshape::Cheekbone` | Cheekbone slimming |
-| `Reshape::Jawbone` | Jaw slimming |
-| `Reshape::Chin` | Chin slimming |
-| `Reshape::NoseSlim` | Nose bridge slimming |
-| `Reshape::EyeSize` | Eye enlarging |
-| `Reshape::EyeDistance` | Eye distance |
-
-### Makeup Parameters
-
-| Parameter | Description |
-| --- | --- |
-| `Makeup::Lipstick` | Lipstick |
-| `Makeup::Blush` | Blush |
-
-### ImageFrame Factory Methods
-
-| Method | Description |
-| --- | --- |
-| `ImageFrame::CreateWithFile(path)` | Load from file (JPEG/PNG/BMP) |
-| `ImageFrame::CreateWithRGBA(data, w, h, stride)` | Create from in-memory RGBA data |
-| `ImageFrame::CreateWithBGRA(data, w, h, stride)` | Create from in-memory BGRA data |
-| `ImageFrame::CreateWithRGB(data, w, h, stride)` | Create from in-memory RGB data |
-| `ImageFrame::CreateWithI420(w, h, y, sy, u, su, v, sv)` | Create from I420 YUV data |
-| `ImageFrame::CreateWithNV12(w, h, y, sy, uv, suv)` | Create from NV12 data |
-| `frame->Convert(Format::RGBA)` | Convert to another format (returns new frame) |
+<CardGroup cols={2}>
+  <Card title="API reference" href="/windows/api-reference">All C++ methods and types</Card>
+  <Card title="Error handling" href="/windows/error-handling">Return codes and Windows DLL issues</Card>
+  <Card title="Best practices" href="/windows/best-practices">Performance and threading</Card>
+  <Card title="FAQ" href="/windows/faq">Common integration questions</Card>
+</CardGroup>

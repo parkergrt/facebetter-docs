@@ -1,50 +1,58 @@
 ---
 title: "Quick Start"
-description: "Run Android Sample Application"
+description: "Run the Android sample application"
 ---
 
-## Environment Requirements
+## Requirements
 
-- **Android Version**: `Android 5.0` and above
-- **Development Language**: `Java`
-- **Architecture Support**: `armeabi-v7a`, `arm64-v8a`
+- **Android**: 7.0 (API 24) and above
+- **Language**: Java
+- **ABIs**: `armeabi-v7a`, `arm64-v8a`
+- **SDK**: Facebetter **2.0.0** (`net.pixpark:facebetter:2.0.0`)
 
-## Get Sample Source Code
+## Get the sample
 
-Clone the [GitHub repository](https://github.com/pixpark/facebetter-sdk) locally, open the project in the `android/demo` directory using Android Studio.
+Clone the [GitHub repository](https://github.com/pixpark/facebetter-sdk) and open `demo/android` in Android Studio.
 
 ```bash
 git clone https://github.com/pixpark/facebetter-sdk.git
 ```
 
-## Configure Application Information and Keys
+## Bind the package name and credentials
 
-### Bind Application Package Name
+### Bind the application package name
 
-Follow the instructions on [this page](/intro/enable-service#bind-application-information) to bind your Android application package name (App Package Name) in the console, for example: `com.example.app`
+Follow [Subscribe](/intro/enable-service#bind-application-information) and bind your Android **application package name** in the Dashboard, for example `com.example.app`.
 
-### Get AppID and AppKey
+### Create the engine
 
-Follow the instructions on [this page](/intro/enable-service#get-appid-and-appkey) to get your `appid` and `appkey`. Open `MainActivity.java` in the project and modify the `appid` and `appkey`.
+Follow [Subscribe](/intro/enable-service#get-appid-and-appkey) to copy `appId` / `appKey`, or use a `licenseToken`. Open the demo camera Activity and set `EngineConfig` before `new BeautyEffectEngine(...)`.
+
+**Online** (`appId` + `appKey` → `/facebetter/v2/auth`):
 
 ```java
 BeautyEffectEngine.EngineConfig config = new BeautyEffectEngine.EngineConfig();
 config.appId = "your appId";
-config.appKey = "your appkey";
-// Optional: If licenseJson is provided, license data verification takes priority, appId and appKey are not required
-// config.licenseJson = "your license json string";
+config.appKey = "your appKey";
+mBeautyEngine = new BeautyEffectEngine(this, config);
+```
 
+**Token** (license token string, `{token}` JSON, or offline `.lic` contents). If `licenseToken` is non-empty, it wins and the SDK does not call the network with `appId` / `appKey`:
+
+```java
+BeautyEffectEngine.EngineConfig config = new BeautyEffectEngine.EngineConfig();
+config.licenseToken = "/* license token, {token} JSON, or .lic contents */";
 mBeautyEngine = new BeautyEffectEngine(this, config);
 ```
 
 <Tip>
-`licenseJson` takes priority over `appId` + `appKey`. For offline download and details, see [License & Auth](/intro/license).
+Auth modes and offline `.lic` files: [License & Auth](/intro/license).
 </Tip>
 
-## Run the Project
+## Run
 
-Sync the project in Android Studio, select a running device, and run it.
- 
+Sync Gradle in Android Studio, pick a device or emulator, and run.
+
 <Frame>
   <img src="/images/android-1.png" alt="Android Project" />
 </Frame>

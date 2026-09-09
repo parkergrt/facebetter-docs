@@ -1,5 +1,77 @@
 ---
 title: "常见问题"
-description: "Windows 美颜 SDK 集成常见问题解答和解决方案"
+description: "Windows Facebetter SDK 2.0 集成 FAQ"
 ---
 
+<Note>
+SDK **2.0.0**。与 Linux 共用 C++ API。[参数枚举](/zh/intro/makeup) · [许可证与鉴权](/zh/intro/license)。
+</Note>
+
+## 集成
+
+### `Create` 返回 `nullptr`
+
+- `resource_path` 必须是 **`resource.fbd` 文件**（不能是目录）
+- 设置 `license_token` **或**有效的 `app_id` + `app_key`
+- 在 `Create` 之前调用 `SetLogConfig`
+- 确认 `facebetter.dll` 与导入库匹配
+
+### 找不到头文件 / 链接错误
+
+把 SDK 的 `include` 加入包含路径。链接 `facebetter.lib`，并把 `facebetter.dll` 放到可执行文件旁。
+
+### 没有 `SetRenderView`
+
+该接口仅 iOS / macOS 提供。Windows 需自行把 `ProcessImage` 输出上传到 GL 纹理或做 D3D 互操作。
+
+## 效果
+
+### 美颜很弱或完全看不出
+
+默认强度为 `0`（关闭）。没有 `SetBeautyTypeEnabled`。美型 / 美妆需要检测到人脸。摄像头请用 `FrameType::Video`。
+
+### 美型方向反了
+
+范围为 `[-1.0, 1.0]`。正负为相反方向，见 [参数枚举](/zh/intro/makeup)。
+
+### 滤镜 / 贴纸没效果
+
+向 `SetFilter` / `SetSticker` 传入 `.fbd` **路径**或字节。在下一次 `ProcessImage` 后生效。
+
+### 虚拟背景 / 色度键
+
+使用 `SetVirtualBackgroundBlur`、`SetVirtualBackground(path|bytes)`、`ClearVirtualBackground`。抠像：`SetChromaKey(ChromaKeyColor::Green)`，再调 similarity / smoothness / desaturation。`ClearChromaKey()` 恢复人像分割。
+
+## 性能
+
+### 预览卡顿
+
+降低分辨率，使用 `FrameType::Video`，减少贴纸 / 虚拟背景，查看 `GetStats().avg_process_time_ms`。不要每帧从文件创建 `ImageFrame`，应直接喂摄像头缓冲。
+
+### 内存占用高
+
+复用像素缓冲。不用的 `shared_ptr<ImageFrame>` 及时释放。不要每帧新建引擎。
+
+### 远程桌面 / 虚拟机没有预览
+
+可能没有硬件 OpenGL。请在有独立显卡驱动的机器上测试。
+
+## 授权
+
+### `license_token` 与 `app_id` + `app_key`
+
+`license_token` 非空时优先（token / `{token}` JSON / `.lic`）。否则原生在线 v2 使用 `app_id` + `app_key`。见 [许可证与鉴权](/zh/intro/license)。
+
+### 事件 `1` 或 `101`
+
+授权失败或初始化失败。查看回调 `message` 与 Debug 日志。
+
+## 版本
+
+### 应使用哪个版本？
+
+**2.0.0**。
+
+### 支持哪些 Windows / 编译器？
+
+Windows 10+、MSVC 2019+（C++17）、x64。Demo 文档路径为 Ninja + CMake 3.16+。

@@ -9,7 +9,7 @@ Before designing with the plugin, you need to initialize the workspace:
 
 1.  Under the **Workflow Initialization** section, click the **Initialize Workspace** button.
 2.  The plugin will automatically create a 2048x2048 canvas named `Facebetter_Workspace`.
-3.  The canvas contains 106 standard face reference points.
+3.  The canvas contains 106 standard face **design** reference points (the Figma template). The runtime landmark callback reports **111** points — see [Overview](/intro/overview).
 4.  **Option**: Check "Show Landmark Numbers" to easily identify the numbers of different parts.
 
 ## Sticker Layer and Attribute Binding
@@ -36,4 +36,4 @@ This is the core step of sticker creation, used to define how the sticker follow
     -   Supports left-click to rotate, right-click to pan, and scroll wheel to zoom.
 2.  **Export Package**:
     -   After confirming the preview, click **Export**.
-    -   The package can be directly used in the Facebetter engine and related applications.
+    -   The plugin writes a **`.fbd`** package. Load it with `setSticker` (path or bytes). There is no separate preload step.

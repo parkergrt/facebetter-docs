@@ -1,5 +1,65 @@
 ---
 title: "Best Practices"
-description: "Best practices and performance optimization for Linux beauty SDK"
+description: "Performance and integration guidance for Facebetter 2.0 on Linux"
 ---
 
+<Note>
+SDK **2.0.0**. C++ API is shared with Windows. Enums: [Parameter enums](/intro/makeup).
+</Note>
+
+## Point `resource_path` at `resource.fbd`
+
+Pass the **file**, not a directory:
+
+```cpp
+cfg.resource_path = "/opt/facebetter/resource.fbd";
+```
+
+Resolve an absolute path at startup so cwd changes do not break `fopen`.
+
+## One engine, serial `ProcessImage`
+
+`Create` returns a `shared_ptr`. The engine is **not** a singleton. Serialize `ProcessImage` (and mutating setters) on one thread. If `external_context = true`, that thread must have a current GL context.
+
+## `FrameType` on the frame
+
+| Value | Use |
+| --- | --- |
+| `FrameType::Video` (default) | Camera / live |
+| `FrameType::Image` | Still export |
+
+
+## Intensities and skin-only
+
+Realtime: start around `0.15–0.3`. Reshape is `[-1.0, 1.0]`. Use `SetBeautySkinOnly(true)` so smoothing stays on skin.
+
+## Filters and stickers
+
+`.fbd` path or bytes. Takes effect on the next `ProcessImage`. Do not swap assets every frame.
+
+## `GetStats`
+
+```cpp
+EngineStats s = engine->GetStats();
+if (s.avg_process_time_ms > 33.0) {
+    // lower resolution or drop stickers / virtual background
+}
+```
+
+## Shared library
+
+- Development: `LD_LIBRARY_PATH`
+- Shipping: `RPATH` / `RUNPATH`, or install to `/usr/local/lib` + `ldconfig`
+- Keep `libfacebetter.so` and headers from the **same** SDK build (`./scripts/build_linux.sh` or the download zip)
+
+## OpenGL
+
+Default `external_context = false` uses an SDK-managed OpenGL context. If GLFW / EGL already owns the context, set `true` and process on that thread. Need a working Mesa/NVIDIA/AMD driver; `glxinfo` should report 3.0+.
+
+## Pause when idle
+
+Skip `ProcessImage` when the window is unmapped. `engine.reset()` when the session ends.
+
+## Auth
+
+`license_token` for offline hosts; otherwise `app_id` + `app_key` online v2. Load secrets from env/config, not source. See [License & Auth](/intro/license).

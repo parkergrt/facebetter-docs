@@ -1,5 +1,77 @@
 ---
 title: "FAQ"
-description: "Common questions and solutions for Linux beauty SDK integration"
+description: "Linux Facebetter SDK 2.0 integration FAQ"
 ---
 
+<Note>
+SDK **2.0.0**. Shared C++ API with Windows. [Parameter enums](/intro/makeup) · [License & Auth](/intro/license).
+</Note>
+
+## Integration
+
+### Engine `Create` returns `nullptr`
+
+- `resource_path` must be the **`resource.fbd` file**
+- Set `license_token` **or** valid `app_id` + `app_key`
+- Call `SetLogConfig` before `Create`
+- Confirm `libfacebetter.so` is loadable (`ldd your_app`)
+
+### How do I build the SDK?
+
+```bash
+./scripts/build_linux.sh
+```
+
+Installs to `build/linux/release`. Or CMake + Ninja from a `build/` directory. The desktop demo lives in `demo/cpp`.
+
+### Header / link errors
+
+Add SDK `include/` to the include path. Link `libfacebetter.so`. Set `LD_LIBRARY_PATH` or rpath at runtime.
+
+### `SetRenderView` is missing
+
+iOS / macOS only. On Linux, blit `ProcessImage` output to your GL texture.
+
+## Effects
+
+### Beauty looks weak or off
+
+No `SetBeautyTypeEnabled`. Intensities default to `0`. Reshape / makeup need a face. Use `FrameType::Video` for camera.
+
+### Reshape looks inverted
+
+Range is `[-1.0, 1.0]`. See [Parameter enums](/intro/makeup).
+
+### Filter / sticker does nothing
+
+Pass a `.fbd` path or bytes to `SetFilter` / `SetSticker`.
+
+### Virtual background / chroma key
+
+`SetVirtualBackgroundBlur` / `SetVirtualBackground(path|bytes)` / `ClearVirtualBackground`. Chroma: `SetChromaKey` + similarity / smoothness / desaturation; `ClearChromaKey()` restores segmentation.
+
+## Runtime
+
+### `libfacebetter.so: cannot open shared object file`
+
+`LD_LIBRARY_PATH`, copy next to the binary, rpath, or `ldconfig`.
+
+### No display / GLFW X11 error
+
+Graphical session, `DISPLAY=:0`, or Wayland. SSH needs `ssh -X`.
+
+### CMake cannot find OpenGL
+
+Install `libgl1-mesa-dev` / `mesa-libGL-devel` and reconfigure.
+
+### Headless server
+
+Use OSMesa or EGL + `external_context = true`. Still need `resource.fbd` and a valid license.
+
+## Auth
+
+If `license_token` is non-empty it wins (token / `{token}` JSON / `.lic`). Else online v2 with `app_id` + `app_key`. Events: `0` / `1` / `100` / `101`. See [License & Auth](/intro/license).
+
+## Version
+
+Document and ship **2.0.0**. GCC 7+ / Clang 5+, C++17, OpenGL 3.0+.

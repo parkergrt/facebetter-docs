@@ -1,194 +1,159 @@
 ---
 title: "FAQ"
-description: "iOS Beauty SDK Common Questions and Answers"
+description: "iOS Facebetter SDK 2.0 common questions"
 ---
 
-## Integration Issues
+<Note>
+This page matches SDK **2.0.0**. Auth: [License & Auth](/intro/license). Enums: [Parameter enums](/intro/makeup).
+</Note>
 
-### Q: What to do if engine creation fails?
-A: Check the following points:
-- Confirm that `appId` and `appKey` are correct
-- Check if network connection is normal
-- View log output for detailed error information
-- Confirm if SDK version is latest
-- Check if Framework is properly linked
+## Integration
 
-### Q: Can't find header files or classes during compilation?
-A: Possible reasons:
-- Confirm that `Facebetter.framework` has been properly added to the project
-- Check if Framework's "Embed & Sign" setting is correct
-- Confirm import statement: `#import <Facebetter/FBBeautyEffectEngine.h>`
-- Try Clean Build Folder and rebuild
+### Engine creation returns `nil`
 
-### Q: Link errors at runtime?
-A: Solutions:
-- Confirm if device architecture is supported (arm64, armv7)
-- Check if Framework file is complete
-- Confirm Framework's deployment target setting is correct
-- Check for other Framework conflicts
+- Confirm `licenseToken` **or** `appId` + `appKey` is set. Token wins if both are present.
+- Bind the app **Bundle ID** in the dashboard.
+- Online auth needs network to `/facebetter/v2/auth`.
+- Enable logs **before** `createEngineWithConfig:` and watch events `1` (license fail) and `101` (init fail).
+- CocoaPods: `pod 'Facebetter', '2.0.0'`. Open the `.xcworkspace`, not the `.xcodeproj`.
 
-## Functionality Issues
+### Missing headers or classes
 
-### Q: Beauty effects are not obvious?
-A: You can try:
-- Increase beauty parameter values (range 0.0-1.0)
-- Ensure corresponding beauty types are enabled
-- Check if image quality is clear enough
-- Confirm if face detection is working normally
+- Import `#import <Facebetter/FBBeautyEffectEngine.h>`.
+- For a manual `.framework`, set **Embed & Sign**.
+- Clean Build Folder and rebuild.
+- If CocoaPods scripts fail on Xcode 15+, set `ENABLE_USER_SCRIPT_SANDBOXING` to **No**.
 
-### Q: Beauty effects are excessive or distorted?
-A: Recommendations:
-- Reduce beauty parameter values
-- Check if parameter combinations are reasonable
-- Avoid enabling too many beauty types simultaneously
-- Adjust parameters based on image quality
+### Runtime link / dyld errors
 
-### Q: Virtual background not working?
-A: Check:
-- Confirm `FBBeautyType_VirtualBackground` is enabled
-- Check if background image path is correct
-- Confirm if image format is supported (PNG, JPG)
-- Check if image file exists and is readable
+- Architecture must be **arm64**.
+- Deployment target **iOS 12.0+**.
+- Confirm `Facebetter.framework` is in Embed Frameworks.
 
-## Performance Issues
+## Auth
 
-### Q: What to do if processing is slow?
-A: Optimization suggestions:
-- Use `FBFrameTypeVideo` for real-time processing
-- Reduce image resolution
-- Reduce number of simultaneously enabled beauty types
-- Avoid image processing on main thread
-- Use multi-threading for image processing
+### `licenseToken` vs `appId` / `appKey`
 
-### Q: High memory usage?
-A: Solutions:
-- Release `FBImageFrame` and `FBImageBuffer` objects timely
-- Avoid frequent creation and destruction of engine instances
-- Reuse `FBImageFrame` objects
-- Use object pool pattern to manage image buffers
+If `licenseToken` is non-empty, the SDK verifies that token / `{token}` JSON / `.lic` locally and does **not** send `appId` / `appKey`. Otherwise it uses online auth. Details: [License & Auth](/intro/license).
 
-### Q: App crashes or freezes?
-A: Troubleshooting steps:
-- Check if image processing is done on main thread
-- Confirm resource release is complete
-- View exception information in logs
-- Check if parameter values are within valid range
-- Use Instruments tool to analyze memory and performance
+### Event `1` or `101`
 
-## Image Processing Issues
+License or init failed. Check Bundle ID, plan, token expiry, and logs. Creation returning a non-nil object is not enough — listen to `onEngineEvent`.
 
-### Q: How to handle different image formats?
-A: Use `FBImageFrame`'s format conversion methods:
-- `toRGBA` - Convert to RGBA format
-- `toI420` - Convert to I420 format
-- `toNV12` - Convert to NV12 format
-- `toBGRA` - Convert to BGRA format
+## Beauty
 
-### Q: Camera preview image processing?
-A: Recommended process:
-1. Get CVPixelBuffer from AVCaptureSession
-2. Use `createWithData` to create FBImageFrame
-3. Call `processImage` to process
-4. Convert to target format for display
+### Effect is too weak or too strong
 
-### Q: Image rotation issues?
-A: Solutions:
-- Use `FBImageFrame`'s `rotate` method to rotate images
-- Supports 0°, 90°, 180°, 270° rotation
-- Rotation operation modifies original image data
+- Skin / makeup / filter: `[0.0, 1.0]`.
+- Reshape: **`[-1.0, 1.0]`** via `setReshape:intensity:` (`0` is off).
+- Intensity `0` disables that effect.
+- Skin-only: `setBeautySkinOnly:`.
 
-## Permission Issues
+### Makeup / reshape enum values
 
-### Q: Camera permission issues?
-A: Need to add permission description:
-```xml
-<key>NSCameraUsageDescription</key>
-<string>Camera permission required for beauty photography</string>
+Do not copy tables into app code comments — use [Parameter enums](/intro/makeup). Objective-C names look like `FBReshape_FaceThin`, `FBLipstickColor_Rouge`.
+
+## Filters, stickers, virtual background
+
+### Filter or sticker does nothing
+
+Pass the `.fbd` path or bytes:
+
+```objc
+[engine setFilter:fbdPath];
+[engine setFilterIntensity:0.8f];
+[engine clearFilter];
+
+[engine setSticker:fbdPath];
+[engine clearSticker];
 ```
 
-### Q: Photo library permission issues?
-A: Need to add permission description:
-```xml
-<key>NSPhotoLibraryUsageDescription</key>
-<string>Photo library permission required to select photos for beauty</string>
+Textures are created on the next `processImage:` (GL thread). Empty path / nil data returns `FBErrorCode_InvalidArgument`. Missing file returns `FBErrorCode_IO`.
+
+### Virtual background
+
+```objc
+[engine setVirtualBackgroundBlur:0.6f];           // 0 clears blur
+[engine setVirtualBackground:imagePath];          // png/jpg
+[engine setVirtualBackgroundWithData:imageData];
+[engine clearVirtualBackground];
 ```
 
-## Debugging Issues
+Chroma key is the **mask**; fill is still blur or image:
 
-### Q: How to enable debug logging?
-A: Configure before creating engine:
+```objc
+[engine setChromaKey:FBChromaKeyColor_Green];
+[engine setChromaKeySimilarity:0.4f];
+[engine clearChromaKey];  // back to portrait segmentation; fill stays
+```
+
+## Processing
+
+### `processImage:` returns `nil`
+
+- Engine is `nil` or init failed (`-2` / event `101`).
+- Invalid frame (zero size, unsupported format).
+- `externalContext = YES` but the current thread has no GL context.
+- Treat as process failure (`FBErrorCode_Process`).
+
+### Frame type
+
+Set `imageFrame.type` to `FBFrameTypeImage` (`0`) or `FBFrameTypeVideo` (`1`). Do not pass a process-mode argument.
+
+### Format conversion
+
+Use `convert:` and the frame accessors:
+
+```objc
+FBImageFrame *rgba = [frame convert:FBImageFormatRGBA];
+const uint8_t *data = [rgba data];
+```
+
+YUV: `dataY` / `dataU` / `dataV` / `dataUV` and the matching `stride*`.
+
+### UIImage
+
+```objc
+FBImageFrame *frame = [FBImageFrame createWithUIImage:image];
+frame.type = FBFrameTypeImage;
+FBImageFrame *out = [engine processImage:frame];
+```
+
+### Camera preview
+
+1. Read `CVPixelBuffer` from `AVCaptureVideoDataOutput`.
+2. Build `FBImageFrame` with `createWithNV12:...` or `createWithBGRA:...`.
+3. Set `type = FBFrameTypeVideo`, optional `setMirror:@"horizontal"`.
+4. `processImage:` then display `[output data]` or `[output texture]`.
+
+## Performance and memory
+
+- Use `FBFrameTypeVideo` for live; lower resolution if `getStats.avgProcessTimeMs` is high.
+- One engine, serial queue; do not process on the main thread.
+- Release frames with ARC (`frame = nil`). Reuse capture buffers.
+- Avoid `setFilter:` / `setSticker:` every frame.
+
+## Logging
+
 ```objc
 FBLogConfig *logConfig = [[FBLogConfig alloc] init];
 logConfig.consoleEnabled = YES;
 logConfig.fileEnabled = YES;
 logConfig.level = FBLogLevel_Debug;
-[FBBeautyEffectEngine setLogConfig:logConfig];
+logConfig.fileName = logPath;
+[FBBeautyEffectEngine setLogConfig:logConfig];  // before createEngineWithConfig:
 ```
 
-### Q: How to get detailed error information?
-A: Methods:
-- Enable DEBUG level logging
-- Check API return values (0 indicates success)
-- View file log output
-- Use Xcode's Console to view logs
+Return codes: `0` success, `-1` invalid argument, `-2` not initialized. Full list: [Error Handling](/ios/error-handling).
 
-## Version Compatibility
+## Version
 
-### Q: Which iOS versions are supported?
-A: Supports iOS 10.0 and above
+- **iOS 12.0+**, **arm64**.
+- CocoaPods: `pod 'Facebetter', '2.0.0'`.
+- After upgrade: `pod install`, Clean Build Folder, re-test auth and `processImage:`.
 
-### Q: Which device architectures are supported?
-A: Supports:
-- arm64 (64-bit devices)
-- armv7 (32-bit devices, iOS 10.0+)
+## Threading
 
-### Q: How to upgrade SDK version?
-A: Steps:
-1. Download new version SDK
-2. Replace old Framework file
-3. Clean project cache
-4. Rebuild project
-5. Test if functionality works normally
-
-## ARC Related Issues
-
-### Q: How to handle memory management?
-A: iOS uses ARC, but need to pay attention to:
-- Set objects to nil timely
-- Avoid circular references
-- Use weak references to avoid strong reference cycles
-
-### Q: How to handle CVPixelBuffer?
-A: Recommendations:
-- Use `CVPixelBufferRetain` and `CVPixelBufferRelease` for management
-- Or use `__bridge_transfer` and `__bridge_retained` for conversion
-
-## Multi-threading Issues
-
-### Q: How to process images in background thread?
-A: Recommendations:
-- Use `dispatch_async` to process in background queue
-- Avoid image processing on main thread
-- Use `dispatch_async(dispatch_get_main_queue())` to update UI
-
-### Q: How to handle concurrent access?
-A: Solutions:
-- Use `@synchronized` to protect shared resources
-- Use serial queue for image processing
-- Avoid multi-threaded access to engine instance
-
-## Deployment Issues
-
-### Q: App Store review rejected?
-A: Possible reasons:
-- Missing necessary permission descriptions
-- Using private APIs
-- Memory leak issues
-- Crash issues
-
-### Q: How to optimize app size?
-A: Recommendations:
-- Remove unused architectures (like armv7)
-- Compress resource files
-- Use App Thinning
-- Remove unused Framework parts
+- Default engine: serial queue for all `processImage:` and setters that touch GL resources.
+- `externalContext = YES`: create + process on the GL thread.
+- Update UI on the main queue only.

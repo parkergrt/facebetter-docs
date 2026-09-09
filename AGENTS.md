@@ -22,7 +22,11 @@ HarmonyOS docs were intentionally not migrated (hidden in the old site).
 
 ## Writing notes
 
+对外客户文档规范（禁止暴露实现细节）：`.cursor/rules/customer-docs.mdc`，完整流程见 `.cursor/skills/facebetter-customer-docs/SKILL.md`。
+
 - Prefer Mintlify components: `Tip`, `Warning`, `Note`, `Frame`, `Card`, `CardGroup`
 - Link marketing/dashboard pages with absolute `https://facebetter.net/...` URLs
 - Keep platform guides self-contained: quick-start → implement → errors → API
-- SDK version placeholders were expanded to `1.2.2` during migration; update when releasing
+- Reshape / makeup / whitening / smoothing enums live in `intro/makeup.mdx` (and `zh/intro/makeup.mdx`). Platform API pages link there instead of duplicating tables.
+- This site documents **SDK 2.0 only**. Do not describe 1.x APIs (`setBeautyParam`, `licenseJson`, `registerFilter`, `ProcessMode`, `FBBeautyEffectEngine` singleton).
+- Version placeholders: **2.0.0**. Changelog: `intro/release-note.mdx`

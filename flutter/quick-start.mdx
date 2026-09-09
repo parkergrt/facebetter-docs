@@ -1,56 +1,85 @@
 ---
 title: "Quick Start"
-description: "Run the Flutter example app"
+description: "Run the Facebetter Flutter SDK 2.0 example"
 ---
+
+<Note>
+This page matches SDK **2.0.0**. The engine class is **`FBEngine`** (not a singleton). Auth: [License & Auth](/intro/license). Enums: [Parameter enums](/intro/makeup).
+</Note>
 
 ## Requirements
 
-- **Flutter**: `3.10.0` or later
-- **Dart**: `3.0.0` or later
-- **iOS**: `iOS 12.0` or later
-- **Android**: `Android 5.0` (API 21) or later
-- **IDE**: Android Studio / VS Code
+- **Flutter** `>= 3.24` / **Dart** `>= 3.5`
+- **iOS** 12.0+
+- **Android** minSdk **24**
+- Native Facebetter SDK **2.0** (pulled in by the plugin)
 
-## Clone the Repository
+## Install
 
-```bash
-git clone https://github.com/pixpark/facebetter-sdk.git
+```yaml
+dependencies:
+  facebetter_flutter: ^2.0.0
 ```
-
-## Create Flutter Project
-
-The demo only contains business code. Create the Flutter project first:
-
-```bash
-cd facebetter-sdk/demo/flutter
-flutter create --org net.pixpark --project-name fbexample .
-```
-
-## Configure License
-
-Follow the [Enable Service](/intro/enable-service) guide to get your `appId` and `appKey`, then update `lib/main.dart`:
-
-```dart
-await FBBeautyEffectEngine.init(
-  FBEngineConfig(appId: 'your appId', appKey: 'your appKey'),
-);
-```
-
-## Install Dependencies
 
 ```bash
 flutter pub get
 cd ios && pod install && cd ..
 ```
 
+## Get the example
+
+```bash
+git clone https://github.com/pixpark/facebetter-sdk.git
+cd facebetter-sdk/demo/flutter
+flutter create --org net.pixpark --project-name fbexample .
+```
+
+The demo folder keeps app code only; `flutter create` generates `ios/` and `android/`.
+
+## Bind identifiers and keys
+
+In the Dashboard, bind:
+
+- **iOS**: Bundle ID (for example `net.pixpark.fbexample`)
+- **Android**: Application ID (for example `net.pixpark.fbexample`)
+
+Copy `appId` / `appKey`, or download an offline license and pass it as `licenseToken`. See [Subscribe](/intro/enable-service) and [License & Auth](/intro/license).
+
+## Create the engine
+
+Edit `lib/main.dart`. Logging must run **before** `create`:
+
+```dart
+import 'package:facebetter_flutter/facebetter_flutter.dart';
+
+FBEngine.setLogConfig(console: true, level: FBLogLevel.info);
+
+final engine = await FBEngine.create(FBEngineConfig(
+  appId: 'your_app_id',
+  appKey: 'your_app_key',
+  // or licenseToken: '...',
+  enableLandmarks: false,
+  externalContext: true, // default; required for TRTC
+  resourcePath: null,    // plugin locates resource.fbd
+));
+
+engine.setSmoothing(0.8);
+engine.dispose();
+```
+
+<Tip>
+`externalContext: true` (default) reuses the caller GL context — required for TRTC. Still-image APIs need a **second** engine with `externalContext: false`. Do not mix the two on one instance.
+</Tip>
+
 ## Run
 
 ```bash
+flutter devices
 flutter run -d <device-id>
 ```
 
-List available devices:
+## Next
 
-```bash
-flutter devices
-```
+- [Implement beauty](/flutter/implement-beauty) — dedicated setters, filters, photos
+- [TRTC integration](/flutter/trtc-integration) — native `FacebetterPlugin.processTexture`
+- [API reference](/flutter/api-reference)

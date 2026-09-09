@@ -1,0 +1,28 @@
+---
+description: Facebetter 对外客户 SDK 文档规范。写或改 Mintlify / *.mdx / 平台接入文档时必须遵守。
+alwaysApply: true
+---
+
+# 对外客户文档（必守）
+
+读者是外部接入客户，不是内部引擎开发者。只写公开 API、接入步骤、限制与排错。
+
+## 禁止写出的实现细节
+
+不要写：WebAssembly / WASM / WebGL 架构、Cloudflare、gpupixel、MNN、JNI/FFI/`fb_*` C API、`facebetter-core`、`fb_engine_*`、原生句柄、任务队列、compact JWS、内部槽位/管线实现。
+
+错误码字符串若是公开 API（如 `'WASM_LOAD_ERROR'`）可以列出，但说明写成「SDK 加载失败」，不要解释底层实现。
+
+## 可以写的对接约定
+
+OpenGL / `externalContext`、Web 服务端鉴权代理、`resource.fbd`、Direct `ByteBuffer`、ProGuard 保留 native 方法、控制台绑定的 Bundle ID / 包名 / 域名。
+
+## 产品口径
+
+- 只文档 **SDK 2.0**，不要写 1.x 兼容或旧 API
+- 滤镜/贴纸是 **`.fbd`**，不要写 `.fbpack` / 预加载 / 热加载
+- 运行时关键点 **111**；鉴权见 `intro/license.mdx`
+- Web **禁止**把 `appKey` 写进前端；原生可用 `licenseToken` 或 `appId`+`appKey`
+- 中英文同步改（根目录英文，`zh/` 中文）
+- 枚举以 `intro/makeup.mdx` 为准，平台页只链过去
+- 没有按量付费；不要写 metered / 不开放新购 / 已有按量订阅继续

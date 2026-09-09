@@ -1,6 +1,6 @@
 # Facebetter Docs
 
-Mintlify documentation for the Facebetter SDK.
+Mintlify documentation for **Facebetter SDK 2.0**. This site does not document 1.x APIs.
 
 ## Local preview
 

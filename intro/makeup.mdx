@@ -1,0 +1,226 @@
+---
+title: "Parameter enums"
+description: "Reshape, makeup, whitening, and smoothing enums for Facebetter SDK 2.0"
+---
+
+<Note>
+This page matches SDK **2.0**. Numeric values are identical on C++, Objective-C, Java, JavaScript, and Dart.
+</Note>
+
+Makeup is three knobs:
+
+1. **Intensity** — `SetLipstick` / `SetBlush` / `SetContour` / `SetEyeShadow` / `SetEyeLiner` / `SetEyebrow` / `SetEyelash` / `SetPupil`, range `[0.0, 1.0]`. `0` turns the effect off.
+2. **Shape** — swap the mask texture (`SetBlushStyle`, `SetContourStyle`, `SetEyeShadowStyle`, …).
+3. **Color** — tint the current shape (`SetLipstickColor`, `SetBlushColor`, `SetEyeShadowColor`, …). **Pupil** and **Contour** do not tint; changing them swaps the texture.
+
+| C++ / JS | Java | Objective-C | Dart |
+| --- | --- | --- | --- |
+| `LipstickColor::Rouge` | `LipstickColor.ROUGE` | `FBLipstickColor_Rouge` | `FBLipstickColor.rouge` |
+
+## Whitening (`WhiteningStyle`)
+
+Used with `SetWhiteningStyle`. Intensity is still `SetWhitening`. Default: `ColdWhite`.
+
+| Value | Name | Meaning |
+| --- | --- | --- |
+| 0 | `ColdWhite` | Cool white |
+| 1 | `PinkWhite` | Pink white |
+| 2 | `WarmWhite` | Warm white |
+| 3 | `Wheat` | Wheat |
+| 4 | `Tan` | Tan |
+
+## Smoothing (`SmoothingStyle`)
+
+Used with `SetSmoothingStyle`. Intensity is still `SetSmoothing`. Default: `Natural`.
+
+| Value | Name | Meaning |
+| --- | --- | --- |
+| 0 | `Natural` | Keep pores |
+| 1 | `Texture` | Cleaner, still textured |
+| 2 | `Smooth` | Creamy skin |
+
+## Face reshape (`Reshape`)
+
+Used with `SetReshape(param, intensity)`. Range is **`[-1.0, 1.0]`**. `0` is off. Positive and negative are opposite directions (for example FaceThin: slim / fuller cheeks).
+
+| Value | Name | Positive / negative |
+| --- | --- | --- |
+| 0 | `FaceThin` | Slim face / fuller cheeks |
+| 1 | `FaceVShape` | V-shape / squarer jaw |
+| 2 | `FaceNarrow` | Narrow / wider face |
+| 3 | `FaceShort` | Shorter / longer face |
+| 4 | `Cheekbone` | Slim / expand cheekbones |
+| 5 | `Jawbone` | Slim / expand jaw |
+| 6 | `Chin` | Longer / shorter chin |
+| 7 | `NoseSlim` | Slimmer / wider nose |
+| 8 | `EyeSize` | Larger / smaller eyes |
+| 9 | `EyeDistance` | Wider / closer eye distance |
+| 10 | `FaceSmall` | Smaller / larger face |
+| 11 | `Forehead` | Fuller / lower forehead |
+| 12 | `NoseLong` | Longer / shorter nose |
+| 13 | `Philtrum` | Shorter / longer philtrum |
+| 14 | `MouthSize` | Larger / smaller mouth |
+| 15 | `MouthPosition` | Lower / higher mouth |
+| 16 | `MouthSmile` | Smile / downturned |
+| 17 | `LipThickness` | Thicker / thinner lips |
+| 18 | `EyeRound` | Rounder / narrower eyes |
+| 19 | `EyePosition` | Lower / higher eyes |
+| 20 | `EyeAngle` | Outer corner up / down |
+| 21 | `EyeCornerOpen` | Open / close eye corners |
+| 22 | `LowerEyelid` | Lower / lift eyelid |
+| 23 | `BrowPosition` | Higher / lower brows |
+| 24 | `BrowDistance` | Wider / closer brows |
+| 25 | `BrowThickness` | Thicker / thinner brows |
+
+Java names are `SNAKE_CASE` (`FACE_THIN`, `FACE_V_SHAPE`, …). Objective-C uses `FBReshape_FaceThin`. Dart uses `FBReshape.faceThin`.
+
+## Lipstick (`LipstickColor`)
+
+Single lip mask + tint. Default: `Rouge`.
+
+| Value | Name | Meaning |
+| --- | --- | --- |
+| 0 | `Rouge` | Rose |
+| 1 | `RetroRed` | Retro red |
+| 2 | `Peach` | Peach |
+| 3 | `CoralOrange` | Coral orange |
+| 4 | `GentlePink` | Soft pink |
+| 5 | `VitalityOrange` | Bright orange |
+
+## Blush
+
+Shape via `BlushStyle` (swap texture). Color via `BlushColor` (tint). Default shape `SunKissed`, default color `CoralPink`.
+
+| Value | `BlushStyle` | Meaning |
+| --- | --- | --- |
+| 0 | `SunKissed` | Across cheekbones and nose |
+| 1 | `Igari` | Drunk-blush band on the nose |
+| 2 | `Soft` | Soft both cheeks |
+| 3 | `Apple` | Round apple cheeks |
+| 4 | `Classic` | Two classic spots |
+| 5 | `Doll` | Cheeks + nose tip |
+| 6 | `Rose` | Rose both cheeks |
+
+| Value | `BlushColor` | Meaning |
+| --- | --- | --- |
+| 0 | `CoralPink` | Coral pink |
+| 1 | `DustyRose` | Dusty rose |
+| 2 | `VividRed` | True red |
+| 3 | `Berry` | Berry |
+| 4 | `SunsetOrange` | Sunset orange |
+
+## Contour (`ContourStyle`)
+
+Mid-gray Overlay map: lighter than 128 highlights, darker contours. Swap texture, no tint. Default: `Natural`.
+
+| Value | Name | Meaning |
+| --- | --- | --- |
+| 0 | `Natural` | Everyday light contour |
+| 1 | `Sculpt` | Stronger sculpt |
+| 2 | `Glow` | Highlight-first |
+| 3 | `Slim` | Slim cheekbones |
+| 4 | `Nose` | Nose definition |
+| 5 | `Glam` | Highlight spots |
+
+## Eyeshadow
+
+Shape `EyeShadowStyle`, color `EyeShadowColor`. Default shape `Soft`, default color `Plum`.
+
+| Value | Style | Meaning |
+| --- | --- | --- |
+| 0 | `Soft` | Soft wash |
+| 1 | `Crease` | Crease deepen |
+| 2 | `Smoky` | Smoky ring |
+| 3 | `Halo` | Halo around the eye |
+| 4 | `Glow` | Outer-corner lift |
+| 5 | `Drama` | Full coverage |
+| 6 | `Warm` | Warm wash |
+
+| Value | Color | Meaning |
+| --- | --- | --- |
+| 0 | `Plum` | Plum / mauve |
+| 1 | `Brown` | Warm brown |
+| 2 | `Gold` | Soft gold |
+| 3 | `Pink` | Dusty pink |
+
+## Eyeliner
+
+| Value | `EyeLinerStyle` | Meaning |
+| --- | --- | --- |
+| 0 | `Classic` | Full liner + wing |
+| 1 | `Flick` | Long outer flick |
+| 2 | `CatEye` | Short cat-eye |
+| 3 | `Natural` | Thin natural line |
+| 4 | `Bold` | Bold coverage |
+| 5 | `Soft` | Soft faded wing |
+
+| Value | `EyeLinerColor` | Meaning |
+| --- | --- | --- |
+| 0 | `Burgundy` | Burgundy brown |
+| 1 | `Plum` | Deep plum |
+| 2 | `Chocolate` | Chocolate |
+| 3 | `Coffee` | Near-black coffee |
+| 4 | `Mauve` | Dusty mauve |
+
+## Eyebrow
+
+| Value | `EyebrowStyle` | Meaning |
+| --- | --- | --- |
+| 0 | `Natural` | Natural arch + hair |
+| 1 | `Soft` | Soft powder brow |
+| 2 | `Feathered` | Feathered strokes |
+| 3 | `Mist` | Light mist |
+| 4 | `Arched` | Classic lift |
+| 5 | `Powder` | Dense powder |
+| 6 | `Wild` | Flyaways on the top edge |
+| 7 | `Full` | Full even brow |
+| 8 | `Straight` | Straight low arch |
+
+| Value | `EyebrowColor` | Meaning |
+| --- | --- | --- |
+| 0 | `DarkBrown` | Dark brown |
+| 1 | `Black` | Black |
+| 2 | `SoftBrown` | Soft brown |
+
+## Eyelash
+
+| Value | `EyelashStyle` | Meaning |
+| --- | --- | --- |
+| 0 | `Classic` | Even clusters + lower lash |
+| 1 | `Manga` | Spiky manga |
+| 2 | `Winged` | Outer-corner length |
+| 3 | `Wispy` | Wispy flare |
+| 4 | `Clustered` | Distinct clusters |
+| 5 | `Doll` | Short doll lashes |
+
+| Value | `EyelashColor` | Meaning |
+| --- | --- | --- |
+| 0 | `Black` | Near-black |
+| 1 | `Brown` | Soft brown |
+| 2 | `SoftBlack` | Soft black |
+
+## Pupil (`PupilColor`)
+
+One iris disc per color. No tint. Default: `Hazel`.
+
+| Value | Name | Meaning |
+| --- | --- | --- |
+| 0 | `Hazel` | Amber / honey brown |
+| 1 | `Ice` | Icy blue |
+| 2 | `Mocha` | Dark brown sparkle |
+| 3 | `Olive` | Forest green |
+| 4 | `Gloss` | Glossy dark brown |
+| 5 | `Moss` | Muted olive |
+| 6 | `Sand` | Sandy brown |
+| 7 | `Glow` | Lower-iris crescent highlight (not a full color lens) |
+| 8 | `Slate` | Blue-grey |
+
+## Chroma key (`ChromaKeyColor`)
+
+Used with `SetChromaKey` as the virtual-background mask source.
+
+| Value | Name |
+| --- | --- |
+| 0 | `Green` |
+| 1 | `Blue` |
+| 2 | `Red` |

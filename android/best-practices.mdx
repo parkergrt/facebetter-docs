@@ -1,124 +1,122 @@
 ---
 title: "Best Practices"
-description: "Android Beauty SDK Best Practices Guide"
+description: "Performance and architecture for Facebetter SDK 2.0 on Android"
 ---
 
-## Performance Optimization
+## Choose FrameType
 
-### 1. Choose the Right Processing Mode
+Set `ImageFrame.type` before `processImage`. There is no extra mode argument.
 
-**Video Mode (VIDEO)**
-- Suitable for real-time video streams and live streaming scenarios
-- Better performance and faster processing speed
-- Recommended for camera preview, video calls, and similar scenarios
+**`FrameType.VIDEO`** (default)
 
-**Image Mode (IMAGE)**
-- Suitable for single image processing
-- Higher quality and better effects
-- Recommended for photo editing and image beautification scenarios
+- Camera preview, video calls, live streaming
+- Lower latency
+
+**`FrameType.IMAGE`**
+
+- Gallery photos, export, capture stills
+- Higher quality, more cost per frame
 
 ```java
-// Real-time video processing
 input.type = ImageFrame.FrameType.VIDEO;
 ImageFrame output = engine.processImage(input);
-
-// High-quality image processing
-input.type = ImageFrame.FrameType.IMAGE;
-ImageFrame output = engine.processImage(input);
 ```
 
-### 2. Parameter Adjustment Recommendations
+## Parameter ranges
 
-**Beauty Parameter Adjustment Principles**
-- Start with smaller values to avoid over-beautification
-- Recommend reducing parameter values in real-time scenarios for smooth performance
-- Static images can have appropriately higher parameter values
-- Adjust parameter ranges based on user groups and scenarios
+Start low; raise after you confirm face detection and FPS.
 
-**Recommended Parameter Ranges**
+| API | Range | Notes |
+| --- | --- | --- |
+| Smoothing / whitening / sharpening / rosiness / makeup intensity / filter intensity / VB blur / chroma knobs | `[0, 1]` | `0` off |
+| `setReshape` | **`[-1, 1]`** | `0` off; sign is direction |
+
+Live preview (example):
+
 ```java
-// Basic beauty parameters (real-time scenarios)
-mBeautyEngine.setBeautyParam(BasicParam.SMOOTHING, 0.2f);  // Smoothing
-mBeautyEngine.setBeautyParam(BasicParam.WHITENING, 0.1f);  // Whitening
-mBeautyEngine.setBeautyParam(BasicParam.ROSINESS, 0.1f);   // Rosiness
-
-// Face reshaping parameters (real-time scenarios)
-mBeautyEngine.setBeautyParam(ReshapeParam.FACE_THIN, 0.1f);    // Face thinning
-mBeautyEngine.setBeautyParam(ReshapeParam.EYE_SIZE, 0.1f);     // Eye enlargement
+engine.setSmoothing(0.25f);
+engine.setWhitening(0.12f);
+engine.setRosiness(0.08f);
+engine.setReshape(Reshape.FACE_THIN, 0.15f);
+engine.setReshape(Reshape.EYE_SIZE, 0.12f);
 ```
 
-### 3. Memory Optimization
+Enable `setBeautySkinOnly(true)` when you do not want smoothing on hair / clothes / background.
 
-**Use Direct Memory Buffers**
+Preset names: [Parameter enums](/intro/makeup).
+
+## Memory
+
+Use **direct** `ByteBuffer`s when creating frames from pixel data:
+
 ```java
-// Recommended: Use direct memory
 ByteBuffer data = ByteBuffer.allocateDirect(width * height * 4);
-
-// Avoid: Use heap memory
-ByteBuffer data = ByteBuffer.allocate(width * height * 4);
 ```
 
-**Release Resources Timely**
+Release native frames:
+
 ```java
-public class BeautyProcessor {
-    private ImageFrame mReusableFrame; // Reusable object
-    
-    public ImageFrame processImage(byte[] imageData) {
-        // Reuse ImageFrame object
-        if (mReusableFrame == null) {
-            mReusableFrame = ImageFrame.createWithRGBA(data, width, height, stride);
+ImageFrame input = ImageFrame.createWithRGBA(data, width, height, stride);
+try {
+    input.type = ImageFrame.FrameType.VIDEO;
+    ImageFrame output = engine.processImage(input);
+    try {
+        // draw / encode output
+    } finally {
+        if (output != null) {
+            output.release();
         }
-        
-        // Process image
-        mReusableFrame.type = ImageFrame.FrameType.VIDEO;
-        ImageFrame output = mBeautyEngine.processImage(mReusableFrame);
-        
-        return output;
     }
-    
-    public void release() {
-        if (mReusableFrame != null) {
-            mReusableFrame.release();
-            mReusableFrame = null;
-        }
+} finally {
+    if (input != null) {
+        input.release();
     }
 }
 ```
 
-## Architecture Design
+- One engine per process / GL context; do not create per frame
+- Cap stills (demo scales long side to 1920) before `createWithBitmap`
+- `convert()` allocates a **new** frame — release it
 
-### 1. Singleton Pattern for Engine Management
+## OpenGL ES
+
+When `externalContext = true`:
+
+- Construct the engine on the GL thread with a current context
+- Keep input texture, `processImage`, and output texture on that same context
+- Recreate the engine after context loss
+- Read the result with `output.getTexture()`, not a CPU download, when you stay on GPU
+
+See [Implement Beauty](/android/implement-beauty#external-texture-opengl-es).
+
+## One engine, application context
+
+Hold a single `BeautyEffectEngine`. Use `getApplicationContext()` so the engine outlives an Activity, and still `release()` when the session ends.
 
 ```java
-public class BeautyEngineManager {
-    private static BeautyEngineManager sInstance;
+public final class BeautyEngineHolder {
+    private static BeautyEngineHolder sInstance;
     private BeautyEffectEngine mEngine;
-    private Context mContext;
-    
-    private BeautyEngineManager(Context context) {
-        mContext = context.getApplicationContext();
-        initEngine();
-    }
-    
-    public static synchronized BeautyEngineManager getInstance(Context context) {
+
+    public static synchronized BeautyEngineHolder get(Context context) {
         if (sInstance == null) {
-            sInstance = new BeautyEngineManager(context);
+            sInstance = new BeautyEngineHolder(context.getApplicationContext());
         }
         return sInstance;
     }
-    
-    private void initEngine() {
+
+    private BeautyEngineHolder(Context app) {
         BeautyEffectEngine.EngineConfig config = new BeautyEffectEngine.EngineConfig();
         config.appId = "your_app_id";
         config.appKey = "your_app_key";
-        mEngine = new BeautyEffectEngine(mContext, config);
+        mEngine = new BeautyEffectEngine(app, config);
     }
-    
-    public BeautyEffectEngine getEngine() {
+
+    public BeautyEffectEngine engine() {
         return mEngine;
     }
-    
-    public void release() {
+
+    public synchronized void release() {
         if (mEngine != null) {
             mEngine.release();
             mEngine = null;
@@ -128,344 +126,73 @@ public class BeautyEngineManager {
 }
 ```
 
-### 2. Asynchronous Image Processing
-
-```java
-public class AsyncBeautyProcessor {
-    private ExecutorService mExecutor;
-    private BeautyEffectEngine mEngine;
-    
-    public AsyncBeautyProcessor() {
-        mExecutor = Executors.newSingleThreadExecutor();
-    }
-    
-    public void processImageAsync(ImageFrame input, BeautyCallback callback) {
-        mExecutor.execute(() -> {
-            try {
-                input.type = ImageFrame.FrameType.VIDEO;
-                ImageFrame output = mEngine.processImage(input);
-                
-                // Switch to main thread for callback
-                new Handler(Looper.getMainLooper()).post(() -> {
-                    callback.onSuccess(output);
-                });
-            } catch (Exception e) {
-                new Handler(Looper.getMainLooper()).post(() -> {
-                    callback.onError(e);
-                });
-            }
-        });
-    }
-    
-    public interface BeautyCallback {
-        void onSuccess(ImageFrame result);
-        void onError(Exception error);
-    }
-}
-```
-
-## Error Handling
-
-### 1. Comprehensive Error Handling Mechanism
-
-```java
-public class RobustBeautyProcessor {
-    private BeautyEffectEngine mEngine;
-    
-    public boolean processImage(ImageFrame input, ImageFrame output) {
-        // Parameter validation
-        if (mEngine == null) {
-            Log.e("BeautyProcessor", "Engine not initialized");
-            return false;
-        }
-        
-        if (input == null || !input.isValid()) {
-            Log.e("BeautyProcessor", "Invalid input image");
-            return false;
-        }
-        
-        try {
-            // Process image
-            ImageFrame result = mEngine.processImage(input, ProcessMode.VIDEO);
-            if (result == null) {
-                Log.e("BeautyProcessor", "Failed to process image");
-                return false;
-            }
-            
-            // Copy result to output
-            copyImageFrame(result, output);
-            result.release();
-            
-            return true;
-        } catch (Exception e) {
-            Log.e("BeautyProcessor", "Exception during processing", e);
-            return false;
-        }
-    }
-    
-    private void copyImageFrame(ImageFrame src, ImageFrame dst) {
-        // Implement image copying logic
-    }
-}
-```
-
-### 2. Retry Mechanism
-
-```java
-public class RetryBeautyProcessor {
-    private static final int MAX_RETRY_COUNT = 3;
-    private static final long RETRY_DELAY_MS = 100;
-    
-    public ImageFrame processImageWithRetry(ImageFrame input) {
-        for (int i = 0; i < MAX_RETRY_COUNT; i++) {
-            try {
-                ImageFrame result = mBeautyEngine.processImage(input, ProcessMode.VIDEO);
-                if (result != null) {
-                    return result;
-                }
-            } catch (Exception e) {
-                Log.w("BeautyProcessor", "Attempt " + (i + 1) + " failed", e);
-            }
-            
-            if (i < MAX_RETRY_COUNT - 1) {
-                try {
-                    Thread.sleep(RETRY_DELAY_MS);
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
-                    break;
-                }
-            }
-        }
-        
-        Log.e("BeautyProcessor", "All retry attempts failed");
-        return null;
-    }
-}
-```
-
-## Lifecycle Management
-
 <Warning>
-The beauty engine requires manual `release()` to free resources. ImageFrame and other objects also need to call `release()` after use, otherwise it will cause memory leaks.
+Always `release()` the engine when the session is done. ImageFrame objects also need `release()`.
 </Warning>
 
-### 1. Activity Lifecycle Handling
+## Off the UI thread
+
+Run `processImage` on a camera / GL / dedicated thread. Post results to the main looper only for UI.
 
 ```java
-public class BeautyActivity extends AppCompatActivity {
-    private BeautyEngineManager mBeautyManager;
-    
-    @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        
-        // Initialize beauty engine
-        mBeautyManager = BeautyEngineManager.getInstance(this);
-    }
-    
-    @Override
-    protected void onResume() {
-        super.onResume();
-        // Resume beauty processing
-    }
-    
-    @Override
-    protected void onPause() {
-        super.onPause();
-        // Pause beauty processing
-    }
-    
-    @Override
-    protected void onDestroy() {
-        super.onDestroy();
-        // Release beauty engine (if no longer needed)
-        // mBeautyManager.release();
-    }
-}
+executor.execute(() -> {
+    input.type = ImageFrame.FrameType.VIDEO;
+    ImageFrame output = engine.processImage(input);
+    mainHandler.post(() -> callback.onFrame(output));
+});
 ```
 
-### 2. Fragment Lifecycle Handling
+Do not share one `ImageFrame` across threads without your own lock. The demo camera path processes the latest frame on the render thread.
+
+## Filters and stickers from assets
+
+Keep `.fbd` files in `assets/` and pass `byte[]` (or copy to `filesDir` and pass a path). Call `setFilter` / `setSticker` once when the user picks an effect, not every frame. Adjust mix with `setFilterIntensity`.
+
+GPU upload happens on the next `processImage`.
+
+## Monitor with getStats
 
 ```java
-public class BeautyFragment extends Fragment {
-    private BeautyEffectEngine mBeautyEngine;
-    
-    @Override
-    public void onAttach(Context context) {
-        super.onAttach(context);
-        // Initialize beauty engine
-        initBeautyEngine();
-    }
-    
-    @Override
-    public void onDetach() {
-        super.onDetach();
-        // Release beauty engine
-        if (mBeautyEngine != null) {
-            mBeautyEngine.release();
-            mBeautyEngine = null;
-        }
-    }
-}
+EngineStats stats = engine.getStats();
+Log.d(TAG, "fps=" + stats.fps
+    + " avgMs=" + stats.avgProcessTimeMs
+    + " sessionS=" + stats.sessionTimeS);
 ```
 
-## Performance Monitoring
+If `avgProcessTimeMs` stays above ~33 ms on a live 30 FPS preview, drop resolution, use `FrameType.VIDEO`, or reduce simultaneous reshape / makeup / VB.
 
-### 1. Performance Metrics Monitoring
+## Persist user sliders
 
-```java
-public class BeautyPerformanceMonitor {
-    private long mStartTime;
-    private int mFrameCount;
-    private long mTotalProcessTime;
-    
-    public void startFrame() {
-        mStartTime = System.currentTimeMillis();
-    }
-    
-    public void endFrame() {
-        long processTime = System.currentTimeMillis() - mStartTime;
-        mTotalProcessTime += processTime;
-        mFrameCount++;
-        
-        // Calculate average processing time
-        if (mFrameCount % 30 == 0) { // Calculate every 30 frames
-            long avgTime = mTotalProcessTime / mFrameCount;
-            Log.d("BeautyPerformance", "Average process time: " + avgTime + "ms");
-            
-            // Reset counters
-            mTotalProcessTime = 0;
-            mFrameCount = 0;
-        }
-    }
-    
-    public boolean isPerformanceGood() {
-        return mTotalProcessTime / Math.max(mFrameCount, 1) < 33; // 30fps
-    }
-}
-```
+Store intensities yourself (`SharedPreferences`). Re-apply with `setSmoothing`, `setReshape`, `setLipstick`, … after the engine is created — the SDK does not persist UI state.
 
-### 2. Memory Usage Monitoring
+## Lifecycle
 
-```java
-public class MemoryMonitor {
-    private Runtime mRuntime;
-    
-    public MemoryMonitor() {
-        mRuntime = Runtime.getRuntime();
-    }
-    
-    public void logMemoryUsage(String tag) {
-        long totalMemory = mRuntime.totalMemory();
-        long freeMemory = mRuntime.freeMemory();
-        long usedMemory = totalMemory - freeMemory;
-        long maxMemory = mRuntime.maxMemory();
-        
-        Log.d("MemoryMonitor", tag + " - Used: " + (usedMemory / 1024 / 1024) + "MB, " +
-              "Max: " + (maxMemory / 1024 / 1024) + "MB");
-    }
-    
-    public boolean isMemoryLow() {
-        long usedMemory = mRuntime.totalMemory() - mRuntime.freeMemory();
-        long maxMemory = mRuntime.maxMemory();
-        return usedMemory > maxMemory * 0.8; // Over 80% usage
-    }
-}
-```
+- `onResume` / `onPause`: start and stop the camera; keep the engine if you will resume soon
+- `onDestroy` / `onDetach`: `engine.release()` if this owner created it
+- `externalContext`: create / destroy on the GL thread
 
-## Configuration Management
-
-### 1. Beauty Configuration Management
-
-```java
-public class BeautyConfigManager {
-    private SharedPreferences mPrefs;
-    private static final String PREF_NAME = "beauty_config";
-    
-    public BeautyConfigManager(Context context) {
-        mPrefs = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
-    }
-    
-    public void saveBeautyConfig(BeautyConfig config) {
-        SharedPreferences.Editor editor = mPrefs.edit();
-        editor.putFloat("smoothing", config.smoothing);
-        editor.putFloat("whitening", config.whitening);
-        editor.putFloat("face_thin", config.faceThin);
-        editor.putBoolean("basic_enabled", config.basicEnabled);
-        editor.putBoolean("reshape_enabled", config.reshapeEnabled);
-        editor.apply();
-    }
-    
-    public BeautyConfig loadBeautyConfig() {
-        BeautyConfig config = new BeautyConfig();
-        config.smoothing = mPrefs.getFloat("smoothing", 0.3f);
-        config.whitening = mPrefs.getFloat("whitening", 0.2f);
-        config.faceThin = mPrefs.getFloat("face_thin", 0.1f);
-        config.basicEnabled = mPrefs.getBoolean("basic_enabled", true);
-        config.reshapeEnabled = mPrefs.getBoolean("reshape_enabled", false);
-        return config;
-    }
-    
-    public static class BeautyConfig {
-        public float smoothing = 0.3f;
-        public float whitening = 0.2f;
-        public float faceThin = 0.1f;
-        public boolean basicEnabled = true;
-        public boolean reshapeEnabled = false;
-    }
-}
-```
-
-## Testing Recommendations
-
-### 1. Unit Testing
+## Tests
 
 ```java
 @Test
-public void testBeautyEngineInitialization() {
+public void processRgbaFrame() {
     BeautyEffectEngine.EngineConfig config = new BeautyEffectEngine.EngineConfig();
     config.appId = "test_app_id";
     config.appKey = "test_app_key";
-    
-    BeautyEffectEngine engine = new BeautyEffectEngine(mContext, config);
-    assertNotNull("Engine should be created", engine);
-    
-    engine.release();
-}
+    BeautyEffectEngine engine = new BeautyEffectEngine(context, config);
 
-@Test
-public void testImageProcessing() {
-    // Create test image
     ByteBuffer data = ByteBuffer.allocateDirect(640 * 480 * 4);
     ImageFrame input = ImageFrame.createWithRGBA(data, 640, 480, 640 * 4);
-    
-    // Process image
-    ImageFrame output = mBeautyEngine.processImage(input, ProcessMode.VIDEO);
-    
-    assertNotNull("Output should not be null", output);
-    assertTrue("Output should be valid", output.isValid());
-    
+    input.type = ImageFrame.FrameType.IMAGE;
+    ImageFrame output = engine.processImage(input);
+
+    assertNotNull(output);
+    assertTrue(output.isValid());
+
     input.release();
     output.release();
+    engine.release();
 }
 ```
 
-### 2. Performance Testing
-
-```java
-@Test
-public void testPerformance() {
-    long startTime = System.currentTimeMillis();
-    
-    for (int i = 0; i < 100; i++) {
-        // Process test image
-        processTestImage();
-    }
-    
-    long endTime = System.currentTimeMillis();
-    long totalTime = endTime - startTime;
-    long avgTime = totalTime / 100;
-    
-    assertTrue("Average process time should be less than 50ms", avgTime < 50);
-}
-```
+Instrument tests need a valid license (`licenseToken` or reachable `/facebetter/v2/auth` plus a bound package name).

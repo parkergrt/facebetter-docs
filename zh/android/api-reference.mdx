@@ -1,13 +1,19 @@
 ---
 title: "API 参考"
-description: "Android API 参考"
+description: "Facebetter SDK 2.0 Android API 参考"
 ---
 
-## 日志相关
+<Note>
+本文档对应 SDK **2.0.0**。包名：`net.pixpark.facebetter`。美妆、整形、美白、磨皮预设见 [参数枚举](/zh/intro/makeup)。鉴权见 [授权认证](/zh/intro/license)。
+</Note>
 
-### 日志级别
+美颜相关 setter 均返回 `int`。`0`（`ErrorCode.SUCCESS`）表示成功，负数为 [错误码](#errorcode)。
 
-日志级别枚举，用于控制日志输出级别。
+## 日志
+
+务必在 **构造引擎之前** 调用 `BeautyEffectEngine.setLogConfig`，否则看不到初始化日志。
+
+### LogLevel
 
 ```java
 public enum LogLevel {
@@ -20,57 +26,64 @@ public enum LogLevel {
 }
 ```
 
-### 日志配置类
+| 方法 | 说明 |
+| --- | --- |
+| `int getLevel()` | 数值级别（`0`–`5`） |
+| `String getName()` | 级别名称 |
+| `boolean isEnabledFor(LogLevel other)` | 当前级别不低于 `other` 时为 `true` |
+| `static LogLevel fromLevel(int level)` | 按数值查找，未找到返回 `null` |
+| `static LogLevel fromName(String name)` | 忽略大小写查找，未找到返回 `null` |
 
-日志配置类，用于配置日志输出方式和级别。
+### LogConfig
 
-**字段说明：**
-- `consoleEnabled`: 是否启用控制台输出
-- `fileEnabled`: 是否启用文件输出
-- `level`: 日志级别
-- `fileName`: 日志文件路径（仅在 `fileEnabled` 为 `true` 时有效）
+嵌套类：`BeautyEffectEngine.LogConfig`。
+
+| 字段 | 类型 | 默认值 | 说明 |
+| --- | --- | --- | --- |
+| `consoleEnabled` | `boolean` | `false` | 输出到 logcat / 标准输出 |
+| `fileEnabled` | `boolean` | `false` | 写入文件 |
+| `level` | `LogLevel` | `INFO` | 最低输出级别 |
+| `fileName` | `String` | `""` | 日志文件路径；仅当 `fileEnabled` 为 `true` 时生效 |
 
 ```java
 public static class LogConfig {
-  public boolean consoleEnabled;
-  public boolean fileEnabled;
-  public LogLevel level;
-  public String fileName;
+  public boolean consoleEnabled = false;
+  public boolean fileEnabled = false;
+  public LogLevel level = LogLevel.INFO;
+  public String fileName = "";
 
   public LogConfig();
   public LogConfig(boolean consoleEnabled, boolean fileEnabled, LogLevel level, String fileName);
 }
 ```
 
-## 引擎相关
+```java
+public static void setLogConfig(LogConfig config);
+```
 
-### 引擎配置
+`config` 或 `config.level` 为 `null` 时抛出 `IllegalArgumentException`。
 
-引擎配置类，用于初始化美颜引擎。
+## 引擎
 
-**字段说明：**
-- `appId`: 应用 ID（可选，如果提供了 `licenseJson` 则不需要）
-- `appKey`: 应用密钥（可选，如果提供了 `licenseJson` 则不需要）
-- `licenseJson`: 授权数据 JSON 字符串（可选，如果提供了则优先使用，不需要 `appId` 和 `appKey`）
-- `externalContext`: 是否使用外部 OpenGL 上下文（默认 `false`）
-  - `true`: 使用调用方提供的 GL 上下文，SDK 不再创建/管理内部上下文
-  - `false`: 使用内部默认上下文
+### EngineConfig
 
-**方法：**
-- `isValid()`: 验证配置是否有效
-  - 如果提供了 `licenseJson`，则使用授权数据验证
-  - 否则需要 `appId` 和 `appKey` 进行自动联网验证
+嵌套类：`BeautyEffectEngine.EngineConfig`。
 
-**验证方式优先级：**
-- 如果 `licenseJson` 不为空，使用授权数据验证（支持在线响应和离线授权）
-- 否则使用 `appId` 和 `appKey` 进行自动联网验证
+| 字段 | 类型 | 默认值 | 说明 |
+| --- | --- | --- | --- |
+| `appId` | `String` | — | 控制台 App ID |
+| `appKey` | `String` | — | 控制台 App Key |
+| `licenseToken` | `String` | — | 许可证 token、`{token}` JSON，或离线 `.lic` 全文 |
+| `externalContext` | `boolean` | `false` | `true` = 使用调用方 OpenGL ES 上下文；`false` = SDK 自建上下文 |
+
+**鉴权优先级：** `licenseToken` 非空时，SDK 在本地校验该 token。否则必须提供 `appId` + `appKey`，SDK 请求 `/facebetter/v2/auth`。详见 [授权认证](/zh/intro/license)。
 
 ```java
 public static class EngineConfig {
   public String appId;
   public String appKey;
-  public String licenseJson;  // 授权数据JSON字符串（可选）
-  public boolean externalContext = false;  // 是否使用外部 OpenGL 上下文
+  public String licenseToken;
+  public boolean externalContext = false;
 
   public EngineConfig();
   public EngineConfig(String appId, String appKey);
@@ -78,354 +91,411 @@ public static class EngineConfig {
 }
 ```
 
-### 引擎接口
+`isValid()`：`licenseToken` 非空，或 `appId` 与 `appKey` 均非空时返回 `true`。
 
-美颜效果引擎主类，提供美颜功能的入口。
+### BeautyEffectEngine
 
-**静态方法：**
-- `setLogConfig(LogConfig config)`: 设置日志配置
-
-**实例方法：**
-
-#### 初始化与释放
-- `BeautyEffectEngine(Context context, EngineConfig config)`: 构造函数，创建引擎实例
-- `void release()`: 释放引擎资源
-
-#### 参数设置
-- `int setBeautyParam(BasicParam param, float value)`: 设置基础美颜参数（范围 0.0 - 1.0）
-- `int setBeautyParam(ReshapeParam param, float value)`: 设置面部重塑参数（范围 0.0 - 1.0）
-- `int setBeautyParam(MakeupParam param, float value)`: 设置美妆参数（范围 0.0 - 1.0）
-- `int setLipstickStyle(LipstickStyle style)`: 设置口红样式（Rouge / Coral / Pink）
-- `int setBlushStyle(BlushStyle style)`: 设置腮红样式（Classic / Peach / Rose）
-- `int setSkinOnlyBeauty(boolean enabled)`: 设置美颜是否仅作用于皮肤区域
-  - 参数：`enabled` 为 `true` 时启用皮肤区域美颜，为 `false` 时美颜作用于整张图像
-  - 返回值：`0` 表示成功，`-1` 表示引擎未初始化
-- `int setVirtualBackground(VirtualBackgroundOptions options)`: 设置虚拟背景
-  - 参数：`VirtualBackgroundOptions` 对象，包含背景模式和背景图片
-  - 返回值：`0` 表示成功，`-1` 表示引擎未初始化，`-2` 表示参数无效（options 为 null 或无效）
-
-#### 滤镜与贴纸管理
-- `int setFilter(String filterId)`: 设置滤镜
-  - 参数：`filterId` 滤镜唯一标识符
-- `int setFilterIntensity(float intensity)`: 设置滤镜强度
-  - 参数：`intensity` 强度值（范围 0.0 - 1.0）
-- `int setSticker(String stickerId)`: 设置贴纸
-  - 参数：`stickerId` 贴纸唯一标识符，传入空字符串可清除贴纸
-- `int registerFilter(String filterId, String fbdFilePath)`: 从文件注册滤镜
-- `int registerFilter(String filterId, byte[] fbdData)`: 从内存注册滤镜
-- `int registerSticker(String stickerId, String fbdFilePath)`: 从文件注册贴纸
-- `int registerSticker(String stickerId, byte[] fbdData)`: 从内存注册贴纸
-- `int unregisterFilter(String filterId)`: 卸载滤镜
-- `int unregisterAllFilters()`: 卸载所有滤镜
-- `int unregisterSticker(String stickerId)`: 卸载贴纸
-- `int unregisterAllStickers()`: 卸载所有贴纸
-- `String[] getRegisteredFilters()`: 获取已注册滤镜列表
-- `String[] getRegisteredStickers()`: 获取已注册贴纸列表
-
-#### 回调
-- `void setEngineEventCallback(OnEngineEventCallback callback)`: 设置引擎事件回调，用于监听授权验证和引擎初始化状态
-  - 回调提供：`int code`（事件码）、`String message`（事件描述）
-  - 代码 0 表示成功，非零表示失败
-
-#### 图像处理
-- `ImageFrame processImage(ImageFrame inputFrame)`: 处理图像帧
-  - 帧类型通过 `inputFrame.type` 字段获取（`FrameType.IMAGE` 或 `FrameType.VIDEO`）
-  - 处理后的图像帧会保持相同的帧类型
-
-**返回值说明：**
-- 方法返回 `int` 类型：
-  - `0` 表示成功
-  - `-1` 表示引擎未初始化
-  - `-2` 表示参数无效（仅 `setVirtualBackground` 方法）
-- `processImage` 返回 `ImageFrame`：处理后的图像帧，失败时返回 `null`
+主引擎。创建一次，在 Activity / Fragment 销毁时调用 `release()`。
 
 ```java
-public class BeautyEffectEngine {
-  public static void setLogConfig(LogConfig config);
-  
-  public BeautyEffectEngine(Context context, EngineConfig config);
-  public void release();
-  
-  public int setBeautyParam(BasicParam param, float value);
-  public int setBeautyParam(ReshapeParam param, float value);
-  public int setBeautyParam(MakeupParam param, float value);
-  public int setLipstickStyle(LipstickStyle style);
-  public int setBlushStyle(BlushStyle style);
-  public int setSkinOnlyBeauty(boolean enabled);
-  public int setVirtualBackground(VirtualBackgroundOptions options);
-  
-  public int setFilter(String filterId);
-  public int setFilterIntensity(float intensity);
-  public int setSticker(String stickerId);
-  public int registerFilter(String filterId, String fbdFilePath);
-  public int registerFilter(String filterId, byte[] fbdData);
-  public int registerSticker(String stickerId, String fbdFilePath);
-  public int registerSticker(String stickerId, byte[] fbdData);
-  public int unregisterFilter(String filterId);
-  public int unregisterAllFilters();
-  public int unregisterSticker(String stickerId);
-  public int unregisterAllStickers();
-  public String[] getRegisteredFilters();
-  public String[] getRegisteredStickers();
-  
-  public void setEngineEventCallback(OnEngineEventCallback callback);
-  
-  public ImageFrame processImage(ImageFrame inputFrame);
+public BeautyEffectEngine(Context context, EngineConfig config);
+public void release();
+```
 
-  // Deprecated APIs
-  public int enableBeautyType(BeautyType type, boolean enabled);
-  public boolean isBeautyTypeEnabled(BeautyType type);
-  public int disableAllBeautyTypes();
+`context` 或 `config` 为 `null`，或 `config.isValid()` 为 `false` 时，构造函数抛出 `IllegalArgumentException`。SDK 使用 `context.getPackageName()` 做授权绑定。
+
+### FrameType
+
+在调用 `processImage` **之前** 设置 `ImageFrame.type`。没有单独的处理模式参数。
+
+| 取值 | 说明 |
+| --- | --- |
+| `IMAGE` | 单张静图，画质优先 |
+| `VIDEO` | 相机 / 直播，延迟更低。默认值 |
+
+```java
+public enum FrameType {
+  IMAGE(0),
+  VIDEO(1);
 }
 ```
 
-## 美颜参数
+```java
+public ImageFrame processImage(ImageFrame inputFrame);
+```
 
-美颜参数枚举类，包含所有美颜相关的参数类型定义。
+读取 `inputFrame.type`。返回处理后的帧（像素格式与输入一致）；引擎已释放时返回 `null`。`inputFrame` 或 `inputFrame.type` 为 `null` 时抛出 `IllegalArgumentException`。
 
-### 美颜类型
+## 美颜
 
-定义可用的美颜功能类型。
+强度范围 `[0.0, 1.0]`（除非另行说明）。`0` 表示关闭。
 
 ```java
-public enum BeautyType {
-  BASIC(0),        // 基础美颜
-  RESHAPE(1),      // 面部重塑
-  MAKEUP(2),       // 美妆效果
-  VIRTUAL_BACKGROUND(3); // 虚拟背景
+public int setSmoothing(float value);
+public int setSmoothingStyle(SmoothingStyle style);
+public int setWhitening(float value);
+public int setWhiteningStyle(WhiteningStyle style);
+public int setSharpening(float value);
+public int setRosiness(float value);
+public int setBeautySkinOnly(boolean enabled);
+```
+
+| 方法 | 说明 |
+| --- | --- |
+| `setSmoothing` | 磨皮强度 |
+| `setSmoothingStyle` | 磨皮风格（`NATURAL`、`TEXTURE`、`SMOOTH`） |
+| `setWhitening` | 美白强度 |
+| `setWhiteningStyle` | 美白 LUT（`COLD_WHITE`、`PINK_WHITE`、`WARM_WHITE`、`WHEAT`、`TAN`） |
+| `setSharpening` | 锐化强度 |
+| `setRosiness` | 红润强度 |
+| `setBeautySkinOnly` | `true` = 仅在检测到的皮肤区域生效；`false` = 整帧 |
+
+风格枚举见 [参数枚举](/zh/intro/makeup)。
+
+## 整形
+
+```java
+public int setReshape(Reshape param, float value);
+```
+
+强度范围 **`[-1.0, 1.0]`**。`0` 为关闭。正负为相反方向。
+
+```java
+public enum Reshape {
+  FACE_THIN(0), FACE_V_SHAPE(1), FACE_NARROW(2), FACE_SHORT(3),
+  CHEEKBONE(4), JAWBONE(5), CHIN(6), NOSE_SLIM(7),
+  EYE_SIZE(8), EYE_DISTANCE(9), FACE_SMALL(10), FOREHEAD(11),
+  NOSE_LONG(12), PHILTRUM(13), MOUTH_SIZE(14), MOUTH_POSITION(15),
+  MOUTH_SMILE(16), LIP_THICKNESS(17), EYE_ROUND(18), EYE_POSITION(19),
+  EYE_ANGLE(20), EYE_CORNER_OPEN(21), LOWER_EYELID(22),
+  BROW_POSITION(23), BROW_DISTANCE(24), BROW_THICKNESS(25);
 }
 ```
 
-### 基础美颜参数
+各参数正负含义见 [参数枚举](/zh/intro/makeup)。
 
-基础美颜效果的参数类型，所有参数值范围均为 `0.0 - 1.0`。
+## 美妆
+
+强度 `[0.0, 1.0]`。先设强度，再设风格（遮罩）和/或颜色（染色）。瞳孔与修容的着色方式见 [参数枚举](/zh/intro/makeup)。
 
 ```java
-public enum BasicParam {
-  SMOOTHING(0),  // 磨皮
-  SHARPENING(1), // 锐化
-  WHITENING(2),  // 美白
-  ROSINESS(3);   // 红润
+public int setLipstick(float value);
+public int setLipstickColor(LipstickColor color);
+
+public int setBlush(float value);
+public int setBlushStyle(BlushStyle style);
+public int setBlushColor(BlushColor color);
+
+public int setContour(float value);
+public int setContourStyle(ContourStyle style);
+
+public int setEyeShadow(float value);
+public int setEyeShadowStyle(EyeShadowStyle style);
+public int setEyeShadowColor(EyeShadowColor color);
+
+public int setEyeLiner(float value);
+public int setEyeLinerStyle(EyeLinerStyle style);
+public int setEyeLinerColor(EyeLinerColor color);
+
+public int setEyebrow(float value);
+public int setEyebrowStyle(EyebrowStyle style);
+public int setEyebrowColor(EyebrowColor color);
+
+public int setEyelash(float value);
+public int setEyelashStyle(EyelashStyle style);
+public int setEyelashColor(EyelashColor color);
+
+public int setPupil(float value);
+public int setPupilColor(PupilColor color);
+```
+
+预设名在 `BeautyParams.*`。完整表格见 [参数枚举](/zh/intro/makeup)。
+
+## 虚拟背景与色度键
+
+默认用肖像分割作为遮罩。色度键会替换遮罩来源；填充仍是模糊或静态图。
+
+```java
+public int setChromaKey(ChromaKeyColor color);
+public int clearChromaKey();
+public int setChromaKeySimilarity(float value);
+public int setChromaKeySmoothness(float value);
+public int setChromaKeyDesaturation(float value);
+
+public int setVirtualBackgroundBlur(float level);
+public int setVirtualBackground(String imagePath);
+public int setVirtualBackground(byte[] imageData);
+public int clearVirtualBackground();
+```
+
+| 方法 | 说明 |
+| --- | --- |
+| `setChromaKey` | 使用色度键作为遮罩（`GREEN`、`BLUE`、`RED`） |
+| `clearChromaKey` | 恢复肖像分割遮罩；**不会**清除当前填充 |
+| `setChromaKeySimilarity` | 像素与键色的接近程度。`[0.0, 1.0]` |
+| `setChromaKeySmoothness` | 边缘羽化。`[0.0, 1.0]` |
+| `setChromaKeyDesaturation` | 半透明边缘溢色抑制。`[0.0, 1.0]` |
+| `setVirtualBackgroundBlur` | 背景模糊。`[0.0, 1.0]`。**`0` 会清除**虚拟背景 |
+| `setVirtualBackground(String)` | 用 PNG/JPG 文件替换背景，路径不能为空 |
+| `setVirtualBackground(byte[])` | 同上，传入编码后的 PNG/JPG 字节 |
+| `clearVirtualBackground` | 清除模糊或图片填充 |
+
+```java
+public enum ChromaKeyColor {
+  GREEN(0),
+  BLUE(1),
+  RED(2);
 }
 ```
 
-### 面部重塑参数
+空路径或空 `byte[]` 返回 `ErrorCode.INVALID_ARGUMENT`。
 
-面部重塑效果的参数类型，所有参数值范围均为 `0.0 - 1.0`。
+## 滤镜与贴纸
+
+传入 `.fbd` 文件路径或文件字节（例如从 `assets` 读取）。资源在下一帧处理后生效。没有注册 / 反注册接口。
 
 ```java
-public enum ReshapeParam {
-  FACE_THIN(0),      // 瘦脸
-  FACE_V_SHAPE(1),   // V脸
-  FACE_NARROW(2),    // 窄脸
-  FACE_SHORT(3),     // 短脸
-  CHEEKBONE(4),      // 颧骨
-  JAWBONE(5),        // 下颌骨
-  CHIN(6),           // 下巴
-  NOSE_SLIM(7),      // 瘦鼻梁
-  EYE_SIZE(8),       // 大眼
-  EYE_DISTANCE(9);   // 眼距
+public int setFilter(String fbdFilePath);
+public int setFilter(byte[] fbdData);
+public int clearFilter();
+public int setFilterIntensity(float intensity);
+
+public int setSticker(String fbdFilePath);
+public int setSticker(byte[] fbdData);
+public int clearSticker();
+```
+
+| 方法 | 说明 |
+| --- | --- |
+| `setFilter` | 从 `.fbd` 路径或内存字节应用 LUT 滤镜 |
+| `clearFilter` | 移除当前 LUT |
+| `setFilterIntensity` | 混合强度 `[0.0, 1.0]` |
+| `setSticker` | 从 `.fbd` 路径或字节应用 2D 贴纸 |
+| `clearSticker` | 移除当前贴纸 |
+
+空路径或空 `byte[]` 返回 `ErrorCode.INVALID_ARGUMENT`。
+
+## 统计与回调
+
+```java
+public EngineStats getStats();
+public int setCallbacks(EngineCallbacks callbacks);
+```
+
+`getStats()` 返回快照。引擎未初始化时字段为 `0`。`callbacks` 为 `null` 时 `setCallbacks` 返回 `ErrorCode.INVALID_ARGUMENT`。
+
+### EngineStats
+
+```java
+public class EngineStats {
+  public double fps;
+  public double avgProcessTimeMs;
+  public double sessionTimeS;
+
+  public EngineStats();
+  public EngineStats(double fps, double avgProcessTimeMs, double sessionTimeS);
 }
 ```
 
-### 美妆参数
+| 字段 | 说明 |
+| --- | --- |
+| `fps` | 近期处理帧率 |
+| `avgProcessTimeMs` | `processImage` 平均耗时（毫秒） |
+| `sessionTimeS` | 引擎创建后的秒数 |
 
-美妆效果的参数类型，所有参数值范围均为 `0.0 - 1.0`。
-
-```java
-public enum MakeupParam {
-  LIPSTICK(0),  // 口红
-  BLUSH(1);     // 腮红
-}
-```
-
-### 口红样式
+### EngineCallbacks
 
 ```java
-public enum LipstickStyle {
-  ROUGE(0),  // 玫瑰红
-  CORAL(1),  // 珊瑚橙
-  PINK(2);   // 粉色（默认）
-}
-```
+public class EngineCallbacks {
+  public OnFaceLandmarksCallback onFaceLandmarks;
+  public OnEngineEventCallback onEngineEvent;
 
-### 腮红样式
+  public interface OnFaceLandmarksCallback {
+    void onFaceLandmarks(List<FaceDetectionResult> results);
+  }
 
-```java
-public enum BlushStyle {
-  CLASSIC(0),  // 经典（默认）
-  PEACH(1),    // 蜜桃
-  ROSE(2);     // 玫瑰
-}
-```
-
-### 虚拟背景选项
-
-虚拟背景效果的配置选项。
-
-```java
-public static class VirtualBackgroundOptions {
-  public BackgroundMode mode = BackgroundMode.NONE;
-  public ImageFrame backgroundImage = null;
-  
-  public VirtualBackgroundOptions() {}
-  
-  public VirtualBackgroundOptions(BackgroundMode mode) {
-    this.mode = mode;
+  public interface OnEngineEventCallback {
+    void onEngineEvent(int code, String message);
   }
 }
 ```
 
-## 图像相关
+某个字段为 `null` 表示不订阅该回调。
 
-### ImageFrame
-
-图像帧类，用于封装图像数据和处理。
-
-**创建方法：**
-- `createWithFile(String filePath)`: 从文件创建（支持 PNG、JPG）
-- `createWithRGBA(ByteBuffer data, int width, int height, int stride)`: 从 RGBA 数据创建
-- `createWithBGRA(ByteBuffer data, int width, int height, int stride)`: 从 BGRA 数据创建
-- `createWithRGB(ByteBuffer data, int width, int height, int stride)`: 从 RGB 数据创建
-- `createWithBGR(ByteBuffer data, int width, int height, int stride)`: 从 BGR 数据创建
-- `createWithI420(...)`: 从 I420 YUV 数据创建
-- `createWithNV12(...)`: 从 NV12 YUV 数据创建
-- `createWithNV21(...)`: 从 NV21 YUV 数据创建
-- `createWithAndroid420(...)`: 从 Android Camera2 YUV_420_888 格式创建
-- `createWithTexture(int texture, int width, int height, int stride)`: 从 GPU 纹理创建（外部纹理输入）
-- `createWithBitmap(Bitmap bitmap)`: 从 Android Bitmap 创建（Android 专用）
-
-**图像操作：**
-- `int rotate(Rotation rotation)`: 旋转图像（返回 0 表示成功）
-- `int mirror(String mode)`: 镜像图像（返回 0 表示成功）
-  - 参数：`mode` 镜像模式，可以是 "horizontal"（水平）、"vertical"（垂直）或 "both"（两者）（不区分大小写）
-- `void setMirror(String mode)`: 设置引擎处理时的镜像模式（避免额外的格式转换）
-  - 参数：`mode` 镜像模式，可以是 "horizontal"（水平）、"vertical"（垂直）或 "both"（两者）（不区分大小写）
-  - 注意：这仅设置镜像标志，实际的镜像发生在引擎处理期间
-- `ImageFrame convert(Format format)`: 格式转换方法，返回转换后的 ImageFrame
-- `int toFile(String path, int quality)`: 保存图像到文件（指定质量 1-100）
-- `int toFile(String path)`: 保存图像到文件（使用默认质量 90）
-- `boolean isValid()`: 检查图像帧是否有效
-
-**属性访问：**
-- `int getWidth()`, `int getHeight()`: 获取图像宽高
-- `int getStride()`, `int getSize()`: 获取图像步长和大小
-- `Format getFormat()`: 获取图像格式
-- `int getTexture()`: 获取纹理句柄（如果是纹理格式）
-- `FrameType type`: 帧类型（`FrameType.IMAGE` 或 `FrameType.VIDEO`），默认值为 `FrameType.VIDEO`
-
-**数据访问：**
-- `ByteBuffer getData()`: 获取原始数据（单平面格式）
-- `ByteBuffer getDataY()`, `getDataU()`, `getDataV()`: 获取 YUV 分量数据
-- `ByteBuffer getDataUV()`: 获取 UV 平面数据（NV12/NV21）
-- `int getStrideY()`, `getStrideU()`, `getStrideV()`, `getStrideUV()`: 获取 YUV 步长
-- `convert(Format format)`: 格式转换方法，返回转换后的 ImageFrame
-
-**资源管理：**
-- `void release()`: 释放 native 资源
+### EngineEventCode
 
 ```java
-public class ImageFrame {
-  public static ImageFrame createWithFile(String filePath);
-  public static ImageFrame createWithRGBA(ByteBuffer data, int width, int height, int stride);
-  public static ImageFrame createWithBGRA(ByteBuffer data, int width, int height, int stride);
-  public static ImageFrame createWithRGB(ByteBuffer data, int width, int height, int stride);
-  public static ImageFrame createWithBGR(ByteBuffer data, int width, int height, int stride);
-  public static ImageFrame createWithI420(int width, int height, ByteBuffer yBuffer, int strideY,
-      ByteBuffer uBuffer, int strideU, ByteBuffer vBuffer, int strideV);
-  public static ImageFrame createWithNV12(int width, int height, ByteBuffer yBuffer, int strideY,
-      ByteBuffer uvBuffer, int strideUV);
-  public static ImageFrame createWithNV21(int width, int height, ByteBuffer yBuffer, int strideY,
-      ByteBuffer vuBuffer, int strideVU);
-  public static ImageFrame createWithAndroid420(int width, int height, ByteBuffer yBuffer,
-      int strideY, ByteBuffer uBuffer, int strideU, ByteBuffer vBuffer, int strideV,
-      int pixelStrideUV);
-  public static ImageFrame createWithTexture(int texture, int width, int height, int stride);
-  public static ImageFrame createWithBitmap(Bitmap bitmap);
-  
-  public int rotate(Rotation rotation);
-  public int mirror(String mode);
-  public void setMirror(String mode);
-  public ImageFrame convert(Format format);
-  public int toFile(String path, int quality);
-  public int toFile(String path);
-  public boolean isValid();
-  
-  // 属性访问方法
-  public int getWidth();
-  public int getHeight();
-  public int getStride();
-  public int getSize();
-  public ByteBuffer getData();
-  public Format getFormat();
-  public int getTexture();
-  
-  public FrameType type;  // 帧类型（FrameType.IMAGE 或 FrameType.VIDEO）
-  
-  // YUV 相关方法
-  public ByteBuffer getDataY();
-  public ByteBuffer getDataU();
-  public ByteBuffer getDataV();
-  public ByteBuffer getDataUV();
-  public int getStrideY();
-  public int getStrideU();
-  public int getStrideV();
-  public int getStrideUV();
-  
-  public void release();
+public final class EngineEventCode {
+  public static final int LICENSE_VALIDATION_SUCCESS = 0;
+  public static final int LICENSE_VALIDATION_FAILED = 1;
+  public static final int INITIALIZATION_COMPLETE = 100;
+  public static final int INITIALIZATION_FAILED = 101;
 }
 ```
 
-### 枚举类型
+| 码 | 含义 |
+| --- | --- |
+| `0` | 授权通过 |
+| `1` | 授权失败，`message` 含详情 |
+| `100` | 引擎可处理帧 |
+| `101` | 引擎初始化失败，`message` 含详情 |
 
-#### Format
+### FaceDetectionResult
 
-图像格式枚举。
+归一化坐标相对处理后的画面，范围 `[0, 1]`。
+
+| 字段 | 类型 | 说明 |
+| --- | --- | --- |
+| `rect` | `Rect` | 人脸框 |
+| `keyPoints` | `List<Point2d>` | 111 个关键点 |
+| `visibility` | `List<Float>` | 各点可见度 `[0, 1]` |
+| `faceId` | `int` | 跟踪 ID |
+| `score` | `float` | 检测置信度 `[0, 1]` |
+| `pitch` / `roll` / `yaw` | `float` | 头部姿态（弧度），范围 `[-π, π]` |
+
+`Point2d` 含 `float x, y`。`Rect` 含 `float x, y, width, height`（左上角原点）。
+
+## ErrorCode
+
+数值与其他平台一致。
+
+```java
+public final class ErrorCode {
+  public static final int SUCCESS = 0;
+  public static final int INVALID_ARGUMENT = -1;
+  public static final int NOT_INITIALIZED = -2;
+  public static final int LICENSE = -3;
+  public static final int UNSUPPORTED = -4;
+  public static final int IO = -5;
+  public static final int NO_SLOT = -6;
+  public static final int PROCESS = -7;
+  public static final int OUT_OF_MEMORY = -8;
+}
+```
+
+| 值 | 常量 | 含义 |
+| --- | --- | --- |
+| `0` | `SUCCESS` | 成功 |
+| `-1` | `INVALID_ARGUMENT` | 参数为空、空字符串或越界 |
+| `-2` | `NOT_INITIALIZED` | 引擎未初始化，或已 `release()` |
+| `-3` | `LICENSE` | 授权 / 鉴权失败 |
+| `-4` | `UNSUPPORTED` | 功能或格式不支持 |
+| `-5` | `IO` | 文件或资源读写失败 |
+| `-6` | `NO_SLOT` | 资源槽已满 |
+| `-7` | `PROCESS` | 帧处理失败 |
+| `-8` | `OUT_OF_MEMORY` | 内存分配失败 |
+
+<Note>
+**`-1` 表示参数无效。`-2` 表示引擎未初始化。**
+</Note>
+
+## ImageFrame
+
+封装原生像素缓冲。用完必须调用 `release()`。
+
+### 创建
+
+```java
+public static ImageFrame createWithFile(String filePath);
+public static ImageFrame createWithRGBA(ByteBuffer data, int width, int height, int stride);
+public static ImageFrame createWithBGRA(ByteBuffer data, int width, int height, int stride);
+public static ImageFrame createWithRGB(ByteBuffer data, int width, int height, int stride);
+public static ImageFrame createWithBGR(ByteBuffer data, int width, int height, int stride);
+public static ImageFrame createWithI420(int width, int height,
+    ByteBuffer yBuffer, int strideY, ByteBuffer uBuffer, int strideU,
+    ByteBuffer vBuffer, int strideV);
+public static ImageFrame createWithNV12(int width, int height,
+    ByteBuffer yBuffer, int strideY, ByteBuffer uvBuffer, int strideUV);
+public static ImageFrame createWithNV21(int width, int height,
+    ByteBuffer yBuffer, int strideY, ByteBuffer vuBuffer, int strideVU);
+public static ImageFrame createWithAndroid420(int width, int height,
+    ByteBuffer yBuffer, int strideY, ByteBuffer uBuffer, int strideU,
+    ByteBuffer vBuffer, int strideV, int pixelStrideUV);
+public static ImageFrame createWithTexture(int texture, int width, int height, int stride);
+public static ImageFrame createWithBitmap(Bitmap bitmap);
+```
+
+| 工厂方法 | 说明 |
+| --- | --- |
+| `createWithFile` | PNG / JPG 路径 |
+| `createWithAndroid420` | Camera2 `YUV_420_888` |
+| `createWithTexture` | 当前 GL 上下文中的 `GL_TEXTURE_2D`；`stride` 通常为 `width * 4` |
+| `createWithBitmap` | 将 `ARGB_8888` 像素拷入 RGBA 帧 |
+
+失败返回 `null`（无效 Bitmap、原生分配失败等）。打包 / 平面格式建议使用 `ByteBuffer.allocateDirect`。
+
+### 字段与操作
+
+```java
+public FrameType type = FrameType.VIDEO;
+
+public int rotate(Rotation rotation);
+public int mirror(String mode);
+public void setMirror(String mode);
+public ImageFrame convert(Format format);
+public int toFile(String path, int quality);
+public int toFile(String path);
+public Bitmap toBitmap();
+public boolean isValid();
+public void release();
+```
+
+| 方法 | 说明 |
+| --- | --- |
+| `rotate` | 原地旋转，成功返回 `0` |
+| `mirror` | 立即镜像。`mode`：`"horizontal"`、`"vertical"`、`"both"`（忽略大小写） |
+| `setMirror` | 在 **`processImage` 内部** 应用镜像（避免额外格式转换）。`""` / `null` 清除 |
+| `convert` | 返回 **新** 帧；调用方必须 `release()` |
+| `toFile` | 写出 PNG/JPG。质量 `1`–`100`；重载默认 `90` |
+| `toBitmap` | `ARGB_8888` `Bitmap`（必要时先转 RGBA） |
+
+### 访问器
+
+```java
+public int getWidth();
+public int getHeight();
+public int getStride();
+public int getSize();
+public ByteBuffer getData();
+public Format getFormat();
+public int getTexture();
+
+public ByteBuffer getDataY();
+public ByteBuffer getDataU();
+public ByteBuffer getDataV();
+public ByteBuffer getDataUV();
+public int getStrideY();
+public int getStrideU();
+public int getStrideV();
+public int getStrideUV();
+```
+
+未绑定 GPU 纹理时 `getTexture()` 返回 `0`。
+
+### Format
 
 ```java
 public enum Format {
-  I420(0),     // YUV 4:2:0 12bpp (3 planes, Y, U, V)
-  NV12(1),     // YUV 4:2:0 12bpp (2 planes, Y + UV)
-  NV21(2),     // YUV 4:2:0 12bpp (2 planes, Y + VU, Android default)
-  BGRA(3),     // BGRA 8:8:8:8 32bpp
-  RGBA(4),     // RGBA 8:8:8:8 32bpp
-  BGR(5),      // BGR 8:8:8 24bpp
-  RGB(6),      // RGB 8:8:8 24bpp
-  Texture(7);  // 纹理格式
+  I420(0),     // YUV 4:2:0 平面 Y, U, V
+  NV12(1),     // YUV 4:2:0 Y + UV
+  NV21(2),     // YUV 4:2:0 Y + VU（Android 相机常用）
+  BGRA(3),
+  RGBA(4),
+  BGR(5),
+  RGB(6),
+  Texture(7);
 }
 ```
 
-#### Rotation
+### Rotation
 
-图像旋转角度枚举。
+顺时针。
 
 ```java
 public enum Rotation {
-  ROTATION_0(0),    // 0度
-  ROTATION_90(1),   // 顺时针旋转90度
-  ROTATION_180(2),  // 顺时针旋转180度
-  ROTATION_270(3);  // 顺时针旋转270度
+  ROTATION_0(0),
+  ROTATION_90(1),
+  ROTATION_180(2),
+  ROTATION_270(3);
 }
 ```
-
-## 已废弃接口 (Deprecated APIs)
-
-<Warning>
-**已弃用**
-
-以下接口已弃用。请使用参数驱动接口（如 `setBeautyParam`）替代。
-</Warning>
-
-### 美颜类型控制
-
-- `int enableBeautyType(BeautyType type, boolean enabled)`
-  - **说明**: [已弃用] 启用或禁用美颜类型（参数驱动模式下无效果）
-  - **返回值**: `0` 表示成功
-
-- `boolean isBeautyTypeEnabled(BeautyType type)`
-  - **说明**: [已弃用] 检查美颜类型是否已启用（始终返回 false）
-  - **返回值**: `false`
-
-- `int disableAllBeautyTypes()`
-  - **说明**: [已弃用] 禁用所有美颜类型（请通过置零参数重置效果）
-  - **返回值**: `0` 表示成功

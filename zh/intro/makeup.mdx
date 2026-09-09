@@ -1,0 +1,226 @@
+---
+title: "参数枚举"
+description: "Facebetter SDK 2.0 的美型、美妆、美白、磨皮枚举"
+---
+
+<Note>
+本文档对应 SDK **2.0**。枚举数值在 C++、Objective-C、Java、JavaScript、Dart 上完全一致。
+</Note>
+
+美妆是三个旋钮：
+
+1. **强度** — `SetLipstick` / `SetBlush` / `SetContour` / `SetEyeShadow` / `SetEyeLiner` / `SetEyebrow` / `SetEyelash` / `SetPupil`，范围 `[0.0, 1.0]`。`0` 关闭该效果。
+2. **形状** — 换蒙版贴图（`SetBlushStyle`、`SetContourStyle`、`SetEyeShadowStyle` 等）。
+3. **色号** — 给当前形状染色（`SetLipstickColor`、`SetBlushColor`、`SetEyeShadowColor` 等）。**美瞳和修容不染色**，换项就是换贴图。
+
+| C++ / JS | Java | Objective-C | Dart |
+| --- | --- | --- | --- |
+| `LipstickColor::Rouge` | `LipstickColor.ROUGE` | `FBLipstickColor_Rouge` | `FBLipstickColor.rouge` |
+
+## 美白（`WhiteningStyle`）
+
+配合 `SetWhiteningStyle` 使用。强度仍由 `SetWhitening` 控制。默认：`ColdWhite`。
+
+| 值 | 名称 | 说明 |
+| --- | --- | --- |
+| 0 | `ColdWhite` | 冷白 |
+| 1 | `PinkWhite` | 粉白 |
+| 2 | `WarmWhite` | 暖白 |
+| 3 | `Wheat` | 小麦 |
+| 4 | `Tan` | 美黑 |
+
+## 磨皮（`SmoothingStyle`）
+
+配合 `SetSmoothingStyle` 使用。强度仍由 `SetSmoothing` 控制。默认：`Natural`。
+
+| 值 | 名称 | 说明 |
+| --- | --- | --- |
+| 0 | `Natural` | 保留毛孔 |
+| 1 | `Texture` | 更干净，仍保留质感 |
+| 2 | `Smooth` | 奶油肌 |
+
+## 美型（`Reshape`）
+
+配合 `SetReshape(param, intensity)` 使用。范围是 **`[-1.0, 1.0]`**。`0` 关闭。正负为相反方向（例如瘦脸：瘦脸 / 丰脸颊）。
+
+| 值 | 名称 | 正向 / 负向 |
+| --- | --- | --- |
+| 0 | `FaceThin` | 瘦脸 / 丰脸颊 |
+| 1 | `FaceVShape` | V 脸 / 方下巴 |
+| 2 | `FaceNarrow` | 窄脸 / 宽脸 |
+| 3 | `FaceShort` | 短脸 / 长脸 |
+| 4 | `Cheekbone` | 瘦颧骨 / 扩颧骨 |
+| 5 | `Jawbone` | 瘦下颌 / 扩下颌 |
+| 6 | `Chin` | 拉长下巴 / 缩短下巴 |
+| 7 | `NoseSlim` | 瘦鼻 / 宽鼻 |
+| 8 | `EyeSize` | 大眼 / 小眼 |
+| 9 | `EyeDistance` | 拉开眼距 / 拉近眼距 |
+| 10 | `FaceSmall` | 小脸 / 大脸 |
+| 11 | `Forehead` | 丰额头 / 压额头 |
+| 12 | `NoseLong` | 长鼻 / 短鼻 |
+| 13 | `Philtrum` | 缩短人中 / 拉长人中 |
+| 14 | `MouthSize` | 大嘴 / 小嘴 |
+| 15 | `MouthPosition` | 嘴下移 / 嘴上移 |
+| 16 | `MouthSmile` | 微笑 / 下垂嘴角 |
+| 17 | `LipThickness` | 厚唇 / 薄唇 |
+| 18 | `EyeRound` | 圆眼 / 细长眼 |
+| 19 | `EyePosition` | 眼下移 / 眼上移 |
+| 20 | `EyeAngle` | 眼尾上扬 / 眼尾下垂 |
+| 21 | `EyeCornerOpen` | 开眼角 / 收眼角 |
+| 22 | `LowerEyelid` | 卧蚕 / 提眼睑 |
+| 23 | `BrowPosition` | 眉上移 / 眉下移 |
+| 24 | `BrowDistance` | 拉开眉距 / 拉近眉距 |
+| 25 | `BrowThickness` | 粗眉 / 细眉 |
+
+Java 使用 `SNAKE_CASE`（`FACE_THIN`、`FACE_V_SHAPE` …）。Objective-C 使用 `FBReshape_FaceThin`。Dart 使用 `FBReshape.faceThin`。
+
+## 口红（`LipstickColor`）
+
+单张嘴部蒙版 + 染色。默认：`Rouge`。
+
+| 值 | 名称 | 说明 |
+| --- | --- | --- |
+| 0 | `Rouge` | 玫瑰 |
+| 1 | `RetroRed` | 复古红 |
+| 2 | `Peach` | 蜜桃 |
+| 3 | `CoralOrange` | 珊瑚橘 |
+| 4 | `GentlePink` | 温柔粉 |
+| 5 | `VitalityOrange` | 活力橙 |
+
+## 腮红
+
+形状走 `BlushStyle`（换贴图）。色号走 `BlushColor`（染色）。默认形状 `SunKissed`，默认色号 `CoralPink`。
+
+| 值 | `BlushStyle` | 说明 |
+| --- | --- | --- |
+| 0 | `SunKissed` | 颧骨连鼻梁 |
+| 1 | `Igari` | 微醺鼻梁横带 |
+| 2 | `Soft` | 柔和双颊 |
+| 3 | `Apple` | 圆形苹果肌 |
+| 4 | `Classic` | 经典两点 |
+| 5 | `Doll` | 脸颊 + 鼻尖 |
+| 6 | `Rose` | 玫瑰双颊 |
+
+| 值 | `BlushColor` | 说明 |
+| --- | --- | --- |
+| 0 | `CoralPink` | 珊瑚粉 |
+| 1 | `DustyRose` | 雾玫瑰 |
+| 2 | `VividRed` | 正红 |
+| 3 | `Berry` | 莓果 |
+| 4 | `SunsetOrange` | 落日橙 |
+
+## 修容（`ContourStyle`）
+
+中灰 Overlay：比 128 亮是高光，比 128 暗是阴影。换贴图，不染色。默认：`Natural`。
+
+| 值 | 名称 | 说明 |
+| --- | --- | --- |
+| 0 | `Natural` | 日常薄修容 |
+| 1 | `Sculpt` | 立体深修容 |
+| 2 | `Glow` | 提亮为主 |
+| 3 | `Slim` | 瘦颧骨 |
+| 4 | `Nose` | 鼻梁立体 |
+| 5 | `Glam` | 高光点 |
+
+## 眼影
+
+形状 `EyeShadowStyle`，色号 `EyeShadowColor`。默认形状 `Soft`，默认色号 `Plum`。
+
+| 值 | 形状 | 说明 |
+| --- | --- | --- |
+| 0 | `Soft` | 柔和铺色 |
+| 1 | `Crease` | 加深眼窝 |
+| 2 | `Smoky` | 烟熏圈 |
+| 3 | `Halo` | 眼周光晕 |
+| 4 | `Glow` | 眼尾提亮 |
+| 5 | `Drama` | 全覆盖 |
+| 6 | `Warm` | 暖色铺色 |
+
+| 值 | 色号 | 说明 |
+| --- | --- | --- |
+| 0 | `Plum` | 梅子 / mauve |
+| 1 | `Brown` | 暖棕 |
+| 2 | `Gold` | 柔金 |
+| 3 | `Pink` | 雾粉 |
+
+## 眼线
+
+| 值 | `EyeLinerStyle` | 说明 |
+| --- | --- | --- |
+| 0 | `Classic` | 全眼线 + 眼尾 |
+| 1 | `Flick` | 长眼尾 |
+| 2 | `CatEye` | 短猫眼 |
+| 3 | `Natural` | 细自然线 |
+| 4 | `Bold` | 浓密覆盖 |
+| 5 | `Soft` | 柔和晕染眼尾 |
+
+| 值 | `EyeLinerColor` | 说明 |
+| --- | --- | --- |
+| 0 | `Burgundy` | 酒红棕 |
+| 1 | `Plum` | 深梅子 |
+| 2 | `Chocolate` | 巧克力 |
+| 3 | `Coffee` | 近黑咖啡 |
+| 4 | `Mauve` | 雾紫 |
+
+## 眉毛
+
+| 值 | `EyebrowStyle` | 说明 |
+| --- | --- | --- |
+| 0 | `Natural` | 自然眉弓 + 毛流感 |
+| 1 | `Soft` | 柔和粉眉 |
+| 2 | `Feathered` | 羽毛状 |
+| 3 | `Mist` | 薄雾 |
+| 4 | `Arched` | 经典上扬 |
+| 5 | `Powder` | 浓密粉眉 |
+| 6 | `Wild` | 上沿飞丝 |
+| 7 | `Full` | 均匀饱满 |
+| 8 | `Straight` | 平直低眉弓 |
+
+| 值 | `EyebrowColor` | 说明 |
+| --- | --- | --- |
+| 0 | `DarkBrown` | 深棕 |
+| 1 | `Black` | 黑色 |
+| 2 | `SoftBrown` | 柔棕 |
+
+## 睫毛
+
+| 值 | `EyelashStyle` | 说明 |
+| --- | --- | --- |
+| 0 | `Classic` | 均匀簇 + 下睫毛 |
+| 1 | `Manga` | 漫画尖簇 |
+| 2 | `Winged` | 眼尾加长 |
+| 3 | `Wispy` | 散开飞翘 |
+| 4 | `Clustered` | 分明簇状 |
+| 5 | `Doll` | 短娃娃睫 |
+
+| 值 | `EyelashColor` | 说明 |
+| --- | --- | --- |
+| 0 | `Black` | 近黑 |
+| 1 | `Brown` | 柔棕 |
+| 2 | `SoftBlack` | 柔黑 |
+
+## 美瞳（`PupilColor`）
+
+每种颜色一张虹膜贴图。不染色。默认：`Hazel`。
+
+| 值 | 名称 | 说明 |
+| --- | --- | --- |
+| 0 | `Hazel` | 琥珀蜜棕 |
+| 1 | `Ice` | 冰蓝 |
+| 2 | `Mocha` | 深棕闪光 |
+| 3 | `Olive` | 森林绿 |
+| 4 | `Gloss` | 亮面深棕 |
+| 5 | `Moss` | 雾橄榄绿 |
+| 6 | `Sand` | 沙棕 |
+| 7 | `Glow` | 虹膜下缘月牙高光（不是整片美瞳） |
+| 8 | `Slate` | 蓝灰 |
+
+## 色键（`ChromaKeyColor`）
+
+配合 `SetChromaKey` 作为虚拟背景的抠图源。
+
+| 值 | 名称 |
+| --- | --- |
+| 0 | `Green` |
+| 1 | `Blue` |
+| 2 | `Red` |

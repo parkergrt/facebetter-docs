@@ -71,6 +71,7 @@
                   "intro/enable-service",
                   "intro/license",
                   "intro/use-with-ai",
+                  "intro/makeup",
                   "intro/release-note"
                 ],
                 "icon": "book-open",
@@ -216,6 +217,7 @@
                   "zh/intro/enable-service",
                   "zh/intro/license",
                   "zh/intro/use-with-ai",
+                  "zh/intro/makeup",
                   "zh/intro/release-note"
                 ],
                 "icon": "book-open",

@@ -1,266 +1,189 @@
 ---
 title: "实现美颜"
-description: "实现 Flutter 美颜"
+description: "接入 Facebetter Flutter SDK 2.0"
 ---
 
-## 添加 SDK 依赖
+<Note>
+SDK **2.0.0**。类名：**`FBEngine`**。没有单例。鉴权：[授权与许可证](/zh/intro/license)。枚举：[参数枚举](/zh/intro/makeup)。
+</Note>
 
-在 `pubspec.yaml` 中添加依赖：
+Flutter **只设置美颜参数**。实时视频帧不进 Dart。TRTC / 推流 SDK 在原生 GL 线程喂纹理 — 见 [TRTC 对接](/zh/flutter/trtc-integration)。
+
+## 添加插件
 
 ```yaml
 dependencies:
-  facebetter_flutter: ^1.4.4
+  facebetter_flutter: ^2.0.0
 ```
-
-然后执行：
-
-```bash
-flutter pub get
-```
-
-iOS 还需要执行：
-
-```bash
-cd ios && pod install
-```
-
-## 导入类
 
 ```dart
 import 'package:facebetter_flutter/facebetter_flutter.dart';
 ```
 
-## 日志配置
+## 日志
 
-默认日志是关闭的，可以按需开启：
-
-<Warning>
-开启日志要放到引擎初始化**之前**，否则可能看不到初始化日志。
-</Warning>
+必须在 `FBEngine.create` **之前**调用：
 
 ```dart
-FBBeautyEffectEngine.setLogConfig(
-  FBLogConfig(
-    consoleEnabled: true,
-    level: FBLogLevel.debug,
-  ),
+FBEngine.setLogConfig(
+  console: true,
+  file: false,
+  level: FBLogLevel.info,
+  fileName: '',
 );
 ```
 
-## 初始化引擎
+## 创建
 
-按照 [此页面](/zh/intro/enable-service#获取-appid-和-appkey) 指引，获取 `appId` 和 `appKey`：
+提供 `appId` + `appKey`，**或** `licenseToken`（许可证 token、`{token}` JSON，或原生离线 `.lic`）。两者都有时优先 token。
 
 ```dart
-await FBBeautyEffectEngine.init(
-  FBEngineConfig(appId: 'your appId', appKey: 'your appKey'),
-);
-
-// 获取单例
-final engine = FBBeautyEffectEngine.sharedInstance;
+final engine = await FBEngine.create(FBEngineConfig(
+  appId: '...',
+  appKey: '...',
+  // licenseToken: '...',
+  enableLandmarks: false,
+  externalContext: true,
+  resourcePath: null,
+));
 ```
 
-**验证方式优先级：**
-- 如果提供了 `licenseJson`，使用授权数据验证（支持在线响应和离线授权）
-- 否则使用 `appId` 和 `appKey` 进行自动联网验证
+| 字段 | 默认 | 说明 |
+| --- | --- | --- |
+| `appId` / `appKey` | — | 在线鉴权 |
+| `licenseToken` | — | token / `{token}` JSON / `.lic` 全文 |
+| `enableLandmarks` | `false` | 引擎级开关，创建后不能改。不读关键点请保持 `false` |
+| `externalContext` | `true` | 接 TRTC 用 `true`；静图文件接口用 `false` |
+| `resourcePath` | 插件自动 | Android AAR 内 `resource.fbd` / iOS framework 内文件 |
+
+`FBEngine.version` 读取原生 SDK 版本字符串。
+
+## 皮肤、美型、美妆
+
+强度 setter 是**同步**的，可以直接写在 `Slider.onChanged` 里。
+
+皮肤 `[0.0, 1.0]`：
 
 ```dart
-await FBBeautyEffectEngine.init(
-  FBEngineConfig(
-    appId: 'your appId',
-    appKey: 'your appKey',
-    licenseJson: 'your license json string', // 可选
-  ),
-);
+engine.setSmoothing(0.8);
+engine.setSmoothingStyle(FBSmoothingStyle.natural);
+engine.setWhitening(0.5);
+engine.setWhiteningStyle(FBWhiteningStyle.coldWhite);
+engine.setSharpening(0.3);
+engine.setRosiness(0.2);
+engine.setBeautySkinOnly(true);
 ```
 
-## 调节美颜参数
-
-<Tip>
-所有美颜参数值范围为 `[0.0, 1.0]`，设置为 `0` 即禁用效果。
-</Tip>
-
-### 设置美肤参数
+美型 **`[-1.0, 1.0]`**：
 
 ```dart
-final engine = FBBeautyEffectEngine.sharedInstance;
-
-await engine.setBasicParam(FBBasicParam.smoothing, 0.8);  // 磨皮
-await engine.setBasicParam(FBBasicParam.whitening, 0.6);  // 美白
-await engine.setBasicParam(FBBasicParam.rosiness, 0.3);   // 红润
-await engine.setBasicParam(FBBasicParam.sharpening, 0.2); // 锐化
+engine.setReshape(FBReshape.faceThin, 0.3);
+engine.setReshape(FBReshape.eyeSize, 0.2);
 ```
 
-支持的美肤参数：
-
-| 参数 | 枚举值 | 说明 |
-|------|--------|------|
-| `FBBasicParam.smoothing` | 0 | 磨皮 |
-| `FBBasicParam.sharpening` | 1 | 锐化 |
-| `FBBasicParam.whitening` | 2 | 美白 |
-| `FBBasicParam.rosiness` | 3 | 红润 |
-
-### 设置美型参数
+美妆（强度 + 风格/色号）。完整枚举：[参数枚举](/zh/intro/makeup)。
 
 ```dart
-await engine.setReshapeParam(FBReshapeParam.faceThin, 0.5);   // 瘦脸
-await engine.setReshapeParam(FBReshapeParam.eyeSize, 0.3);    // 大眼
-await engine.setReshapeParam(FBReshapeParam.noseSlim, 0.2);   // 瘦鼻梁
+engine.setLipstick(0.4);
+engine.setLipstickColor(FBLipstickColor.rouge);
+engine.setBlush(0.3);
+engine.setBlushStyle(FBBlushStyle.sunKissed);
+engine.setBlushColor(FBBlushColor.coralPink);
+engine.setContour(0.4);
+engine.setContourStyle(FBContourStyle.natural);
+engine.setEyeShadow(0.35);
+engine.setEyeShadowStyle(FBEyeShadowStyle.soft);
+engine.setEyeShadowColor(FBEyeShadowColor.plum);
+engine.setEyeLiner(0.3);
+engine.setEyebrow(0.3);
+engine.setEyelash(0.3);
+engine.setPupil(0.4);
 ```
 
-支持的美型参数：
+## 滤镜、贴纸、虚拟背景
 
-| 参数 | 枚举值 | 说明 |
-|------|--------|------|
-| `FBReshapeParam.faceThin` | 0 | 瘦脸 |
-| `FBReshapeParam.faceVShape` | 1 | V脸 |
-| `FBReshapeParam.faceNarrow` | 2 | 窄脸 |
-| `FBReshapeParam.faceShort` | 3 | 短脸 |
-| `FBReshapeParam.cheekbone` | 4 | 颧骨 |
-| `FBReshapeParam.jawbone` | 5 | 下颌骨 |
-| `FBReshapeParam.chin` | 6 | 下巴 |
-| `FBReshapeParam.noseSlim` | 7 | 瘦鼻梁 |
-| `FBReshapeParam.eyeSize` | 8 | 大眼 |
-| `FBReshapeParam.eyeDistance` | 9 | 眼距 |
-
-### 设置美妆参数
+传路径 **或** `Uint8List` 字节，不能同时传。这些接口返回 `Future`（读文件 + 上传 GPU）。
 
 ```dart
-await engine.setMakeupParam(FBMakeupParam.lipstick, 0.5); // 口红
-await engine.setMakeupParam(FBMakeupParam.blush, 0.3);    // 腮红
+await engine.setFilter(path: '/path/to/filter.fbd');
+// await engine.setFilter(data: bytes);
+engine.setFilterIntensity(0.8);
+engine.clearFilter();
+
+await engine.setSticker(path: '/path/to/sticker.fbd');
+engine.clearSticker();
+
+engine.setVirtualBackgroundBlur(0.6);
+await engine.setVirtualBackground(path: '/path/to/bg.jpg');
+engine.clearVirtualBackground();
 ```
 
-### 设置美颜仅作用于皮肤区域
+色度键（同步），与原生一致：
 
 ```dart
-await engine.setSkinOnlyBeauty(true);
+engine.setChromaKey(FBChromaKeyColor.green);
+engine.setChromaKeySimilarity(0.4);
+engine.setChromaKeySmoothness(0.2);
+engine.setChromaKeyDesaturation(0.3);
+engine.clearChromaKey();
 ```
 
-<Tip>
-启用后，美颜效果（磨皮、美白等）仅应用于皮肤区域，非皮肤区域保持不变。
-</Tip>
+色度键只提供**遮罩**；填充仍是虚化或背景图。
 
-### 设置虚拟背景
+## 事件与统计
 
 ```dart
-// 模糊背景
-await engine.setVirtualBackground(FBBackgroundMode.blur);
-
-// 图片背景
-await engine.setVirtualBackground(
-  FBBackgroundMode.image,
-  backgroundImage: FBImageFrame(
-    width: 1920, height: 1080, stride: 7680,
-    data: bgRgbaBytes, format: FBImageFormat.rgba,
-  ),
-);
-
-// 清除虚拟背景
-await engine.setVirtualBackground(FBBackgroundMode.none);
-```
-
-## 使用滤镜和贴纸
-
-### 滤镜功能
-
-```dart
-// 注册滤镜资源
-await engine.registerFilter('chuxin', '/path/to/chuxin.fbd');
-
-// 或从内存注册
-await engine.registerFilterData('chuxin', fbdBytes);
-
-// 使用滤镜
-await engine.setFilter('chuxin');
-
-// 调节滤镜强度
-await engine.setFilterIntensity(0.8);
-
-// 卸载滤镜
-await engine.unregisterFilter('chuxin');
-```
-
-### 贴纸功能
-
-```dart
-// 注册贴纸资源
-await engine.registerSticker('cherry', '/path/to/cherry.fbd');
-
-// 使用贴纸
-await engine.setSticker('cherry');
-
-// 清除贴纸
-await engine.setSticker('');
-```
-
-## 处理图像
-
-### 创建图像帧
-
-```dart
-// RGBA 格式
-final inputFrame = FBImageFrame(
-  width: 1080, height: 1920, stride: 4320,
-  data: rgbaBytes, format: FBImageFormat.rgba,
-  frameType: FBFrameType.image,
-);
-
-// I420 格式
-final i420Frame = FBImageFrame.fromI420(
-  width: 1080, height: 1920,
-  dataY: yBytes, strideY: 1080,
-  dataU: uBytes, strideU: 540,
-  dataV: vBytes, strideV: 540,
-);
-
-// NV12 格式
-final nv12Frame = FBImageFrame.fromNV12(
-  width: 1080, height: 1920,
-  dataY: yBytes, strideY: 1080,
-  dataUV: uvBytes, strideUV: 1080,
-);
-```
-
-### 处理图像
-
-```dart
-final outputFrame = await engine.processImage(inputFrame);
-if (outputFrame != null) {
-  final processedData = outputFrame.data;
-  // 使用处理后的数据...
-}
-```
-
-### 处理图片文件
-
-```dart
-final ret = await engine.processImageFile('input.png', 'output.png');
-```
-
-<Tip>
-引擎会自动保持输入输出格式一致。输入 NV21 格式，输出即为 NV21 格式；输入 RGBA 格式，输出即为 RGBA 格式。
-</Tip>
-
-## 设置回调
-
-```dart
-engine.onEngineEvent.listen((event) {
-  if (event.code == FBEngineEventCode.licenseValidationSuccess) {
-    print('License 验证成功');
-  } else if (event.code == FBEngineEventCode.licenseValidationFailed) {
-    print('License 验证失败: ${event.message}');
+engine.events.listen((FBEngineEvent e) {
+  switch (e.eventCode) {
+    case FBEngineEventCode.licenseValidationSuccess:
+    case FBEngineEventCode.engineInitializationComplete:
+      break;
+    case FBEngineEventCode.licenseValidationFailed:
+    case FBEngineEventCode.engineInitializationFailed:
+      debugPrint(e.message);
   }
 });
+
+final FBStats s = engine.stats;
+// s.fps, s.avgProcessTimeMs, s.sessionTimeSeconds
 ```
 
-## 释放资源
+## 静图
+
+使用**另一台**引擎，且 `externalContext: false`。不要在 TRTC 引擎上调用这些接口，也不要从 Dart 逐帧处理 TRTC 视频。
 
 ```dart
-await engine.release();
+final photoEngine = await FBEngine.create(const FBEngineConfig(
+  appId: '...',
+  appKey: '...',
+  externalContext: false,
+));
+
+await photoEngine.processFile(input: srcPath, output: dstPath, quality: 90);
+
+final FBBitmap bmp = await photoEngine.processImageBytes(jpegBytes);
+final FBBitmap fromFile = await photoEngine.processImageFile(srcPath);
+final ui.Image image = await photoEngine.processImageToUiImage(jpegBytes);
+
+photoEngine.dispose();
+```
+
+`FBBitmap.pixels` 为 RGBA8888（`stride == width * 4`）。
+
+## 错误
+
+setter 与异步任务失败时抛 `FBException`，错误码为 `0`、`-1` … `-8`。见 [API 参考](/zh/flutter/api-reference#错误码)。
+
+## 释放
+
+先停 TRTC 自定义前处理，再：
+
+```dart
+engine.dispose();
 ```
 
 ## 相关文档
 
-- [API 参考](/zh/flutter/api-reference) - 完整的 API 文档
-- [TRTC 集成](/zh/flutter/trtc-integration) - TRTC 推流 SDK 集成美颜
-- [授权认证](/zh/intro/license) - 在线 / 离线 License 说明
+- [TRTC 对接](/zh/flutter/trtc-integration)
+- [API 参考](/zh/flutter/api-reference)
+- [快速开始](/zh/flutter/quick-start)

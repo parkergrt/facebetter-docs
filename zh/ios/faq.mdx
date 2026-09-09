@@ -1,194 +1,157 @@
 ---
 title: "常见问题"
-description: "iOS 美颜 SDK 常见问题解答"
+description: "iOS Facebetter SDK 2.0 常见问题"
 ---
 
-## 集成问题
+<Note>
+本文档对应 SDK **2.0.0**。授权见 [授权认证](/zh/intro/license)。枚举见 [参数枚举](/zh/intro/makeup)。
+</Note>
 
-### Q: 引擎创建失败怎么办？
-A: 检查以下几点：
-- 确认 `appId` 和 `appKey` 是否正确
-- 检查网络连接是否正常
-- 查看日志输出获取详细错误信息
-- 确认 SDK 版本是否最新
-- 检查 Framework 是否正确链接
+## 集成
 
-### Q: 编译时找不到头文件或类？
-A: 可能的原因：
-- 确认已正确添加 `Facebetter.framework` 到项目
-- 检查 Framework 的 "Embed & Sign" 设置是否正确
-- 确认导入语句：`#import <Facebetter/FBBeautyEffectEngine.h>`
-- 尝试 Clean Build Folder 后重新构建
+### 创建引擎返回 `nil`
 
-### Q: 运行时出现链接错误？
-A: 解决方案：
-- 确认设备架构是否支持（arm64, armv7）
-- 检查 Framework 文件是否完整
-- 确认 Framework 的部署目标设置正确
-- 检查是否有其他 Framework 冲突
+- 确认已设置 `licenseToken` **或** `appId` + `appKey`。两者都有时以 token 为准。
+- 在控制台绑定应用 **Bundle ID**。
+- 在线授权需要能访问 `/facebetter/v2/auth`。
+- 在 `createEngineWithConfig:` **之前**打开日志，关注事件 `1`（授权失败）和 `101`（初始化失败）。
+- CocoaPods：`pod 'Facebetter', '2.0.0'`。打开 `.xcworkspace`，不要打开 `.xcodeproj`。
 
-## 功能问题
+### 编译找不到头文件或类
 
-### Q: 美颜效果不明显？
-A: 可以尝试：
-- 增加美颜参数值（范围 0.0-1.0）
-- 确保启用了对应的美颜类型
-- 检查图像质量是否足够清晰
-- 确认人脸检测是否正常
+- 导入 `#import <Facebetter/FBBeautyEffectEngine.h>`。
+- 手动集成 `.framework` 时设置为 **Embed & Sign**。
+- Clean Build Folder 后重建。
+- Xcode 15+ CocoaPods 脚本失败时，将 `ENABLE_USER_SCRIPT_SANDBOXING` 设为 **No**。
 
-### Q: 美颜效果过度或失真？
-A: 建议：
-- 降低美颜参数值
-- 检查参数组合是否合理
-- 避免同时启用过多美颜类型
-- 根据图像质量调整参数
+### 运行时链接 / dyld 错误
 
-### Q: 虚拟背景不生效？
-A: 检查：
-- 确认已启用 `FBBeautyType_VirtualBackground`
-- 检查背景图片路径是否正确
-- 确认图片格式是否支持（PNG、JPG）
-- 检查图片文件是否存在且可读
+- 架构必须是 **arm64**。
+- 部署目标 **iOS 12.0+**。
+- 确认 `Facebetter.framework` 已加入 Embed Frameworks。
 
-## 性能问题
+## 授权
 
-### Q: 处理速度慢怎么办？
-A: 优化建议：
-- 使用 `FBFrameTypeVideo` 进行实时处理
-- 降低图像分辨率
-- 减少同时启用的美颜类型
-- 避免在主线程进行图像处理
-- 使用多线程处理图像
+### `licenseToken` 与 `appId` / `appKey`
 
-### Q: 内存占用过高？
-A: 解决方案：
-- 及时释放 `FBImageFrame` 和 `FBImageBuffer` 对象
-- 避免频繁创建和销毁引擎实例
-- 复用 `FBImageFrame` 对象
-- 使用对象池模式管理图像缓冲区
+`licenseToken` 非空时，SDK 在本地校验 token / `{token}` JSON / `.lic`，**不会**再发 `appId` / `appKey`。否则走在线授权。详见 [授权认证](/zh/intro/license)。
 
-### Q: 应用崩溃或卡顿？
-A: 排查步骤：
-- 检查是否在主线程进行图像处理
-- 确认资源释放是否完整
-- 查看日志中的异常信息
-- 检查参数值是否在有效范围内
-- 使用 Instruments 工具分析内存和性能
+### 事件 `1` 或 `101`
 
-## 图像处理问题
+授权或初始化失败。检查 Bundle ID、套餐、token 是否过期以及日志。创建返回非 `nil` 不够，还要监听 `onEngineEvent`。
 
-### Q: 如何处理不同格式的图像？
-A: 使用 `FBImageFrame` 的格式转换方法：
-- `toRGBA` - 转换为 RGBA 格式
-- `toI420` - 转换为 I420 格式
-- `toNV12` - 转换为 NV12 格式
-- `toBGRA` - 转换为 BGRA 格式
+## 美颜
 
-### Q: 相机预览图像处理？
-A: 建议流程：
-1. 从 AVCaptureSession 获取 CVPixelBuffer
-2. 使用 `createWithData` 创建 FBImageFrame
-3. 调用 `processImage` 处理
-4. 转换为目标格式显示
+### 效果太弱或太强
 
-### Q: 图像旋转问题？
-A: 解决方案：
-- 使用 `FBImageFrame` 的 `rotate` 方法旋转图像
-- 支持 0°、90°、180°、270° 旋转
-- 旋转操作会修改原始图像数据
+- 美肤 / 美妆 / 滤镜：`[0.0, 1.0]`。
+- 美型：通过 `setReshape:intensity:` 使用 **`[-1.0, 1.0]`**（`0` 关闭）。
+- 强度为 `0` 即关闭该项。
+- 仅皮肤区域：`setBeautySkinOnly:`。
 
-## 权限问题
+美妆 / 美型取值见 [参数枚举](/zh/intro/makeup)。Objective-C 形如 `FBReshape_FaceThin`、`FBLipstickColor_Rouge`。
 
-### Q: 相机权限问题？
-A: 需要添加权限描述：
-```xml
-<key>NSCameraUsageDescription</key>
-<string>需要相机权限进行美颜拍照</string>
+## 滤镜、贴纸、虚拟背景
+
+### 滤镜或贴纸没有效果
+
+直接传 `.fbd` 路径或字节：
+
+```objc
+[engine setFilter:fbdPath];
+[engine setFilterIntensity:0.8f];
+[engine clearFilter];
+
+[engine setSticker:fbdPath];
+[engine clearSticker];
 ```
 
-### Q: 相册权限问题？
-A: 需要添加权限描述：
-```xml
-<key>NSPhotoLibraryUsageDescription</key>
-<string>需要相册权限选择照片进行美颜</string>
+在下一次 `processImage:` 处理后生效。空路径 / nil 数据返回 `FBErrorCode_InvalidArgument`。文件不存在返回 `FBErrorCode_IO`。
+
+### 虚拟背景
+
+```objc
+[engine setVirtualBackgroundBlur:0.6f];           // 0 清除模糊
+[engine setVirtualBackground:imagePath];          // png/jpg
+[engine setVirtualBackgroundWithData:imageData];
+[engine clearVirtualBackground];
 ```
 
-## 调试问题
+色键只负责**遮罩**，填充仍是模糊或替换图：
 
-### Q: 如何开启调试日志？
-A: 在创建引擎前配置：
+```objc
+[engine setChromaKey:FBChromaKeyColor_Green];
+[engine setChromaKeySimilarity:0.4f];
+[engine clearChromaKey];  // 回到人像分割；填充保留
+```
+
+## 处理
+
+### `processImage:` 返回 `nil`
+
+- 引擎为 `nil` 或初始化失败（`-2` / 事件 `101`）。
+- 帧无效（尺寸为 0、格式不支持）。
+- `externalContext = YES` 但当前线程没有 GL 上下文。
+- 按处理失败（`FBErrorCode_Process`）处理。
+
+### 帧类型
+
+将 `imageFrame.type` 设为 `FBFrameTypeImage`（`0`）或 `FBFrameTypeVideo`（`1`）。不要再传处理模式参数。
+
+### 格式转换
+
+使用 `convert:` 和帧访问器：
+
+```objc
+FBImageFrame *rgba = [frame convert:FBImageFormatRGBA];
+const uint8_t *data = [rgba data];
+```
+
+YUV：`dataY` / `dataU` / `dataV` / `dataUV` 及对应 `stride*`。
+
+### UIImage
+
+```objc
+FBImageFrame *frame = [FBImageFrame createWithUIImage:image];
+frame.type = FBFrameTypeImage;
+FBImageFrame *out = [engine processImage:frame];
+```
+
+### 相机预览
+
+1. 从 `AVCaptureVideoDataOutput` 取 `CVPixelBuffer`。
+2. 用 `createWithNV12:...` 或 `createWithBGRA:...` 创建 `FBImageFrame`。
+3. 设置 `type = FBFrameTypeVideo`，可选 `setMirror:@"horizontal"`。
+4. `processImage:` 后显示 `[output data]` 或 `[output texture]`。
+
+## 性能与内存
+
+- 实时用 `FBFrameTypeVideo`；若 `getStats.avgProcessTimeMs` 偏高则降分辨率。
+- 一个引擎、串行队列；不要在主线程处理。
+- 用 ARC 释放帧（`frame = nil`），复用采集 buffer。
+- 避免每帧 `setFilter:` / `setSticker:`。
+
+## 日志
+
 ```objc
 FBLogConfig *logConfig = [[FBLogConfig alloc] init];
 logConfig.consoleEnabled = YES;
 logConfig.fileEnabled = YES;
 logConfig.level = FBLogLevel_Debug;
-[FBBeautyEffectEngine setLogConfig:logConfig];
+logConfig.fileName = logPath;
+[FBBeautyEffectEngine setLogConfig:logConfig];  // 在 createEngineWithConfig: 之前
 ```
 
-### Q: 如何获取详细错误信息？
-A: 方法：
-- 开启 DEBUG 级别日志
-- 检查 API 返回值（0 表示成功）
-- 查看文件日志输出
-- 使用 Xcode 的 Console 查看日志
+返回码：`0` 成功，`-1` 参数无效，`-2` 未初始化。完整列表见 [错误处理](/zh/ios/error-handling)。
 
-## 版本兼容性
+## 版本
 
-### Q: 支持哪些 iOS 版本？
-A: 支持 iOS 10.0 及以上版本
+- **iOS 12.0+**，**arm64**。
+- CocoaPods：`pod 'Facebetter', '2.0.0'`。
+- 升级后执行 `pod install`、Clean Build Folder，再验证授权和 `processImage:`。
 
-### Q: 支持哪些设备架构？
-A: 支持：
-- arm64（64位设备）
-- armv7（32位设备，iOS 10.0+）
+## 线程
 
-### Q: 如何升级 SDK 版本？
-A: 步骤：
-1. 下载新版本 SDK
-2. 替换旧的 Framework 文件
-3. 清理项目缓存
-4. 重新构建项目
-5. 测试功能是否正常
-
-## ARC 相关问题
-
-### Q: 如何处理内存管理？
-A: iOS 使用 ARC，但需要注意：
-- 及时将对象设置为 nil
-- 避免循环引用
-- 使用 weak 引用避免强引用循环
-
-### Q: 如何处理 CVPixelBuffer？
-A: 建议：
-- 使用 `CVPixelBufferRetain` 和 `CVPixelBufferRelease` 管理
-- 或者使用 `__bridge_transfer` 和 `__bridge_retained` 转换
-
-## 多线程问题
-
-### Q: 如何在后台线程处理图像？
-A: 建议：
-- 使用 `dispatch_async` 在后台队列处理
-- 避免在主线程进行图像处理
-- 使用 `dispatch_async(dispatch_get_main_queue())` 更新 UI
-
-### Q: 如何处理并发访问？
-A: 解决方案：
-- 使用 `@synchronized` 保护共享资源
-- 使用串行队列处理图像
-- 避免多线程同时访问引擎实例
-
-## 部署问题
-
-### Q: App Store 审核被拒？
-A: 可能原因：
-- 缺少必要的权限描述
-- 使用了私有 API
-- 内存泄漏问题
-- 崩溃问题
-
-### Q: 如何优化 App 大小？
-A: 建议：
-- 移除未使用的架构（如 armv7）
-- 压缩资源文件
-- 使用 App Thinning
-- 移除未使用的 Framework 部分
+- 默认引擎：所有 `processImage:` 以及触及 GL 资源的 setter 走串行队列。
+- `externalContext = YES`：在 GL 线程创建并处理。
+- 仅在主队列更新 UI。

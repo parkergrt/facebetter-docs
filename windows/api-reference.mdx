@@ -1,16 +1,15 @@
 ---
 title: "API Reference"
-description: "Complete Facebetter SDK C++ API reference for Windows and Linux"
+description: "Facebetter SDK 2.0 C++ API for Windows"
 ---
 
-> Applies to: **Windows** and **Linux**. All APIs are in the `facebetter` namespace.  
-> SDK version: `1.3.1`
-
----
+<Note>
+SDK **2.0.0**. Namespace `facebetter`. Headers: `facebetter/beauty_effect_engine.h`, `beauty_params.h`, `image_frame.h`, `type_defines.h`. Style / color / reshape enums: [Parameter enums](/intro/makeup). Auth: [License & Auth](/intro/license). Linux uses the **same** C++ API.
+</Note>
 
 ## Logging
 
-### LogLevel
+### `LogLevel`
 
 ```cpp
 enum class LogLevel {
@@ -23,22 +22,21 @@ enum class LogLevel {
 };
 ```
 
-### LogConfig
+### `LogConfig`
 
-Log configuration struct.
-
-**Fields:**
-- `console_enabled` — write to stdout (default `false`)
-- `file_enabled` — write to a file (default `false`)
-- `level` — minimum log level to output (default `Info`)
-- `file_name` — log file path; only used when `file_enabled = true` (default `""`)
+| Field | Default | Description |
+| --- | --- | --- |
+| `console_enabled` | `false` | stdout |
+| `file_enabled` | `false` | write a file |
+| `level` | `Info` | minimum level |
+| `file_name` | `""` | path when `file_enabled` is true |
 
 ```cpp
 struct LogConfig {
-  bool        console_enabled = false;
-  bool        file_enabled    = false;
-  LogLevel    level           = LogLevel::Info;
-  std::string file_name       = "";
+  bool console_enabled = false;
+  bool file_enabled = false;
+  LogLevel level = LogLevel::Info;
+  std::string file_name = "";
 };
 ```
 
@@ -46,857 +44,351 @@ struct LogConfig {
 
 ## Engine
 
-### EngineConfig
+### `EngineConfig`
 
-Engine initialization config struct.
+| Field | Description |
+| --- | --- |
+| `app_id` | Dashboard app ID (online v2 auth with `app_key`) |
+| `app_key` | Dashboard app key |
+| `resource_path` | **Path to the `resource.fbd` file** (required on desktop) |
+| `license_token` | License token string, `{token}` JSON, or offline `.lic` contents |
+| `external_context` | `false`: SDK-managed OpenGL context. `true`: caller’s current context |
 
-**Fields:**
-- `app_id` — application ID from the dashboard
-- `app_key` — application key from the dashboard
-- `resource_path` — path to `resource.fbd` (relative or absolute)
-- `license_json` — offline/online license JSON string (optional)
-- `external_context` — whether the caller provides the OpenGL context (default `false`)
-
-**Authentication priority:**
-1. If `license_json` is non-empty → use license JSON (supports both online response and offline license)
-2. Otherwise → use `app_id` + `app_key` with network verification
+**Auth priority:** if `license_token` is non-empty, validate that token locally and skip `app_id` + `app_key` network auth. Otherwise use `app_id` + `app_key` against `/facebetter/v2/auth`.
 
 ```cpp
 struct EngineConfig {
   std::string app_id;
   std::string app_key;
   std::string resource_path;
-  std::string license_json;        // optional
-  bool        external_context = false;
+  std::string license_token;
+  bool external_context = false;
 };
 ```
 
----
+### `BeautyEffectEngine`
 
-### BeautyEffectEngine
+Non-copyable. Create with `Create`; destroy by releasing the `shared_ptr`.
 
-The main beauty engine class. Non-copyable, non-assignable.
-
-#### Static Methods
-
-##### `SetLogConfig`
+#### `SetLogConfig` (static)
 
 ```cpp
 static int SetLogConfig(const LogConfig& config);
 ```
 
-Set the global SDK log configuration. **Must be called before `Create`** to capture initialization messages.
+Call **before** `Create`. Returns `0` on success.
 
-| Parameter | Description |
-| --- | --- |
-| `config` | Log configuration struct |
-
-Returns `0` on success, non-zero on failure.
-
-```cpp
-LogConfig log_cfg;
-log_cfg.console_enabled = true;
-log_cfg.level           = LogLevel::Info;
-BeautyEffectEngine::SetLogConfig(log_cfg);
-```
-
-##### `Create`
+#### `Create` (static)
 
 ```cpp
 static std::shared_ptr<BeautyEffectEngine> Create(const EngineConfig& config);
 ```
 
-Create and initialize an engine instance. Returns `nullptr` on failure.
+Returns `nullptr` on failure.
 
 ```cpp
 EngineConfig cfg;
-cfg.app_id        = "your_app_id";
-cfg.app_key       = "your_app_key";
+cfg.app_id = "your_app_id";
+cfg.app_key = "your_app_key";
 cfg.resource_path = "resource/resource.fbd";
 auto engine = BeautyEffectEngine::Create(cfg);
-if (!engine) {
-    // Check log output for details
-}
 ```
 
 ---
 
-#### Beauty Parameters
+### Skin
 
-##### `SetBeautyParam` (Basic)
+Intensities `[0.0, 1.0]` unless noted. `0` is off. Returns `0` on success.
 
 ```cpp
-virtual int SetBeautyParam(beauty_params::Basic param, float value) = 0;
+virtual int SetSmoothing(float intensity) = 0;
+virtual int SetSmoothingStyle(beauty_params::SmoothingStyle style) = 0;
+virtual int SetWhitening(float intensity) = 0;
+virtual int SetWhiteningStyle(beauty_params::WhiteningStyle style) = 0;
+virtual int SetSharpening(float intensity) = 0;
+virtual int SetRosiness(float intensity) = 0;
+virtual int SetBeautySkinOnly(bool enabled) = 0;
 ```
 
-Set a basic skin-beauty parameter. All values in `[0.0, 1.0]`; `0` disables the effect.
+`SetBeautySkinOnly(true)` applies smoothing / whitening / etc. only on detected skin. Style enums: [Parameter enums](/intro/makeup).
 
-| `param` | Description |
-| --- | --- |
-| `Basic::Smoothing` | Skin smoothing |
-| `Basic::Sharpening` | Sharpening |
-| `Basic::Whitening` | Skin whitening |
-| `Basic::Rosiness` | Rosy tone |
+### Reshape
 
 ```cpp
-engine->SetBeautyParam(Basic::Smoothing,  0.5f);
-engine->SetBeautyParam(Basic::Whitening,  0.3f);
-engine->SetBeautyParam(Basic::Rosiness,   0.2f);
-engine->SetBeautyParam(Basic::Sharpening, 0.4f);
+virtual int SetReshape(beauty_params::Reshape param, float intensity) = 0;
 ```
 
-##### `SetBeautyParam` (Reshape)
+`intensity` is **`[-1.0, 1.0]`**. `0` is off. Positive / negative are opposite directions. Full list: [Parameter enums](/intro/makeup).
 
 ```cpp
-virtual int SetBeautyParam(beauty_params::Reshape param, float value) = 0;
+engine->SetReshape(Reshape::FaceThin, 0.4f);
 ```
 
-| `param` | Description |
-| --- | --- |
-| `Reshape::FaceThin` | Face slimming |
-| `Reshape::FaceVShape` | V-face |
-| `Reshape::FaceNarrow` | Narrow face |
-| `Reshape::FaceShort` | Short face |
-| `Reshape::Cheekbone` | Cheekbone slimming |
-| `Reshape::Jawbone` | Jaw slimming |
-| `Reshape::Chin` | Chin slimming |
-| `Reshape::NoseSlim` | Nose bridge slimming |
-| `Reshape::EyeSize` | Eye enlarging |
-| `Reshape::EyeDistance` | Eye distance |
+### Makeup
+
+Each effect has intensity plus Style (mask) and/or Color (tint). Lipstick: Color only. Pupil: Color only. Contour: Style only.
 
 ```cpp
-engine->SetBeautyParam(Reshape::FaceThin, 0.4f);
-engine->SetBeautyParam(Reshape::EyeSize,  0.6f);
-```
+virtual int SetLipstick(float intensity) = 0;
+virtual int SetLipstickColor(beauty_params::LipstickColor color) = 0;
 
-##### `SetBeautyParam` (Makeup)
-
-```cpp
-virtual int SetBeautyParam(beauty_params::Makeup param, float value) = 0;
-```
-
-| `param` | Description |
-| --- | --- |
-| `Makeup::Lipstick` | Lipstick |
-| `Makeup::Blush` | Blush |
-
-```cpp
-engine->SetBeautyParam(Makeup::Lipstick, 0.7f);
-engine->SetBeautyParam(Makeup::Blush,    0.4f);
-```
-
-##### `SetLipstickStyle` / `SetBlushStyle`
-
-```cpp
-virtual int SetLipstickStyle(beauty_params::LipstickStyle style) = 0;
+virtual int SetBlush(float intensity) = 0;
 virtual int SetBlushStyle(beauty_params::BlushStyle style) = 0;
+virtual int SetBlushColor(beauty_params::BlushColor color) = 0;
+
+virtual int SetContour(float intensity) = 0;
+virtual int SetContourStyle(beauty_params::ContourStyle style) = 0;
+
+virtual int SetEyeShadow(float intensity) = 0;
+virtual int SetEyeShadowStyle(beauty_params::EyeShadowStyle style) = 0;
+virtual int SetEyeShadowColor(beauty_params::EyeShadowColor color) = 0;
+
+virtual int SetEyeLiner(float intensity) = 0;
+virtual int SetEyeLinerStyle(beauty_params::EyeLinerStyle style) = 0;
+virtual int SetEyeLinerColor(beauty_params::EyeLinerColor color) = 0;
+
+virtual int SetEyebrow(float intensity) = 0;
+virtual int SetEyebrowStyle(beauty_params::EyebrowStyle style) = 0;
+virtual int SetEyebrowColor(beauty_params::EyebrowColor color) = 0;
+
+virtual int SetEyelash(float intensity) = 0;
+virtual int SetEyelashStyle(beauty_params::EyelashStyle style) = 0;
+virtual int SetEyelashColor(beauty_params::EyelashColor color) = 0;
+
+virtual int SetPupil(float intensity) = 0;
+virtual int SetPupilColor(beauty_params::PupilColor color) = 0;
 ```
 
-| Enum | Value | Description |
-| --- | --- | --- |
-| `LipstickStyle::Rouge` | 0 | Rose red |
-| `LipstickStyle::Coral` | 1 | Coral |
-| `LipstickStyle::Pink` | 2 | Pink (default) |
-| `BlushStyle::Classic` | 0 | Classic (default) |
-| `BlushStyle::Peach` | 1 | Peach |
-| `BlushStyle::Rose` | 2 | Rose |
+Values: [Parameter enums](/intro/makeup).
+
+### Chroma key
+
+Mask for virtual background. Fill is still `SetVirtualBackgroundBlur` / `SetVirtualBackground`. With no fill, the keyed region is transparent. `ClearChromaKey()` restores portrait segmentation.
 
 ```cpp
-engine->SetLipstickStyle(LipstickStyle::Rouge);
-engine->SetBlushStyle(BlushStyle::Peach);
+virtual int SetChromaKey(beauty_params::ChromaKeyColor color) = 0;
+virtual int ClearChromaKey() = 0;
+virtual int SetChromaKeySimilarity(float value) = 0;   // [0, 1]
+virtual int SetChromaKeySmoothness(float value) = 0;   // [0, 1]
+virtual int SetChromaKeyDesaturation(float value) = 0; // [0, 1]
 ```
 
-##### `SetBeautyParam` (ChromaKey)
+`ChromaKeyColor`: `Green = 0`, `Blue`, `Red`.
+
+### Virtual background
 
 ```cpp
-virtual int SetBeautyParam(beauty_params::ChromaKey param, float value) = 0;
+virtual int SetVirtualBackgroundBlur(float level) = 0;  // [0, 1]; 0 clears fill
+virtual int SetVirtualBackground(const std::string& image_path) = 0;
+virtual int SetVirtualBackground(const std::vector<uint8_t>& image_data) = 0;
+virtual int ClearVirtualBackground() = 0;
 ```
 
-| `param` | Description |
-| --- | --- |
-| `ChromaKey::KeyColor` | Key color: `0`=Green, `1`=Blue, `2`=Red |
-| `ChromaKey::Similarity` | Similarity threshold `[0.0, 1.0]` |
-| `ChromaKey::Smoothness` | Edge smoothness `[0.0, 1.0]` |
-| `ChromaKey::Desaturation` | Desaturation `[0.0, 1.0]` |
+PNG / JPEG. Path must be non-empty. Bytes overload is encoded image data.
+
+### Filter (LUT `.fbd`)
+
+GPU LUT is created on the next `ProcessImage`. No register / ID API.
 
 ```cpp
-engine->SetBeautyParam(ChromaKey::KeyColor,   0.0f);  // green
-engine->SetBeautyParam(ChromaKey::Similarity, 0.4f);
-engine->SetBeautyParam(ChromaKey::Smoothness, 0.1f);
+virtual int SetFilter(const std::string& fbd_file_path) = 0;
+virtual int SetFilter(const std::vector<uint8_t>& fbd_data) = 0;
+virtual int ClearFilter() = 0;
+virtual int SetFilterIntensity(float intensity) = 0;  // [0, 1]
 ```
 
-##### `SetVirtualBackground`
+### Sticker (`.fbd`)
 
 ```cpp
-virtual int SetVirtualBackground(
-    const beauty_params::VirtualBackgroundOptions& options) = 0;
+virtual int SetSticker(const std::string& fbd_file_path) = 0;
+virtual int SetSticker(const std::vector<uint8_t>& fbd_data) = 0;
+virtual int ClearSticker() = 0;
 ```
 
-Configure virtual background.
+### Stats, callbacks, process
 
 ```cpp
-// Background blur
-beauty_params::VirtualBackgroundOptions opts;
-opts.mode = beauty_params::BackgroundMode::Blur;
-engine->SetVirtualBackground(opts);
-
-// Background image replacement
-opts.mode             = beauty_params::BackgroundMode::Image;
-opts.background_image = bg_frame;   // std::shared_ptr<const ImageFrame>
-engine->SetVirtualBackground(opts);
-
-// Disable
-opts.mode = beauty_params::BackgroundMode::None;
-engine->SetVirtualBackground(opts);
-```
-
-##### `SetSkinOnlyBeauty`
-
-```cpp
-virtual int SetSkinOnlyBeauty(bool enabled) = 0;
-```
-
-Set whether beauty effects are applied only to skin regions. When enabled, beauty effects (smoothing, whitening, etc.) will only be applied to detected skin areas, leaving non-skin areas unchanged.
-
-| Parameter | Description |
-| --- | --- |
-| `enabled` | `true` to enable skin-only beauty, `false` to apply to entire image |
-
-```cpp
-// Enable skin-only beauty
-engine->SetSkinOnlyBeauty(true);
-
-// Disable skin-only beauty
-engine->SetSkinOnlyBeauty(false);
-```
-
----
-
-#### Filter Management
-
-##### `SetFilter`
-
-```cpp
-virtual int SetFilter(const std::string& filter_id) = 0;
-```
-
-Apply a LUT filter by ID. Pass `""` to clear.
-
-```cpp
-engine->SetFilter("chuxin");  // apply
-engine->SetFilter("");        // clear
-```
-
-##### `SetFilterIntensity`
-
-```cpp
-virtual int SetFilterIntensity(float intensity) = 0;
-```
-
-Set current filter intensity `[0.0, 1.0]`.
-
-##### `RegisterFilter`
-
-```cpp
-virtual int RegisterFilter(const std::string& filter_id,
-                           const std::string& fbd_file_path) = 0;
-virtual int RegisterFilter(const std::string& filter_id,
-                           const std::vector<uint8_t>& fbd_data) = 0;
-```
-
-Register a custom filter from a `.fbd` file path or memory buffer.
-
-```cpp
-engine->RegisterFilter("my_filter", "assets/filters/my_filter.fbd");
-engine->SetFilter("my_filter");
-```
-
-##### `UnregisterFilter` / `UnregisterAllFilters`
-
-```cpp
-virtual int UnregisterFilter(const std::string& filter_id) = 0;
-virtual int UnregisterAllFilters() = 0;
-```
-
-##### `GetRegisteredFilters`
-
-```cpp
-virtual std::vector<std::string> GetRegisteredFilters() const = 0;
-```
-
----
-
-#### Sticker Management
-
-##### `SetSticker`
-
-```cpp
-virtual int SetSticker(const std::string& sticker_id) = 0;
-```
-
-Apply a sticker by ID. Pass `""` to clear.
-
-```cpp
-engine->SetSticker("rabbit");
-engine->SetSticker("");
-```
-
-##### `RegisterSticker`
-
-```cpp
-virtual int RegisterSticker(const std::string& sticker_id,
-                            const std::string& fbd_file_path) = 0;
-virtual int RegisterSticker(const std::string& sticker_id,
-                            const std::vector<uint8_t>& fbd_data) = 0;
-```
-
-Register a custom sticker from a `.fbd` file path or memory buffer.
-
-##### `UnregisterSticker` / `UnregisterAllStickers`
-
-```cpp
-virtual int UnregisterSticker(const std::string& sticker_id) = 0;
-virtual int UnregisterAllStickers() = 0;
-```
-
-##### `GetRegisteredStickers`
-
-```cpp
-virtual std::vector<std::string> GetRegisteredStickers() const = 0;
-```
-
----
-
-#### Callbacks
-
-##### `SetCallbacks`
-
-```cpp
+virtual EngineStats GetStats() const = 0;
 virtual int SetCallbacks(const EngineCallbacks& callbacks) = 0;
-```
-
-Register engine event and data callbacks.
-
-| Callback field | Type | Description |
-| --- | --- | --- |
-| `on_face_landmarks` | `function<void(const vector<FaceDetectionResult>&)>` | Face landmark data, fired every frame |
-| `on_engine_event` | `function<void(int code, const string& message)>` | Engine events (auth, init status, etc.) |
-
-```cpp
-EngineCallbacks cbs;
-
-cbs.on_face_landmarks = [](const std::vector<FaceDetectionResult>& faces) {
-    for (const auto& face : faces) {
-        printf("face_id=%d score=%.2f keypoints=%zu\n",
-               face.face_id, face.score, face.key_points.size());
-    }
-};
-
-cbs.on_engine_event = [](int code, const std::string& msg) {
-    if (code == 0)
-        printf("[Engine] %s\n", msg.c_str());
-    else
-        fprintf(stderr, "[Engine] error %d: %s\n", code, msg.c_str());
-};
-
-engine->SetCallbacks(cbs);
-```
-
----
-
-#### Image Processing
-
-##### `ProcessImage`
-
-```cpp
 virtual const std::shared_ptr<ImageFrame> ProcessImage(
     const std::shared_ptr<ImageFrame> image_frame) = 0;
 ```
 
-Apply all configured beauty effects to the input frame and return the processed frame. Returns `nullptr` on failure.
-
-The engine tries to keep the output format consistent with the input format.
+Set `image_frame->type` to `FrameType::Image` or `FrameType::Video` (default). Output format tracks input when possible. Returns `nullptr` on failure.
 
 ```cpp
-auto input  = ImageFrame::CreateWithRGBA(data, width, height, stride);
 input->type = FrameType::Video;
 auto output = engine->ProcessImage(input);
-if (output && output->Data()) {
-    // success
-}
 ```
 
 ---
 
-#### Deprecated APIs
-
-<Warning>
-**Deprecated**
-
-The following methods are no-ops in parameter-driven mode. They are retained for binary compatibility only and will be removed in a future release.
-</Warning>
-
-| Method | Behavior |
-| --- | --- |
-| `SetBeautyTypeEnabled(BeautyType, bool)` | No-op |
-| `IsBeautyTypeEnabled(BeautyType) const` | Always returns `false` |
-| `DisableAllBeautyTypes()` | No-op |
-
----
-
-## Image
-
-### Format
+## `EngineStats`
 
 ```cpp
-enum class Format {
-  I420,     // YUV 4:2:0, 12bpp, 3 planes (Y, U, V)
-  NV12,     // YUV 4:2:0, 12bpp, 2 planes (Y + interleaved UV)
-  NV21,     // YUV 4:2:0, 12bpp, 2 planes (Y + interleaved VU, Android default)
-  BGRA,     // 32bpp, 4 channels
-  RGBA,     // 32bpp, 4 channels
-  BGR,      // 24bpp, 3 channels
-  RGB,      // 24bpp, 3 channels
-  Texture,  // GPU texture (OpenGL)
+struct EngineStats {
+  double fps = 0.0;
+  double avg_process_time_ms = 0.0;
+  double session_time_s = 0.0;
 };
 ```
 
-### Rotation
-
-```cpp
-enum class Rotation {
-  Rotation_0,    // No rotation
-  Rotation_90,   // 90° clockwise
-  Rotation_180,  // 180° clockwise
-  Rotation_270,  // 270° clockwise
-};
-```
-
-### FrameType
-
-Set via `frame->type`. Controls how the engine processes each frame.
-
-```cpp
-enum class FrameType {
-  Image = 0,  // Photo mode: full detection per frame
-  Video = 1   // Video mode: temporal optimization (default)
-};
-```
-
----
-
-### ImageFrame
-
-Image frame class. Non-copyable.
-
-**Thread safety:** `ImageFrame` is not thread-safe. Do not call `Rotate`, `Mirror`, `Convert`, etc. on the same instance from multiple threads simultaneously.
-
-#### Factory Methods
-
-##### `CreateWithFile`
-
-```cpp
-static std::shared_ptr<ImageFrame> CreateWithFile(const std::string& file_path);
-```
-
-Load from a JPEG, PNG, or BMP file. Returns `nullptr` on failure.
-
-##### `Create` (general)
-
-```cpp
-static std::shared_ptr<ImageFrame> Create(
-    const uint8_t* data, int width, int height, Format format);
-```
-
-Create from memory for single-plane formats (RGBA / BGRA / RGB / BGR).  
-> For multi-plane YUV (I420/NV12/NV21), use the dedicated methods instead.
-
-##### `CreateWithRGBA`
-
-```cpp
-static std::shared_ptr<ImageFrame> CreateWithRGBA(
-    const uint8_t* data, int width, int height, int stride);
-```
-
-```cpp
-auto frame = ImageFrame::CreateWithRGBA(rgba_ptr, 1280, 720, 1280 * 4);
-```
-
-##### `CreateWithBGRA`
-
-```cpp
-static std::shared_ptr<ImageFrame> CreateWithBGRA(
-    const uint8_t* data, int width, int height, int stride);
-```
-
-##### `CreateWithRGB`
-
-```cpp
-static std::shared_ptr<ImageFrame> CreateWithRGB(
-    const uint8_t* data, int width, int height, int stride);
-```
-
-##### `CreateWithBGR`
-
-```cpp
-static std::shared_ptr<ImageFrame> CreateWithBGR(
-    const uint8_t* data, int width, int height, int stride);
-```
-
-##### `CreateWithI420`
-
-```cpp
-static std::shared_ptr<ImageFrame> CreateWithI420(
-    int width, int height,
-    const uint8_t* dataY, int strideY,
-    const uint8_t* dataU, int strideU,
-    const uint8_t* dataV, int strideV);
-```
-
-```cpp
-auto frame = ImageFrame::CreateWithI420(
-    1280, 720,
-    y_ptr, y_stride,
-    u_ptr, u_stride,
-    v_ptr, v_stride);
-```
-
-##### `CreateWithNV12`
-
-```cpp
-static std::shared_ptr<ImageFrame> CreateWithNV12(
-    int width, int height,
-    const uint8_t* dataY, int strideY,
-    const uint8_t* dataUV, int strideUV);
-```
-
-##### `CreateWithNV21`
-
-```cpp
-static std::shared_ptr<ImageFrame> CreateWithNV21(
-    int width, int height,
-    const uint8_t* dataY, int strideY,
-    const uint8_t* dataUV, int strideUV);
-```
-
-##### `CreateWithTexture`
-
-```cpp
-static std::shared_ptr<ImageFrame> CreateWithTexture(
-    uint32_t texture, int width, int height, int stride);
-```
-
-Create from an OpenGL texture handle. Used for GPU texture input.
-
-```cpp
-auto frame = ImageFrame::CreateWithTexture(gl_tex_id, 1280, 720, 0);
-```
-
-##### `CreateWithAndroid420`
-
-```cpp
-static std::shared_ptr<ImageFrame> CreateWithAndroid420(
-    int width, int height,
-    uint8_t* yBuffer,  int strideY,
-    uint8_t* uBuffer,  int strideU,
-    uint8_t* vBuffer,  int strideV,
-    int pixelStrideUV);
-```
-
-For Android Camera2 `YUV_420_888` (primarily used on Android).
-
----
-
-#### Instance Methods
-
-##### `Rotate`
-
-```cpp
-int Rotate(Rotation rotation);
-```
-
-Rotate the frame in-place. Returns `0` on success.
-
-```cpp
-frame->Rotate(Rotation::Rotation_90);
-```
-
-##### `Mirror`
-
-```cpp
-int Mirror(const std::string& mode);
-```
-
-Mirror the frame in-place. `mode` values (case-insensitive): `"horizontal"`, `"vertical"`, `"both"`.
-
-```cpp
-frame->Mirror("horizontal");
-```
-
-##### `SetMirror`
-
-```cpp
-void SetMirror(const std::string& mode);
-```
-
-Set a mirror flag. The engine applies the mirror during `ProcessImage` without an extra format round-trip. Pass `""` to clear.
-
-```cpp
-frame->SetMirror("horizontal");
-```
-
-##### `Convert`
-
-```cpp
-std::shared_ptr<ImageFrame> Convert(Format format) const;
-```
-
-Convert to another pixel format; returns a new `ImageFrame`. If the target format matches the current format, the returned frame shares the underlying buffer. Returns `nullptr` if conversion is not possible.
-
-```cpp
-auto rgba  = frame->Convert(Format::RGBA);
-auto i420  = frame->Convert(Format::I420);
-```
-
-##### `ToFile`
-
-```cpp
-int ToFile(const std::string& path, int quality = 90) const;
-```
-
-Save the frame to a file. `quality` is the JPEG compression quality (`1`–`100`); ignored for PNG. Returns `0` on success.
-
-```cpp
-output->ToFile("output.jpg", 95);
-output->ToFile("output.png");
-```
-
----
-
-#### Data Accessors
-
-| Method | Description |
-| --- | --- |
-| `Width() const` | Image width in pixels |
-| `Height() const` | Image height in pixels |
-| `Stride() const` | Row stride in bytes |
-| `Size() const` | Total pixel data size in bytes |
-| `GetFormat() const` | Pixel format enum |
-| `Data() const` | Raw pixel pointer (interleaved formats) |
-| `DataY() const` | Y plane pointer (I420) |
-| `DataU() const` | U plane pointer (I420) |
-| `DataV() const` | V plane pointer (I420) |
-| `StrideY() const` | Y plane stride (I420) |
-| `StrideU() const` | U plane stride (I420) |
-| `StrideV() const` | V plane stride (I420) |
-| `DataUV() const` | UV plane pointer (NV12/NV21) |
-| `StrideUV() const` | UV plane stride (NV12/NV21) |
-| `Texture() const` | OpenGL texture handle (`Texture` format); returns `0` otherwise |
-| `Buffer() const` | Underlying `ImageBuffer` smart pointer (advanced use) |
-| `MirrorHorizontal() const` | Whether horizontal mirror flag is set |
-| `MirrorVertical() const` | Whether vertical mirror flag is set |
-
-#### Public Field
-
-| Field | Type | Default | Description |
-| --- | --- | --- | --- |
-| `type` | `FrameType` | `FrameType::Video` | Processing mode: video stream or single photo |
-
----
-
-## Callbacks and Events
-
-### EngineEventCode
+## Callbacks and events
 
 ```cpp
 enum class EngineEventCode {
-  LicenseValidationSuccess    = 0,    // License validated successfully
-  LicenseValidationFailed     = 1,    // Validation failed (check message)
-  EngineInitializationComplete = 100, // Engine ready, filters loaded
-  EngineInitializationFailed  = 101,  // Initialization failed
+  LicenseValidationSuccess = 0,
+  LicenseValidationFailed = 1,
+  EngineInitializationComplete = 100,
+  EngineInitializationFailed = 101,
 };
 ```
 
-### EngineCallbacks
+| Code | Meaning |
+| --- | --- |
+| `0` | License success |
+| `1` | License failed |
+| `100` | Init complete |
+| `101` | Init failed |
 
 ```cpp
 struct EngineCallbacks {
-  // Fired every frame; results may be empty if no face is detected
   std::function<void(const std::vector<FaceDetectionResult>& results)>
       on_face_landmarks = nullptr;
-
-  // Fired on auth and initialization events
   std::function<void(int code, const std::string& message)>
       on_engine_event = nullptr;
 };
 ```
 
+`on_face_landmarks` may run every processed frame (empty if no face).
+
 ---
 
-## Data Structures
+## Image
 
-### Point2d
+### `Format`
 
 ```cpp
-struct Point2d {
-  float x;  // Normalized X [0.0, 1.0]
-  float y;  // Normalized Y [0.0, 1.0]
+enum class Format {
+  I420, NV12, NV21, BGRA, RGBA, BGR, RGB, Texture
 };
 ```
 
-### Rect
+### `Rotation`
 
 ```cpp
-struct Rect {
-  float x;       // Top-left X (normalized)
-  float y;       // Top-left Y (normalized)
-  float width;   // Width (normalized)
-  float height;  // Height (normalized)
+enum class Rotation {
+  Rotation_0, Rotation_90, Rotation_180, Rotation_270  // clockwise
 };
 ```
 
-### FaceDetectionResult
-
-Single face detection result.
-
-| Field | Type | Description |
-| --- | --- | --- |
-| `rect` | `Rect` | Face ROI bounding box (normalized) |
-| `key_points` | `vector<Point2d>` | 111 normalized face landmark coordinates |
-| `visibility` | `vector<float>` | Per-keypoint visibility scores `[0.0, 1.0]` |
-| `face_id` | `int` | Unique face ID for cross-frame tracking; `-1` if unknown |
-| `face_action` | `int` | Face action bitmask (e.g., mouth open, eye blink); `-1` if unknown |
-| `score` | `float` | Face detection confidence `[0.0, 1.0]` |
-| `pitch` | `float` | Pitch angle (up=negative, down=positive) in `[-π, π]` |
-| `roll` | `float` | Roll angle (left=negative, right=positive) in `[-π, π]` |
-| `yaw` | `float` | Yaw angle (left=negative, right=positive) in `[-π, π]` |
+### `FrameType`
 
 ```cpp
+enum class FrameType {
+  Image = 0,  // still / photo
+  Video = 1   // stream (default)
+};
+```
+
+Set on `ImageFrame::type`.
+
+### `ImageFrame`
+
+Not copyable. Not thread-safe.
+
+**Factories**
+
+```cpp
+static std::shared_ptr<ImageFrame> CreateWithFile(const std::string& file_path);
+static std::shared_ptr<ImageFrame> Create(
+    const uint8_t* data, int width, int height, Format format);
+static std::shared_ptr<ImageFrame> CreateWithRGBA(
+    const uint8_t* data, int width, int height, int stride);
+static std::shared_ptr<ImageFrame> CreateWithBGRA(
+    const uint8_t* data, int width, int height, int stride,
+    bool copy_data = false);
+static std::shared_ptr<ImageFrame> CreateWithRGB(
+    const uint8_t* data, int width, int height, int stride);
+static std::shared_ptr<ImageFrame> CreateWithBGR(
+    const uint8_t* data, int width, int height, int stride);
+static std::shared_ptr<ImageFrame> CreateWithI420(
+    int width, int height,
+    const uint8_t* dataY, int strideY,
+    const uint8_t* dataU, int strideU,
+    const uint8_t* dataV, int strideV);
+static std::shared_ptr<ImageFrame> CreateWithNV12(
+    int width, int height,
+    const uint8_t* dataY, int strideY,
+    const uint8_t* dataUV, int strideUV);
+static std::shared_ptr<ImageFrame> CreateWithNV21(
+    int width, int height,
+    const uint8_t* dataY, int strideY,
+    const uint8_t* dataUV, int strideUV);
+static std::shared_ptr<ImageFrame> CreateWithTexture(
+    uint32_t texture, int width, int height, int stride);
+```
+
+Prefer dedicated YUV factories over `Create` for multi-plane formats.
+
+**Operations**
+
+```cpp
+int Rotate(Rotation rotation);
+int Mirror(const std::string& mode);       // "horizontal" | "vertical" | "both"
+void SetMirror(const std::string& mode);   // applied inside ProcessImage; "" clears
+std::shared_ptr<ImageFrame> Convert(Format format) const;
+int ToFile(const std::string& path, int quality = 90) const;
+```
+
+**Accessors:** `Width()`, `Height()`, `Stride()`, `Size()`, `GetFormat()`, `Data()`, `DataY/U/V()`, `StrideY/U/V()`, `DataUV()`, `StrideUV()`, `Texture()`, `Buffer()`, `MirrorHorizontal()`, `MirrorVertical()`.
+
+Public field: `FrameType type = FrameType::Video`.
+
+---
+
+## Detection types
+
+```cpp
+struct Point2d { float x; float y; };  // normalized [0, 1]
+struct Rect { float x, y, width, height; };  // normalized
+
 struct FaceDetectionResult {
-  Rect                 rect;
-  std::vector<Point2d> key_points;
-  std::vector<float>   visibility;
-  int   face_id     = -1;
-  int   face_action = -1;
-  float score       = 0.0f;
-  float pitch       = 0.0f;
-  float roll        = 0.0f;
-  float yaw         = 0.0f;
-};
-```
-
-**Example — reading keypoints:**
-
-```cpp
-cbs.on_face_landmarks = [](const std::vector<FaceDetectionResult>& faces) {
-    for (const auto& face : faces) {
-        printf("face_id=%d  score=%.2f  keypoints=%zu\n",
-               face.face_id, face.score, face.key_points.size());
-
-        if (!face.key_points.empty()) {
-            const auto& pt = face.key_points[0];
-            printf("  point[0] = (%.3f, %.3f)\n", pt.x, pt.y);
-        }
-    }
+  Rect rect;
+  std::vector<Point2d> key_points;  // 111 points
+  std::vector<float> visibility;
+  int face_id = -1;
+  float score = 0.0f;
+  float pitch = 0.0f;  // up -, down +
+  float roll = 0.0f;
+  float yaw = 0.0f;
 };
 ```
 
 ---
 
-## Beauty Param Enumerations
+## Error codes
 
-### BeautyType
+Typical `int` returns:
 
-```cpp
-enum class BeautyType {
-  Basic = 0,
-  Reshape,
-  Makeup,
-  VirtualBackground,
-  ChromaKey,
-  Filter,
-  Sticker,
-};
-```
-
-### beauty_params::Basic
-
-```cpp
-enum class Basic {
-  Smoothing  = 0,
-  Sharpening,
-  Whitening,
-  Rosiness,
-};
-```
-
-### beauty_params::Reshape
-
-```cpp
-enum class Reshape {
-  FaceThin    = 0,
-  FaceVShape,
-  FaceNarrow,
-  FaceShort,
-  Cheekbone,
-  Jawbone,
-  Chin,
-  NoseSlim,
-  EyeSize,
-  EyeDistance,
-};
-```
-
-### beauty_params::Makeup
-
-```cpp
-enum class Makeup {
-  Lipstick,
-  Blush,
-};
-```
-
-### beauty_params::ChromaKey
-
-```cpp
-enum class ChromaKey {
-  KeyColor    = 0,   // 0=Green, 1=Blue, 2=Red
-  Similarity,
-  Smoothness,
-  Desaturation,
-};
-```
-
-### beauty_params::BackgroundMode
-
-```cpp
-enum class BackgroundMode {
-  None  = 0,
-  Blur,
-  Image,
-};
-```
-
-### beauty_params::VirtualBackgroundOptions
-
-```cpp
-struct VirtualBackgroundOptions {
-  BackgroundMode mode = BackgroundMode::None;
-  std::shared_ptr<const ImageFrame> background_image = nullptr;
-
-  VirtualBackgroundOptions() = default;
-  explicit VirtualBackgroundOptions(BackgroundMode m) : mode(m) {}
-};
-```
+| Code | Meaning |
+| --- | --- |
+| `0` | OK |
+| `-1` | Invalid argument |
+| `-2` | Not initialized |
+| `-3` | License |
+| `-4` | Unsupported |
+| `-5` | I/O |
+| `-6` | No slot |
+| `-7` | Process |
+| `-8` | Out of memory |
 
 ---
 
 ## Notes
 
-**Thread safety:** `BeautyEffectEngine` and `ImageFrame` are not thread-safe. Add external locking for multi-threaded use.
-
-**Memory management:** All factory methods return `std::shared_ptr`. Memory is managed automatically.
-
-**Read-only data:** Pointers returned by `Data()` etc. are `const`. Do not write to them; create a new `ImageFrame` if you need to modify pixel data.
-
-**`SetRenderView` not available:** This method exists only on iOS and macOS. Do not call it on Windows or Linux.
+- **Thread safety:** serialize `ProcessImage` and mutating calls on one thread (or the GL thread if `external_context`).
+- **Lifetime:** factory methods return `std::shared_ptr`.
+- **Pixel pointers** from `Data()` are `const` — do not write through them.
+- **`SetRenderView`** is iOS / macOS only.
+- **Windows binary:** link `facebetter.lib`, load `facebetter.dll` at runtime.

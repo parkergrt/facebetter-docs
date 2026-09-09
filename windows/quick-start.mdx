@@ -3,27 +3,33 @@ title: "Quick Start"
 description: "Build and run the Facebetter C++ desktop demo on Windows (GLFW + ImGui)"
 ---
 
-This guide explains how to build and run the Facebetter C++ desktop demo on Windows. The demo is built with **GLFW + Dear ImGui + OpenGL 3**: the left panel shows a live beauty-processed preview, while the right panel provides sliders to control each effect in real time.
+<Note>
+This page matches SDK **2.0.0**. Windows and Linux share the same C++ API in the `facebetter` namespace (`facebetter/*.h`).
+</Note>
+
+This guide builds the Facebetter C++ desktop demo on Windows. The demo uses **GLFW + Dear ImGui + OpenGL 3**: live preview on the left, beauty controls on the right.
 
 ## Requirements
 
 | Tool | Version |
 | --- | --- |
-| Visual Studio / MSVC | 2019 or later (C++17 support required) |
+| Visual Studio / MSVC | 2019 or later (C++17) |
 | CMake | 3.16+ |
 | Ninja | Any recent version (`winget install Ninja-build.Ninja`) |
 | Windows SDK | 10.0+ |
 
-> MinGW-w64 also works, but MSVC is recommended.
+<Tip>
+MinGW-w64 also works, but MSVC is recommended.
+</Tip>
 
-## Step 1: Clone the Repository
+## Step 1: Clone the repository
 
 ```bash
 git clone https://github.com/pixpark/facebetter-sdk.git
 cd facebetter-sdk
 ```
 
-## Step 2: Place the SDK Files
+## Step 2: Place the SDK files
 
 Unzip the Windows SDK package and place files under `demo/cpp/sdk/`:
 
@@ -39,16 +45,24 @@ demo/cpp/sdk/
 │   ├── facebetter.lib      ← import library
 │   └── facebetter.dll      ← runtime DLL
 └── resource/
-    └── resource.fbd        ← model and resource pack
+    └── resource.fbd        ← models and assets (required)
 ```
 
+<Warning>
+On desktop, `EngineConfig::resource_path` must point to the **`resource.fbd` file**, not a directory. Example: `demo/cpp/sdk/resource/resource.fbd`.
+</Warning>
+
 <Tip>
-The SDK download link is available on the [Download](https://facebetter.net/download) page or in your dashboard.
+SDK packages are on the [Download](https://facebetter.net/download) page and in the [Dashboard](https://facebetter.net/dashboard).
 </Tip>
 
-## Step 3: Build
+## Step 3: Configure license
 
-Open a **Developer Command Prompt for VS** (or a PowerShell session with the MSVC environment loaded), then run:
+Set `app_id` / `app_key` (online v2 auth) or `license_token` in the demo before you run it. If `license_token` is non-empty, it takes priority (license token string, `{token}` JSON, or offline `.lic` contents). Details: [License & Auth](/intro/license).
+
+## Step 4: Build
+
+Open a **Developer Command Prompt for VS** (or PowerShell with the MSVC environment loaded):
 
 ```bat
 cd demo\cpp
@@ -56,46 +70,56 @@ cmake -B build -G "Ninja" -DCMAKE_BUILD_TYPE=Release
 cmake --build build
 ```
 
-After the build, CMake automatically:
+After the build, CMake typically:
+
 - Copies `facebetter.dll` next to the executable in `build/`
 - Copies `resource/resource.fbd` to `build/resource/resource.fbd`
 - Copies `demo.png` (if present) to `build/resource/demo.png`
 
-## Step 4: Prepare a Preview Image (optional)
+## Step 5: Prepare a preview image (optional)
 
-Place any face photo named `demo.png` in `demo/cpp/`:
+Place a face photo named `demo.png` in `demo/cpp/`:
 
 ```
 demo/cpp/demo.png
 ```
 
-The engine will process the image at ~30 fps and display the result in the left panel of the window.
-
-## Step 5: Run
+## Step 6: Run
 
 ```bat
 cd demo\cpp\build
 .\facebetter_demo.exe
 ```
 
-Once running, the window shows:
+The window shows:
 
-- **Left panel** – live beauty-processed preview
-- **Right panel** – Beauty Control Panel with the following groups:
-  - **Basic Beauty**: Smoothing / Whitening / Rosiness / Sharpening
-  - **Face Reshape**: Face Thin / V Face / Narrow Face / Short Face / Cheekbone / Jawbone / Chin / Nose Slim / Eye Size / Eye Distance
-  - **Makeup**: Lipstick / Blush
-  - **Sticker**: dropdown (Off / rabbit)
+- **Left panel** — live beauty-processed preview
+- **Right panel** — Beauty Control Panel:
+  - **Basic beauty**: smoothing / whitening / rosiness / sharpening
+  - **Face reshape**: 26 reshape params (range `[-1.0, 1.0]`)
+  - **Makeup**: lipstick / blush / eyeshadow / eyeliner / eyebrow / eyelash / pupil / contour
+  - **Filter / sticker / virtual background**
 
-Click **Reset All** to restore all parameters to zero.
+Click **Reset All** to zero intensities.
 
 ## Troubleshooting
 
-**Q: "facebetter.dll not found" at startup**  
-A: Make sure `demo/cpp/sdk/lib/facebetter.dll` exists, then re-run `cmake --build build` so CMake copies the DLL next to the executable.
+**Q: "facebetter.dll was not found" at startup**  
+A: Confirm `demo/cpp/sdk/lib/facebetter.dll` exists, then re-run `cmake --build build` so CMake copies the DLL next to the executable.
 
-**Q: Window shows "Put demo.png …"**  
-A: Place a face photo named `demo.png` in `demo/cpp/` and restart the demo.
+**Q: Engine create returns `nullptr` / license failed**  
+A: Point `resource_path` at `resource.fbd`, and set `license_token` or valid `app_id` + `app_key`. See [License & Auth](/intro/license).
 
 **Q: CMake cannot find Ninja**  
-A: Run `winget install Ninja-build.Ninja`, or replace `-G "Ninja"` with `-G "Visual Studio 17 2022"` and change `--config Release` accordingly.
+A: Run `winget install Ninja-build.Ninja`, or use `-G "Visual Studio 17 2022"` and `--config Release`.
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Implement beauty" href="/windows/implement-beauty">
+    Create the engine, set effects, and process frames.
+  </Card>
+  <Card title="API reference" href="/windows/api-reference">
+    Full C++ API for Windows and Linux.
+  </Card>
+</CardGroup>

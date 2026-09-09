@@ -1,44 +1,30 @@
 ---
 title: "License & Auth"
-description: "Facebetter SDK online auth and offline license guide"
+description: "Facebetter SDK 2.0 online auth and offline license"
 ---
 
-The SDK supports two license modes. Pick one when creating the engine:
+SDK **2.0** authenticates with a **license token**. Native platforms can also use `appId` + `appKey` for online auth. Web must never embed `appKey` in frontend JavaScript.
+
+<Tip>
+Complete [Subscribe](./enable-service) first: bind your app identifiers in the Dashboard (Bundle ID / package name / domain) and enable a plan.
+</Tip>
+
+## Native (Android / iOS / macOS / Windows / Linux / Flutter)
+
+Pass one of the following when creating the engine:
 
 | Mode | Config fields | When to use |
 |------|---------------|-------------|
-| Online | `appId` + `appKey` | Device can reach the network |
-| Offline | `licenseJson` | Offline / weak network / private networks |
+| Online | `appId` + `appKey` | Device can reach `/facebetter/v2/auth` |
+| Token | `licenseToken` | License token string, `{token}` JSON, or native offline `.lic` |
 
-**Priority**: If `licenseJson` is set, the SDK validates it locally and does **not** call the network. You do not need `appId` / `appKey` in that case.
-
-<Tip>
-Complete [Subscribe](./enable-service) first: bind your app identifiers in the Dashboard (Bundle ID / package name / domain, etc.) and enable a plan.
-</Tip>
-
-## Online auth
-
-Copy `AppID` / `AppKey` from the Dashboard and pass them when creating the engine. See each platform’s Quick Start for examples.
-
-## Offline license
-
-### Download
-
-1. Sign in to the [Dashboard](https://facebetter.net/dashboard)
-2. Select a project, then on the **AppID & AppKey** card click **Download** for Offline License
-3. You get: `facebetter-offline-license.json`
-
-Validity matches your current subscription. After renewing or changing the plan, download again and replace the license in your app.
-
-### Integrate
-
-Pass the **entire file contents** as a string to `licenseJson`. The same approach works on all platforms.
+**Priority**: if `licenseToken` is non-empty, the SDK validates that token locally and does **not** call the network with `appId` / `appKey`.
 
 **iOS / macOS**
 
 ```objc
 FBEngineConfig *config = [[FBEngineConfig alloc] init];
-config.licenseJson = @"/* full file contents */";
+config.licenseToken = @"/* license token, {token} JSON, or .lic contents */";
 self.beautyEffectEngine = [FBBeautyEffectEngine createEngineWithConfig:config];
 ```
 
@@ -46,31 +32,125 @@ self.beautyEffectEngine = [FBBeautyEffectEngine createEngineWithConfig:config];
 
 ```java
 BeautyEffectEngine.EngineConfig config = new BeautyEffectEngine.EngineConfig();
-config.licenseJson = "/* full file contents */";
+config.licenseToken = "/* license token, {token} JSON, or .lic contents */";
 mBeautyEngine = new BeautyEffectEngine(this, config);
 ```
 
-**Web**
+**C++ (Windows / Linux)**
 
-```js
-const config = new EngineConfig({
-  licenseJson: '/* full file contents */',
-});
+```cpp
+facebetter::EngineConfig config;
+config.license_token = "/* license token, {token} JSON, or .lic contents */";
+config.resource_path = "/path/to/resource.fbd";
+auto engine = facebetter::BeautyEffectEngine::Create(config);
 ```
 
 **Flutter**
 
 ```dart
-await FBBeautyEffectEngine.init(
-  FBEngineConfig(licenseJson: '/* full file contents */'),
+final engine = await FBEngine.create(
+  FBEngineConfig(licenseToken: '/* license token, {token} JSON, or .lic contents */'),
 );
 ```
 
-Prefer shipping the JSON as an app asset and loading it at runtime instead of hard-coding it in source.
+Online alternative on native platforms:
+
+```java
+config.appId = "your appId";
+config.appKey = "your appKey";
+```
+
+Prefer shipping the offline `.lic` as an app asset and loading it at runtime instead of hard-coding it in source.
+
+## Web
+
+The browser SDK has **no** `appId` / `appKey` fields. Pick one:
+
+| Mode | Config field | When to use |
+|------|--------------|-------------|
+| Token | `licenseToken` | Your server already issued a license token or `{token}` JSON |
+| Proxy | `authProxyUrl` | The SDK posts an auth request to **your** server; the server holds `app_id` / `app_key` and calls the Facebetter auth API |
+| Custom | `fetchAuthResponse` | You implement `async (challenge) => string \| object`. Local debug only: `createDirectAuthFetcher({ appId, appKey })` |
+
+<Warning>
+Do not put `appKey` in a production frontend bundle. `createDirectAuthFetcher` is for local debugging. Web does **not** support offline `.lic` files.
+</Warning>
+
+```javascript
+import { BeautyEffectEngine, EngineConfig, createDirectAuthFetcher } from 'facebetter';
+
+// A. Server already returned a v2 token
+const config = new EngineConfig({
+  licenseToken: await fetch('/api/facebetter/auth', { method: 'POST' }).then((r) => r.text()),
+});
+
+// B. Production: proxy the SDK auth request (recommended)
+const config = new EngineConfig({
+  authProxyUrl: '/api/facebetter/auth',
+});
+
+// C. Local debug only — keys appear in the frontend
+const config = new EngineConfig({
+  fetchAuthResponse: createDirectAuthFetcher({
+    appId: 'your-app-id',
+    appKey: 'your-app-key',
+  }),
+});
+
+const engine = new BeautyEffectEngine(config);
+await engine.init();
+```
+
+Example Node proxy:
+
+```javascript
+import { createHmac } from 'node:crypto';
+
+app.post('/api/facebetter/auth', async (req, res) => {
+  const { nonce, timestamp, platform, user_agent } = req.body;
+  const appId = process.env.FB_APP_ID;
+  const appKey = process.env.FB_APP_KEY;
+  const payload = `v2|${appId}|${timestamp}|${nonce}|${platform}`;
+  const hmac = createHmac('sha256', appKey).update(payload).digest('hex');
+
+  const upstream = await fetch('https://facebetter.pixpark.net/facebetter/v2/auth', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      app_id: appId,
+      hmac_signature: hmac,
+      timestamp,
+      nonce,
+      platform,
+      user_agent,
+    }),
+  });
+  res.status(upstream.status).send(await upstream.text());
+});
+```
+
+## Offline license (native)
+
+1. Sign in to the [Dashboard](https://facebetter.net/dashboard)
+2. Select a project, then download the offline license
+3. Pass the **entire file contents** as `licenseToken` / `license_token`
+
+Validity matches your current subscription. After renewing or changing the plan, download again and replace the token in your app.
 
 ### Notes
 
 - The offline license is bound to the app identifiers configured in the Dashboard; a mismatch fails validation.
 - Not expired: features follow your subscription plan.
-- Expired: the engine can still initialize, but capabilities fall back to the free plan. Renew and download a new license.
-- Requires **SDK 1.5.0 or later**.
+- Expired: the engine can still initialize, but capabilities fall back to the **Free** plan (watermarked trial, no keypoint callbacks). Renew and download a new license.
+- Web cannot use offline licenses; it must complete an online v2 auth path.
+
+## Engine events
+
+Listen for license and init results via `onEngineEvent` / Flutter `engine.events`:
+
+| Code | Name | Meaning |
+| --- | --- | --- |
+| 0 | `LICENSE_VALIDATION_SUCCESS` | Token / online auth succeeded |
+| 1 | `LICENSE_VALIDATION_FAILED` | Auth failed (see message) |
+| 100 | `INITIALIZATION_COMPLETE` | Engine ready |
+| 101 | `INITIALIZATION_FAILED` | Engine init failed |

@@ -1,5 +1,77 @@
 ---
 title: "常见问题"
-description: "Linux 美颜 SDK 集成常见问题解答和解决方案"
+description: "Linux Facebetter SDK 2.0 集成 FAQ"
 ---
 
+<Note>
+SDK **2.0.0**。与 Windows 共用 C++ API。[参数枚举](/zh/intro/makeup) · [许可证与鉴权](/zh/intro/license)。
+</Note>
+
+## 集成
+
+### `Create` 返回 `nullptr`
+
+- `resource_path` 必须是 **`resource.fbd` 文件**
+- 设置 `license_token` **或**有效的 `app_id` + `app_key`
+- 在 `Create` 之前调用 `SetLogConfig`
+- 确认能加载 `libfacebetter.so`（`ldd your_app`）
+
+### 如何从源码编译 SDK？
+
+```bash
+./scripts/build_linux.sh
+```
+
+安装到 `build/linux/release`。也可在 `build/` 目录用 CMake + Ninja。桌面 Demo 在 `demo/cpp`。
+
+### 头文件 / 链接错误
+
+把 SDK `include/` 加入包含路径。链接 `libfacebetter.so`。运行时设置 `LD_LIBRARY_PATH` 或 rpath。
+
+### 没有 `SetRenderView`
+
+仅 iOS / macOS 提供。Linux 需把 `ProcessImage` 输出贴到自己的 GL 纹理。
+
+## 效果
+
+### 美颜很弱或完全看不出
+
+没有 `SetBeautyTypeEnabled`。默认强度为 `0`。美型 / 美妆需要检测到人脸。摄像头用 `FrameType::Video`。
+
+### 美型方向反了
+
+范围为 `[-1.0, 1.0]`。见 [参数枚举](/zh/intro/makeup)。
+
+### 滤镜 / 贴纸没效果
+
+向 `SetFilter` / `SetSticker` 传入 `.fbd` 路径或字节。
+
+### 虚拟背景 / 色度键
+
+`SetVirtualBackgroundBlur` / `SetVirtualBackground(path|bytes)` / `ClearVirtualBackground`。抠像：`SetChromaKey` + similarity / smoothness / desaturation；`ClearChromaKey()` 恢复分割。
+
+## 运行时
+
+### `libfacebetter.so: cannot open shared object file`
+
+`LD_LIBRARY_PATH`、拷到可执行文件旁、rpath 或 `ldconfig`。
+
+### 没有显示器 / GLFW X11 错误
+
+图形会话、`DISPLAY=:0` 或 Wayland。SSH 需要 `ssh -X`。
+
+### CMake 找不到 OpenGL
+
+安装 `libgl1-mesa-dev` / `mesa-libGL-devel` 后重新配置。
+
+### 无头服务器
+
+使用 OSMesa 或 EGL，并设置 `external_context = true`。仍需要 `resource.fbd` 和有效授权。
+
+## 授权
+
+`license_token` 非空时优先（token / `{token}` JSON / `.lic`）。否则用 `app_id` + `app_key` 在线 v2。事件：`0` / `1` / `100` / `101`。见 [许可证与鉴权](/zh/intro/license)。
+
+## 版本
+
+文档与发布以 **2.0.0** 为准。GCC 7+ / Clang 5+、C++17、OpenGL 3.0+。

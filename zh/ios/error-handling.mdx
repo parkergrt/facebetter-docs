@@ -1,412 +1,171 @@
 ---
 title: "错误处理"
-description: "iOS 美颜 SDK 错误处理指南"
+description: "iOS Facebetter SDK 2.0 错误处理"
 ---
 
-## 错误码处理
+<Note>
+本文档对应 SDK **2.0.0**。授权见 [授权认证](/zh/intro/license)。
+</Note>
 
-### 1. 检查 API 返回值
+## 错误码（`FBErrorCode`）
 
-所有 API 调用都应该检查返回值：
+设置类接口返回 `int`，`0` 表示成功。`createEngineWithConfig:` 与 `processImage:` 返回对象，失败为 `nil`。
+
+| 值 | 符号 | 含义 |
+| --- | --- | --- |
+| `0` | `FBErrorCode_Success` | 成功 |
+| `-1` | `FBErrorCode_InvalidArgument` | 参数无效（空配置、空路径、越界等） |
+| `-2` | `FBErrorCode_NotInitialized` | 引擎未初始化 |
+| `-3` | `FBErrorCode_License` | 授权失败 |
+| `-4` | `FBErrorCode_Unsupported` | 不支持的格式、平台或能力 |
+| `-5` | `FBErrorCode_IO` | 文件 / 资源读写失败 |
+| `-6` | `FBErrorCode_NoSlot` | 无可用槽位（例如人脸过多） |
+| `-7` | `FBErrorCode_Process` | 帧处理失败 |
+| `-8` | `FBErrorCode_OutOfMemory` | 内存不足 |
 
 ```objc
-// 检查引擎创建
+typedef NS_ENUM(NSInteger, FBErrorCode) {
+  FBErrorCode_Success = 0,
+  FBErrorCode_InvalidArgument = -1,
+  FBErrorCode_NotInitialized = -2,
+  FBErrorCode_License = -3,
+  FBErrorCode_Unsupported = -4,
+  FBErrorCode_IO = -5,
+  FBErrorCode_NoSlot = -6,
+  FBErrorCode_Process = -7,
+  FBErrorCode_OutOfMemory = -8,
+};
+```
+
+## 检查返回值
+
+```objc
+FBLogConfig *logConfig = [[FBLogConfig alloc] init];
+logConfig.consoleEnabled = YES;
+logConfig.level = FBLogLevel_Info;
+int logRet = [FBBeautyEffectEngine setLogConfig:logConfig];
+if (logRet != FBErrorCode_Success) {
+  NSLog(@"setLogConfig failed: %d", logRet);
+}
+
 FBEngineConfig *config = [[FBEngineConfig alloc] init];
 config.appId = @"your_app_id";
 config.appKey = @"your_app_key";
 self.engine = [FBBeautyEffectEngine createEngineWithConfig:config];
-
 if (self.engine == nil) {
-    NSLog(@"Failed to create beauty engine");
-    return;
+  NSLog(@"创建引擎失败（检查授权、Bundle ID 和日志）");
+  return;
 }
 
-// 检查参数设置
-int ret = [self.engine setBasicParam:FBBasicParam_Smoothing floatValue:0.5f];
-if (ret != 0) {
-    NSLog(@"Failed to set smoothing param, error code: %d", ret);
+int ret = [self.engine setSmoothing:0.5f];
+if (ret != FBErrorCode_Success) {
+  NSLog(@"setSmoothing failed: %d", ret);
 }
 ```
 
-### 2. 常见错误码
-
-根据 API 文档，主要错误码：
-- **0**: 成功
-- **-1**: 引擎未初始化
+统一映射错误码：
 
 ```objc
-@interface BeautyErrorHandler : NSObject
-@end
-
-@implementation BeautyErrorHandler
-
-+ (void)handleError:(int)errorCode operation:(NSString *)operation {
-    switch (errorCode) {
-        case 0:
-            NSLog(@"%@ succeeded", operation);
-            break;
-        case -1:
-            NSLog(@"%@ failed: Engine not initialized", operation);
-            break;
-        default:
-            NSLog(@"%@ failed: Unknown error code %d", operation, errorCode);
-            break;
-    }
+NSString *FBErrorMessage(int code) {
+  switch (code) {
+    case FBErrorCode_Success: return @"成功";
+    case FBErrorCode_InvalidArgument: return @"参数无效";
+    case FBErrorCode_NotInitialized: return @"引擎未初始化";
+    case FBErrorCode_License: return @"授权失败";
+    case FBErrorCode_Unsupported: return @"不支持";
+    case FBErrorCode_IO: return @"读写失败";
+    case FBErrorCode_NoSlot: return @"无可用槽位";
+    case FBErrorCode_Process: return @"处理失败";
+    case FBErrorCode_OutOfMemory: return @"内存不足";
+    default: return [NSString stringWithFormat:@"未知 (%d)", code];
+  }
 }
-
-@end
 ```
 
-## 处理图像数据
+## 引擎事件
 
-### 1. 输入图像验证
+`FBEngineCallbacks.onEngineEvent` 异步上报授权与初始化。创建引擎后立刻设置回调。
+
+| 码 | 符号 | 含义 |
+| --- | --- | --- |
+| `0` | `FBEngineEventCodeLicenseValidationSuccess` | 授权成功 |
+| `1` | `FBEngineEventCodeLicenseValidationFailed` | 授权失败 |
+| `100` | `FBEngineEventCodeInitializationComplete` | 初始化完成 |
+| `101` | `FBEngineEventCodeInitializationFailed` | 初始化失败 |
 
 ```objc
-@interface ImageValidator : NSObject
-+ (BOOL)validateImageFrame:(FBImageFrame *)imageFrame;
-@end
-
-@implementation ImageValidator
-
-+ (BOOL)validateImageFrame:(FBImageFrame *)imageFrame {
-    if (imageFrame == nil) {
-        NSLog(@"ImageFrame is nil");
-        return NO;
-    }
-    
-    // 检查图像尺寸
-    int width = imageFrame.width;
-    int height = imageFrame.height;
-    if (width <= 0 || height <= 0) {
-        NSLog(@"Invalid image dimensions: %dx%d", width, height);
-        return NO;
-    }
-    
-    return YES;
-}
-
-@end
+FBEngineCallbacks *callbacks = [[FBEngineCallbacks alloc] init];
+callbacks.onEngineEvent = ^(FBEngineEventCode code, NSString * _Nullable message) {
+  switch (code) {
+    case FBEngineEventCodeLicenseValidationFailed:
+      NSLog(@"授权失败: %@", message);
+      break;
+    case FBEngineEventCodeInitializationFailed:
+      NSLog(@"初始化失败: %@", message);
+      break;
+    default:
+      break;
+  }
+};
+[self.engine setCallbacks:callbacks];
 ```
 
-### 2. 图像处理错误处理
+<Tip>
+`createEngineWithConfig:` 返回非 `nil` 并不等于授权已成功。在线授权仍可能随后失败，请监听事件 `1` / `101`。
+</Tip>
+
+## 图像处理
+
+校验帧、设置 `type`，将 `nil` 视为处理失败（`FBErrorCode_Process`）。
 
 ```objc
-@interface ImageProcessor : NSObject
-@property (nonatomic, strong) FBBeautyEffectEngine *engine;
-@end
-
-@implementation ImageProcessor
-
-- (FBImageFrame *)processImageSafely:(FBImageFrame *)input {
-    // 验证输入
-    if (![ImageValidator validateImageFrame:input]) {
-        return nil;
-    }
-    
-    @try {
-        // 处理图像
-        input.type = FBFrameTypeVideo;
-        FBImageFrame *output = [self.engine processImage:input];
-        
-        if (output == nil) {
-            NSLog(@"Failed to process image: output is nil");
-            return nil;
-        }
-        
-        return output;
-    } @catch (NSException *exception) {
-        NSLog(@"Exception during image processing: %@", exception.reason);
-        return nil;
-    }
-}
-
-@end
-```
-
-### 3. 内存管理
-
-```objc
-@interface SafeImageProcessor : NSObject
-@property (nonatomic, strong) FBBeautyEffectEngine *engine;
-@end
-
-@implementation SafeImageProcessor
-
-- (BOOL)processImageSafe:(FBImageFrame *)input output:(FBImageFrame *)output {
-    FBImageFrame *result = nil;
-    
-    @try {
-        // 处理图像
-        result = [self.engine processImage:input processMode:FBProcessModeVideo];
-        
-        if (result == nil) {
-            NSLog(@"Processing returned nil");
-            return NO;
-        }
-        
-        // 复制结果到输出
-        [self copyImageFrame:result to:output];
-        
-        return YES;
-    } @catch (NSException *exception) {
-        NSLog(@"Exception during processing: %@", exception.reason);
-        return NO;
-    }
-}
-
-- (void)copyImageFrame:(FBImageFrame *)src to:(FBImageFrame *)dst {
-    // 实现图像复制逻辑
-    FBImageBuffer *srcBuffer = [src toRGBA];
-    FBImageBuffer *dstBuffer = [dst toRGBA];
-    
-    if (srcBuffer != nil && dstBuffer != nil) {
-        const uint8_t *srcData = [srcBuffer data];
-        uint8_t *dstData = (uint8_t *)[dstBuffer data];
-        
-        if (srcData != nil && dstData != nil) {
-            memcpy(dstData, srcData, MIN(srcBuffer.size, dstBuffer.size));
-        }
-    }
-}
-
-@end
-```
-
-## 日志和文件操作
-
-### 1. 日志配置错误处理
-
-```objc
-@interface LogConfigHandler : NSObject
-+ (BOOL)configureLogging:(BOOL)enableConsole 
-              enableFile:(BOOL)enableFile 
-             logFilePath:(NSString *)logFilePath;
-@end
-
-@implementation LogConfigHandler
-
-+ (BOOL)configureLogging:(BOOL)enableConsole 
-              enableFile:(BOOL)enableFile 
-             logFilePath:(NSString *)logFilePath {
-    @try {
-        FBLogConfig *logConfig = [[FBLogConfig alloc] init];
-        logConfig.consoleEnabled = enableConsole;
-        logConfig.fileEnabled = enableFile;
-        logConfig.level = FBLogLevel_Info;
-        
-        if (enableFile && logFilePath != nil && logFilePath.length > 0) {
-            // 检查目录是否存在
-            NSString *logDir = [logFilePath stringByDeletingLastPathComponent];
-            NSFileManager *fileManager = [NSFileManager defaultManager];
-            
-            if (![fileManager fileExistsAtPath:logDir]) {
-                NSError *error = nil;
-                if (![fileManager createDirectoryAtPath:logDir 
-                             withIntermediateDirectories:YES 
-                                              attributes:nil 
-                                                   error:&error]) {
-                    NSLog(@"Failed to create log directory: %@", error.localizedDescription);
-                    return NO;
-                }
-            }
-            
-            logConfig.fileName = logFilePath;
-        }
-        
-        int ret = [FBBeautyEffectEngine setLogConfig:logConfig];
-        return ret == 0;
-    } @catch (NSException *exception) {
-        NSLog(@"Failed to configure logging: %@", exception.reason);
-        return NO;
-    }
-}
-
-@end
-```
-
-### 2. 文件写入错误处理
-
-```objc
-@interface FileWriteHandler : NSObject
-+ (BOOL)saveImageBuffer:(FBImageBuffer *)buffer toPath:(NSString *)filePath;
-@end
-
-@implementation FileWriteHandler
-
-+ (BOOL)saveImageBuffer:(FBImageBuffer *)buffer toPath:(NSString *)filePath {
-    if (buffer == nil) {
-        NSLog(@"ImageBuffer is nil");
-        return NO;
-    }
-    
-    NSFileManager *fileManager = [NSFileManager defaultManager];
-    NSString *dir = [filePath stringByDeletingLastPathComponent];
-    
-    // 创建目录
-    if (![fileManager fileExistsAtPath:dir]) {
-        NSError *error = nil;
-        if (![fileManager createDirectoryAtPath:dir 
-                     withIntermediateDirectories:YES 
-                                      attributes:nil 
-                                           error:&error]) {
-            NSLog(@"Failed to create directory: %@", error.localizedDescription);
-            return NO;
-        }
-    }
-    
-    // 写入文件
-    const uint8_t *data = [buffer data];
-    NSData *nsData = [NSData dataWithBytes:data length:buffer.size];
-    
-    NSError *error = nil;
-    BOOL success = [nsData writeToFile:filePath options:NSDataWritingAtomic error:&error];
-    
-    if (!success) {
-        NSLog(@"Failed to write file: %@", error.localizedDescription);
-        return NO;
-    }
-    
-    NSLog(@"Image saved successfully: %@", filePath);
-    return YES;
-}
-
-@end
-```
-
-## 异常处理
-
-### 1. 捕获和处理异常
-
-```objc
-@interface ExceptionHandler : NSObject
-+ (void)safeExecute:(void(^)(void))block operation:(NSString *)operation;
-@end
-
-@implementation ExceptionHandler
-
-+ (void)safeExecute:(void(^)(void))block operation:(NSString *)operation {
-    @try {
-        if (block != nil) {
-            block();
-        }
-    } @catch (NSInvalidArgumentException *exception) {
-        NSLog(@"%@ failed: Invalid argument - %@", operation, exception.reason);
-    } @catch (NSException *exception) {
-        NSLog(@"%@ failed: Unexpected exception - %@", operation, exception.reason);
-    }
-}
-
-@end
-```
-
-### 2. 重试机制
-
-```objc
-@interface RetryHandler : NSObject
-@property (nonatomic, strong) FBBeautyEffectEngine *engine;
-@end
-
-@implementation RetryHandler
-
-static const int MAX_RETRY = 3;
-static const NSTimeInterval RETRY_DELAY = 0.1;
-
-- (FBImageFrame *)processImageWithRetry:(FBImageFrame *)input {
-    for (int i = 0; i < MAX_RETRY; i++) {
-        @try {
-            FBImageFrame *result = [self.engine processImage:input processMode:FBProcessModeVideo];
-            if (result != nil) {
-                return result;
-            }
-        } @catch (NSException *exception) {
-            NSLog(@"Attempt %d failed: %@", i + 1, exception.reason);
-        }
-        
-        if (i < MAX_RETRY - 1) {
-            [NSThread sleepForTimeInterval:RETRY_DELAY];
-        }
-    }
-    
-    NSLog(@"All retry attempts failed");
+- (FBImageFrame *)processSafely:(FBImageFrame *)input {
+  if (input == nil || input.width <= 0 || input.height <= 0) {
+    NSLog(@"Invalid FBImageFrame");
     return nil;
+  }
+  input.type = FBFrameTypeVideo;
+  FBImageFrame *output = [self.engine processImage:input];
+  if (output == nil) {
+    NSLog(@"processImage returned nil");
+  }
+  return output;
 }
-
-@end
 ```
 
-## 调试技巧
-
-### 1. 错误信息收集
+保存使用 `toFile:`（返回 `FBErrorCode`）：
 
 ```objc
-@interface DebugInfoCollector : NSObject
-+ (NSString *)collectErrorInfo:(int)errorCode operation:(NSString *)operation exception:(NSException *)exception;
-@end
-
-@implementation DebugInfoCollector
-
-+ (NSString *)collectErrorInfo:(int)errorCode operation:(NSString *)operation exception:(NSException *)exception {
-    NSMutableString *info = [NSMutableString string];
-    [info appendFormat:@"Operation: %@\n", operation];
-    [info appendFormat:@"Error Code: %d\n", errorCode];
-    [info appendFormat:@"Timestamp: %lld\n", (long long)([[NSDate date] timeIntervalSince1970] * 1000)];
-    
-    if (exception != nil) {
-        [info appendFormat:@"Exception: %@\n", exception.name];
-        [info appendFormat:@"Reason: %@\n", exception.reason];
-    }
-    
-    // 添加内存信息
-    struct mach_task_basic_info taskInfo;
-    mach_msg_type_number_t size = MACH_TASK_BASIC_INFO_COUNT;
-    kern_return_t kerr = task_info(mach_task_self(), MACH_TASK_BASIC_INFO, (task_info_t)&taskInfo, &size);
-    if (kerr == KERN_SUCCESS) {
-        [info appendFormat:@"Memory - Resident: %llu MB\n", taskInfo.resident_size / 1024 / 1024];
-        [info appendFormat:@"Memory - Virtual: %llu MB\n", taskInfo.virtual_size / 1024 / 1024];
-    }
-    
-    return [info copy];
+int saved = [output toFile:path quality:90];
+if (saved != FBErrorCode_Success) {
+  NSLog(@"toFile failed: %d", saved);
 }
-
-@end
 ```
 
-### 2. 性能监控
+## 日志
+
+在**创建引擎之前**打开日志。写文件时先创建目录。
 
 ```objc
-@interface PerformanceMonitor : NSObject
-@property (nonatomic, assign) NSTimeInterval startTime;
-@property (nonatomic, assign) NSInteger errorCount;
-@end
+NSString *logPath = [NSTemporaryDirectory() stringByAppendingPathComponent:@"facebetter.log"];
+NSString *logDir = [logPath stringByDeletingLastPathComponent];
+[[NSFileManager defaultManager] createDirectoryAtPath:logDir
+                          withIntermediateDirectories:YES
+                                           attributes:nil
+                                                error:nil];
 
-@implementation PerformanceMonitor
-
-- (void)startOperation {
-    self.startTime = [[NSDate date] timeIntervalSince1970];
-}
-
-- (void)endOperation:(NSString *)operation success:(BOOL)success {
-    NSTimeInterval duration = [[NSDate date] timeIntervalSince1970] - self.startTime;
-    
-    if (!success) {
-        self.errorCount++;
-        NSLog(@"%@ failed after %.2fms (Error count: %ld)", 
-              operation, duration * 1000, (long)self.errorCount);
-    } else if (duration > 0.1) {
-        NSLog(@"%@ took %.2fms (slow operation)", operation, duration * 1000);
-    }
-}
-
-@end
+FBLogConfig *logConfig = [[FBLogConfig alloc] init];
+logConfig.consoleEnabled = YES;
+logConfig.fileEnabled = YES;
+logConfig.level = FBLogLevel_Debug;
+logConfig.fileName = logPath;
+[FBBeautyEffectEngine setLogConfig:logConfig];
 ```
 
-## 总结
+## 常见原因
 
-遵循这些错误处理最佳实践可以帮助你：
-
-1. **提高应用稳定性**: 通过检查 API 返回值和异常处理
-2. **改善用户体验**: 通过友好的错误提示和恢复机制
-3. **便于问题排查**: 通过详细的日志记录和错误信息收集
-4. **优化性能**: 通过合理的错误恢复策略和资源管理
-
-记住要根据实际 SDK 的错误码定义调整错误处理逻辑，并持续监控和改进错误处理机制。iOS 平台使用 ARC 自动管理内存，但仍需要注意避免循环引用和及时释放不需要的资源。
+- **`-1` 参数无效**：空 `.fbd` 路径、`NSData` 为 nil、强度越界、配置为 nil。
+- **`-2` 未初始化**：`createEngineWithConfig:` 失败后实例为 `nil`，不要再发消息。
+- **`-3` 授权**：`appId` / `appKey` 错误、未绑定 Bundle ID、token 过期，或在线授权无网络。见 [授权认证](/zh/intro/license)。
+- **`-5` I/O**：滤镜 / 贴纸 / 背景文件缺失或沙盒不可读。
+- **外部 GL**：`externalContext = YES` 时必须在同一 OpenGL ES 线程创建并处理，否则 `processImage:` 可能返回 `nil`。

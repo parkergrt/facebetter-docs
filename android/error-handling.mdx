@@ -1,382 +1,188 @@
 ---
 title: "Error Handling"
-description: "Android Beauty SDK Error Handling Guide"
+description: "Handle Facebetter SDK 2.0 errors on Android"
 ---
 
-## Error Code Handling
+Beauty setters return `int`. Compare against `ErrorCode`. Construction and `processImage` can also throw or return `null`.
 
-### 1. Check API Return Values
-
-All API calls should check return values:
+## ErrorCode
 
 ```java
-// Check engine creation
+public final class ErrorCode {
+  public static final int SUCCESS = 0;
+  public static final int INVALID_ARGUMENT = -1;
+  public static final int NOT_INITIALIZED = -2;
+  public static final int LICENSE = -3;
+  public static final int UNSUPPORTED = -4;
+  public static final int IO = -5;
+  public static final int NO_SLOT = -6;
+  public static final int PROCESS = -7;
+  public static final int OUT_OF_MEMORY = -8;
+}
+```
+
+| Value | Constant | Typical cause |
+| --- | --- | --- |
+| `0` | `SUCCESS` | Call succeeded |
+| `-1` | `INVALID_ARGUMENT` | `null` / empty path, empty `byte[]`, `null` callbacks |
+| `-2` | `NOT_INITIALIZED` | Engine not initialized, or already released |
+| `-3` | `LICENSE` | Token / online auth rejected |
+| `-4` | `UNSUPPORTED` | Format or feature not available |
+| `-5` | `IO` | Missing `.fbd`, unreadable image, log file path |
+| `-6` | `NO_SLOT` | Resource limit reached |
+| `-7` | `PROCESS` | Frame processing failed |
+| `-8` | `OUT_OF_MEMORY` | Out of memory |
+
+<Note>
+**`-1` is invalid argument. `-2` is not initialized.**
+</Note>
+
+```java
+int ret = engine.setSmoothing(0.5f);
+if (ret != ErrorCode.SUCCESS) {
+    Log.e(TAG, "setSmoothing failed: " + ret);
+}
+```
+
+## Construction
+
+`new BeautyEffectEngine(context, config)` throws `IllegalArgumentException` when:
+
+- `context` or `config` is `null`
+- `config.isValid()` is `false` (no `licenseToken` and missing `appId` / `appKey`)
+
+It does **not** return `null`.
+
+```java
 BeautyEffectEngine.EngineConfig config = new BeautyEffectEngine.EngineConfig();
 config.appId = "your_app_id";
 config.appKey = "your_app_key";
-// Optional: If licenseJson is provided, license data verification takes priority
-// config.licenseJson = "your license json string";
-mBeautyEngine = new BeautyEffectEngine(this, config);
+// config.licenseToken = "...";
 
-if (mBeautyEngine == null) {
-    Log.e("BeautyEngine", "Failed to create beauty engine");
+BeautyEffectEngine engine;
+try {
+    engine = new BeautyEffectEngine(this, config);
+} catch (IllegalArgumentException e) {
+    Log.e(TAG, "EngineConfig invalid", e);
     return;
 }
-
-// Check parameter setting
-int ret = mBeautyEngine.setBeautyParam(BasicParam.SMOOTHING, 0.5f);
-if (ret == 0) {
-    Log.d("BeautyEngine", "Successfully set basic beauty parameters");
-} else {
-    Log.e("BeautyEngine", "Failed to set smoothing param, error code: " + ret);
-}
 ```
 
-### 2. Common Error Codes
-
-According to API documentation, main error codes:
-- **0**: Success
-- **-1**: Engine not initialized
+License and resource init can still fail asynchronously. Subscribe to engine events:
 
 ```java
-public class BeautyErrorHandler {
-    public static void handleError(int errorCode, String operation) {
-        switch (errorCode) {
-            case 0:
-                Log.d("BeautyErrorHandler", operation + " succeeded");
-                break;
-            case -1:
-                Log.e("BeautyErrorHandler", operation + " failed: Engine not initialized");
-                break;
-            default:
-                Log.e("BeautyErrorHandler", operation + " failed: Unknown error code " + errorCode);
-                break;
-        }
+EngineCallbacks callbacks = new EngineCallbacks();
+callbacks.onEngineEvent = (code, message) -> {
+    if (code == EngineEventCode.LICENSE_VALIDATION_FAILED
+        || code == EngineEventCode.INITIALIZATION_FAILED) {
+        Log.e(TAG, "engine event " + code + ": " + message);
     }
-}
+};
+engine.setCallbacks(callbacks);
 ```
 
-## Handle Image Data
+| `EngineEventCode` | Value |
+| --- | --- |
+| `LICENSE_VALIDATION_SUCCESS` | `0` |
+| `LICENSE_VALIDATION_FAILED` | `1` |
+| `INITIALIZATION_COMPLETE` | `100` |
+| `INITIALIZATION_FAILED` | `101` |
 
-### 1. Input Image Validation
+Auth troubleshooting: [License & Auth](/intro/license). Enable logging **before** construct — see [Implement Beauty](/android/implement-beauty).
+
+## processImage
 
 ```java
-public class ImageValidator {
-    public static boolean validateImageFrame(ImageFrame imageFrame) {
-        if (imageFrame == null) {
-            Log.e("ImageValidator", "ImageFrame is null");
-            return false;
-        }
-        
-        // Check image dimensions
-        int width = imageFrame.getWidth();
-        int height = imageFrame.getHeight();
-        if (width <= 0 || height <= 0) {
-            Log.e("ImageValidator", "Invalid image dimensions: " + width + "x" + height);
-            return false;
-        }
-        
-        return true;
-    }
+if (input == null || !input.isValid()) {
+    Log.e(TAG, "Invalid input frame");
+    return null;
+}
+if (input.type == null) {
+    input.type = ImageFrame.FrameType.VIDEO;
+}
+
+ImageFrame output;
+try {
+    output = engine.processImage(input);
+} catch (IllegalArgumentException e) {
+    Log.e(TAG, "processImage rejected the frame", e);
+    return null;
+}
+if (output == null) {
+    Log.e(TAG, "processImage returned null (engine released or native failure)");
+    return null;
 }
 ```
 
-### 2. Image Processing Error Handling
+- `null` input or `null` `type` → `IllegalArgumentException`
+- Engine already `release()`d → `null` (no exception)
+- Always `release()` both input and output in a `finally` block
 
 ```java
-public class ImageProcessor {
-    private BeautyEffectEngine mEngine;
-    
-    public ImageFrame processImageSafely(ImageFrame input) {
-        // Validate input
-        if (!ImageValidator.validateImageFrame(input)) {
-            return null;
-        }
-        
-        try {
-            // Process image
-            input.type = ImageFrame.FrameType.VIDEO;
-            ImageFrame output = mEngine.processImage(input);
-            
-            if (output == null) {
-                Log.e("ImageProcessor", "Failed to process image: output is null");
-                return null;
-            }
-            
-            return output;
-        } catch (Exception e) {
-            Log.e("ImageProcessor", "Exception during image processing", e);
-            return null;
-        }
+ImageFrame output = null;
+try {
+    input.type = ImageFrame.FrameType.VIDEO;
+    output = engine.processImage(input);
+    return output;
+} finally {
+    if (input != null) {
+        input.release();
     }
 }
 ```
 
-### 3. Memory Management
+If you convert the output (`convert`, `toBitmap`), release the extra frame too.
+
+## Filters, stickers, virtual background
+
+Empty path or empty `byte[]` returns `ErrorCode.INVALID_ARGUMENT`. Missing files typically return `ErrorCode.IO`.
 
 ```java
-public class SafeImageProcessor {
-    public boolean processImageSafe(ImageFrame input, ImageFrame output) {
-        ImageFrame result = null;
-        
-        try {
-            // Process image
-            result = mEngine.processImage(input, ProcessMode.VIDEO);
-            
-            if (result == null) {
-                Log.e("SafeImageProcessor", "Processing returned null");
-                return false;
-            }
-            
-            // Copy result to output
-            copyImageFrame(result, output);
-            
-            return true;
-        } catch (OutOfMemoryError e) {
-            Log.e("SafeImageProcessor", "Out of memory during processing", e);
-            System.gc(); // Trigger garbage collection
-            return false;
-        } catch (Exception e) {
-            Log.e("SafeImageProcessor", "Exception during processing", e);
-            return false;
-        } finally {
-            // Ensure resource release
-            if (result != null) {
-                result.release();
-            }
-        }
-    }
-    
-    private void copyImageFrame(ImageFrame src, ImageFrame dst) {
-        // Implement image copying logic
-        ImageBuffer srcBuffer = src.toRGBA();
-        ImageBuffer dstBuffer = dst.toRGBA();
-        
-        if (srcBuffer != null && dstBuffer != null) {
-            ByteBuffer srcData = srcBuffer.getData();
-            ByteBuffer dstData = dstBuffer.getData();
-            
-            if (srcData != null && dstData != null) {
-                dstData.put(srcData);
-            }
-        }
-        
-        if (srcBuffer != null) {
-            srcBuffer.release();
-        }
-        if (dstBuffer != null) {
-            dstBuffer.release();
-        }
-    }
+int ret = engine.setFilter(fbdPath);
+if (ret == ErrorCode.INVALID_ARGUMENT) {
+    Log.e(TAG, "Filter path empty");
+} else if (ret == ErrorCode.IO) {
+    Log.e(TAG, "Cannot read .fbd: " + fbdPath);
+} else if (ret != ErrorCode.SUCCESS) {
+    Log.e(TAG, "setFilter: " + ret);
 }
 ```
 
-## Logging and File Operations
+Filter / sticker changes take effect on the **next** processed frame. A successful setter does not prove the texture uploaded; watch later `processImage` results and SDK logs.
 
-### 1. Log Configuration Error Handling
+## Logging setup
+
+`setLogConfig` throws if `config` or `level` is `null`. Create parent directories before enabling file logs.
 
 ```java
-public class LogConfigHandler {
-    public static boolean configureLogging(boolean enableConsole, boolean enableFile, String logFilePath) {
-        try {
-            BeautyEffectEngine.LogConfig logConfig = new BeautyEffectEngine.LogConfig();
-            logConfig.consoleEnabled = enableConsole;
-            logConfig.fileEnabled = enableFile;
-            logConfig.level = BeautyEffectEngine.LogLevel.INFO;
-            
-            if (enableFile && logFilePath != null && !logFilePath.isEmpty()) {
-                // Check if directory exists
-                File logFile = new File(logFilePath);
-                File logDir = logFile.getParentFile();
-                if (logDir != null && !logDir.exists()) {
-                    if (!logDir.mkdirs()) {
-                        Log.e("LogConfigHandler", "Failed to create log directory: " + logDir.getPath());
-                        return false;
-                    }
-                }
-                
-                logConfig.fileName = logFilePath;
-            }
-            
-            BeautyEffectEngine.setLogConfig(logConfig);
-            return true;
-        } catch (Exception e) {
-            Log.e("LogConfigHandler", "Failed to configure logging", e);
-            return false;
-        }
-    }
+File logFile = new File(getFilesDir(), "facebetter.log");
+File parent = logFile.getParentFile();
+if (parent != null && !parent.exists() && !parent.mkdirs()) {
+    Log.e(TAG, "Cannot create log dir");
+    return;
 }
+BeautyEffectEngine.LogConfig logConfig = new BeautyEffectEngine.LogConfig();
+logConfig.consoleEnabled = true;
+logConfig.fileEnabled = true;
+logConfig.level = BeautyEffectEngine.LogLevel.DEBUG;
+logConfig.fileName = logFile.getAbsolutePath();
+BeautyEffectEngine.setLogConfig(logConfig);
 ```
 
-### 2. File Write Error Handling
+## Out of memory
+
+`ErrorCode.OUT_OF_MEMORY` or `OutOfMemoryError` usually means frames are not released, resolution is too high, or heap/direct buffers accumulated.
+
+- Use `ByteBuffer.allocateDirect` for camera / packed pixels
+- Release every `ImageFrame` (including `convert` results)
+- Prefer `FrameType.VIDEO` for live camera
+- Do not construct a new engine every frame
+
+## Stats for slow frames
 
 ```java
-public class FileWriteHandler {
-    public static boolean saveImageBuffer(ImageBuffer buffer, String filePath) {
-        if (buffer == null) {
-            Log.e("FileWriteHandler", "ImageBuffer is null");
-            return false;
-        }
-        
-        FileOutputStream fos = null;
-        try {
-            File file = new File(filePath);
-            File parentDir = file.getParentFile();
-            
-            // Create directory
-            if (parentDir != null && !parentDir.exists()) {
-                if (!parentDir.mkdirs()) {
-                    Log.e("FileWriteHandler", "Failed to create directory: " + parentDir.getPath());
-                    return false;
-                }
-            }
-            
-            // Write file
-            fos = new FileOutputStream(file);
-            ByteBuffer data = buffer.getData();
-            if (data != null) {
-                byte[] array = new byte[data.remaining()];
-                data.get(array);
-                fos.write(array);
-                fos.flush();
-            }
-            
-            Log.d("FileWriteHandler", "Image saved successfully: " + filePath);
-            return true;
-        } catch (IOException e) {
-            Log.e("FileWriteHandler", "IO error while saving file: " + filePath, e);
-            return false;
-        } finally {
-            if (fos != null) {
-                try {
-                    fos.close();
-                } catch (IOException e) {
-                    Log.e("FileWriteHandler", "Failed to close file stream", e);
-                }
-            }
-        }
-    }
+EngineStats stats = engine.getStats();
+if (stats.avgProcessTimeMs > 33) {
+    Log.w(TAG, "Slow pipeline: " + stats.avgProcessTimeMs + " ms, fps=" + stats.fps);
 }
 ```
-
-## Exception Handling
-
-### 1. Catch and Handle Exceptions
-
-```java
-public class ExceptionHandler {
-    public static void safeExecute(Runnable runnable, String operation) {
-        try {
-            runnable.run();
-        } catch (NullPointerException e) {
-            Log.e("ExceptionHandler", operation + " failed: Null pointer exception", e);
-        } catch (IllegalArgumentException e) {
-            Log.e("ExceptionHandler", operation + " failed: Invalid argument", e);
-        } catch (OutOfMemoryError e) {
-            Log.e("ExceptionHandler", operation + " failed: Out of memory", e);
-            System.gc(); // Trigger garbage collection
-        } catch (Exception e) {
-            Log.e("ExceptionHandler", operation + " failed: Unexpected exception", e);
-        }
-    }
-}
-```
-
-### 2. Retry Mechanism
-
-```java
-public class RetryHandler {
-    private static final int MAX_RETRY_COUNT = 3;
-    private static final long RETRY_DELAY_MS = 100;
-    
-    public ImageFrame processImageWithRetry(ImageFrame input) {
-        for (int i = 0; i < MAX_RETRY_COUNT; i++) {
-            try {
-                ImageFrame result = mBeautyEngine.processImage(input, ProcessMode.VIDEO);
-                if (result != null) {
-                    return result;
-                }
-            } catch (Exception e) {
-                Log.w("RetryHandler", "Attempt " + (i + 1) + " failed", e);
-            }
-            
-            if (i < MAX_RETRY_COUNT - 1) {
-                try {
-                    Thread.sleep(RETRY_DELAY_MS);
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
-                    break;
-                }
-            }
-        }
-        
-        Log.e("RetryHandler", "All retry attempts failed");
-        return null;
-    }
-}
-```
-
-## Debugging Tips
-
-### 1. Error Information Collection
-
-```java
-public class DebugInfoCollector {
-    public static String collectErrorInfo(int errorCode, String operation, Exception e) {
-        StringBuilder info = new StringBuilder();
-        info.append("Operation: ").append(operation).append("\n");
-        info.append("Error Code: ").append(errorCode).append("\n");
-        info.append("Timestamp: ").append(System.currentTimeMillis()).append("\n");
-        
-        if (e != null) {
-            info.append("Exception: ").append(e.getClass().getName()).append("\n");
-            info.append("Message: ").append(e.getMessage()).append("\n");
-        }
-        
-        // Add memory information
-        Runtime runtime = Runtime.getRuntime();
-        info.append("Memory - Total: ").append(runtime.totalMemory() / 1024 / 1024).append("MB\n");
-        info.append("Memory - Free: ").append(runtime.freeMemory() / 1024 / 1024).append("MB\n");
-        
-        return info.toString();
-    }
-}
-```
-
-### 2. Performance Monitoring
-
-```java
-public class PerformanceMonitor {
-    private long mStartTime;
-    private int mErrorCount;
-    
-    public void startOperation() {
-        mStartTime = System.currentTimeMillis();
-    }
-    
-    public void endOperation(String operation, boolean success) {
-        long duration = System.currentTimeMillis() - mStartTime;
-        
-        if (!success) {
-            mErrorCount++;
-            Log.w("PerformanceMonitor", 
-                String.format("%s failed after %dms (Error count: %d)", 
-                operation, duration, mErrorCount));
-        } else if (duration > 100) {
-            Log.w("PerformanceMonitor", 
-                String.format("%s took %dms (slow operation)", operation, duration));
-        }
-    }
-}
-```
-
-## Summary
-
-Following these error handling best practices can help you:
-
-1. **Improve App Stability**: Through API return value checking and exception handling
-2. **Improve User Experience**: Through friendly error prompts and recovery mechanisms
-3. **Facilitate Problem Troubleshooting**: Through detailed logging and error information collection
-4. **Optimize Performance**: Through reasonable error recovery strategies and resource management
-
-Remember to adjust error handling logic based on actual SDK error code definitions and continuously monitor and improve error handling mechanisms.

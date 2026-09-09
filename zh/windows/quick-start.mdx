@@ -3,20 +3,26 @@ title: "快速开始"
 description: "在 Windows 上构建并运行 Facebetter C++ 桌面示例（GLFW + ImGui）"
 ---
 
-本文介绍如何在 Windows 上构建并运行 Facebetter C++ 桌面 Demo。Demo 使用 **GLFW + Dear ImGui + OpenGL 3** 渲染，左侧实时预览美颜效果，右侧通过滑块控制各项参数。
+<Note>
+本文对应 SDK **2.0.0**。Windows 与 Linux 共用同一套 C++ API（`facebetter` 命名空间，头文件 `facebetter/*.h`）。
+</Note>
+
+本文说明如何在 Windows 上构建 Facebetter C++ 桌面 Demo。Demo 使用 **GLFW + Dear ImGui + OpenGL 3**：左侧实时预览，右侧调节美颜参数。
 
 ## 环境要求
 
-| 工具 | 版本要求 |
+| 工具 | 版本 |
 | --- | --- |
-| Visual Studio / MSVC | 2019 或更高（含 C++17 支持） |
+| Visual Studio / MSVC | 2019 或更高（C++17） |
 | CMake | 3.16+ |
-| Ninja | 任意最新版本（`winget install Ninja-build.Ninja`） |
+| Ninja | 任意较新版本（`winget install Ninja-build.Ninja`） |
 | Windows SDK | 10.0+ |
 
-> 也可以使用 MinGW-w64，但推荐 MSVC。
+<Tip>
+也可以使用 MinGW-w64，但推荐 MSVC。
+</Tip>
 
-## 第一步：获取示例源码
+## 第一步：克隆仓库
 
 ```bash
 git clone https://github.com/pixpark/facebetter-sdk.git
@@ -25,7 +31,7 @@ cd facebetter-sdk
 
 ## 第二步：放置 SDK 文件
 
-将 Windows SDK 压缩包解压后，按以下结构放入 `demo/cpp/sdk/` 目录：
+将 Windows SDK 解压后放入 `demo/cpp/sdk/`：
 
 ```
 demo/cpp/sdk/
@@ -37,18 +43,26 @@ demo/cpp/sdk/
 │       └── type_defines.h
 ├── lib/
 │   ├── facebetter.lib      ← 导入库
-│   └── facebetter.dll      ← 运行时动态库
+│   └── facebetter.dll      ← 运行时 DLL
 └── resource/
-    └── resource.fbd        ← 模型与资源包
+    └── resource.fbd        ← 模型与资源包（必需）
 ```
 
+<Warning>
+桌面端 `EngineConfig::resource_path` 必须指向 **`resource.fbd` 文件本身**，不能填目录。例如：`demo/cpp/sdk/resource/resource.fbd`。
+</Warning>
+
 <Tip>
-SDK 下载地址请前往 [下载页面](https://facebetter.net/zh/download) 或登录控制台查看。
+SDK 包见 [下载页](https://facebetter.net/zh/download) 或 [控制台](https://facebetter.net/zh/dashboard)。
 </Tip>
 
-## 第三步：构建
+## 第三步：配置授权
 
-打开 **Developer Command Prompt for VS**（或 PowerShell 加载了 MSVC 环境），然后执行：
+运行前设置 `app_id` / `app_key`（在线 v2 鉴权），或设置 `license_token`。`license_token` 非空时优先（许可证 token、`{token}` JSON，或离线 `.lic` 内容）。详见 [许可证与鉴权](/zh/intro/license)。
+
+## 第四步：构建
+
+打开 **Developer Command Prompt for VS**（或已加载 MSVC 环境的 PowerShell）：
 
 ```bat
 cd demo\cpp
@@ -56,44 +70,52 @@ cmake -B build -G "Ninja" -DCMAKE_BUILD_TYPE=Release
 cmake --build build
 ```
 
-CMake 在构建完成后会自动：
-- 将 `facebetter.dll` 复制到 `build/` 目录旁边
+构建完成后 CMake 通常会：
+
+- 将 `facebetter.dll` 复制到 `build/` 可执行文件旁
 - 将 `resource/resource.fbd` 复制到 `build/resource/resource.fbd`
-- 将 `demo.png`（如果存在）复制到 `build/resource/demo.png`
+- 若存在 `demo.png`，复制到 `build/resource/demo.png`
 
-## 第四步：准备预览图（可选）
+## 第五步：准备预览图（可选）
 
-将任意一张人脸图片命名为 `demo.png`，放到 `demo/cpp/` 目录下：
+将人脸照片命名为 `demo.png`，放到 `demo/cpp/`：
 
 ```
 demo/cpp/demo.png
 ```
 
-引擎会每秒约 30 帧地对该图片应用美颜效果，并在窗口左侧实时显示结果。
-
-## 第五步：运行
+## 第六步：运行
 
 ```bat
 cd demo\cpp\build
 .\facebetter_demo.exe
 ```
 
-程序运行后，窗口左侧为预览区，右侧为美颜控制面板：
+窗口包含：
 
-- **Basic Beauty**：磨皮 / 美白 / 红润 / 锐化
-- **Face Reshape**：瘦脸 / V脸 / 窄脸 / 短脸 / 颧骨 / 下颌 / 下巴 / 鼻梁 / 大眼 / 眼距
-- **Makeup**：口红 / 腮红
-- **Sticker**：贴纸选择（Off / rabbit）
+- **左侧** — 实时美颜预览
+- **右侧** — 控制面板：基础美颜、26 项美型（范围 `[-1.0, 1.0]`）、美妆、滤镜 / 贴纸 / 虚拟背景
 
-点击 **Reset All** 可一键恢复所有参数为默认值。
+点击 **Reset All** 可将强度归零。
 
 ## 常见问题
 
-**Q：提示找不到 `facebetter.dll`**  
-A：确认 `demo/cpp/sdk/lib/facebetter.dll` 存在，重新执行 `cmake --build build` 即可重新复制。
+**Q：启动提示找不到 `facebetter.dll`**  
+A：确认 `demo/cpp/sdk/lib/facebetter.dll` 存在，再执行 `cmake --build build` 让 CMake 复制到可执行文件旁。
 
-**Q：窗口显示 "Put demo.png …"**  
-A：在 `demo/cpp/` 目录下放置名为 `demo.png` 的人脸图片，然后重新运行。
+**Q：`Create` 返回空指针 / 授权失败**  
+A：`resource_path` 必须指向 `resource.fbd`，并配置 `license_token` 或有效的 `app_id` + `app_key`。见 [许可证与鉴权](/zh/intro/license)。
 
-**Q：CMake 提示找不到 Ninja**  
-A：执行 `winget install Ninja-build.Ninja` 安装，或将 `-G "Ninja"` 替换为 `-G "Visual Studio 17 2022"` 并去掉 `-DCMAKE_BUILD_TYPE=Release`（改为 `--config Release`）。
+**Q：CMake 找不到 Ninja**  
+A：执行 `winget install Ninja-build.Ninja`，或改用 `-G "Visual Studio 17 2022"` 并配合 `--config Release`。
+
+## 下一步
+
+<CardGroup cols={2}>
+  <Card title="实现美颜" href="/zh/windows/implement-beauty">
+    创建引擎、设置效果并处理帧。
+  </Card>
+  <Card title="API 参考" href="/zh/windows/api-reference">
+    Windows / Linux 共用的 C++ API。
+  </Card>
+</CardGroup>

@@ -1,5 +1,77 @@
 ---
 title: "FAQ"
-description: "Common questions and solutions for Windows beauty SDK integration"
+description: "Windows Facebetter SDK 2.0 integration FAQ"
 ---
 
+<Note>
+SDK **2.0.0**. Shared C++ API with Linux. [Parameter enums](/intro/makeup) · [License & Auth](/intro/license).
+</Note>
+
+## Integration
+
+### Engine `Create` returns `nullptr`
+
+- `resource_path` must be the **`resource.fbd` file** (not a directory)
+- Set `license_token` **or** valid `app_id` + `app_key`
+- Enable `SetLogConfig` before `Create`
+- Confirm `facebetter.dll` matches the import library
+
+### Header not found / link errors
+
+Include `facebetter/` from the SDK `include` directory. Link `facebetter.lib` and ship `facebetter.dll` next to the executable.
+
+### `SetRenderView` is missing
+
+That API exists only on iOS / macOS. On Windows, upload `ProcessImage` output to your own GL texture / D3D interop.
+
+## Effects
+
+### Beauty looks weak or off
+
+Intensities default to `0` (off). There is no `SetBeautyTypeEnabled`. Reshape / makeup need a face. Try `FrameType::Video` for camera frames.
+
+### Reshape looks inverted
+
+Range is `[-1.0, 1.0]`. Positive and negative are opposite directions (see [Parameter enums](/intro/makeup)).
+
+### Filter / sticker does nothing
+
+Pass a `.fbd` **path** or bytes to `SetFilter` / `SetSticker`. They take effect on the next `ProcessImage`.
+
+### Virtual background / chroma key
+
+Use `SetVirtualBackgroundBlur`, `SetVirtualBackground(path|bytes)`, `ClearVirtualBackground`. Chroma key: `SetChromaKey(ChromaKeyColor::Green)` then similarity / smoothness / desaturation. `ClearChromaKey()` restores portrait segmentation.
+
+## Performance
+
+### Preview is slow
+
+Lower resolution, use `FrameType::Video`, reduce stickers / virtual background, and check `GetStats().avg_process_time_ms`. Avoid recreating `ImageFrame` from files every frame — feed camera buffers.
+
+### High memory
+
+Reuse pixel buffers. Drop `shared_ptr<ImageFrame>` when unused. Do not create a new engine per frame.
+
+### Remote Desktop / VM has no beauty preview
+
+Hardware OpenGL may be unavailable. Test on a machine with a real GPU driver.
+
+## Auth
+
+### `license_token` vs `app_id` + `app_key`
+
+If `license_token` is non-empty, it wins (token / `{token}` JSON / `.lic`). Otherwise native online v2 uses `app_id` + `app_key`. See [License & Auth](/intro/license).
+
+### Event `1` or `101`
+
+License failed or init failed. Read the callback `message` and Debug logs.
+
+## Version
+
+### What version should I document / ship?
+
+**2.0.0**.
+
+### Which Windows versions / compilers?
+
+Windows 10+, MSVC 2019+ (C++17), x64. Ninja + CMake 3.16+ is the documented demo path.

@@ -1,227 +1,134 @@
 ---
 title: "常见问题"
-description: "macOS 美颜 SDK 常见问题解答"
+description: "macOS Facebetter SDK 2.0 常见问题"
 ---
 
-## 集成问题
+<Note>
+本文档对应 SDK **2.0.0**。授权见 [授权认证](/zh/intro/license)。枚举见 [参数枚举](/zh/intro/makeup)。
+</Note>
 
-### Q: 引擎创建失败怎么办？
-A: 检查以下几点：
-- 确认 `appId` 和 `appKey` 是否正确
-- 检查网络连接是否正常
-- 查看日志输出获取详细错误信息
-- 确认 SDK 版本是否最新
-- 检查 Framework 是否正确链接
+## 集成
 
-### Q: 编译时找不到头文件或类？
-A: 可能的原因：
-- 确认已正确添加 `Facebetter.framework` 到项目
-- 检查 Framework 的 "Embed & Sign" 设置是否正确
-- 确认导入语句：`#import <Facebetter/FBBeautyEffectEngine.h>`
-- 尝试 Clean Build Folder 后重新构建
+### 创建引擎返回 `nil`
 
-### Q: 运行时出现链接错误？
-A: 解决方案：
-- 确认设备架构是否支持（x86_64, arm64）
-- 检查 Framework 文件是否完整
-- 确认 Framework 的部署目标设置正确
-- 检查是否有其他 Framework 冲突
+- 确认已设置 `licenseToken` **或** `appId` + `appKey`。两者都有时以 token 为准。
+- 绑定 Mac **Bundle ID**（命令行工具：进程名）。
+- 在线授权需要 App Sandbox 的 **Outgoing Connections**，并能访问 `/facebetter/v2/auth`。
+- 在 `createEngineWithConfig:` **之前**打开日志，关注事件 `1` / `101`。
+- CocoaPods：`pod 'Facebetter', '2.0.0'`。打开 `.xcworkspace`。
 
-## 功能问题
+### 编译找不到头文件或类
 
-### Q: 美颜效果不明显？
-A: 可以尝试：
-- 增加美颜参数值（范围 0.0-1.0）
-- 确保启用了对应的美颜类型
-- 检查图像质量是否足够清晰
-- 确认人脸检测是否正常
+- 导入 `#import <Facebetter/FBBeautyEffectEngine.h>`。
+- 手动 `.framework`：**Embed & Sign**。
+- Xcode 15+ CocoaPods 沙盒：将 `ENABLE_USER_SCRIPT_SANDBOXING` 设为 **No**。
 
-### Q: 美颜效果过度或失真？
-A: 建议：
-- 降低美颜参数值
-- 检查参数组合是否合理
-- 避免同时启用过多美颜类型
-- 根据图像质量调整参数
+### 运行时链接 / dyld 错误
 
-### Q: 虚拟背景不生效？
-A: 检查：
-- 确认已启用 `FBBeautyType_VirtualBackground`
-- 检查背景图片路径是否正确
-- 确认图片格式是否支持（PNG、JPG）
-- 检查图片文件是否存在且可读
+- 架构：**x86_64** 与 **arm64**。
+- 部署目标 **macOS 10.15+**。
 
-## 性能问题
+## 授权
 
-### Q: 处理速度慢怎么办？
-A: 优化建议：
-- 使用 `FBFrameTypeVideo` 进行实时处理
-- 降低图像分辨率
-- 减少同时启用的美颜类型
-- 避免在主线程进行图像处理
-- 使用多线程处理图像
-- 利用 macOS 的多核优势
+### `licenseToken` 与 `appId` / `appKey`
 
-### Q: 内存占用过高？
-A: 解决方案：
-- 及时释放 `FBImageFrame` 和 `FBImageBuffer` 对象
-- 避免频繁创建和销毁引擎实例
-- 复用 `FBImageFrame` 对象
-- 使用对象池模式管理图像缓冲区
-- 监控系统内存使用情况
+`licenseToken` 非空时，SDK 在本地校验 token / `{token}` JSON / `.lic`。否则走在线授权。详见 [授权认证](/zh/intro/license)。
 
-### Q: 应用崩溃或卡顿？
-A: 排查步骤：
-- 检查是否在主线程进行图像处理
-- 确认资源释放是否完整
-- 查看日志中的异常信息
-- 检查参数值是否在有效范围内
-- 使用 Instruments 工具分析内存和性能
-- 检查多显示器环境下的兼容性
+### 事件 `1` 或 `101`
 
-## 图像处理问题
+授权或初始化失败。检查 Bundle ID、沙盒网络、token 是否过期以及日志。
 
-### Q: 如何处理不同格式的图像？
-A: 使用 `FBImageFrame` 的格式转换方法：
-- `toRGBA` - 转换为 RGBA 格式
-- `toI420` - 转换为 I420 格式
-- `toNV12` - 转换为 NV12 格式
-- `toBGRA` - 转换为 BGRA 格式
+## 美颜
 
-### Q: 相机预览图像处理？
-A: 建议流程：
-1. 从 AVCaptureSession 获取 CVPixelBuffer
-2. 使用 `createWithData` 创建 FBImageFrame
-3. 调用 `processImage` 处理
-4. 转换为目标格式显示
+### 效果太弱或太强
 
-### Q: 图像旋转问题？
-A: 解决方案：
-- 使用 `FBImageFrame` 的 `rotate` 方法旋转图像
-- 支持 0°、90°、180°、270° 旋转
-- 旋转操作会修改原始图像数据
+- 美肤 / 美妆 / 滤镜：`[0.0, 1.0]`。
+- 美型：通过 `setReshape:intensity:` 使用 **`[-1.0, 1.0]`**。
+- 强度为 `0` 即关闭该项。
+- 仅皮肤区域：`setBeautySkinOnly:`。
 
-## 权限问题
+预设名称见 [参数枚举](/zh/intro/makeup)。
 
-### Q: 相机权限问题？
-A: 需要添加权限描述：
-```xml
-<key>NSCameraUsageDescription</key>
-<string>需要相机权限进行美颜拍照</string>
-```
+## 滤镜、贴纸、虚拟背景
 
-### Q: 麦克风权限问题？
-A: 需要添加权限描述：
-```xml
-<key>NSMicrophoneUsageDescription</key>
-<string>需要麦克风权限进行音视频录制</string>
-```
+传 `.fbd` 路径或字节。沙盒应用必须能读该路径。
 
-## 调试问题
-
-### Q: 如何开启调试日志？
-A: 在创建引擎前配置：
 ```objc
-FBLogConfig *logConfig = [[FBLogConfig alloc] init];
-logConfig.consoleEnabled = YES;
-logConfig.fileEnabled = YES;
-logConfig.level = FBLogLevel_Debug;
-[FBBeautyEffectEngine setLogConfig:logConfig];
+[engine setFilter:fbdPath];
+[engine setFilterIntensity:0.8f];
+[engine clearFilter];
+[engine setSticker:fbdPath];
+[engine clearSticker];
 ```
 
-### Q: 如何获取详细错误信息？
-A: 方法：
-- 开启 DEBUG 级别日志
-- 检查 API 返回值（0 表示成功）
-- 查看文件日志输出
-- 使用 Xcode 的 Console 查看日志
-- 使用 Console.app 查看系统日志
+虚拟背景：
 
-## 版本兼容性
+```objc
+[engine setVirtualBackgroundBlur:0.6f];
+[engine setVirtualBackground:imagePath];
+[engine setVirtualBackgroundWithData:imageData];
+[engine clearVirtualBackground];
+[engine setChromaKey:FBChromaKeyColor_Green];
+[engine clearChromaKey];
+```
 
-### Q: 支持哪些 macOS 版本？
-A: 支持 macOS 10.14 及以上版本
+## 处理
 
-### Q: 支持哪些设备架构？
-A: 支持：
-- x86_64（Intel Mac）
-- arm64（Apple Silicon Mac）
+### `processImage:` 返回 `nil`
 
-### Q: 如何升级 SDK 版本？
-A: 步骤：
-1. 下载新版本 SDK
-2. 替换旧的 Framework 文件
-3. 清理项目缓存
-4. 重新构建项目
-5. 测试功能是否正常
+帧无效、初始化失败，或 `externalContext = YES` 但当前没有 GL 上下文。
 
-## ARC 相关问题
+### 帧类型
 
-### Q: 如何处理内存管理？
-A: macOS 使用 ARC，但需要注意：
-- 及时将对象设置为 nil
-- 避免循环引用
-- 使用 weak 引用避免强引用循环
+将 `imageFrame.type` 设为 `FBFrameTypeImage`（`0`）或 `FBFrameTypeVideo`（`1`）。没有处理模式参数。
 
-### Q: 如何处理 CVPixelBuffer？
-A: 建议：
-- 使用 `CVPixelBufferRetain` 和 `CVPixelBufferRelease` 管理
-- 或者使用 `__bridge_transfer` 和 `__bridge_retained` 转换
+### 格式转换
 
-## 多线程问题
+使用 `convert:`：
 
-### Q: 如何在后台线程处理图像？
-A: 建议：
-- 使用 `dispatch_async` 在后台队列处理
-- 避免在主线程进行图像处理
-- 使用 `dispatch_async(dispatch_get_main_queue())` 更新 UI
+```objc
+FBImageFrame *rgba = [frame convert:FBImageFormatRGBA];
+const uint8_t *data = [rgba data];
+```
 
-### Q: 如何处理并发访问？
-A: 解决方案：
-- 使用 `@synchronized` 保护共享资源
-- 使用串行队列处理图像
-- 避免多线程同时访问引擎实例
+### NSImage
 
-## macOS 特有问题
+```objc
+FBImageFrame *frame = [FBImageFrame createWithNSImage:nsImage];
+frame.type = FBFrameTypeImage;
+FBImageFrame *out = [engine processImage:frame];
+```
 
-### Q: 多显示器支持问题？
-A: 解决方案：
-- 检查不同显示器的分辨率和缩放比例
-- 适配 Retina 显示器的高分辨率
-- 处理窗口在不同显示器间移动的情况
+### 相机
 
-### Q: 窗口状态管理问题？
-A: 建议：
-- 监听窗口最小化/恢复事件
-- 在窗口不可见时暂停处理
-- 在窗口重新显示时恢复处理
+1. `AVCaptureVideoDataOutput` → `CVPixelBuffer`。
+2. `createWithNV12:...` 或 `createWithBGRA:...`。
+3. `type = FBFrameTypeVideo`，可选 `setMirror:@"horizontal"`。
+4. 在 AppKit / OpenGL 视图中显示 `[output data]` 或 `[output texture]`。
 
-### Q: 系统性能监控？
-A: 方法：
-- 使用 `NSProcessInfo` 监控系统负载
-- 根据系统性能动态调整处理质量
-- 监听系统内存警告通知
+## 性能
 
-## 部署问题
+- 实时用 `FBFrameTypeVideo`；关注 `getStats`。
+- 一个引擎、串行队列。
+- 窗口最小化时暂停采集。
 
-### Q: Mac App Store 审核被拒？
-A: 可能原因：
-- 缺少必要的权限描述
-- 使用了私有 API
-- 内存泄漏问题
-- 崩溃问题
-- 沙盒权限配置问题
+## 日志
 
-### Q: 如何优化 App 大小？
-A: 建议：
-- 移除未使用的架构（如 x86_64）
-- 压缩资源文件
-- 使用 App Thinning
-- 移除未使用的 Framework 部分
-- 针对不同架构分别打包
+```objc
+[FBBeautyEffectEngine setLogConfig:logConfig];  // 在 createEngineWithConfig: 之前
+```
 
-### Q: 如何支持 Universal Binary？
-A: 步骤：
-1. 确保 Framework 包含 x86_64 和 arm64 架构
-2. 在 Xcode 中设置 "Architectures" 为 "Standard Architectures"
-3. 使用 `lipo` 命令验证架构支持
-4. 测试在不同架构 Mac 上的运行情况
+日志写到沙盒容器内。返回码见 [错误处理](/zh/macos/error-handling)。
+
+## 版本
+
+- **macOS 10.15+**，**x86_64** + **arm64**。
+- CocoaPods：`pod 'Facebetter', '2.0.0'`。
+- Universal Binary：确认 xcframework 含两个切片（`lipo -info`）。
+
+## 沙盒与 App Store
+
+- 在线授权需要出站网络。
+- 相机需要 `NSCameraUsageDescription`。
+- 用户选择的文件使用 security-scoped bookmark。
+- 不要使用私有 API；实时视频不要在主线程跑引擎。

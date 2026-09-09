@@ -1,198 +1,132 @@
 ---
 title: "TRTC Integration"
-description: "Integrate FaceBetter beauty SDK with TRTC Flutter"
+description: "Facebetter Flutter SDK 2.0 + TRTC custom video process"
 ---
 
-This guide explains how to integrate FaceBetter beauty SDK with TRTC Flutter.
-
-## Architecture
+<Note>
+SDK **2.0.0**. Dart only sets beauty parameters. Every video frame stays on the native GL thread via `FacebetterPlugin.processTexture`.
+</Note>
 
 ```
-Flutter Layer                 Native Layer
-┌──────────────────┐         ┌─────────────────────────────────┐
-│ FBBeautyEffect   │         │ TRTC video capture               │
-│ Engine.init()    │         │   ↓ (texture ID)                 │
-│ engine.set*()    │         │ onProcessVideoFrame()            │
-│ set parameters   │         │   ↓                              │
-└──────────────────┘         │ FB engine.processImage(texture)  │
-                             │   ↓                              │
-                             │ output texture → TRTC streaming  │
-                             └─────────────────────────────────┘
+Flutter (Dart)                         Native GL thread
+FBEngine.create(externalContext: true)
+engine.setSmoothing / setReshape  →    TRTC onProcessVideoFrame
+await engine.setFilter                 FacebetterPlugin.processTexture(tex, w, h)
+engine.dispose()                       dst.textureId = out
 ```
+
+Do **not** call `processFile` / `processImageBytes` / `processImageFile` / `processImageToUiImage` on this engine. Those APIs need `externalContext: false` and a separate instance.
 
 ## Prerequisites
 
-- TRTC Flutter SDK (`tencent_trtc_cloud`) integrated
-- `facebetter_flutter` dependency added
-- Valid FaceBetter license (appId / appKey)
+- `tencent_trtc_cloud` (or native TRTC) already in the app
+- `facebetter_flutter: ^2.0.0`
+- Valid `appId` / `appKey` or `licenseToken` — [License & Auth](/intro/license)
 
-## Step 1: Flutter Layer Initialization
+When enabling TRTC custom preprocess, use **Texture2D + Texture buffer**, not YUV / PixelBuffer.
 
-Initialize the engine before entering a TRTC room:
+## 1. Create the engine in Dart
+
+Create **before** turning on custom video process. `externalContext` defaults to `true` and **must stay true** for TRTC.
 
 ```dart
-await FBBeautyEffectEngine.init(
-  FBEngineConfig(appId: 'your_app_id', appKey: 'your_app_key'),
-);
+import 'package:facebetter_flutter/facebetter_flutter.dart';
 
-final engine = FBBeautyEffectEngine.sharedInstance;
-await engine.setBasicParam(FBBasicParam.smoothing, 0.8);
-await engine.setBasicParam(FBBasicParam.whitening, 0.6);
-await engine.setReshapeParam(FBReshapeParam.faceThin, 0.3);
+FBEngine.setLogConfig(console: true, level: FBLogLevel.info);
+
+final engine = await FBEngine.create(const FBEngineConfig(
+  appId: 'your_app_id',
+  appKey: 'your_app_key',
+  externalContext: true,
+  enableLandmarks: false,
+));
+
+engine.setSmoothing(0.8);
+engine.setWhitening(0.5);
+engine.setReshape(FBReshape.faceThin, 0.3);
+engine.setLipstick(0.4);
+await engine.setFilter(path: '/path/to/filter.fbd');
 ```
 
-## Step 2: iOS Native Integration
+Slider callbacks can call the sync setters directly:
 
-### 2.1 Add Dependency
-
-In your iOS `Podfile`:
-
-```ruby
-pod 'TXCustomBeautyProcesserPlugin', '1.0.2'
+```dart
+onChanged: (v) => engine.setSmoothing(v),
 ```
 
-### 2.2 Implement Beauty Processer
-
-Create `FBBeautyProcesser.swift`:
-
-```swift
-import Facebetter
-import facebetter_flutter
-
-class FBBeautyProcesser: NSObject, ITXCustomBeautyProcesser {
-    func getSupportedPixelFormat() -> ITXCustomBeautyPixelFormat { .Texture2D }
-    func getSupportedBufferType() -> ITXCustomBeautyBufferType { .Texture }
-
-    func onProcessVideoFrame(srcFrame: ITXCustomBeautyVideoFrame,
-                             dstFrame: ITXCustomBeautyVideoFrame) -> ITXCustomBeautyVideoFrame {
-        guard let engine = FacebetterPlugin.sharedInstance().engine else { return srcFrame }
-
-        let inputFrame = FBImageFrame.createWithTexture(
-            srcFrame.texture.textureId,
-            width: srcFrame.width, height: srcFrame.height,
-            stride: srcFrame.width * 4)
-        inputFrame.type = .video
-
-        guard let outputFrame = engine.processImage(inputFrame) else { return srcFrame }
-        dstFrame.texture.textureId = outputFrame.texture
-        return dstFrame
-    }
-}
-
-class FBBeautyProcesserFactory: NSObject, ITXCustomBeautyProcesserFactory {
-    private var processer: FBBeautyProcesser?
-    func createCustomBeautyProcesser() -> ITXCustomBeautyProcesser {
-        if processer == nil { processer = FBBeautyProcesser() }
-        return processer!
-    }
-    func destroyCustomBeautyProcesser() { processer = nil }
-}
-```
-
-### 2.3 Register with TRTC
-
-In `AppDelegate.swift`:
-
-```swift
-func application(_ application: UIApplication,
-                 didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
-    GeneratedPluginRegistrant.register(with: self)
-    TencentTRTCCloud.register(FBBeautyProcesserFactory())
-    return super.application(application, didFinishLaunchingWithOptions: launchOptions)
-}
-```
-
-<Warning>
-Must be called **after** `GeneratedPluginRegistrant.register(with:)`.
-</Warning>
-
-### 2.4 Bridging Header
-
-Add to your Bridging Header:
-
-```objc
-#import "FacebetterPlugin.h"
-```
-
-## Step 3: Android Native Integration
-
-### 3.1 Add Dependency
-
-In `app/build.gradle`:
-
-```groovy
-implementation 'com.tencent.liteav:custom-video-processor:latest.release'
-```
-
-### 3.2 Implement Beauty Processer
-
-Create `FBBeautyProcesser.kt`:
-
-```kotlin
-class FBBeautyProcesser : ITXCustomBeautyProcesser {
-    override fun getSupportedPixelFormat() = TXCustomBeautyPixelFormat.Texture2D
-    override fun getSupportedBufferType() = TXCustomBeautyBufferType.Texture
-
-    override fun onProcessVideoFrame(srcFrame: TXCustomBeautyVideoFrame,
-                                      dstFrame: TXCustomBeautyVideoFrame) {
-        val engine = FacebetterPlugin.sharedInstance?.getEngine() ?: return
-        val inputFrame = ImageFrame.createWithTexture(
-            srcFrame.texture.textureId,
-            srcFrame.width, srcFrame.height, srcFrame.width * 4)
-        inputFrame.type = ImageFrame.FrameType.VIDEO
-        val outputFrame = engine.processImage(inputFrame) ?: return
-        dstFrame.texture.textureId = outputFrame.texture
-    }
-}
-
-class FBBeautyProcesserFactory : ITXCustomBeautyProcesserFactory {
-    private var processer: FBBeautyProcesser? = null
-    override fun createCustomBeautyProcesser(): ITXCustomBeautyProcesser {
-        if (processer == null) processer = FBBeautyProcesser()
-        return processer!!
-    }
-    override fun destroyCustomBeautyProcesser() { processer = null }
-}
-```
-
-### 3.3 Register with TRTC
-
-In `MainActivity.kt`:
-
-```kotlin
-override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
-    super.configureFlutterEngine(flutterEngine)
-    TXCustomVideoProcessRegisterer.register(FBBeautyProcesserFactory())
-}
-```
-
-## Step 4: Enable Custom Video Process
+Then enable TRTC custom process (API name depends on your TRTC Flutter plugin version):
 
 ```dart
 await trtcCloud.enableCustomVideoProcess(true);
 ```
 
-## Dynamic Parameter Adjustment
+## 2. iOS — feed textures in `onProcessVideoFrame`
 
-Adjust beauty parameters during a call:
+```objc
+#import <facebetter_flutter/FacebetterPlugin.h>
 
-```dart
-await engine.setBasicParam(FBBasicParam.smoothing, 0.9);
-await engine.setReshapeParam(FBReshapeParam.faceThin, 0.5);
-await engine.setFilter('new_filter');
+- (uint32_t)onProcessVideoFrame:(TRTCVideoFrame *)srcFrame
+                        dstFrame:(TRTCVideoFrame *)dstFrame {
+  uint32_t out = [FacebetterPlugin processTexture:srcFrame.textureId
+                                            width:srcFrame.width
+                                           height:srcFrame.height];
+  if (out != 0) {
+    dstFrame.textureId = out;
+  }
+  return 0;
+}
 ```
 
-Changes take effect on the next video frame.
+If you use `tencent_trtc_cloud`'s `ITXCustomBeautyProcesser`, keep **Texture2D / Texture** and call the same `processTexture` inside `onProcessVideoFrame`. Register the factory **after** `GeneratedPluginRegistrant.register(with:)`.
 
-## Release
+## 3. Android — same callback, Kotlin
 
-```dart
-await FBBeautyEffectEngine.sharedInstance.release();
+```kotlin
+import net.pixpark.facebetter.flutter.FacebetterPlugin
+
+override fun onProcessVideoFrame(
+    srcFrame: TRTCCloudDef.TRTCVideoFrame,
+    dstFrame: TRTCCloudDef.TRTCVideoFrame,
+): Int {
+    val out = FacebetterPlugin.processTexture(
+        srcFrame.texture.textureId,
+        srcFrame.width,
+        srcFrame.height,
+    )
+    if (out != 0) {
+        dstFrame.texture.textureId = out
+    }
+    return 0
+}
 ```
 
-## Notes
+`processTexture` must run on the **current GL thread**. Never hop to the UI isolate.
 
-1. `onProcessVideoFrame` runs on the GL thread; `processImage` is thread-safe.
-2. Call `FBBeautyEffectEngine.init()` before `enableCustomVideoProcess(true)`.
-3. The engine is a singleton — only one instance per app lifecycle.
-4. FaceBetter uses OpenGL ES 2D textures, matching TRTC's texture format.
+## 4. Tear down
+
+1. `enableCustomVideoProcess(false)` (or leave the room)
+2. `engine.dispose()`
+
+```dart
+await trtcCloud.enableCustomVideoProcess(false);
+engine.dispose();
+```
+
+## Photos vs live video
+
+| | TRTC engine | Photo engine |
+| --- | --- | --- |
+| `externalContext` | `true` (default) | `false` |
+| Frames | Native `processTexture` | Dart `processFile` / `processImageBytes` / … |
+| Mixing | Do not call photo APIs | Do not use for TRTC |
+
+## Do not
+
+- Push pixels or texture ids from Dart every frame — Flutter and TRTC do not share a GL context with Dart.
+- Call `processTexture` off the GL thread.
+- Treat `FBEngine` as a process-wide singleton. Create it with `FBEngine.create` and `dispose()` when the call ends.
+
+## Related
+
+- [Implement beauty](/flutter/implement-beauty)
+- [API reference](/flutter/api-reference)

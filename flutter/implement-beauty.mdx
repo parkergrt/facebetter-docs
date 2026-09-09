@@ -1,119 +1,189 @@
 ---
 title: "Implement Beauty"
-description: "Implement beauty effects in Flutter"
+description: "Integrate Facebetter Flutter SDK 2.0"
 ---
 
-## Add SDK Dependency
+<Note>
+SDK **2.0.0**. Class: **`FBEngine`**. No singleton. Auth: [License & Auth](/intro/license). Enums: [Parameter enums](/intro/makeup).
+</Note>
 
-Add to your `pubspec.yaml`:
+Flutter **only sets parameters**. Live video frames never enter Dart. TRTC / push SDKs feed textures on the native GL thread — see [TRTC integration](/flutter/trtc-integration).
+
+## Add the plugin
 
 ```yaml
 dependencies:
-  facebetter_flutter: ^1.4.4
+  facebetter_flutter: ^2.0.0
 ```
-
-Then run:
-
-```bash
-flutter pub get
-```
-
-For iOS:
-
-```bash
-cd ios && pod install
-```
-
-## Import
 
 ```dart
 import 'package:facebetter_flutter/facebetter_flutter.dart';
 ```
 
-## Configure Logging
+## Logging
+
+Call **before** `FBEngine.create`:
 
 ```dart
-FBBeautyEffectEngine.setLogConfig(
-  FBLogConfig(consoleEnabled: true, level: FBLogLevel.debug),
+FBEngine.setLogConfig(
+  console: true,
+  file: false,
+  level: FBLogLevel.info,
+  fileName: '',
 );
 ```
 
-<Warning>
-Call `setLogConfig` **before** `init()` to see initialization logs.
-</Warning>
+## Create
 
-## Initialize Engine
+Provide `appId` + `appKey`, **or** `licenseToken` (license token string, `{token}` JSON, or native offline `.lic`). Token wins if both are set.
 
 ```dart
-await FBBeautyEffectEngine.init(
-  FBEngineConfig(appId: 'your appId', appKey: 'your appKey'),
-);
-final engine = FBBeautyEffectEngine.sharedInstance;
+final engine = await FBEngine.create(FBEngineConfig(
+  appId: '...',
+  appKey: '...',
+  // licenseToken: '...',
+  enableLandmarks: false,
+  externalContext: true,
+  resourcePath: null,
+));
 ```
 
-## Set Beauty Parameters
+| Field | Default | Notes |
+| --- | --- | --- |
+| `appId` / `appKey` | — | Online auth |
+| `licenseToken` | — | token / `{token}` JSON / `.lic` contents |
+| `enableLandmarks` | `false` | Engine-level; cannot change later. Keep `false` unless you read landmarks |
+| `externalContext` | `true` | `true` for TRTC; `false` for photo file APIs |
+| `resourcePath` | plugin | Android AAR `resource.fbd` / iOS framework file |
 
-<Tip>
-All parameter values range from `[0.0, 1.0]`. Set to `0` to disable.
-</Tip>
+`FBEngine.version` reads the native SDK version string.
 
-### Basic Beauty
+## Skin, reshape, makeup
+
+Intensity setters are **synchronous** — safe in `Slider.onChanged`.
+
+Skin `[0.0, 1.0]`:
 
 ```dart
-await engine.setBasicParam(FBBasicParam.smoothing, 0.8);
-await engine.setBasicParam(FBBasicParam.whitening, 0.6);
+engine.setSmoothing(0.8);
+engine.setSmoothingStyle(FBSmoothingStyle.natural);
+engine.setWhitening(0.5);
+engine.setWhiteningStyle(FBWhiteningStyle.coldWhite);
+engine.setSharpening(0.3);
+engine.setRosiness(0.2);
+engine.setBeautySkinOnly(true);
 ```
 
-### Face Reshape
+Reshape **`[-1.0, 1.0]`**:
 
 ```dart
-await engine.setReshapeParam(FBReshapeParam.faceThin, 0.5);
-await engine.setReshapeParam(FBReshapeParam.eyeSize, 0.3);
+engine.setReshape(FBReshape.faceThin, 0.3);
+engine.setReshape(FBReshape.eyeSize, 0.2);
 ```
 
-### Makeup
+Makeup (intensity + style/color). Full enums: [Parameter enums](/intro/makeup).
 
 ```dart
-await engine.setMakeupParam(FBMakeupParam.lipstick, 0.5);
+engine.setLipstick(0.4);
+engine.setLipstickColor(FBLipstickColor.rouge);
+engine.setBlush(0.3);
+engine.setBlushStyle(FBBlushStyle.sunKissed);
+engine.setBlushColor(FBBlushColor.coralPink);
+engine.setContour(0.4);
+engine.setContourStyle(FBContourStyle.natural);
+engine.setEyeShadow(0.35);
+engine.setEyeShadowStyle(FBEyeShadowStyle.soft);
+engine.setEyeShadowColor(FBEyeShadowColor.plum);
+engine.setEyeLiner(0.3);
+engine.setEyebrow(0.3);
+engine.setEyelash(0.3);
+engine.setPupil(0.4);
 ```
 
-### Virtual Background
+## Filter, sticker, virtual background
+
+Path **or** `Uint8List` bytes — not both. These return `Future` (file decode + GPU upload).
 
 ```dart
-await engine.setVirtualBackground(FBBackgroundMode.blur);
-await engine.setVirtualBackground(FBBackgroundMode.image,
-    backgroundImage: FBImageFrame(...));
+await engine.setFilter(path: '/path/to/filter.fbd');
+// await engine.setFilter(data: bytes);
+engine.setFilterIntensity(0.8);
+engine.clearFilter();
+
+await engine.setSticker(path: '/path/to/sticker.fbd');
+engine.clearSticker();
+
+engine.setVirtualBackgroundBlur(0.6);
+await engine.setVirtualBackground(path: '/path/to/bg.jpg');
+engine.clearVirtualBackground();
 ```
 
-## Filters & Stickers
+Chroma key (sync), same as native:
 
 ```dart
-await engine.registerFilter('chuxin', '/path/to/chuxin.fbd');
-await engine.setFilter('chuxin');
-await engine.setFilterIntensity(0.8);
-
-await engine.registerSticker('cherry', '/path/to/cherry.fbd');
-await engine.setSticker('cherry');
+engine.setChromaKey(FBChromaKeyColor.green);
+engine.setChromaKeySimilarity(0.4);
+engine.setChromaKeySmoothness(0.2);
+engine.setChromaKeyDesaturation(0.3);
+engine.clearChromaKey();
 ```
 
-## Process Images
+Chroma key is the **mask**; fill is still blur or a background image.
+
+## Events and stats
 
 ```dart
-final inputFrame = FBImageFrame(
-  width: 1080, height: 1920, stride: 4320,
-  data: rgbaBytes, format: FBImageFormat.rgba,
-);
-final outputFrame = await engine.processImage(inputFrame);
+engine.events.listen((FBEngineEvent e) {
+  switch (e.eventCode) {
+    case FBEngineEventCode.licenseValidationSuccess:
+    case FBEngineEventCode.engineInitializationComplete:
+      break;
+    case FBEngineEventCode.licenseValidationFailed:
+    case FBEngineEventCode.engineInitializationFailed:
+      debugPrint(e.message);
+  }
+});
+
+final FBStats s = engine.stats;
+// s.fps, s.avgProcessTimeMs, s.sessionTimeSeconds
 ```
 
-## Release
+## Still images
+
+Use a **separate** engine with `externalContext: false`. Do **not** call these on a TRTC engine, and do **not** process TRTC video from Dart.
 
 ```dart
-await engine.release();
+final photoEngine = await FBEngine.create(const FBEngineConfig(
+  appId: '...',
+  appKey: '...',
+  externalContext: false,
+));
+
+await photoEngine.processFile(input: srcPath, output: dstPath, quality: 90);
+
+final FBBitmap bmp = await photoEngine.processImageBytes(jpegBytes);
+final FBBitmap fromFile = await photoEngine.processImageFile(srcPath);
+final ui.Image image = await photoEngine.processImageToUiImage(jpegBytes);
+
+photoEngine.dispose();
 ```
 
-## Related Docs
+`FBBitmap.pixels` is RGBA8888 (`stride == width * 4`).
 
-- [API Reference](/flutter/api-reference)
-- [TRTC Integration](/flutter/trtc-integration)
-- [License & Auth](/intro/license)
+## Errors
+
+Setters and async tasks throw `FBException` with codes `0`, `-1` … `-8`. See [API reference](/flutter/api-reference#fbexception).
+
+## Dispose
+
+Stop TRTC custom preprocess first, then:
+
+```dart
+engine.dispose();
+```
+
+## Related
+
+- [TRTC integration](/flutter/trtc-integration)
+- [API reference](/flutter/api-reference)
+- [Quick start](/flutter/quick-start)

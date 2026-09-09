@@ -1,453 +1,91 @@
 ---
 title: "Best Practices"
-description: "Web Beauty SDK Best Practices Guide"
+description: "Facebetter Web SDK 2.0 performance and security"
 ---
 
-## Performance Optimization
+<Note>
+SDK **2.0.0**. Auth: [License & Auth](/intro/license).
+</Note>
 
-### 1. Choose Appropriate Processing Mode
+## Auth in production
 
-**Video Mode (ProcessMode.Video)**
-- Suitable for real-time video streams and live scenarios
-- Better performance, faster processing
-- Recommended for camera preview, video calls, etc.
-
-**Image Mode (ProcessMode.Image)**
-- Suitable for single image processing
-- Higher quality, better effects
-- Recommended for photo editing, image beautification, etc.
+Keep `app_id` / `app_key` on the server. Configure the engine with `authProxyUrl` (or a short-lived `licenseToken` from your backend).
 
 ```javascript
-// Real-time video processing (synchronous method)
-const result = engine.processImage(
-    imageData, 
-    imageData.width, 
-    imageData.height, 
-    ProcessMode.Video
-);
-
-// High-quality image processing (synchronous method)
-const result = engine.processImage(
-    imageData, 
-    imageData.width, 
-    imageData.height, 
-    ProcessMode.Image
-);
+const engine = new BeautyEffectEngine(new EngineConfig({
+  authProxyUrl: '/api/facebetter/auth',
+}));
 ```
 
-### 2. Parameter Adjustment Recommendations
+<Warning>
+Never put `appKey` in a production frontend bundle. `createDirectAuthFetcher` is localhost-only.
+</Warning>
 
-**Beauty Parameter Adjustment Principles**
-- Start with smaller values to avoid over-beautification
-- In real-time scenarios, recommend lowering parameter values for smoothness
-- Static images can use higher parameter values
-- Adjust parameter ranges based on user groups and scenarios
+Bind the exact production domain in the Dashboard. Web cannot use offline `.lic`.
 
-**Recommended Parameter Ranges**
+## One engine per page
 
-```javascript
-// Basic beauty parameters (real-time scenarios)
-engine.setBasicParam(BasicParam.Smoothing, 0.2);  // Skin smoothing (0.0-1.0)
-engine.setBasicParam(BasicParam.Whitening, 0.1);  // Whitening (0.0-1.0)
-engine.setBasicParam(BasicParam.Rosiness, 0.1);   // Rosiness (0.0-1.0)
-
-// Face reshape parameters (real-time scenarios)
-engine.setReshapeParam(ReshapeParam.FaceThin, 0.1);    // Face thinning (0.0-1.0)
-engine.setReshapeParam(ReshapeParam.EyeSize, 0.1);     // Eye enlargement (0.0-1.0)
-
-// Static images can use higher parameter values
-engine.setBasicParam(BasicParam.Smoothing, 0.5);
-engine.setBasicParam(BasicParam.Whitening, 0.3);
-```
-
-### 3. Memory Optimization
-
-**Reuse Canvas and ImageData Objects**
+Create **one** `BeautyEffectEngine`, call `init()` once, reuse it for the session. Do not construct a new engine every frame.
 
 ```javascript
-class ImageProcessor {
-    constructor() {
-        this.canvas = null;
-        this.ctx = null;
-        this.imageData = null;
-    }
-    
-    initCanvas(width, height) {
-        if (!this.canvas) {
-            this.canvas = document.createElement('canvas');
-            this.canvas.width = width;
-            this.canvas.height = height;
-            this.ctx = this.canvas.getContext('2d');
-        } else {
-            // Update Canvas if dimensions change
-            if (this.canvas.width !== width || this.canvas.height !== height) {
-                this.canvas.width = width;
-                this.canvas.height = height;
-            }
-        }
-    }
-    
-    processFrame(videoElement, engine) {
-        this.initCanvas(videoElement.videoWidth, videoElement.videoHeight);
-        
-        // Draw video frame to Canvas
-        this.ctx.drawImage(videoElement, 0, 0);
-        
-        // Get image data (reuse ImageData)
-        this.imageData = this.ctx.getImageData(0, 0, this.canvas.width, this.canvas.height);
-        
-        // Process image (synchronous method)
-        const result = engine.processImage(
-            this.imageData, 
-            this.canvas.width, 
-            this.canvas.height, 
-            ProcessMode.Video
-        );
-        
-        // Draw result
-        this.ctx.putImageData(result, 0, 0);
-        
-        return this.canvas;
-    }
-}
-```
-
-**Release Resources Promptly**
-
-```javascript
-// Release resources on page unload
-window.addEventListener('beforeunload', () => {
-    if (engine) {
-        engine.destroy();
-        engine = null;
-    }
-});
-
-// Vue component
-onUnmounted(() => {
-    if (engine) {
-        engine.destroy();
-        engine = null;
-    }
-});
-
-// React component
 useEffect(() => {
-    return () => {
-        if (engine) {
-            engine.destroy();
-            engine = null;
-        }
-    };
+  let engine;
+  (async () => {
+    engine = new BeautyEffectEngine(new EngineConfig({ authProxyUrl: '/api/facebetter/auth' }));
+    await engine.init();
+    engineRef.current = engine;
+  })();
+  return () => {
+    engineRef.current?.destroy();
+    engineRef.current = null;
+  };
 }, []);
 ```
 
-### 4. Use Web Worker (Optional)
+## Frame loop
 
-For large amounts of image processing, consider using Web Worker to avoid blocking the main thread:
-
-```javascript
-// worker.js
-import { BeautyEffectEngine, EngineConfig } from 'facebetter';
-
-let engine = null;
-
-self.onmessage = async function(e) {
-    const { type, data } = e.data;
-    
-    switch (type) {
-        case 'init':
-            try {
-                const config = new EngineConfig(data.config);
-                engine = new BeautyEffectEngine(config);
-                await engine.init();
-                self.postMessage({ type: 'init', success: true });
-            } catch (error) {
-                self.postMessage({ type: 'init', success: false, error: error.message });
-            }
-            break;
-            
-        case 'process':
-            try {
-                // processImage is a synchronous method
-                const result = engine.processImage(
-                    data.imageData, 
-                    data.options.width, 
-                    data.options.height, 
-                    data.options.processMode || ProcessMode.Video
-                );
-                self.postMessage({ 
-                    type: 'process', 
-                    success: true, 
-                    result: result 
-                });
-            } catch (error) {
-                self.postMessage({ 
-                    type: 'process', 
-                    success: false, 
-                    error: error.message 
-                });
-            }
-            break;
-    }
-};
-```
-
-## Architecture Design
-
-### 1. Singleton Pattern for Engine Management
+- Drive video with `requestAnimationFrame`, not an unbounded `while`.
+- Use `FrameType.Video` for camera; `FrameType.Image` for stills.
+- Match canvas size to the processed `ImageData` to avoid extra scaling.
+- Skip frames until `video.readyState >= 2` and `videoWidth > 0`.
+- Prefer `processImage` for camera and canvas. `processTexture` does not apply mirror.
 
 ```javascript
-class BeautyEngineManager {
-    static instance = null;
-    static engine = null;
-    
-    static async getInstance(config) {
-        if (!this.instance) {
-            this.instance = new BeautyEngineManager();
-            await this.instance.init(config);
-        }
-        return this.instance;
-    }
-    
-    async init(config) {
-        if (!this.engine) {
-            const engineConfig = new EngineConfig(config);
-            this.engine = new BeautyEffectEngine(engineConfig);
-            await this.engine.init();
-        }
-    }
-    
-    getEngine() {
-        return this.engine;
-    }
-    
-    destroy() {
-        if (this.engine) {
-            this.engine.destroy();
-            this.engine = null;
-        }
-        this.instance = null;
-    }
-}
-
-// Usage
-const manager = await BeautyEngineManager.getInstance({
-    appId: 'your-app-id',
-    appKey: 'your-app-key'
-});
-const engine = manager.getEngine();
+const result = engine.processImage(
+  video,
+  video.videoWidth,
+  video.videoHeight,
+  FrameType.Video,
+  MirrorMode.Horizontal,
+);
+ctx.putImageData(result, 0, 0);
 ```
 
-### 2. Parameter Management Class
+## Parameters
 
-```javascript
-class BeautyParamManager {
-    constructor(engine) {
-        this.engine = engine;
-        this.params = {
-            basic: {
-                smoothing: 0,
-                whitening: 0,
-                rosiness: 0
-            },
-            reshape: {
-                faceThin: 0,
-                eyeSize: 0
-            },
-            makeup: {
-                lipstick: 0,
-                blush: 0
-            }
-        };
-    }
-    
-    setBasicParam(type, value) {
-        this.params.basic[type] = value;
-        this.engine.setBasicParam(BasicParam[type], value);
-    }
-    
-    setReshapeParam(type, value) {
-        this.params.reshape[type] = value;
-        this.engine.setReshapeParam(ReshapeParam[type], value);
-    }
-    
-    setMakeupParam(type, value) {
-        this.params.makeup[type] = value;
-        this.engine.setMakeupParam(MakeupParam[type], value);
-    }
-    
-    reset() {
-        Object.keys(this.params.basic).forEach(key => {
-            this.setBasicParam(key, 0);
-        });
-        Object.keys(this.params.reshape).forEach(key => {
-            this.setReshapeParam(key, 0);
-        });
-        Object.keys(this.params.makeup).forEach(key => {
-            this.setMakeupParam(key, 0);
-        });
-    }
-    
-    getParams() {
-        return JSON.parse(JSON.stringify(this.params));
-    }
-}
-```
+Start low in real-time preview (`smoothing` ~ `0.2`–`0.5`). Reshape is `[-1, 1]`; small values look more natural on camera.
 
-### 3. Image Processing Pipeline
+Do not register `onFaceLandmarks` unless the UI needs them — it forces per-frame detection.
 
-```javascript
-class ImageProcessingPipeline {
-    constructor(engine) {
-        this.engine = engine;
-        this.canvas = document.createElement('canvas');
-        this.ctx = this.canvas.getContext('2d');
-    }
-    
-    async processImage(source, options = {}) {
-        try {
-            // 1. Prepare Canvas
-            this.canvas.width = source.width || source.videoWidth;
-            this.canvas.height = source.height || source.videoHeight;
-            
-            // 2. Draw source image
-            this.ctx.drawImage(source, 0, 0);
-            
-            // 3. Get image data
-            const imageData = this.ctx.getImageData(0, 0, this.canvas.width, this.canvas.height);
-            
-            // 4. Process image (synchronous method, no await needed)
-            const result = this.engine.processImage(
-                imageData, 
-                this.canvas.width, 
-                this.canvas.height, 
-                options.processMode || ProcessMode.Video
-            );
-            
-            // 5. Draw result
-            this.ctx.putImageData(result, 0, 0);
-            
-            return this.canvas;
-        } catch (error) {
-            console.error('Image processing failed:', error);
-            throw error;
-        }
-    }
-}
-```
+`setBeautySkinOnly(true)` avoids smearing backgrounds when smoothing is high.
 
-## User Experience Optimization
+## Resources
 
-### 1. Loading Status Indication
+- Put `resource.fbd` at `/resource.fbd` (or the `resourcePath` you configured).
+- Host filter / sticker `.fbd` and background jpg/png as static files; pass the URL into `setFilter` / `setSticker` / `setVirtualBackground`.
+- Switch filter / sticker on user input, not every frame.
 
-```javascript
-async function initEngineWithLoading(config) {
-    showLoading('Initializing beauty engine...');
-    
-    try {
-        const engine = new BeautyEffectEngine(config);
-        await engine.init();
-        hideLoading();
-        showSuccess('Beauty engine initialized successfully');
-        return engine;
-    } catch (error) {
-        hideLoading();
-        showError('Beauty engine initialization failed: ' + error.message);
-        throw error;
-    }
-}
-```
+## Memory
 
-### 2. Progressive Loading
+- Call `destroy()` on unmount / `beforeunload`.
+- Reuse the display canvas; do not allocate a new canvas per frame.
 
-```javascript
-async function initEngineProgressive(config) {
-    // 1. Show loading prompt
-    updateLoadingStatus('Loading WASM module...');
-    
-    const engine = new BeautyEffectEngine(config);
-    
-    // 2. Initialize (will load WASM internally)
-    updateLoadingStatus('Initializing engine...');
-    await engine.init();
-    
-    // 3. Configure beauty parameters
-    updateLoadingStatus('Configuring beauty parameters...');
-    engine.setBasicParam(BasicParam.Smoothing, 0.5);
-    
-    updateLoadingStatus('Complete');
-    return engine;
-}
-```
+## HTTPS and CORS
 
-### 3. Error Retry Mechanism
+Camera access needs HTTPS or localhost. If `resource.fbd` is on another origin, send CORS headers.
 
-```javascript
-async function initEngineWithRetry(config, maxRetries = 3) {
-    for (let i = 0; i < maxRetries; i++) {
-        try {
-            const engine = new BeautyEffectEngine(config);
-            await engine.init();
-            return engine;
-        } catch (error) {
-            if (i < maxRetries - 1) {
-                console.warn(`Initialization failed, retrying in ${1000 * (i + 1)}ms...`);
-                await new Promise(resolve => setTimeout(resolve, 1000 * (i + 1)));
-            } else {
-                throw error;
-            }
-        }
-    }
-}
-```
+## Related
 
-## Security Recommendations
-
-### 1. Protect AppID and AppKey
-
-**Don't hardcode keys in frontend code:**
-
-```javascript
-// ❌ Not recommended: hardcoded in code
-const config = new EngineConfig({
-    appId: 'your-app-id',
-    appKey: 'your-app-key'
-    // Or use licenseJson: 'your license json string'
-});
-
-// ✅ Recommended: fetch from server or use environment variables
-async function getConfig() {
-    const response = await fetch('/api/config');
-    const { appId, appKey, licenseJson } = await response.json();
-    // If licenseJson is provided, use it; otherwise use appId and appKey
-    return new EngineConfig(licenseJson ? { licenseJson } : { appId, appKey });
-}
-```
-
-### 2. Use HTTPS
-
-Ensure using HTTPS in production environment to protect data transmission security.
-
-### 3. Validate User Input
-
-```javascript
-function validateConfig(config) {
-    if (!config.appId || typeof config.appId !== 'string') {
-        throw new Error('appId must be a string');
-    }
-    
-    if (!config.appKey || typeof config.appKey !== 'string') {
-        throw new Error('appKey must be a string');
-    }
-    
-    return true;
-}
-```
-
-## Related Documentation
-
-- [Error Handling](/web/error-handling) - Detailed error handling guide
-- [FAQ](/web/faq) - Common questions and solutions
-- [API Reference](/web/api-reference) - Complete API documentation
-
+- [Error handling](/web/error-handling)
+- [FAQ](/web/faq)
+- [API reference](/web/api-reference)

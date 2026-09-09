@@ -1,105 +1,215 @@
 ---
 title: "API 参考"
-description: "Linux 平台 Facebetter SDK C++ API 参考"
+description: "Facebetter SDK 2.0 Linux C++ API"
 ---
 
-Linux 平台使用的 C++ SDK 接口与 Windows 平台**完全相同**，请参阅：
+<Note>
+SDK **2.0.0**。命名空间 `facebetter`。与 [Windows](/zh/windows/api-reference) 同一套公共 C++ API。头文件：`facebetter/*.h`。枚举见 [参数枚举](/zh/intro/makeup)。鉴权见 [许可证与鉴权](/zh/intro/license)。
+</Note>
 
-👉 [Windows C++ API 参考](/zh/windows/api-reference)
+## Linux 说明
 
-以下仅列出 Linux 平台特有的注意事项。
-
----
-
-## Linux 特有注意事项
-
-### 动态库加载
-
-Linux 上 SDK 以共享库 `libfacebetter.so` 形式发布。运行时需确保系统可以找到该库：
-
-```bash
-# 方法一：设置 LD_LIBRARY_PATH（推荐开发/测试阶段）
-export LD_LIBRARY_PATH=/path/to/facebetter-sdk/lib:$LD_LIBRARY_PATH
-./your_app
-
-# 方法二：将库目录写入 /etc/ld.so.conf（系统级安装）
-echo "/path/to/facebetter-sdk/lib" | sudo tee /etc/ld.so.conf.d/facebetter.conf
-sudo ldconfig
-
-# 方法三：安装到系统库目录
-sudo cp libfacebetter.so /usr/local/lib/
-sudo ldconfig
-```
-
-### CMake 链接配置
-
-在 `CMakeLists.txt` 中链接 SDK：
+- 分发 `libfacebetter.so`。设置 `LD_LIBRARY_PATH`、rpath 或 `ldconfig`。
+- 用 `./scripts/build_linux.sh` 编译 SDK（产物在 `build/linux/release`），或使用 CMake。
+- `resource_path` 必须是 **`resource.fbd` 文件**。
+- 没有 `SetRenderView`。
+- `external_context = true` 使用调用线程的当前 GL 上下文（GLFW / EGL / OSMesa）。
 
 ```cmake
-# 设置头文件路径
-target_include_directories(your_target PRIVATE
-    /path/to/facebetter-sdk/include
-)
-
-# 链接共享库
-target_link_libraries(your_target PRIVATE
-    ${CMAKE_CURRENT_SOURCE_DIR}/lib/libfacebetter.so
-    # OpenGL 相关依赖
-    GL
-    glfw
-)
-```
-
-### OpenGL 环境
-
-Linux 上使用 SDK 需要有效的 OpenGL 上下文。请确保已安装必要的图形库：
-
-```bash
-# Ubuntu / Debian
-sudo apt install libgl1-mesa-dev libglu1-mesa-dev libglfw3-dev
-
-# Fedora / RHEL
-sudo dnf install mesa-libGL-devel mesa-libGLU-devel glfw-devel
-```
-
-如在无头（headless）服务器环境运行，可使用 Mesa 的离屏渲染：
-
-```bash
-# Ubuntu / Debian
-sudo apt install libosmesa6-dev
-```
-
-### `external_context` 字段
-
-在 Linux 上，如果应用程序已经管理了 OpenGL 上下文（例如使用 GLFW），请设置：
-
-```cpp
-EngineConfig cfg;
-cfg.external_context = true;  // 使用调用方提供的 GL 上下文
-```
-
-设置为 `true` 时，SDK 不会创建内部 GL 上下文，所有 GPU 调用将在当前线程的已激活上下文中执行。
-
-### `SetRenderView` 不适用
-
-该方法仅在 iOS / macOS 平台有效，Linux 上请勿调用。
-
-### DISPLAY 环境变量
-
-使用 GLFW 显示窗口时需要 X11 或 Wayland 显示服务器，确保环境变量已设置：
-
-```bash
-echo $DISPLAY   # 应输出类似 :0 或 :1
-```
-
-若在 SSH 会话中运行，需开启 X11 转发：
-
-```bash
-ssh -X user@host
+target_include_directories(app PRIVATE /path/to/sdk/include)
+target_link_libraries(app PRIVATE /path/to/sdk/lib/libfacebetter.so GL)
 ```
 
 ---
 
-## 完整 API 文档
+## 日志
 
-所有方法、枚举、结构体的完整说明，请参阅 [Windows C++ API 参考](/zh/windows/api-reference)，该文档同样适用于 Linux 平台。
+```cpp
+enum class LogLevel { Trace = 0, Debug, Info, Warn, Error, Critical };
+
+struct LogConfig {
+  bool console_enabled = false;
+  bool file_enabled = false;
+  LogLevel level = LogLevel::Info;
+  std::string file_name = "";
+};
+
+static int BeautyEffectEngine::SetLogConfig(const LogConfig& config);
+```
+
+在 `Create` **之前**调用 `SetLogConfig`。
+
+---
+
+## 引擎
+
+### `EngineConfig`
+
+| 字段 | 说明 |
+| --- | --- |
+| `app_id` / `app_key` | 原生在线 v2 鉴权 |
+| `resource_path` | `resource.fbd` 文件路径（不是目录） |
+| `license_token` | token / `{token}` JSON / `.lic` — 非空时优先 |
+| `external_context` | `false`：SDK 管理 OpenGL；`true`：调用方上下文 |
+
+```cpp
+struct EngineConfig {
+  std::string app_id;
+  std::string app_key;
+  std::string resource_path;
+  std::string license_token;
+  bool external_context = false;
+};
+
+static std::shared_ptr<BeautyEffectEngine> BeautyEffectEngine::Create(
+    const EngineConfig& config);
+```
+
+---
+
+### 皮肤
+
+```cpp
+int SetSmoothing(float intensity);          // [0, 1]
+int SetSmoothingStyle(SmoothingStyle style);
+int SetWhitening(float intensity);
+int SetWhiteningStyle(WhiteningStyle style);
+int SetSharpening(float intensity);
+int SetRosiness(float intensity);
+int SetBeautySkinOnly(bool enabled);
+```
+
+### 美型
+
+```cpp
+int SetReshape(Reshape param, float intensity);  // [-1, 1]
+```
+
+完整 `Reshape` 列表见 [参数枚举](/zh/intro/makeup)。
+
+### 美妆
+
+```cpp
+int SetLipstick(float);        int SetLipstickColor(LipstickColor);
+int SetBlush(float);           int SetBlushStyle(BlushStyle); int SetBlushColor(BlushColor);
+int SetContour(float);         int SetContourStyle(ContourStyle);
+int SetEyeShadow(float);       int SetEyeShadowStyle(...); int SetEyeShadowColor(...);
+int SetEyeLiner(float);        int SetEyeLinerStyle(...);  int SetEyeLinerColor(...);
+int SetEyebrow(float);         int SetEyebrowStyle(...);   int SetEyebrowColor(...);
+int SetEyelash(float);         int SetEyelashStyle(...);   int SetEyelashColor(...);
+int SetPupil(float);           int SetPupilColor(PupilColor);
+```
+
+口红只有 Color；美瞳只有 Color；修容只有 Style。取值见 [参数枚举](/zh/intro/makeup)。
+
+### 色度键与虚拟背景
+
+```cpp
+int SetChromaKey(ChromaKeyColor color);  // Green, Blue, Red
+int ClearChromaKey();
+int SetChromaKeySimilarity(float);
+int SetChromaKeySmoothness(float);
+int SetChromaKeyDesaturation(float);
+
+int SetVirtualBackgroundBlur(float level);  // [0, 1]；0 清除填充
+int SetVirtualBackground(const std::string& image_path);
+int SetVirtualBackground(const std::vector<uint8_t>& image_data);
+int ClearVirtualBackground();
+```
+
+### 滤镜与贴纸
+
+路径或编码后的 `.fbd` 字节。没有注册 / ID 接口。在下一次 `ProcessImage` 后生效。
+
+```cpp
+int SetFilter(const std::string& fbd_file_path);
+int SetFilter(const std::vector<uint8_t>& fbd_data);
+int ClearFilter();
+int SetFilterIntensity(float intensity);
+
+int SetSticker(const std::string& fbd_file_path);
+int SetSticker(const std::vector<uint8_t>& fbd_data);
+int ClearSticker();
+```
+
+### 统计、回调、处理
+
+```cpp
+EngineStats GetStats() const;
+int SetCallbacks(const EngineCallbacks& callbacks);
+const std::shared_ptr<ImageFrame> ProcessImage(
+    const std::shared_ptr<ImageFrame> image_frame);
+```
+
+将 `frame->type` 设为 `FrameType::Image` 或 `FrameType::Video`。
+
+```cpp
+struct EngineStats {
+  double fps = 0.0;
+  double avg_process_time_ms = 0.0;
+  double session_time_s = 0.0;
+};
+```
+
+---
+
+## 事件
+
+| 码 | 含义 |
+| --- | --- |
+| `0` | 授权成功 |
+| `1` | 授权失败 |
+| `100` | 初始化完成 |
+| `101` | 初始化失败 |
+
+```cpp
+struct EngineCallbacks {
+  std::function<void(const std::vector<FaceDetectionResult>&)> on_face_landmarks;
+  std::function<void(int code, const std::string& message)> on_engine_event;
+};
+```
+
+---
+
+## 图像
+
+```cpp
+enum class Format { I420, NV12, NV21, BGRA, RGBA, BGR, RGB, Texture };
+enum class Rotation { Rotation_0, Rotation_90, Rotation_180, Rotation_270 };
+enum class FrameType { Image = 0, Video = 1 };
+```
+
+**工厂：** `CreateWithFile`、`Create`、`CreateWithRGBA/BGRA/RGB/BGR`、`CreateWithI420/NV12/NV21`、`CreateWithTexture`。
+
+**操作：** `Rotate`、`Mirror("horizontal"|"vertical"|"both")`、`SetMirror`、`Convert`、`ToFile`。
+
+**访问器：** `Width/Height/Stride/Size/GetFormat/Data`、YUV 平面、`Texture()`、`Buffer()`。字段：`FrameType type`。
+
+```cpp
+struct FaceDetectionResult {
+  Rect rect;
+  std::vector<Point2d> key_points;  // 111
+  std::vector<float> visibility;
+  int face_id = -1;
+  float score = 0.0f;
+  float pitch, roll, yaw;
+};
+```
+
+---
+
+## 错误码
+
+| 码 | 含义 |
+| --- | --- |
+| `0` | 成功 |
+| `-1` | 参数非法 |
+| `-2` | 未初始化 |
+| `-3` | 授权 |
+| `-4` | 不支持 |
+| `-5` | I/O |
+| `-6` | 无槽位 |
+| `-7` | 处理失败 |
+| `-8` | 内存不足 |
+
+将 `ProcessImage` 串行化到同一线程。`Data()` 像素指针只读。

@@ -1,121 +1,161 @@
 ---
 title: "API Reference"
-description: "Flutter API Reference"
+description: "Facebetter Flutter SDK 2.0 API"
 ---
+
+<Note>
+This page matches SDK **2.0.0**. Class: **`FBEngine`**. Makeup / reshape enums: [Parameter enums](/intro/makeup). Auth: [License & Auth](/intro/license).
+</Note>
+
+```yaml
+dependencies:
+  facebetter_flutter: ^2.0.0
+```
+
+```dart
+import 'package:facebetter_flutter/facebetter_flutter.dart';
+```
 
 ## FBEngineConfig
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `appId` | `String` | App ID (optional if `licenseJson` provided) |
-| `appKey` | `String` | App key (optional if `licenseJson` provided) |
-| `licenseJson` | `String?` | License JSON string (takes priority over appId/appKey) |
-| `externalContext` | `bool` | Use external OpenGL context (default `false`) |
-
-## FBBeautyEffectEngine
-
-### Static Methods
-
-| Method | Description |
-|--------|-------------|
-| `Future<String> getSdkVersion()` | Get SDK version |
-| `Future<void> setLogConfig(FBLogConfig config)` | Set log config (call before init) |
-| `Future<void> init(FBEngineConfig config)` | Initialize engine |
-| `FBBeautyEffectEngine get sharedInstance` | Get singleton instance |
-
-### Beauty Parameters
-
-| Method | Description |
-|--------|-------------|
-| `Future<int> setBasicParam(FBBasicParam param, double value)` | Set basic beauty param [0.0, 1.0] |
-| `Future<int> setReshapeParam(FBReshapeParam param, double value)` | Set face reshape param [0.0, 1.0] |
-| `Future<int> setMakeupParam(FBMakeupParam param, double value)` | Set makeup param [0.0, 1.0] |
-| `Future<int> setLipstickStyle(FBLipstickStyle style)` | Set lipstick style |
-| `Future<int> setBlushStyle(FBBlushStyle style)` | Set blush style |
-| `Future<int> setSkinOnlyBeauty(bool enabled)` | Apply beauty to skin only |
-| `Future<int> setVirtualBackground(FBBackgroundMode mode, {FBImageFrame? bg})` | Set virtual background |
-
-### Filters & Stickers
-
-| Method | Description |
-|--------|-------------|
-| `Future<int> setFilter(String filterId)` | Apply filter |
-| `Future<int> setFilterIntensity(double intensity)` | Set filter intensity [0.0, 1.0] |
-| `Future<int> setSticker(String stickerId)` | Apply sticker (empty to clear) |
-| `Future<int> registerFilter(String id, String path)` | Register filter from file |
-| `Future<int> registerFilterData(String id, Uint8List data)` | Register filter from data |
-| `Future<int> registerSticker(String id, String path)` | Register sticker from file |
-| `Future<int> registerStickerData(String id, Uint8List data)` | Register sticker from data |
-| `Future<int> unregisterFilter(String id)` | Unregister filter |
-| `Future<int> unregisterAllFilters()` | Unregister all filters |
-| `Future<int> unregisterSticker(String id)` | Unregister sticker |
-| `Future<int> unregisterAllStickers()` | Unregister all stickers |
-
-### Image Processing
-
-| Method | Description |
-|--------|-------------|
-| `Future<FBImageFrame?> processImage(FBImageFrame input)` | Process an image frame |
-| `Future<int> processImageFile(String input, String output)` | Process an image file |
-
-### Callbacks
-
-| Property | Type | Description |
-|----------|------|-------------|
-| `onFaceLandmarks` | `Stream<FBFaceDetectionResult>` | Face landmark stream |
-| `onEngineEvent` | `Stream<FBEngineEvent>` | Engine event stream |
-
-### Lifecycle
-
-| Method | Description |
-|--------|-------------|
-| `Future<void> release()` | Release engine resources |
-
-**Return values:** `0` = success, `-1` = engine not initialized, `null` = processing failed.
-
-## Enumerations
-
-### FBBasicParam
-
-| Value | Description |
-|-------|-------------|
-| `smoothing(0)` | Skin smoothing |
-| `sharpening(1)` | Sharpening |
-| `whitening(2)` | Skin whitening |
-| `rosiness(3)` | Skin rosiness |
-
-### FBReshapeParam
-
-| Value | Description |
-|-------|-------------|
-| `faceThin(0)` | Face thin |
-| `faceVShape(1)` | V-shape face |
-| `eyeSize(8)` | Eye enlargement |
-| `noseSlim(7)` | Nose slimming |
-| ... | See full list in source |
-
-### FBImageFormat
-
-| Value | Description |
-|-------|-------------|
-| `i420(0)` | YUV 4:2:0 planar |
-| `nv12(1)` | YUV 4:2:0 semi-planar |
-| `nv21(2)` | YUV 4:2:0 (Android default) |
-| `bgra(3)` | BGRA 32bpp |
-| `rgba(4)` | RGBA 32bpp |
-| `bgr(5)` | BGR 24bpp |
-| `rgb(6)` | RGB 24bpp |
-
-## Native Engine Access
-
-For streaming SDK integration (TRTC, etc.):
-
-**iOS (Swift):**
-```swift
-let engine = FacebetterPlugin.sharedInstance().engine
+```dart
+const FBEngineConfig({
+  String? appId,
+  String? appKey,
+  String? licenseToken,
+  bool enableLandmarks = false,
+  bool externalContext = true,
+  String? resourcePath,
+});
 ```
 
-**Android (Kotlin):**
-```kotlin
-val engine = FacebetterPlugin.sharedInstance?.getEngine()
+Create with `appId` + `appKey`, or `licenseToken`. If `licenseToken` is non-empty it is used and online `appId` / `appKey` is skipped.
+
+## FBEngine
+
+```dart
+static Future<FBEngine> create(FBEngineConfig config)
+static String get version
+static void setLogConfig({
+  bool console = true,
+  bool file = false,
+  FBLogLevel level = FBLogLevel.info,
+  String fileName = '',
+})
+void dispose()
 ```
+
+Create one instance with `FBEngine.create`. It is not a process-wide singleton.
+
+Beauty / reshape / makeup / chroma / blur / `clear*` / `setFilterIntensity` are **synchronous**. Filter, sticker, background **image**, and photo APIs return **`Future`**.
+
+### Skin
+
+`setSmoothing`, `setSmoothingStyle(FBSmoothingStyle)`, `setWhitening`, `setWhiteningStyle(FBWhiteningStyle)`, `setSharpening`, `setRosiness`, `setBeautySkinOnly(bool)` — intensity `[0, 1]`.
+
+### Reshape
+
+`setReshape(FBReshape param, double intensity)` — **`[-1.0, 1.0]`**. Dart names: `FBReshape.faceThin`, `faceVShape`, … `browThickness`. Tables: [Parameter enums](/intro/makeup).
+
+### Makeup
+
+| Intensity | Style / color |
+| --- | --- |
+| `setLipstick` | `setLipstickColor(FBLipstickColor)` |
+| `setBlush` | `setBlushStyle`, `setBlushColor` |
+| `setContour` | `setContourStyle` |
+| `setEyeShadow` | `setEyeShadowStyle`, `setEyeShadowColor` |
+| `setEyeLiner` | `setEyeLinerStyle`, `setEyeLinerColor` |
+| `setEyebrow` | `setEyebrowStyle`, `setEyebrowColor` |
+| `setEyelash` | `setEyelashStyle`, `setEyelashColor` |
+| `setPupil` | `setPupilColor` |
+
+### Filter / sticker / VB / chroma
+
+```dart
+Future<void> setFilter({String? path, Uint8List? data})
+void clearFilter()
+void setFilterIntensity(double intensity) // [0, 1]
+
+Future<void> setSticker({String? path, Uint8List? data})
+void clearSticker()
+
+void setVirtualBackgroundBlur(double level) // [0, 1]; 0 clears
+Future<void> setVirtualBackground({String? path, Uint8List? data})
+void clearVirtualBackground()
+
+void setChromaKey(FBChromaKeyColor color)
+void clearChromaKey()
+void setChromaKeySimilarity(double value)
+void setChromaKeySmoothness(double value)
+void setChromaKeyDesaturation(double value)
+```
+
+`path` and `data` are mutually exclusive; exactly one is required.
+
+### Photo
+
+Requires `externalContext: false`. Throws `StateError` otherwise. **Do not use for TRTC video.**
+
+```dart
+Future<void> processFile({required String input, required String output, int quality = 90})
+Future<FBBitmap> processImageBytes(Uint8List encoded)
+Future<FBBitmap> processImageFile(String path)
+Future<ui.Image> processImageToUiImage(Uint8List encoded)
+```
+
+### Observability
+
+```dart
+Stream<FBEngineEvent> get events
+FBStats get stats
+```
+
+`FBStats`: `fps`, `avgProcessTimeMs`, `sessionTimeSeconds`.
+
+`FBEngineEvent`: `code`, `message`, `eventCode` → `FBEngineEventCode`:
+
+| Value | Dart |
+| --- | --- |
+| `0` | `licenseValidationSuccess` |
+| `1` | `licenseValidationFailed` |
+| `100` | `engineInitializationComplete` |
+| `101` | `engineInitializationFailed` |
+
+## FBException
+
+Thrown when a native call returns `< 0`.
+
+| `code` | Meaning |
+| --- | --- |
+| `0` | Success (not thrown) |
+| `-1` | Invalid argument |
+| `-2` | Not initialized / disposed |
+| `-3` | License |
+| `-4` | Unsupported |
+| `-5` | I/O |
+| `-6` | No slot (back-pressure) |
+| `-7` | Process failed |
+| `-8` | Out of memory |
+
+```dart
+} on FBException catch (e) {
+  debugPrint('${e.operation} ${e.code} ${e.reason}');
+}
+```
+
+## Other types
+
+- `FBBitmap` — `width`, `height`, `stride`, `pixels` (RGBA8888 copy)
+- `FBLogLevel` — `trace` … `critical`
+- `FBMirror` — `none`, `horizontal`, `vertical`, `both` (not used on the TRTC texture path)
+- `FBFace` / `FBFaceList` / `FBRect` — landmark views (`kLandmarkCount` = 111) when `enableLandmarks: true`
+
+## Native texture (not Dart)
+
+After `create` with `externalContext: true`, call on the **TRTC GL thread**:
+
+- iOS: `[FacebetterPlugin processTexture:width:height:]`
+- Android: `FacebetterPlugin.processTexture(textureId, width, height)`
+
+Returns `0` on failure. Full snippets: [TRTC integration](/flutter/trtc-integration).

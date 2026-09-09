@@ -1,5 +1,65 @@
 ---
 title: "最佳实践"
-description: "Linux 美颜 SDK 最佳实践和性能优化指南"
+description: "Linux 上 Facebetter 2.0 的性能与集成建议"
 ---
 
+<Note>
+SDK **2.0.0**。C++ API 与 Windows 相同。枚举见 [参数枚举](/zh/intro/makeup)。
+</Note>
+
+## `resource_path` 指向 `resource.fbd`
+
+传入 **文件路径**，不要填目录：
+
+```cpp
+cfg.resource_path = "/opt/facebetter/resource.fbd";
+```
+
+启动时解析为绝对路径，避免工作目录变化导致 `fopen` 失败。
+
+## 一个引擎，串行 `ProcessImage`
+
+`Create` 返回 `shared_ptr`。引擎 **不是**单例。将 `ProcessImage`（以及会改状态的 setter）串行化到同一线程。若 `external_context = true`，该线程必须持有当前 GL 上下文。
+
+## 在帧上设置 `FrameType`
+
+| 值 | 用途 |
+| --- | --- |
+| `FrameType::Video`（默认） | 摄像头 / 实时 |
+| `FrameType::Image` | 静图导出 |
+
+
+## 强度与仅皮肤美颜
+
+实时场景建议从 `0.15–0.3` 起步。美型范围为 `[-1.0, 1.0]`。使用 `SetBeautySkinOnly(true)` 让磨皮只作用在皮肤上。
+
+## 滤镜与贴纸
+
+`.fbd` 路径或字节。在下一次 `ProcessImage` 后生效。不要每帧切换资源。
+
+## `GetStats`
+
+```cpp
+EngineStats s = engine->GetStats();
+if (s.avg_process_time_ms > 33.0) {
+    // 降低分辨率，或关掉贴纸 / 虚拟背景
+}
+```
+
+## 动态库
+
+- 开发：`LD_LIBRARY_PATH`
+- 发布：`RPATH` / `RUNPATH`，或安装到 `/usr/local/lib` 后 `ldconfig`
+- `libfacebetter.so` 与头文件必须来自 **同一套** SDK（`./scripts/build_linux.sh` 或下载包）
+
+## OpenGL
+
+默认 `external_context = false` 由 SDK 管理 OpenGL 上下文。若 GLFW / EGL 已持有上下文，设为 `true` 并在该线程处理。需要可用的 Mesa / NVIDIA / AMD 驱动；`glxinfo` 应报告 3.0+。
+
+## 空闲时暂停
+
+窗口不可见时跳过 `ProcessImage`。会话结束调用 `engine.reset()`。
+
+## 授权
+
+离线主机用 `license_token`；否则 `app_id` + `app_key` 在线 v2。密钥从环境变量 / 配置读取，不要写进源码。见 [许可证与鉴权](/zh/intro/license)。

@@ -1,13 +1,17 @@
 ---
 title: "API Reference"
-description: "macOS API Reference"
+description: "macOS Objective-C API for Facebetter SDK 2.0"
 ---
 
-## Logging Related
+<Note>
+This page matches SDK **2.0.0**. Preset meanings: [Parameter enums](/intro/makeup). Auth: [License & Auth](/intro/license).
+</Note>
 
-### Log Levels
+iOS and macOS share this Objective-C API. macOS-only: `+[FBImageFrame createWithNSImage:]`. Minimum OS: **macOS 10.15**, architectures **x86_64** and **arm64**. Use AppKit (`NSImage`) for stills.
 
-Log level enumeration for controlling log output levels.
+## Logging
+
+### `FBLogLevel`
 
 ```objc
 typedef NS_ENUM(NSInteger, FBLogLevel) {
@@ -20,390 +24,350 @@ typedef NS_ENUM(NSInteger, FBLogLevel) {
 };
 ```
 
-### Log Configuration Class
+### `FBLogConfig`
 
-Log configuration class for configuring log output methods and levels.
-
-**Field Descriptions:**
-- `consoleEnabled`: Whether to enable console output
-- `fileEnabled`: Whether to enable file output
-- `level`: Log level
-- `fileName`: Log file path (only effective when `fileEnabled` is `YES`)
+| Property | Type | Description |
+| --- | --- | --- |
+| `consoleEnabled` | `BOOL` | Console output |
+| `fileEnabled` | `BOOL` | File output |
+| `level` | `FBLogLevel` | Minimum level |
+| `fileName` | `NSString *` | Log path (used when `fileEnabled` is `YES`) |
 
 ```objc
 FB_OBJC_API @interface FBLogConfig : NSObject
-
 @property(nonatomic, assign) BOOL consoleEnabled;
 @property(nonatomic, assign) BOOL fileEnabled;
 @property(nonatomic, assign) FBLogLevel level;
-@property(nonatomic, copy, nullable) NSString* fileName;
-
+@property(nonatomic, copy, nullable) NSString *fileName;
 - (instancetype)init;
-
 @end
 ```
 
-## Engine Related
+Call `+[FBBeautyEffectEngine setLogConfig:]` **before** `createEngineWithConfig:`. Returns `FBErrorCode` (`0` success, `-1` if `config` is nil).
 
-### Process Mode
+## Engine configuration
 
-Image processing mode enumeration.
+### `FBEngineConfig`
 
-- `FBProcessModeImage`: Image mode, suitable for single image processing
-- `FBProcessModeVideo`: Video mode, suitable for video streams and live streaming scenarios, better performance
+| Property | Type | Description |
+| --- | --- | --- |
+| `appId` | `NSString *` | Dashboard App ID (online auth) |
+| `appKey` | `NSString *` | Dashboard App Key (online auth) |
+| `licenseToken` | `NSString *` | License token string, `{token}` JSON, or native `.lic` contents |
+| `externalContext` | `BOOL` | Default `NO`. `YES`: use the caller’s OpenGL context |
 
-```objc
-typedef NS_ENUM(NSInteger, FBProcessMode) {
-  FBProcessModeImage = 0,  // Image mode
-  FBProcessModeVideo = 1   // Video mode
-};
-```
-
-### Engine Configuration
-
-Engine configuration class for initializing the beauty engine.
-
-**Field Descriptions:**
-- `appId`: Application ID (optional, not required if `licenseJson` is provided)
-- `appKey`: Application key (optional, not required if `licenseJson` is provided)
-- `licenseJson`: License data JSON string (optional, if provided, takes priority and `appId` and `appKey` are not required)
-- `externalContext`: Whether to use external OpenGL context (default `NO`)
-  - `YES`: Use the caller-provided GL context, SDK will not create/manage internal context
-  - `NO`: Use internal default context
-
-**Verification Priority:**
-- If `licenseJson` is not empty, use license data verification (supports online response and offline license)
-- Otherwise, use `appId` and `appKey` for automatic online verification
+**Auth priority:** if `licenseToken` is non-empty, validate that token locally and skip `/facebetter/v2/auth`. Otherwise use `appId` + `appKey` for online auth. Bind the app **Bundle ID** in the Dashboard. Command-line tools without a bundle should bind the process name.
 
 ```objc
 FB_OBJC_API @interface FBEngineConfig : NSObject
-
-@property(nonatomic, copy) NSString* appId;
-@property(nonatomic, copy) NSString* appKey;
-@property(nonatomic, copy, nullable) NSString* licenseJson;  // License data JSON string (optional)
-@property(nonatomic, assign) BOOL externalContext;  // Whether to use external OpenGL context
-
+@property(nonatomic, copy) NSString *appId;
+@property(nonatomic, copy) NSString *appKey;
+@property(nonatomic, copy, nullable) NSString *licenseToken;
+@property(nonatomic, assign) BOOL externalContext;
 - (instancetype)init;
 @end
 ```
 
-### Engine Interface
+### `FBFrameType`
 
-Main beauty effect engine class providing entry point for beauty functionality.
+Set on `FBImageFrame.type` before `processImage:`. Not a method argument.
 
-**Static Methods:**
-- `setLogConfig:`: Set log configuration
+```objc
+typedef NS_ENUM(NSInteger, FBFrameType) {
+  FBFrameTypeImage = 0,  // stills / NSImage
+  FBFrameTypeVideo = 1   // live / camera
+};
+```
 
-**Instance Methods:**
-
-#### Beauty Type Control (Deprecated)
-
-<Warning>
-**Deprecated**
-
-The following APIs are deprecated. Please use parameter-driven APIs like `setBasicParam`, `setVirtualBackground`, `setFilter`, and `setSticker` instead.
-</Warning>
-
-- `setBeautyTypeEnabled:enabled:`: [Deprecated] Enable or disable beauty type (No effect in parameter-driven mode)
-- `isBeautyTypeEnabled:`: [Deprecated] Check if beauty type is enabled (Always returns NO)
-- `disableAllBeautyTypes`: [Deprecated] Disable all beauty types (Please reset effects by zeroing parameters)
-
-#### Parameter Settings
-- `setBasicParam:floatValue:`: Set basic beauty parameters (range 0.0 - 1.0)
-- `setReshapeParam:floatValue:`: Set face reshape parameters (range 0.0 - 1.0)
-- `setMakeupParam:floatValue:`: Set makeup parameters (range 0.0 - 1.0)
-- `setLipstickStyle:`: Set lipstick style (Rouge / Coral / Pink)
-- `setBlushStyle:`: Set blush style (Classic / Peach / Rose)
-- `setSkinOnlyBeauty:`: Set whether beauty is applied only to skin regions
-  - Parameter: `enabled` - `YES` to enable skin-only beauty, `NO` to apply to entire image
-- `setVirtualBackground:`: Set virtual background
-  - Parameter: `FBVirtualBackgroundOptions` object containing background mode and background image
-
-#### Filters & Stickers Management
-- `setFilter:`: Set the current filter ID (e.g., `"chuxin"`). Pass an empty string or `nil` to clear the filter.
-- `setFilterIntensity:`: Set the intensity of the current filter (range 0.0 - 1.0).
-- `setSticker:`: Set the current sticker ID. Pass an empty string or `nil` to clear the sticker.
-- `registerFilter:fbdFilePath:`: Register a filter resource from a file path.
-- `registerFilter:fbdData:`: Register a filter resource from memory data.
-- `registerSticker:fbdFilePath:`: Register a sticker resource from a file path.
-- `registerSticker:fbdData:`: Register a sticker resource from memory data.
-- `unregisterFilter:`: Unregister a specific filter and release its resources.
-- `unregisterAllFilters`: Unregister all filters.
-- `unregisterSticker:`: Unregister a specific sticker and release its resources.
-- `unregisterAllStickers`: Unregister all stickers.
-- `getRegisteredFilters`: Get the list of registered filter IDs.
-- `getRegisteredStickers`: Get the list of registered sticker IDs.
-
-#### Image Processing
-- `processImage:`: Process image frame
-  - Frame type is obtained from `imageFrame.type` property (`FBFrameTypeImage` or `FBFrameTypeVideo`)
-  - The processed image frame will maintain the same frame type
-
-**Return Value Descriptions:**
-- Methods return `int` type: `0` indicates success, other values indicate error codes
-- `processImage:` returns `FBImageFrame`: Processed image frame, returns `nil` on failure
+## `FBBeautyEffectEngine`
 
 ```objc
 FB_OBJC_API @interface FBBeautyEffectEngine : NSObject
 
-+ (int)setLogConfig:(FBLogConfig*)config;
-+ (instancetype)createEngineWithConfig:(FBEngineConfig*)config;
++ (int)setLogConfig:(FBLogConfig *)config;
++ (instancetype)createEngineWithConfig:(FBEngineConfig *)config;
 
-- (int)setBasicParam:(FBBasicParam)param floatValue:(float)value;
-- (int)setReshapeParam:(FBReshapeParam)param floatValue:(float)value;
-- (int)setMakeupParam:(FBMakeupParam)param floatValue:(float)value;
-- (int)setLipstickStyle:(FBLipstickStyle)style;
+- (int)setSmoothing:(float)intensity;
+- (int)setSmoothingStyle:(FBSmoothingStyle)style;
+- (int)setWhitening:(float)intensity;
+- (int)setWhiteningStyle:(FBWhiteningStyle)style;
+- (int)setSharpening:(float)intensity;
+- (int)setRosiness:(float)intensity;
+- (int)setReshape:(FBReshape)param intensity:(float)value;
+- (int)setBeautySkinOnly:(BOOL)enabled;
+
+- (int)setLipstick:(float)intensity;
+- (int)setLipstickColor:(FBLipstickColor)color;
+- (int)setBlush:(float)intensity;
 - (int)setBlushStyle:(FBBlushStyle)style;
-- (int)setSkinOnlyBeauty:(BOOL)enabled;
-- (int)setVirtualBackground:(FBVirtualBackgroundOptions*)options;
+- (int)setBlushColor:(FBBlushColor)color;
+- (int)setContour:(float)intensity;
+- (int)setContourStyle:(FBContourStyle)style;
+- (int)setEyeShadow:(float)intensity;
+- (int)setEyeShadowStyle:(FBEyeShadowStyle)style;
+- (int)setEyeShadowColor:(FBEyeShadowColor)color;
+- (int)setEyeLiner:(float)intensity;
+- (int)setEyeLinerStyle:(FBEyeLinerStyle)style;
+- (int)setEyeLinerColor:(FBEyeLinerColor)color;
+- (int)setEyebrow:(float)intensity;
+- (int)setEyebrowStyle:(FBEyebrowStyle)style;
+- (int)setEyebrowColor:(FBEyebrowColor)color;
+- (int)setEyelash:(float)intensity;
+- (int)setEyelashStyle:(FBEyelashStyle)style;
+- (int)setEyelashColor:(FBEyelashColor)color;
+- (int)setPupil:(float)intensity;
+- (int)setPupilColor:(FBPupilColor)color;
 
-- (int)setFilter:(NSString *_Nullable)filterId;
+- (int)setChromaKey:(FBChromaKeyColor)color;
+- (int)clearChromaKey;
+- (int)setChromaKeySimilarity:(float)value;
+- (int)setChromaKeySmoothness:(float)value;
+- (int)setChromaKeyDesaturation:(float)value;
+- (int)setVirtualBackgroundBlur:(float)level;
+- (int)setVirtualBackground:(NSString *)imagePath;
+- (int)setVirtualBackgroundWithData:(NSData *)imageData;
+- (int)clearVirtualBackground;
+
+- (int)setFilter:(NSString *)fbdFilePath;
+- (int)setFilterWithData:(NSData *)fbdData;
+- (int)clearFilter;
 - (int)setFilterIntensity:(float)intensity;
-- (int)setSticker:(NSString *_Nullable)stickerId;
+- (int)setSticker:(NSString *)fbdFilePath;
+- (int)setStickerWithData:(NSData *)fbdData;
+- (int)clearSticker;
 
-- (int)registerFilter:(NSString *)filterId fbdFilePath:(NSString *)fbdFilePath;
-- (int)registerFilter:(NSString *)filterId fbdData:(NSData *)fbdData;
-- (int)registerSticker:(NSString *)stickerId fbdFilePath:(NSString *)fbdFilePath;
-- (int)registerSticker:(NSString *)stickerId fbdData:(NSData *)fbdData;
-
-- (int)unregisterFilter:(NSString *)filterId;
-- (int)unregisterAllFilters;
-- (int)unregisterSticker:(NSString *)stickerId;
-- (int)unregisterAllStickers;
-
-- (NSArray<NSString *> *)getRegisteredFilters;
-- (NSArray<NSString *> *)getRegisteredStickers;
-
-- (FBImageFrame* _Nullable)processImage:(FBImageFrame*)imageFrame;
-
-// Deprecated APIs
-- (int)setBeautyTypeEnabled:(FBBeautyType)type enabled:(BOOL)enabled;
-- (BOOL)isBeautyTypeEnabled:(FBBeautyType)type;
-- (int)disableAllBeautyTypes;
+- (FBEngineStats *)getStats;
+- (int)setCallbacks:(FBEngineCallbacks *)callbacks;
+- (FBImageFrame * _Nullable)processImage:(FBImageFrame *)imageFrame;
 
 @end
 ```
 
-## Beauty Parameters
+`createEngineWithConfig:` returns `nil` on failure. Integer methods return `FBErrorCode` (`0` = success).
 
-Beauty parameter enumeration classes containing all beauty-related parameter type definitions.
+### Skin
 
-### Beauty Types
+| Method | Range / notes |
+| --- | --- |
+| `setSmoothing:` | `[0, 1]` intensity |
+| `setSmoothingStyle:` | Style; intensity still from `setSmoothing:` |
+| `setWhitening:` | `[0, 1]` |
+| `setWhiteningStyle:` | Swaps the whitening LUT |
+| `setSharpening:` | `[0, 1]` |
+| `setRosiness:` | `[0, 1]` |
+| `setBeautySkinOnly:` | `YES` = skin regions only |
 
-Define available beauty functionality types.
+### Reshape
+
+`setReshape:intensity:` — intensity **`[-1.0, 1.0]`**, `0` off. `FBReshape` values `0`–`25`: `FBReshape_FaceThin` … `FBReshape_BrowThickness`. Directions: [Parameter enums](/intro/makeup).
 
 ```objc
-typedef NS_ENUM(NSInteger, FBBeautyType) {
-  FBBeautyType_Basic = 0,     // Basic beauty
-  FBBeautyType_Reshape,       // Face reshape
-  FBBeautyType_Makeup,        // Makeup effects
-  FBBeautyType_VirtualBackground,  // Virtual background
+typedef NS_ENUM(NSInteger, FBReshape) {
+  FBReshape_FaceThin = 0,
+  FBReshape_FaceVShape = 1,
+  FBReshape_FaceNarrow = 2,
+  FBReshape_FaceShort = 3,
+  FBReshape_Cheekbone = 4,
+  FBReshape_Jawbone = 5,
+  FBReshape_Chin = 6,
+  FBReshape_NoseSlim = 7,
+  FBReshape_EyeSize = 8,
+  FBReshape_EyeDistance = 9,
+  FBReshape_FaceSmall = 10,
+  FBReshape_Forehead = 11,
+  FBReshape_NoseLong = 12,
+  FBReshape_Philtrum = 13,
+  FBReshape_MouthSize = 14,
+  FBReshape_MouthPosition = 15,
+  FBReshape_MouthSmile = 16,
+  FBReshape_LipThickness = 17,
+  FBReshape_EyeRound = 18,
+  FBReshape_EyePosition = 19,
+  FBReshape_EyeAngle = 20,
+  FBReshape_EyeCornerOpen = 21,
+  FBReshape_LowerEyelid = 22,
+  FBReshape_BrowPosition = 23,
+  FBReshape_BrowDistance = 24,
+  FBReshape_BrowThickness = 25,
 };
 ```
 
-### Basic Beauty Parameters
+`FBSmoothingStyle`: `Natural`, `Texture`, `Smooth`. `FBWhiteningStyle`: `ColdWhite`, `PinkWhite`, `WarmWhite`, `Wheat`, `Tan`.
 
-Basic beauty effect parameter types, all parameter value ranges are `0.0 - 1.0`.
+### Makeup
+
+Intensity methods take `[0, 1]`. Shape / color types: [Parameter enums](/intro/makeup).
+
+| Intensity | Style | Color |
+| --- | --- | --- |
+| `setLipstick:` | — | `setLipstickColor:` |
+| `setBlush:` | `setBlushStyle:` | `setBlushColor:` |
+| `setContour:` | `setContourStyle:` | — |
+| `setEyeShadow:` | `setEyeShadowStyle:` | `setEyeShadowColor:` |
+| `setEyeLiner:` | `setEyeLinerStyle:` | `setEyeLinerColor:` |
+| `setEyebrow:` | `setEyebrowStyle:` | `setEyebrowColor:` |
+| `setEyelash:` | `setEyelashStyle:` | `setEyelashColor:` |
+| `setPupil:` | — | `setPupilColor:` |
+
+### Virtual background and chroma key
+
+| Method | Description |
+| --- | --- |
+| `setChromaKey:` | Mask from green / blue / red. Fill is still blur or image. |
+| `clearChromaKey` | Restore portrait-segmentation mask; does **not** clear fill |
+| `setChromaKeySimilarity:` | Key tightness `[0, 1]` |
+| `setChromaKeySmoothness:` | Edge feather `[0, 1]` |
+| `setChromaKeyDesaturation:` | Spill suppression `[0, 1]` |
+| `setVirtualBackgroundBlur:` | Blur fill `[0, 1]`; `0` clears virtual background |
+| `setVirtualBackground:` | png/jpg file path (must be non-empty) |
+| `setVirtualBackgroundWithData:` | Encoded png/jpg `NSData` |
+| `clearVirtualBackground` | Clear blur and image fill |
 
 ```objc
-typedef NS_ENUM(NSInteger, FBBasicParam) {
-  FBBasicParam_Smoothing = 0,  // Smoothing
-  FBBasicParam_Sharpening,     // Sharpening
-  FBBasicParam_Whitening,      // Whitening
-  FBBasicParam_Rosiness,       // Rosiness
+typedef NS_ENUM(NSInteger, FBChromaKeyColor) {
+  FBChromaKeyColor_Green = 0,
+  FBChromaKeyColor_Blue,
+  FBChromaKeyColor_Red,
 };
 ```
 
-### Face Reshape Parameters
+### Filters and stickers
 
-Face reshape effect parameter types, all parameter value ranges are `0.0 - 1.0`.
+No register-by-id. Path or bytes; GPU resources are created on the next `processImage:`.
+
+| Method | Description |
+| --- | --- |
+| `setFilter:` | LUT from `.fbd` path |
+| `setFilterWithData:` | LUT from `.fbd` bytes |
+| `clearFilter` | Remove LUT |
+| `setFilterIntensity:` | `[0, 1]` |
+| `setSticker:` | 2D sticker `.fbd` path |
+| `setStickerWithData:` | Sticker bytes |
+| `clearSticker` | Remove sticker |
+
+Empty path / nil or empty `NSData` → `FBErrorCode_InvalidArgument`.
+
+### Process
 
 ```objc
-typedef NS_ENUM(NSInteger, FBReshapeParam) {
-  FBReshapeParam_FaceThin = 0,  // Face thinning
-  FBReshapeParam_FaceVShape,    // V-shaped face
-  FBReshapeParam_FaceNarrow,    // Narrow face
-  FBReshapeParam_FaceShort,     // Short face
-  FBReshapeParam_Cheekbone,     // Cheekbone
-  FBReshapeParam_Jawbone,       // Jawbone
-  FBReshapeParam_Chin,          // Chin
-  FBReshapeParam_NoseSlim,      // Nose slimming
-  FBReshapeParam_EyeSize,       // Eye enlargement
-  FBReshapeParam_EyeDistance,   // Eye distance
+- (FBImageFrame * _Nullable)processImage:(FBImageFrame *)imageFrame;
+```
+
+Reads `imageFrame.type`. Output format matches input. Returns `nil` on failure.
+
+## Error codes
+
+
+
+```objc
+typedef NS_ENUM(NSInteger, FBErrorCode) {
+  FBErrorCode_Success = 0,
+  FBErrorCode_InvalidArgument = -1,
+  FBErrorCode_NotInitialized = -2,
+  FBErrorCode_License = -3,
+  FBErrorCode_Unsupported = -4,
+  FBErrorCode_IO = -5,
+  FBErrorCode_NoSlot = -6,
+  FBErrorCode_Process = -7,
+  FBErrorCode_OutOfMemory = -8,
 };
 ```
 
-### Makeup Parameters
+`-1` is invalid argument. `-2` is not initialized.
 
-Makeup effect parameter types, all parameter value ranges are `0.0 - 1.0`.
+## Stats and callbacks
+
+### `FBEngineStats`
+
+| Property | Type | Description |
+| --- | --- | --- |
+| `fps` | `double` | Frames per second |
+| `avgProcessTimeMs` | `double` | Average `processImage:` time (ms) |
+| `sessionTimeS` | `double` | Session duration (seconds) |
 
 ```objc
-typedef NS_ENUM(NSInteger, FBMakeupParam) {
-  FBMakeupParam_Lipstick = 0,  // Lipstick
-  FBMakeupParam_Blush,         // Blush
-};
-
-typedef NS_ENUM(NSInteger, FBLipstickStyle) {
-  FBLipstickStyle_Rouge = 0,  // Rose red
-  FBLipstickStyle_Coral,      // Coral
-  FBLipstickStyle_Pink,       // Pink (default)
-};
-
-typedef NS_ENUM(NSInteger, FBBlushStyle) {
-  FBBlushStyle_Classic = 0,  // Classic (default)
-  FBBlushStyle_Peach,        // Peach
-  FBBlushStyle_Rose,         // Rose
-};
+- (FBEngineStats *)getStats;
 ```
 
-### Virtual Background Options
+### `FBEngineEventCode`
 
-Virtual background effect configuration options.
+| Value | Symbol |
+| --- | --- |
+| `0` | `FBEngineEventCodeLicenseValidationSuccess` |
+| `1` | `FBEngineEventCodeLicenseValidationFailed` |
+| `100` | `FBEngineEventCodeInitializationComplete` |
+| `101` | `FBEngineEventCodeInitializationFailed` |
 
-```objc
-FB_OBJC_API @interface FBVirtualBackgroundOptions : NSObject
-@property(nonatomic, assign) FBBackgroundMode mode;
-@property(nonatomic, strong, nullable) FBImageFrame *backgroundImage;
-
-- (instancetype)init;
-- (instancetype)initWithMode:(FBBackgroundMode)mode;
-@end;;
-```
-
-## Image Related
-
-### FBImageFrame
-
-Image frame class for encapsulating image data and processing.
-
-**Creation Methods:**
-- `createWithFile:`: Create from file (supports PNG, JPG)
-- `createWithRGBA:width:height:stride:`: Create from RGBA data
-- `createWithBGRA:width:height:stride:`: Create from BGRA data
-- `createWithRGB:width:height:stride:`: Create from RGB data
-- `createWithBGR:width:height:stride:`: Create from BGR data
-- `createWithI420:...`: Create from I420 YUV data
-- `createWithNV12:...`: Create from NV12 YUV data
-- `createWithNV21:...`: Create from NV21 YUV data
-- `createWithTexture:width:height:stride:`: Create from GPU texture (external texture input)
-- `createWithNSImage:`: Create from NSImage (macOS only)
-
-**Image Operations:**
-- `rotate:`: Rotate image (returns 0 for success)
-- `mirror:`: Mirror image (returns 0 for success)
-  - Parameter: `mode` mirror mode, can be "horizontal", "vertical", or "both" (case insensitive)
-- `setMirror:`: Set mirror mode for engine processing (avoids extra format conversion)
-  - Parameter: `mode` mirror mode, can be "horizontal", "vertical", or "both" (case insensitive)
-  - Note: This only sets the mirror flag, actual mirroring happens during engine processing
-
-**Format Conversion:**
-- `convert:`: Format conversion method, returns converted `FBImageFrame`
-- `toFile:quality:`: Save image to file (specify quality 0-100)
-- `toFile:`: Save image to file (use default quality 90)
+### `FBEngineCallbacks`
 
 ```objc
-FB_OBJC_API @interface FBImageFrame : NSObject
-
-+ (FBImageFrame *_Nullable)createWithFile:(NSString *)filePath;
-+ (FBImageFrame *_Nullable)createWithRGBA:(const uint8_t *)data
-                                    width:(int)width
-                                   height:(int)height
-                                   stride:(int)stride;
-+ (FBImageFrame *_Nullable)createWithBGRA:(const uint8_t *)data
-                                    width:(int)width
-                                   height:(int)height
-                                   stride:(int)stride;
-+ (FBImageFrame *_Nullable)createWithRGB:(const uint8_t *)data
-                                  width:(int)width
-                                 height:(int)height
-                                 stride:(int)stride;
-+ (FBImageFrame *_Nullable)createWithBGR:(const uint8_t *)data
-                                  width:(int)width
-                                 height:(int)height
-                                 stride:(int)stride;
-+ (FBImageFrame *_Nullable)createWithI420:(int)width
-                                   height:(int)height
-                                    dataY:(const uint8_t *)dataY
-                                  strideY:(int)strideY
-                                    dataU:(const uint8_t *)dataU
-                                  strideU:(int)strideU
-                                    dataV:(const uint8_t *)dataV
-                                  strideV:(int)strideV;
-+ (FBImageFrame *_Nullable)createWithNV12:(int)width
-                                   height:(int)height
-                                    dataY:(const uint8_t *)dataY
-                                  strideY:(int)strideY
-                                   dataUV:(const uint8_t *)dataUV
-                                 strideUV:(int)strideUV;
-+ (FBImageFrame *_Nullable)createWithNV21:(int)width
-                                   height:(int)height
-                                    dataY:(const uint8_t *)dataY
-                                  strideY:(int)strideY
-                                   dataUV:(const uint8_t *)dataUV
-                                 strideUV:(int)strideUV;
-+ (FBImageFrame *_Nullable)createWithTexture:(uint32_t)texture
-                                      width:(int)width
-                                     height:(int)height
-                                     stride:(int)stride;
-+ (FBImageFrame *_Nullable)createWithNSImage:(NSImage *)image;
-
-- (int)rotate:(FBImageRotation)rotation;
-- (int)mirror:(NSString *)mode;
-- (void)setMirror:(NSString *)mode;
-
-- (FBImageFrame *_Nullable)convert:(FBImageFormat)format;
-- (int)toFile:(NSString *)filePath quality:(int)quality;
-- (int)toFile:(NSString *)filePath;
-
-// Property access methods
-- (int32_t)width;
-- (int32_t)height;
-- (int32_t)stride;
-- (int32_t)size;
-- (const uint8_t *_Nullable)data;
-- (FBImageFormat)format;
-- (uint32_t)texture;
-
-@property(nonatomic, assign) FBFrameType type;
-
-// YUV related methods
-- (const uint8_t *_Nullable)dataY;
-- (const uint8_t *_Nullable)dataU;
-- (const uint8_t *_Nullable)dataV;
-- (const uint8_t *_Nullable)dataUV;
-- (int32_t)strideY;
-- (int32_t)strideU;
-- (int32_t)strideV;
-- (int32_t)strideUV;
-
+FB_OBJC_API @interface FBEngineCallbacks : NSObject
+@property(nonatomic, copy, nullable) void (^onFaceLandmarks)
+    (NSArray<FBFaceDetectionResult *> * _Nullable results);
+@property(nonatomic, copy, nullable) void (^onEngineEvent)
+    (FBEngineEventCode code, NSString * _Nullable message);
 @end
 ```
 
-### Enum Types
+### Face result types
 
-**Supported Image Formats:**
-- `FBImageFormatI420`: YUV 4:2:0 (3 planes, Y, U, V)
-- `FBImageFormatNV12`: YUV 4:2:0 (2 planes, Y + UV)
-- `FBImageFormatNV21`: YUV 4:2:0 (2 planes, Y + VU)
-- `FBImageFormatRGBA`, `FBImageFormatBGRA`: 32-bit RGBA/BGRA
-- `FBImageFormatRGB`, `FBImageFormatBGR`: 24-bit RGB/BGR
-- `FBImageFormatTexture`: Texture format
+```objc
+FB_OBJC_API @interface FBPoint2d : NSObject
+@property(nonatomic, assign) float x;
+@property(nonatomic, assign) float y;
+- (instancetype)initWithX:(float)x y:(float)y;
+@end
 
-**Image Rotation Angles:**
-- `FBImageRotation0`: 0 degrees
-- `FBImageRotation90`: Clockwise 90 degrees
-- `FBImageRotation180`: Clockwise 180 degrees
-- `FBImageRotation270`: Clockwise 270 degrees
+FB_OBJC_API @interface FBRect : NSObject
+@property(nonatomic, assign) float x;
+@property(nonatomic, assign) float y;
+@property(nonatomic, assign) float width;
+@property(nonatomic, assign) float height;
+- (instancetype)initWithX:(float)x y:(float)y width:(float)width height:(float)height;
+@end
 
-**Property Access:**
-- `width`, `height`: Get image width and height
-- `size`: Get image data size (in bytes)
-- `stride`: Get image stride
+FB_OBJC_API @interface FBFaceDetectionResult : NSObject
+@property(nonatomic, strong) FBRect *rect;
+@property(nonatomic, copy, nullable) NSArray<FBPoint2d *> *keyPoints;  // 111 points
+@property(nonatomic, copy, nullable) NSArray<NSNumber *> *visibility;  // [0, 1]
+@property(nonatomic, assign) int faceId;
+@property(nonatomic, assign) float score;
+@property(nonatomic, assign) float pitch;  // up -, down +; [-π, π]
+@property(nonatomic, assign) float roll;
+@property(nonatomic, assign) float yaw;
+@end
+```
 
-**Data Access:**
-- `data`: Get raw image data pointer
-- YUV format specific: `dataY`, `dataU`, `dataV`, `dataUV`
-- YUV format strides: `strideY`, `strideU`, `strideV`, `strideUV`
+## `FBImageFrame`
+
+### Create
+
+| Method | Notes |
+| --- | --- |
+| `createWithData:width:height:format:` | Raw buffer + `FBImageFormat` |
+| `createWithRGBA:width:height:stride:` | |
+| `createWithBGRA:width:height:stride:` | Common for AppKit bitmaps |
+| `createWithRGB:width:height:stride:` | |
+| `createWithBGR:width:height:stride:` | |
+| `createWithI420:...` | Y / U / V planes |
+| `createWithNV12:...` | Y + UV |
+| `createWithNV21:...` | Y + VU |
+| `createWithFile:` | png / jpg path |
+| `createWithTexture:width:height:stride:` | `GL_TEXTURE_2D` in the current context |
+| `createWithNSImage:` | **macOS only** |
+
+### Operations
+
+| Method | Description |
+| --- | --- |
+| `rotate:` | `FBImageRotation`; returns `FBErrorCode` |
+| `mirror:` | `"horizontal"` / `"vertical"` / `"both"`; mutates pixels |
+| `setMirror:` | Flag for `processImage:`. `nil` / `@""` clears |
+| `convert:` | Returns a new frame in the target `FBImageFormat` |
+| `toFile:quality:` | quality `0`–`100` |
+| `toFile:` | quality `90` |
+
+Accessors: `width`, `height`, `stride`, `size`, `type`, `data`, `format`, `texture`. YUV: `dataY` / `dataU` / `dataV` / `dataUV` and matching strides.
 
 ```objc
 typedef NS_ENUM(NSInteger, FBImageFormat) {
@@ -418,14 +382,29 @@ typedef NS_ENUM(NSInteger, FBImageFormat) {
 };
 
 typedef NS_ENUM(NSInteger, FBImageRotation) {
-  FBImageRotation0,    // 0 degrees
-  FBImageRotation90,   // Clockwise 90 degrees
-  FBImageRotation180,  // Clockwise 180 degrees
-  FBImageRotation270,  // Clockwise 270 degrees
-};
-
-typedef NS_ENUM(NSInteger, FBFrameType) {
-  FBFrameTypeImage = 0,  // Image mode
-  FBFrameTypeVideo = 1   // Video mode
+  FBImageRotation0,
+  FBImageRotation90,
+  FBImageRotation180,
+  FBImageRotation270,
 };
 ```
+
+```objc
+FBImageFrame *frame = [FBImageFrame createWithNSImage:image];
+frame.type = FBFrameTypeImage;
+FBImageFrame *out = [engine processImage:frame];
+```
+
+## Makeup / style enums
+
+Objective-C symbols live in `FBBeautyParams.h`. Do not duplicate meaning tables here — see [Parameter enums](/intro/makeup).
+
+- `FBSmoothingStyle`, `FBWhiteningStyle`
+- `FBLipstickColor`
+- `FBBlushStyle`, `FBBlushColor`
+- `FBContourStyle`
+- `FBEyeShadowStyle`, `FBEyeShadowColor`
+- `FBEyeLinerStyle`, `FBEyeLinerColor`
+- `FBEyebrowStyle`, `FBEyebrowColor`
+- `FBEyelashStyle`, `FBEyelashColor`
+- `FBPupilColor`

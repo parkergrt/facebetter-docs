@@ -1,7 +1,11 @@
 ---
 title: "Quick Start"
-description: "Run iOS Sample Application"
+description: "Run the iOS sample app with Facebetter SDK 2.0"
 ---
+
+<Note>
+This page matches SDK **2.0.0**. Auth: [License & Auth](/intro/license). Makeup / reshape enums: [Parameter enums](/intro/makeup).
+</Note>
 
 ## Environment Requirements
 
@@ -14,7 +18,7 @@ description: "Run iOS Sample Application"
 Clone the [GitHub repository](https://github.com/pixpark/facebetter-sdk) locally, and navigate to the `demo/ios` directory.
 
 ```bash
-# clone 
+# clone
 git clone https://github.com/pixpark/facebetter-sdk.git
 
 # Enter iOS Demo directory
@@ -25,9 +29,9 @@ pod install
 ```
 
 <Warning>
-**Xcode 15+ Compilation Error Handling**
+**Xcode 15+ compilation error**
 
-If you are using **Xcode 15** or later, you might encounter a `Sandbox: rsync.samba deny(1)` error during compilation. This is caused by Xcode's default **User Script Sandboxing** being enabled.
+If you are using **Xcode 15** or later, you might encounter a `Sandbox: rsync.samba deny(1)` error during compilation. This is caused by Xcode's default **User Script Sandboxing**.
 
 **Solution:**
 1. Select your **Project** in Xcode.
@@ -40,36 +44,36 @@ If you are using **Xcode 15** or later, you might encounter a `Sandbox: rsync.sa
 
 ### Bind Application Bundle ID
 
-Follow the instructions on [this page](/intro/enable-service#bind-application-information) to bind your iOS application Bundle ID in the console, for example: `com.example.app`
+Follow [Bind Application Information](/intro/enable-service#bind-application-information) to bind your iOS application Bundle ID in the console, for example: `com.example.app`.
 
-### Get AppID and AppKey
+### Get credentials
 
-Follow the instructions on [this page](/intro/enable-service#get-appid-and-appkey) to get your `appid` and `appkey`. Open `ViewController.m` in the project and modify the `appid` and `appkey`.
+Follow [Get AppID and AppKey](/intro/enable-service#get-appid-and-appkey) to obtain `appId` and `appKey`. Open `demo/ios/FBExampleObjc/CameraViewController.m` and set credentials on `FBEngineConfig`.
 
 ```objc
-  FBEngineConfig *engineConfig = [[FBEngineConfig alloc] init];
-  engineConfig.appId = @"your appId";
-  engineConfig.appKey = @"your appkey";
-  // Optional: If licenseJson is provided, license data verification takes priority, appId and appKey are not required
-  // engineConfig.licenseJson = @"your license json string";
- 
-  self.beautyEffectEngine = [FBBeautyEffectEngine createEngineWithConfig:engineConfig];
+FBEngineConfig *engineConfig = [[FBEngineConfig alloc] init];
+engineConfig.appId = @"your appId";
+engineConfig.appKey = @"your appKey";
+// Preferred: licenseToken (license token, {token} JSON, or .lic contents)
+// engineConfig.licenseToken = @"your license token";
 
+self.beautyEffectEngine = [FBBeautyEffectEngine createEngineWithConfig:engineConfig];
 ```
 
 <Tip>
-`licenseJson` takes priority over `appId` + `appKey`. For offline download and details, see [License & Auth](/intro/license).
+If `licenseToken` is non-empty, the SDK validates that token locally and does **not** call `/facebetter/v2/auth` with `appId` / `appKey`. See [License & Auth](/intro/license).
 </Tip>
 
 ## Run the Project
 
-Open `demo/ios/FBExampleObjc.xcworkspace` 
-1. Ensure Xcode project signing is correct
+Open `demo/ios/FBExampleObjc.xcworkspace`.
+
+1. Ensure Xcode project signing is correct.
+
 <Frame>
   <img src="/images/ios-1.png" alt="Xcode Signing" />
 </Frame>
 
-2. Build and run
+2. Build and run.
 
 Select a physical device and click the build and run button.
- 

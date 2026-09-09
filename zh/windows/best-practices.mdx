@@ -1,5 +1,86 @@
 ---
 title: "最佳实践"
-description: "Windows 美颜 SDK 最佳实践和性能优化指南"
+description: "Windows 上 Facebetter 2.0 的性能与集成建议"
 ---
 
+<Note>
+SDK **2.0.0**。C++ API 与 Linux 相同。枚举见 [参数枚举](/zh/intro/makeup)。
+</Note>
+
+## `resource_path` 指向 `resource.fbd`
+
+桌面引擎用 `fopen` 打开资源包，传入 **文件路径**，不要填目录：
+
+```cpp
+cfg.resource_path = "C:/app/assets/resource.fbd";
+```
+
+将 `resource.fbd` 随应用分发，启动时解析为绝对路径。
+
+## 一个引擎，串行 `ProcessImage`
+
+用 `Create` 拿到实例，**不是**单例。会话期内保持一个引擎。`ImageFrame` 与引擎都不是线程安全的——把 `ProcessImage` 串行化到一条工作线程（`external_context = true` 时则必须在持有 GL 上下文的线程上调用）。
+
+```cpp
+std::shared_ptr<BeautyEffectEngine> engine = BeautyEffectEngine::Create(cfg);
+```
+
+相机会话结束再释放 `shared_ptr`。每帧重建引擎代价很高（授权 + 初始化）。
+
+## 在帧上设置 `FrameType`
+
+在 `ProcessImage` 之前设置 `frame->type`。
+| 值 | 用途 |
+| --- | --- |
+| `FrameType::Video`（默认） | 摄像头、采集、实时预览 |
+| `FrameType::Image` | 单张照片 / 导出 |
+
+## 强度
+
+实时场景从较低值开始。美型为 **`[-1.0, 1.0]`**，其余强度为 `[0.0, 1.0]`。
+
+```cpp
+engine->SetSmoothing(0.25f);
+engine->SetWhitening(0.15f);
+engine->SetReshape(Reshape::FaceThin, 0.15f);
+engine->SetBeautySkinOnly(true);
+```
+
+开启 `SetBeautySkinOnly(true)`，让磨皮 / 美白只作用在皮肤上。
+
+## 滤镜与贴纸
+
+传入 `.fbd` 路径或字节。在下一次 `ProcessImage` 后生效。避免每帧切换滤镜 / 贴纸。
+
+```cpp
+engine->SetFilter(filter_path);
+engine->SetFilterIntensity(0.7f);
+```
+
+## 用 `GetStats` 监控
+
+```cpp
+EngineStats s = engine->GetStats();
+if (s.avg_process_time_ms > 33.0) {
+    // 降低分辨率、减弱强度，或关掉贴纸
+}
+```
+
+`avg_process_time_ms` 应低于帧预算（30 fps 约 33 ms）。预览建议 720p；静图导出用 `FrameType::Image`。
+
+## OpenGL 上下文
+
+| `external_context` | 场景 |
+| --- | --- |
+| `false`（默认） | 由 SDK 管理 OpenGL |
+| `true` | 调用方已有当前 GL 上下文，在该线程调用 `ProcessImage` |
+
+将 `facebetter.dll` 放在 `.exe` 旁（或加入 `PATH`）。链接时使用 `facebetter.lib`。
+
+## 空闲时暂停
+
+窗口最小化或摄像头停止时跳过 `ProcessImage`；会话结束可 `engine.reset()`。不要在会卡住交互的 UI 线程上做处理。
+
+## 授权
+
+离线或受限网络优先 `license_token`；否则用 `app_id` + `app_key` 在线 v2。不要把生产密钥写进公开仓库。见 [许可证与鉴权](/zh/intro/license)。

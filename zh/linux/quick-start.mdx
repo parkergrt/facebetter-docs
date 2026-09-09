@@ -3,19 +3,23 @@ title: "快速开始"
 description: "在 Linux 上构建并运行 Facebetter C++ 桌面示例（GLFW + ImGui）"
 ---
 
-本文介绍如何在 Linux 上构建并运行 Facebetter C++ 桌面 Demo。Demo 使用 **GLFW + Dear ImGui + OpenGL 3** 渲染，左侧实时预览美颜效果，右侧通过滑块控制各项参数。
+<Note>
+本文对应 SDK **2.0.0**。Linux 与 Windows 共用同一套 C++ API（`facebetter` 命名空间，头文件 `facebetter/*.h`）。
+</Note>
+
+本文说明如何在 Linux 上构建 Facebetter C++ 桌面 Demo。Demo 使用 **GLFW + Dear ImGui + OpenGL 3**：左侧实时预览，右侧调节美颜参数。
 
 ## 环境要求
 
-| 工具 | 版本要求 |
+| 工具 | 版本 |
 | --- | --- |
-| GCC 或 Clang | 支持 C++17（GCC 7+ / Clang 5+） |
+| GCC 或 Clang | C++17（GCC 7+ / Clang 5+） |
 | CMake | 3.16+ |
-| Ninja | 任意版本（`apt install ninja-build` / `dnf install ninja-build`） |
-| OpenGL 开发库 | `libgl1-mesa-dev`（Ubuntu/Debian）或 `mesa-libGL-devel`（Fedora/RHEL） |
-| X11 / Wayland 开发库 | GLFW 依赖（见下方安装命令） |
+| Ninja | `apt install ninja-build` / `dnf install ninja-build` |
+| OpenGL | `libgl1-mesa-dev`（Ubuntu/Debian）或 `mesa-libGL-devel`（Fedora/RHEL） |
+| X11 / Wayland | GLFW 依赖（见下方） |
 
-### 安装依赖（Ubuntu / Debian）
+### Ubuntu / Debian
 
 ```bash
 sudo apt update
@@ -25,7 +29,7 @@ sudo apt install -y build-essential cmake ninja-build \
     libxcursor-dev libxi-dev
 ```
 
-### 安装依赖（Fedora / RHEL）
+### Fedora / RHEL
 
 ```bash
 sudo dnf install -y gcc-c++ cmake ninja-build \
@@ -34,7 +38,7 @@ sudo dnf install -y gcc-c++ cmake ninja-build \
     libXcursor-devel libXi-devel
 ```
 
-## 第一步：获取示例源码
+## 第一步：克隆仓库
 
 ```bash
 git clone https://github.com/pixpark/facebetter-sdk.git
@@ -43,7 +47,7 @@ cd facebetter-sdk
 
 ## 第二步：放置 SDK 文件
 
-将 Linux SDK 文件放入 `demo/cpp/sdk/` 目录：
+将 Linux SDK 放入 `demo/cpp/sdk/`：
 
 ```
 demo/cpp/sdk/
@@ -56,14 +60,30 @@ demo/cpp/sdk/
 ├── lib/
 │   └── libfacebetter.so    ← 动态库
 └── resource/
-    └── resource.fbd        ← 模型与资源包
+    └── resource.fbd        ← 模型与资源包（必需）
 ```
 
+<Warning>
+桌面端 `EngineConfig::resource_path` 必须指向 **`resource.fbd` 文件本身**，不能填目录。例如：`demo/cpp/sdk/resource/resource.fbd`。
+</Warning>
+
 <Tip>
-SDK 下载地址请前往 [下载页面](https://facebetter.net/zh/download) 或登录控制台查看。
+SDK 包见 [下载页](https://facebetter.net/zh/download) 或 [控制台](https://facebetter.net/zh/dashboard)。
 </Tip>
 
-## 第三步：构建
+若要从**源码编译 SDK**（而不是使用预编译包）：
+
+```bash
+./scripts/build_linux.sh
+```
+
+产物安装到 `build/linux/release`。可将 `include/`、`lib/libfacebetter.so` 和 `resource.fbd` 按上面的结构拷入 `demo/cpp/sdk/`。
+
+## 第三步：配置授权
+
+运行前设置 `app_id` / `app_key`（在线 v2），或设置 `license_token`。`license_token` 非空时优先（许可证 token、`{token}` JSON 或离线 `.lic`）。详见 [许可证与鉴权](/zh/intro/license)。
+
+## 第四步：构建 Demo
 
 ```bash
 cd demo/cpp
@@ -71,50 +91,50 @@ cmake -B build -G "Ninja" -DCMAKE_BUILD_TYPE=Release
 cmake --build build
 ```
 
-CMake 在构建完成后会自动将 `resource/resource.fbd` 和 `demo.png`（如果存在）复制到 `build/resource/` 目录。
+CMake 通常会把 `resource/resource.fbd`（以及存在的 `demo.png`）复制到 `build/resource/`。
 
-## 第四步：准备预览图（可选）
-
-将任意一张人脸图片命名为 `demo.png`，放到 `demo/cpp/` 目录下：
+## 第五步：准备预览图（可选）
 
 ```
 demo/cpp/demo.png
 ```
 
-引擎会每秒约 30 帧地对该图片应用美颜效果，并在窗口左侧实时显示结果。
-
-## 第五步：运行
+## 第六步：运行
 
 ```bash
 cd demo/cpp/build
 
-# 方式一：将 libfacebetter.so 所在目录加入运行时搜索路径
+# 方式 A：运行时库路径
 LD_LIBRARY_PATH=../sdk/lib ./facebetter_demo
 
-# 方式二：将 libfacebetter.so 复制到可执行文件目录
+# 方式 B：把 .so 拷到可执行文件旁
 cp ../sdk/lib/libfacebetter.so .
 ./facebetter_demo
 ```
 
-程序运行后，窗口左侧为预览区，右侧为美颜控制面板：
-
-- **Basic Beauty**：磨皮 / 美白 / 红润 / 锐化
-- **Face Reshape**：瘦脸 / V脸 / 窄脸 / 短脸 / 颧骨 / 下颌 / 下巴 / 鼻梁 / 大眼 / 眼距
-- **Makeup**：口红 / 腮红
-- **Sticker**：贴纸选择（Off / rabbit）
-
-点击 **Reset All** 可一键恢复所有参数为默认值。
+窗口为实时预览 + 控制面板（皮肤、26 项美型、美妆、滤镜、贴纸、虚拟背景）。**Reset All** 可将强度归零。
 
 ## 常见问题
 
 **Q：`libfacebetter.so: cannot open shared object file`**  
-A：用 `LD_LIBRARY_PATH=../sdk/lib ./facebetter_demo` 运行，或将库文件复制到可执行文件同目录，或使用 `ldconfig` 将路径加入系统库路径。
+A：使用 `LD_LIBRARY_PATH=../sdk/lib ./facebetter_demo`，或把 `.so` 拷到可执行文件旁，或用 `ldconfig` 加入路径。
 
-**Q：CMake 报告找不到 OpenGL**  
+**Q：`Create` 返回空指针 / 授权失败**  
+A：`resource_path` 必须指向 `resource.fbd`，并配置 `license_token` 或有效的 `app_id` + `app_key`。见 [许可证与鉴权](/zh/intro/license)。
+
+**Q：CMake 找不到 OpenGL**  
 A：安装 `libgl1-mesa-dev`（Ubuntu）或 `mesa-libGL-devel`（Fedora）后重新配置。
 
-**Q：窗口显示 "Put demo.png …"**  
-A：在 `demo/cpp/` 目录下放置名为 `demo.png` 的人脸图片，然后重新运行。
+**Q：`GLFW: X11: Display variable not set`**  
+A：在图形会话中运行，或设置 `DISPLAY`（X11）/ `WAYLAND_DISPLAY`（Wayland）。
 
-**Q：显示器无法打开 / `GLFW: X11: Display variable not set`**  
-A：确认当前 shell 在图形会话中运行，或设置 `DISPLAY` 环境变量。
+## 下一步
+
+<CardGroup cols={2}>
+  <Card title="实现美颜" href="/zh/linux/implement-beauty">
+    创建引擎、设置效果并处理帧。
+  </Card>
+  <Card title="API 参考" href="/zh/linux/api-reference">
+    完整 C++ API（与 Windows 相同）及 Linux 说明。
+  </Card>
+</CardGroup>

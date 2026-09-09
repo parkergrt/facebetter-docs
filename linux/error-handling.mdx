@@ -1,166 +1,156 @@
 ---
 title: "Error Handling"
-description: "Facebetter SDK error handling and troubleshooting guide for Linux"
+description: "Facebetter SDK 2.0 error codes and Linux troubleshooting"
 ---
 
-Linux uses the same C++ API as Windows, so most error-handling logic is identical. This page also covers Linux-specific issues.
+<Note>
+SDK **2.0.0**. Auth: [License & Auth](/intro/license).
+</Note>
 
-## Return Value Convention
-
-| Return value | Meaning |
-| --- | --- |
-| `0` | Success |
-| Non-zero | Failure — check the log output for details |
-
-`BeautyEffectEngine::Create()` returns `nullptr` on failure.
-
----
-
-## Common Errors and Fixes
-
-### 1. Engine Creation Fails (`Create` Returns `nullptr`)
-
-The causes and fixes are the same as on Windows. Start by enabling logging:
-
-```cpp
-LogConfig log_cfg;
-log_cfg.console_enabled = true;
-log_cfg.level           = LogLevel::Debug;
-BeautyEffectEngine::SetLogConfig(log_cfg);
-
-auto engine = BeautyEffectEngine::Create(eng_cfg);
-if (!engine) {
-    std::cerr << "[Error] Engine creation failed." << std::endl;
-    return -1;
-}
-```
-
-**Common causes:** invalid `app_id` / `app_key`, wrong `resource.fbd` path, no network access.
-
----
-
-### 2. `libfacebetter.so` Not Found at Runtime
-
-**Error message:**
-
-```
-./facebetter_demo: error while loading shared libraries:
-libfacebetter.so: cannot open shared object file: No such file or directory
-```
-
-**Fix (choose one):**
-
-```bash
-# Option A: set library path at runtime
-LD_LIBRARY_PATH=/path/to/sdk/lib ./facebetter_demo
-
-# Option B: copy the library next to the executable
-cp sdk/lib/libfacebetter.so build/
-cd build && ./facebetter_demo
-
-# Option C: add to the system library config
-echo "/path/to/sdk/lib" | sudo tee /etc/ld.so.conf.d/facebetter.conf
-sudo ldconfig
-./facebetter_demo
-```
-
----
-
-### 3. `ProcessImage` Returns `nullptr`
-
-```cpp
-auto input = ImageFrame::CreateWithFile("input.jpg");
-if (!input || !input->Data()) {
-    std::cerr << "[Error] Failed to load input image." << std::endl;
-    return;
-}
-auto output = engine->ProcessImage(input);
-if (!output || !output->Data()) {
-    std::cerr << "[Error] ProcessImage failed." << std::endl;
-    return;
-}
-```
-
----
-
-### 4. Beauty Effects Have No Visible Impact
-
-Make sure each `BeautyType` is enabled and the parameter value is greater than `0`:
-
-```cpp
-engine->SetBeautyTypeEnabled(BeautyType::Basic,   true);
-engine->SetBeautyTypeEnabled(BeautyType::Reshape, true);
-engine->SetBeautyTypeEnabled(BeautyType::Makeup,  true);
-engine->SetBeautyTypeEnabled(BeautyType::Sticker, true);
-
-engine->SetBeautyParam(Basic::Smoothing, 0.5f);
-```
-
----
-
-### 5. GLFW Cannot Open Display
-
-**Error message:**
-
-```
-Error: GLFW: X11: Display variable not set
-```
-
-**Fix:**
-
-```bash
-# Confirm you are in a graphical session
-echo $DISPLAY          # should output something like :0 or :1
-
-# If empty, set it manually (Xorg)
-export DISPLAY=:0
-./facebetter_demo
-
-# For Wayland
-export WAYLAND_DISPLAY=wayland-0
-./facebetter_demo
-```
-
----
-
-### 6. OpenGL Initialization Failure
-
-**Possible cause:** Missing OpenGL driver or Mesa libraries.
-
-**Fix:**
-
-```bash
-# Ubuntu / Debian
-sudo apt install libgl1-mesa-glx libglu1-mesa
-
-# Fedora / RHEL
-sudo dnf install mesa-libGL mesa-libGLU
-
-# Verify OpenGL support (requires 3.0+)
-glxinfo | grep "OpenGL version"
-```
-
----
-
-## Enabling Debug Logs
-
-```cpp
-LogConfig log_cfg;
-log_cfg.console_enabled = true;
-log_cfg.file_enabled    = true;
-log_cfg.level           = LogLevel::Debug;
-log_cfg.file_name       = "facebetter.log";
-BeautyEffectEngine::SetLogConfig(log_cfg);
-```
-
----
-
-## Error Code Reference
+## Return values
 
 | Code | Meaning |
 | --- | --- |
 | `0` | Success |
-| `-1` | Engine not initialized |
-| `-2` | Invalid parameter |
-| `-3` | Resource file not found |
-| `-4` | Processing failed |
+| `-1` | Invalid argument |
+| `-2` | Not initialized |
+| `-3` | License |
+| `-4` | Unsupported |
+| `-5` | I/O |
+| `-6` | No slot |
+| `-7` | Process failed |
+| `-8` | Out of memory |
+
+`Create()` returns `nullptr` on failure. `ProcessImage` may return `nullptr`.
+
+```cpp
+int ret = engine->SetSmoothing(0.5f);
+if (ret != 0) {
+    std::cerr << "SetSmoothing failed: " << ret << std::endl;
+}
+```
+
+## Engine events
+
+| Code | Meaning |
+| --- | --- |
+| `0` | License success |
+| `1` | License failed |
+| `100` | Init complete |
+| `101` | Init failed |
+
+```cpp
+EngineCallbacks cbs;
+cbs.on_engine_event = [](int code, const std::string& message) {
+    if (code == 1 || code == 101) {
+        std::cerr << "engine event " << code << ": " << message << std::endl;
+    }
+};
+engine->SetCallbacks(cbs);
+```
+
+---
+
+## Common failures
+
+### 1. `Create` returns `nullptr`
+
+- `resource_path` is not the **`resource.fbd` file**
+- Invalid `license_token` or `app_id` + `app_key`
+- Online auth cannot reach `/facebetter/v2/auth`
+- `libfacebetter.so` version mismatch
+
+```cpp
+LogConfig log_cfg;
+log_cfg.console_enabled = true;
+log_cfg.level = LogLevel::Debug;
+BeautyEffectEngine::SetLogConfig(log_cfg);
+
+cfg.resource_path =
+    (std::filesystem::current_path() / "resource" / "resource.fbd").string();
+auto engine = BeautyEffectEngine::Create(cfg);
+```
+
+---
+
+### 2. `libfacebetter.so` not found
+
+```
+error while loading shared libraries: libfacebetter.so: cannot open shared object file
+```
+
+```bash
+LD_LIBRARY_PATH=/path/to/sdk/lib ./your_app
+cp /path/to/sdk/lib/libfacebetter.so ./
+echo "/path/to/sdk/lib" | sudo tee /etc/ld.so.conf.d/facebetter.conf
+sudo ldconfig
+```
+
+You can also set `RPATH` at link time (`-Wl,-rpath,/path/to/sdk/lib`).
+
+---
+
+### 3. `ProcessImage` returns `nullptr`
+
+```cpp
+auto input = ImageFrame::CreateWithFile("input.jpg");
+if (!input || !input->Data()) return;
+input->type = FrameType::Image;
+auto output = engine->ProcessImage(input);
+if (!output || !output->Data()) {
+    std::cerr << "ProcessImage failed." << std::endl;
+}
+```
+
+---
+
+### 4. Effects look unchanged
+
+No `SetBeautyTypeEnabled` in 2.0. Set intensities `> 0`. Reshape / makeup need a face.
+
+```cpp
+engine->SetSmoothing(0.5f);
+engine->SetReshape(Reshape::FaceThin, 0.3f);
+input->type = FrameType::Video;
+```
+
+---
+
+### 5. GLFW cannot open the display
+
+```
+GLFW: X11: Display variable not set
+```
+
+```bash
+echo $DISPLAY
+export DISPLAY=:0
+export WAYLAND_DISPLAY=wayland-0
+```
+
+SSH needs X11 forwarding (`ssh -X`) or a local compositor.
+
+---
+
+### 6. OpenGL init fails
+
+```bash
+# Ubuntu / Debian
+sudo apt install libgl1-mesa-dev libglu1-mesa-dev mesa-utils
+glxinfo | grep "OpenGL version"
+```
+
+Need OpenGL 3.0+. Headless servers can use OSMesa (`libosmesa6-dev`) with `external_context` set for your offscreen context.
+
+---
+
+## Debug logs
+
+```cpp
+LogConfig log_cfg;
+log_cfg.console_enabled = true;
+log_cfg.file_enabled = true;
+log_cfg.level = LogLevel::Debug;
+log_cfg.file_name = "facebetter.log";
+BeautyEffectEngine::SetLogConfig(log_cfg);
+```

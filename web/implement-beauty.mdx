@@ -1,553 +1,272 @@
 ---
 title: "Implement Beauty"
-description: "Implement Web Beauty"
+description: "Integrate Facebetter Web SDK 2.0"
 ---
 
-## Integrate SDK
+<Note>
+SDK **2.0.0**. Auth: [License & Auth](/intro/license). Enum values: [Parameter enums](/intro/makeup).
+</Note>
 
-Install via npm:
+## Install
 
 ```bash
 npm install facebetter
 ```
 
-**Using ES Module (Recommended):**
-
 ```javascript
-import { 
-  BeautyEffectEngine, 
-  EngineConfig, 
-  BeautyType, 
-  BasicParam,
-  ReshapeParam,
-  MakeupParam,
-  BackgroundMode,
-  VirtualBackgroundOptions,
-  ProcessMode 
+import {
+  BeautyEffectEngine,
+  EngineConfig,
+  FrameType,
+  MirrorMode,
+  Reshape,
+  SmoothingStyle,
+  WhiteningStyle,
+  LipstickColor,
+  ChromaKeyColor,
+  EngineEventCode,
+  FacebetterError,
+  createDirectAuthFetcher,
 } from 'facebetter';
 ```
 
-**Using CommonJS:**
+## Create the engine
+
+`EngineConfig` on Web has **only** these fields. There is no `appId` / `appKey` on the config object.
+
+| Field | Purpose |
+| --- | --- |
+| `licenseToken` | License token string, or `{token}` JSON |
+| `authProxyUrl` | Production: POST the SDK auth request to **your** server; the server holds `app_id` / `app_key` |
+| `fetchAuthResponse` | `async (challenge) => string \| object`. Local debug: `createDirectAuthFetcher({ appId, appKey })` |
+| `resourcePath` | URL of `resource.fbd`. Default `/resource.fbd` |
+
+Pick **one** auth mode. Web does **not** support offline `.lic`.
 
 ```javascript
-const { BeautyEffectEngine, EngineConfig } = require('facebetter');
+const engine = new BeautyEffectEngine(new EngineConfig({
+  authProxyUrl: '/api/facebetter/auth',
+}));
+
+await engine.setLogConfig({
+  consoleEnabled: true,
+  fileEnabled: false,
+  level: 2, // TRACE=0 … CRITICAL=5
+});
+
+await engine.init();
 ```
 
-## Log Configuration
-
-Logging is disabled by default, you can enable it as needed:
-
 <Warning>
-Log configuration must be called **before** engine initialization.
+Call `setLogConfig` before `init()` if you want to see load / auth logs. File logging is not supported in the browser (`fileEnabled` is ignored).
 </Warning>
 
 ```javascript
-await engine.setLogConfig({
-    consoleEnabled: true,  // Console logging
-    fileEnabled: false,    // File logging (not supported in browser environment)
-    level: 0,              // Log level: 0=DEBUG, 1=INFO, 2=WARN, 3=ERROR
-    fileName: 'facebetter.log'  // Log file name (optional, only effective when fileEnabled is true)
-});
-```
-
-**Note**: Log configuration must be called before engine initialization.
-
-## Create Engine Configuration
-
-Follow the instructions on [this page](/intro/enable-service#get-appid-and-appkey) to get `appId` and `appKey`
-
-**Verification Priority:**
-- If `licenseJson` is provided, use license data verification (supports online response and offline license)
-- Otherwise, use `appId` and `appKey` for automatic online verification
-
-```javascript
-import { BeautyEffectEngine, EngineConfig } from 'facebetter';
-
-const config = new EngineConfig({
-    appId: 'your appId',     // Configure your appid (optional, not required if licenseJson is provided)
-    appKey: 'your appKey'    // Configure your appkey (optional, not required if licenseJson is provided)
-    // Optional: Use license data verification (takes priority if provided)
-    // licenseJson: 'your license json string'
-});
-const engine = new BeautyEffectEngine(config);
-```
-
-### Error Handling
-
-It's recommended to check if engine creation is successful:
-
-```javascript
 try {
-    await engine.init();
-    console.log('Engine initialized successfully');
+  await engine.init();
 } catch (error) {
-    console.error('Engine initialization failed:', error);
-    // Handle error
+  if (error instanceof FacebetterError) {
+    console.error(error.code, error.message);
+  }
+  throw error;
 }
 ```
 
-## Adjust Beauty Parameters
-
-<Tip>
-All beauty parameters range from `[0.0, 1.0]`. Set to `0` to disable the effect.
-</Tip>
-
-### Set Skin Beauty Parameters
-
-Use `setBasicParam` interface to set skin beauty parameters, **parameter range [0.0, 1.0]** (float);
+Local debug only:
 
 ```javascript
-import { BasicParam } from 'facebetter';
-
-engine.setBasicParam(
-    BasicParam.Smoothing, 
-    0.5  // 0.0-1.0
-);
+const engine = new BeautyEffectEngine(new EngineConfig({
+  fetchAuthResponse: createDirectAuthFetcher({
+    appId: 'your-app-id',
+    appKey: 'your-app-key',
+  }),
+}));
 ```
 
-Supported skin beauty parameters:
-```javascript
-BasicParam = {
-    Smoothing: 0,   // Skin smoothing
-    Sharpening: 1,  // Sharpening
-    Whitening: 2,   // Whitening
-    Rosiness: 3     // Rosiness
-};
-```
+## Skin beauty
 
-### Set Face Reshape Parameters
-
-Use `setReshapeParam` interface to set face reshape parameters, **parameter range [0.0, 1.0]** (float);
+Intensity range **`[0.0, 1.0]`**. `0` turns the effect off.
 
 ```javascript
-import { ReshapeParam } from 'facebetter';
-
-engine.setReshapeParam(
-    ReshapeParam.FaceThin, 
-    0.5  // 0.0-1.0
-);
-```
-
-Supported face reshape parameters:
-
-```javascript
-ReshapeParam = {
-    FaceThin: 0,      // Face thinning
-    FaceVShape: 1,    // V-face
-    FaceNarrow: 2,    // Narrow face
-    FaceShort: 3,     // Short face
-    Cheekbone: 4,     // Cheekbone
-    Jawbone: 5,       // Jawbone
-    Chin: 6,          // Chin
-    NoseSlim: 7,      // Nose slimming
-    EyeSize: 8,       // Eye enlargement
-    EyeDistance: 9    // Eye distance
-};
-```
-
-### Set Makeup Parameters
-
-Use `setMakeupParam` interface to set makeup parameters, **parameter range [0.0, 1.0]** (float);
-
-```javascript
-import { MakeupParam } from 'facebetter';
-
-engine.setMakeupParam(
-    MakeupParam.Lipstick, 
-    0.5  // 0.0-1.0
-);
-```
-
-Supported makeup parameters:
-
-```javascript
-MakeupParam = {
-    Lipstick: 0,  // Lipstick
-    Blush: 1      // Blush
-};
-```
-
-### Set Skin-Only Beauty
-
-Use the `setSkinOnlyBeauty` interface to set whether beauty effects are applied only to skin regions. When enabled, beauty effects (smoothing, whitening, etc.) will only be applied to detected skin areas, leaving non-skin areas unchanged.
-
-```javascript
-// Enable skin-only beauty
-engine.setSkinOnlyBeauty(true);
-
-// Disable skin-only beauty (apply to entire image)
-engine.setSkinOnlyBeauty(false);
+engine.setSmoothing(0.8);
+engine.setSmoothingStyle(SmoothingStyle.Natural);
+engine.setWhitening(0.5);
+engine.setWhiteningStyle(WhiteningStyle.ColdWhite);
+engine.setSharpening(0.3);
+engine.setRosiness(0.2);
+engine.setBeautySkinOnly(true);
 ```
 
 <Tip>
-After enabling skin-only beauty, even with high beauty parameter values, non-skin areas (such as background, clothing, etc.) will not be affected.
+`setBeautySkinOnly(true)` limits smoothing / whitening / sharpening / rosiness to detected skin. Clothing and background stay unchanged.
 </Tip>
 
-### Set Virtual Background
+Style enums: [Parameter enums](/intro/makeup).
 
-Enable virtual background via `setVirtualBackground` interface (unified API, consistent with other platforms):
+## Face reshape
 
 ```javascript
-import { VirtualBackgroundOptions, BackgroundMode } from 'facebetter';
-
-// Set blur background
-const blurOptions = new VirtualBackgroundOptions({
-  mode: BackgroundMode.Blur
-});
-engine.setVirtualBackground(blurOptions);
-
-// Set image background
-const bgImage = new Image();
-bgImage.onload = () => {
-  const imageOptions = new VirtualBackgroundOptions({
-    mode: BackgroundMode.Image,
-    backgroundImage: bgImage
-  });
-  engine.setVirtualBackground(imageOptions);
-};
-bgImage.src = 'background.jpg';
-
-// Disable virtual background
-const noneOptions = new VirtualBackgroundOptions({
-  mode: BackgroundMode.None
-});
-engine.setVirtualBackground(noneOptions);
+engine.setReshape(Reshape.FaceThin, 0.3);
+engine.setReshape(Reshape.EyeSize, 0.2);
 ```
 
-**Simplified syntax (also supported):**
+Range is **`[-1.0, 1.0]`**. `0` is off. Positive and negative are opposite directions (for example `FaceThin`: slim / fuller cheeks). Full list: [Parameter enums](/intro/makeup).
+
+## Makeup
+
+Intensity, shape, and color are separate setters. Intensity is `[0.0, 1.0]`. Presets: [Parameter enums](/intro/makeup).
 
 ```javascript
-// Pass object directly, no need to use new VirtualBackgroundOptions
-engine.setVirtualBackground({
-  mode: BackgroundMode.Blur
-});
+engine.setLipstick(0.4);
+engine.setLipstickColor(LipstickColor.Rouge);
 
-// Set image background
-bgImage.onload = () => {
-  engine.setVirtualBackground({
-    mode: BackgroundMode.Image,
-    backgroundImage: bgImage
-  });
-};
+engine.setBlush(0.3);
+engine.setBlushStyle(/* BlushStyle.SunKissed */);
+engine.setBlushColor(/* BlushColor.CoralPink */);
 
-// Turn off virtual background
-engine.setVirtualBackground({
-  mode: BackgroundMode.None
-});
+engine.setContour(0.4);
+engine.setContourStyle(/* ContourStyle.Natural */);
+
+engine.setEyeShadow(0.35);
+engine.setEyeShadowStyle(/* EyeShadowStyle.Soft */);
+engine.setEyeShadowColor(/* EyeShadowColor.Plum */);
+
+engine.setEyeLiner(0.3);
+engine.setEyeLinerStyle(/* ... */);
+engine.setEyeLinerColor(/* ... */);
+
+engine.setEyebrow(0.3);
+engine.setEyebrowStyle(/* ... */);
+engine.setEyebrowColor(/* ... */);
+
+engine.setEyelash(0.3);
+engine.setEyelashStyle(/* ... */);
+engine.setEyelashColor(/* ... */);
+
+engine.setPupil(0.4);
+engine.setPupilColor(/* PupilColor.Hazel */);
 ```
 
-## Using Filters and Stickers
+## Filters and stickers
 
-### Filter Functionality
-Filters are set through the `setFilter` interface. Filter resource files (`.fbd`) must be registered via `registerFilter` first.
+Pass a `.fbd` URL or in-memory `Uint8Array` directly to the setter.
 
 ```javascript
-// 1. Register filter resource (supports URL path or Uint8Array data)
-const filterId = 'chuxin';
-const fbdUrl = '/assets/filters/chuxin.fbd';
-engine.registerFilter(filterId, fbdUrl);
-
-// 2. Use filter
-engine.setFilter(filterId);
-
-// 3. Adjust filter intensity (0.0 - 1.0)
+engine.setFilter('/assets/filters/portrait/natural/natural.fbd');
 engine.setFilterIntensity(0.8);
+engine.clearFilter();
+
+engine.setSticker('/stickers/face/fox.fbd');
+engine.clearSticker();
 ```
 
-### Sticker Functionality
-Stickers are set through the `setSticker` interface and also need to be registered first.
-
 ```javascript
-// 1. Register sticker resource
-const stickerId = 'cherry';
-const fbdUrl = '/assets/stickers/cherry.fbd';
-engine.registerSticker(stickerId, fbdUrl);
-
-// 2. Use sticker
-engine.setSticker(stickerId);
-
-// 3. Clear sticker
-engine.setSticker('');
+const bytes = new Uint8Array(await (await fetch('/filters/chuxin.fbd')).arrayBuffer());
+engine.setFilter(bytes);
 ```
 
-## Set Engine Callbacks
-
-Monitor engine authentication and initialization status:
+## Virtual background and chroma key
 
 ```javascript
-engine.setEngineEventCallback((code, message) => {
-    if (code === 0) {
-        // License verification succeeded or engine initialization completed
-        console.log('Engine event succeeded:', message);
-    } else {
-        // License verification failed or engine initialization failed
-        console.error('Engine event failed (code ' + code + '):', message);
+engine.setVirtualBackgroundBlur(0.6);          // [0, 1]; 0 clears blur
+engine.setVirtualBackground('/background.jpg'); // path or Uint8Array (png/jpg)
+engine.clearVirtualBackground();
+
+engine.setChromaKey(ChromaKeyColor.Green);
+engine.setChromaKeySimilarity(0.4);
+engine.setChromaKeySmoothness(0.2);
+engine.setChromaKeyDesaturation(0.3);
+engine.clearChromaKey();
+```
+
+<Tip>
+Chroma key only replaces the **mask**. Fill is still `setVirtualBackgroundBlur` or `setVirtualBackground`. Blur and image replacement are mutually exclusive.
+</Tip>
+
+## Callbacks
+
+```javascript
+engine.setCallbacks({
+  onEngineEvent: (code, message) => {
+    if (code === EngineEventCode.LicenseValidationSuccess) {
+      console.log('license ok');
+    } else if (code === EngineEventCode.LicenseValidationFailed) {
+      console.error('license failed', message);
+    } else if (code === EngineEventCode.InitializationComplete) {
+      console.log('engine ready');
+    } else if (code === EngineEventCode.InitializationFailed) {
+      console.error('init failed', message);
     }
+  },
+  onFaceLandmarks: (faces) => {
+    // faces[].rect, key_points, visibility, face_id, score, pitch, roll, yaw
+  },
+  maxFaces: 10,
 });
 ```
 
-Event codes:
-- `0`: License validation success or engine initialization complete
-- `1`: License validation failed
-- `101`: Engine initialization failed
+| Code | Name |
+| --- | --- |
+| `0` | `EngineEventCode.LicenseValidationSuccess` |
+| `1` | `EngineEventCode.LicenseValidationFailed` |
+| `100` | `EngineEventCode.InitializationComplete` |
+| `101` | `EngineEventCode.InitializationFailed` |
 
-## Process Images
+Omit `onFaceLandmarks` unless you need landmarks. Enabling it runs face detection every frame.
 
-### Get Image Data from Canvas
+## Process frames
+
+Prefer `processImage`. It returns `ImageData` synchronously.
 
 ```javascript
-const canvas = document.getElementById('canvas');
+const canvas = document.querySelector('canvas');
 const ctx = canvas.getContext('2d');
-const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-```
+const video = document.querySelector('video');
 
-### Get Image Data from Image Element
-
-```javascript
-const img = new Image();
-img.onload = function() {
-    const canvas = document.createElement('canvas');
-    canvas.width = img.width;
-    canvas.height = img.height;
-    const ctx = canvas.getContext('2d');
-    ctx.drawImage(img, 0, 0);
-    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-    // Process image...
-};
-img.src = 'image.jpg';
-```
-
-### Process Image
-
-`processMode` includes Video and Image modes. Video is suitable for live streaming and video scenarios with higher efficiency, Image mode is suitable for image processing scenarios.
-
-<Tip>
-The engine automatically maintains input/output format consistency. If input is RGBA format, output is RGBA format; if input is I420 format, output is I420 format.
-</Tip>
-
-```javascript
-import { FrameType } from 'facebetter';
-
-// processImage is a synchronous method (no await needed)
-// Method 1: Pass ImageData with dimensions
-const result = engine.processImage(
-    imageData, 
-    canvas.width, 
-    canvas.height, 
-    FrameType.Video  // or FrameType.Image
-);
-
-// Method 2: Pass HTMLImageElement (width/height can be omitted)
-const result = engine.processImage(
-    imageElement, 
-    undefined, 
-    undefined, 
-    FrameType.Image
-);
-
-// Method 3: Pass HTMLVideoElement (width/height can be omitted)
-const result = engine.processImage(
-    videoElement, 
-    undefined, 
-    undefined, 
-    FrameType.Video
-);
-
-// Method 4: Pass Uint8ClampedArray (width/height are required)
-const result = engine.processImage(
-    uint8Array, 
-    640,  // required
-    480,  // required
-    FrameType.Video
-);
-```
-
-### Draw Processed Image
-
-```javascript
-// Draw processed image data to Canvas
-ctx.putImageData(result, 0, 0);
-```
-
-### Save Processed Image
-
-Processed image data can be saved as image files:
-
-**Method 1: Using Canvas.toDataURL()**
-
-```javascript
-// Draw processed image data to Canvas
-ctx.putImageData(result, 0, 0);
-
-// Convert to Data URL
-const dataURL = canvas.toDataURL('image/png');
-
-// Create download link
-const link = document.createElement('a');
-link.download = 'beauty-result.png';
-link.href = dataURL;
-link.click();
-```
-
-**Method 2: Using Canvas.toBlob()**
-
-```javascript
-// Draw processed image data to Canvas
-ctx.putImageData(result, 0, 0);
-
-// Convert to Blob
-canvas.toBlob(function(blob) {
-    // Create download link
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.download = 'beauty-result.png';
-    link.href = url;
-    link.click();
-    
-    // Release URL object
-    URL.revokeObjectURL(url);
-}, 'image/png');
-```
-
-**Method 3: Save as Different Formats**
-
-```javascript
-// Save as PNG (lossless, larger file size)
-const pngDataURL = canvas.toDataURL('image/png');
-
-// Save as JPEG (lossy, smaller file size, quality can be set)
-const jpegDataURL = canvas.toDataURL('image/jpeg', 0.9); // Quality 0-1
-
-// Create download
-function downloadImage(dataURL, filename, mimeType) {
-    const link = document.createElement('a');
-    link.download = filename;
-    link.href = dataURL;
-    link.click();
-}
-
-// Usage
-downloadImage(pngDataURL, 'beauty-result.png', 'image/png');
-downloadImage(jpegDataURL, 'beauty-result.jpg', 'image/jpeg');
-```
-
-**Complete Example: Save Processed Image**
-
-```javascript
-function processAndSaveImage(imageData, engine) {
-    try {
-        // Process image (synchronous method)
-        const result = engine.processImage(
-            imageData, 
-            imageData.width, 
-            imageData.height, 
-            FrameType.Image
-        );
-        
-        // Create temporary Canvas
-        const canvas = document.createElement('canvas');
-        canvas.width = imageData.width;
-        canvas.height = imageData.height;
-        const ctx = canvas.getContext('2d');
-        
-        // Draw processed image
-        ctx.putImageData(result, 0, 0);
-        
-        // Save as image
-        canvas.toBlob(function(blob) {
-            const url = URL.createObjectURL(blob);
-            const link = document.createElement('a');
-            link.download = `beauty-${Date.now()}.png`;
-            link.href = url;
-            link.click();
-            URL.revokeObjectURL(url);
-        }, 'image/png');
-        
-        console.log('Image saved successfully');
-    } catch (error) {
-        console.error('Failed to process or save image:', error);
-    }
-}
-```
-
-## Lifecycle Management
-
-<Tip>
-Call `destroy()` method after engine use to release resources and avoid memory leaks.
-</Tip>
-
-### Release Resources
-
-When page unloads or no longer in use, be sure to release engine resources:
-
-```javascript
-// On page unload
-window.addEventListener('beforeunload', () => {
-    if (engine) {
-        engine.destroy();
-        engine = null;
-    }
-});
-
-// Or in component destruction (Vue/React)
-onUnmounted(() => {  // Vue
-    if (engine) {
-        engine.destroy();
-        engine = null;
-    }
-});
-
-useEffect(() => {  // React
-    return () => {
-        if (engine) {
-            engine.destroy();
-            engine = null;
-        }
-    };
-}, []);
-```
-
-### Memory Management
-
-- Release unused ImageData objects promptly
-- Avoid repeatedly creating large numbers of image objects in loops
-- Recommend reusing Canvas and ImageData objects
-
-```javascript
-// Reuse Canvas and ImageData
-let canvas = null;
-let imageData = null;
-
-function processFrame() {
-    if (!canvas) {
-        canvas = document.createElement('canvas');
-        canvas.width = 640;
-        canvas.height = 480;
-    }
-    
-    const ctx = canvas.getContext('2d');
-    // Draw image to canvas
-    ctx.drawImage(video, 0, 0);
-    
-    // Get image data
-    imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-    
-    // Process image (synchronous method)
+function loop() {
+  if (engine.initialized && video.readyState >= 2) {
     const result = engine.processImage(
-        imageData, 
-        canvas.width, 
-        canvas.height, 
-        FrameType.Video
+      video,
+      video.videoWidth,
+      video.videoHeight,
+      FrameType.Video,
+      MirrorMode.Horizontal, // front camera
     );
-    
-    // Draw result
-    ctx.putImageData(result, 0, 0);
+    if (result) {
+      if (canvas.width !== result.width) canvas.width = result.width;
+      if (canvas.height !== result.height) canvas.height = result.height;
+      ctx.putImageData(result, 0, 0);
+    }
+  }
+  requestAnimationFrame(loop);
 }
+loop();
 ```
 
-## Related Documentation
+`input` may be `ImageData`, `HTMLImageElement`, `HTMLCanvasElement`, `HTMLVideoElement`, or `Uint8ClampedArray` (then `width` / `height` are required).
 
-- [Best Practices](/web/best-practices) - Performance optimization and architecture design recommendations
-- [FAQ](/web/faq) - Common questions and troubleshooting
-- [API Reference](/web/api-reference) - Complete API documentation
+- `FrameType.Video` — live camera / streaming (temporal smoothing)
+- `FrameType.Image` — still photos
 
+`processTexture(textureHandle, width, height, stride, frameType, mirrorMode)` is for custom GPU texture input. **Mirror is not applied on this path.** Typical web apps should use `processImage`.
+
+## Stats
+
+```javascript
+const { fps, avgProcessTimeMs, sessionTimeS } = engine.getStats();
+```
+
+## Destroy
+
+```javascript
+engine.destroy();
+```
+
+Call this on page unload or when a React/Vue component unmounts.
+
+## Related
+
+- [Error handling](/web/error-handling)
+- [Best practices](/web/best-practices)
+- [API reference](/web/api-reference)
+- [FAQ](/web/faq)

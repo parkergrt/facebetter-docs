@@ -3,19 +3,23 @@ title: "Quick Start"
 description: "Build and run the Facebetter C++ desktop demo on Linux (GLFW + ImGui)"
 ---
 
-This guide explains how to build and run the Facebetter C++ desktop demo on Linux. The demo is built with **GLFW + Dear ImGui + OpenGL 3**: the left panel shows a live beauty-processed preview, while the right panel provides sliders to control each effect in real time.
+<Note>
+This page matches SDK **2.0.0**. Linux and Windows share the same C++ API in the `facebetter` namespace (`facebetter/*.h`).
+</Note>
+
+This guide builds the Facebetter C++ desktop demo on Linux. The demo uses **GLFW + Dear ImGui + OpenGL 3**: live preview on the left, beauty controls on the right.
 
 ## Requirements
 
 | Tool | Version |
 | --- | --- |
-| GCC or Clang | C++17 support required (GCC 7+ / Clang 5+) |
+| GCC or Clang | C++17 (GCC 7+ / Clang 5+) |
 | CMake | 3.16+ |
-| Ninja | Any recent version (`apt install ninja-build` / `dnf install ninja-build`) |
-| OpenGL dev libraries | `libgl1-mesa-dev` (Ubuntu/Debian) or `mesa-libGL-devel` (Fedora/RHEL) |
-| X11 / Wayland dev libraries | Required by GLFW (see install commands below) |
+| Ninja | `apt install ninja-build` / `dnf install ninja-build` |
+| OpenGL | `libgl1-mesa-dev` (Ubuntu/Debian) or `mesa-libGL-devel` (Fedora/RHEL) |
+| X11 / Wayland | GLFW dependencies (see below) |
 
-### Install Dependencies (Ubuntu / Debian)
+### Ubuntu / Debian
 
 ```bash
 sudo apt update
@@ -25,7 +29,7 @@ sudo apt install -y build-essential cmake ninja-build \
     libxcursor-dev libxi-dev
 ```
 
-### Install Dependencies (Fedora / RHEL)
+### Fedora / RHEL
 
 ```bash
 sudo dnf install -y gcc-c++ cmake ninja-build \
@@ -34,16 +38,16 @@ sudo dnf install -y gcc-c++ cmake ninja-build \
     libXcursor-devel libXi-devel
 ```
 
-## Step 1: Clone the Repository
+## Step 1: Clone the repository
 
 ```bash
 git clone https://github.com/pixpark/facebetter-sdk.git
 cd facebetter-sdk
 ```
 
-## Step 2: Place the SDK Files
+## Step 2: Place the SDK files
 
-Place the Linux SDK files under `demo/cpp/sdk/`:
+Put the Linux SDK under `demo/cpp/sdk/`:
 
 ```
 demo/cpp/sdk/
@@ -56,14 +60,30 @@ demo/cpp/sdk/
 ├── lib/
 │   └── libfacebetter.so    ← shared library
 └── resource/
-    └── resource.fbd        ← model and resource pack
+    └── resource.fbd        ← models and assets (required)
 ```
 
+<Warning>
+On desktop, `EngineConfig::resource_path` must point to the **`resource.fbd` file**, not a directory. Example: `demo/cpp/sdk/resource/resource.fbd`.
+</Warning>
+
 <Tip>
-The SDK download link is available on the [Download](https://facebetter.net/download) page or in your dashboard.
+SDK packages are on the [Download](https://facebetter.net/download) page and in the [Dashboard](https://facebetter.net/dashboard).
 </Tip>
 
-## Step 3: Build
+To **build the SDK from source** instead of a prebuilt package:
+
+```bash
+./scripts/build_linux.sh
+```
+
+Output installs under `build/linux/release`. You can copy `include/`, `lib/libfacebetter.so`, and `resource.fbd` into `demo/cpp/sdk/` as above.
+
+## Step 3: Configure license
+
+Set `app_id` / `app_key` (online v2 auth) or `license_token` before you run. If `license_token` is non-empty, it takes priority (license token string, `{token}` JSON, or offline `.lic` contents). Details: [License & Auth](/intro/license).
+
+## Step 4: Build the demo
 
 ```bash
 cd demo/cpp
@@ -71,52 +91,50 @@ cmake -B build -G "Ninja" -DCMAKE_BUILD_TYPE=Release
 cmake --build build
 ```
 
-After the build, CMake automatically copies `resource/resource.fbd` and `demo.png` (if present) to `build/resource/`.
+CMake typically copies `resource/resource.fbd` (and `demo.png` if present) into `build/resource/`.
 
-## Step 4: Prepare a Preview Image (optional)
-
-Place any face photo named `demo.png` in `demo/cpp/`:
+## Step 5: Prepare a preview image (optional)
 
 ```
 demo/cpp/demo.png
 ```
 
-The engine will process the image at ~30 fps and display the result in the left panel.
-
-## Step 5: Run
+## Step 6: Run
 
 ```bash
 cd demo/cpp/build
 
-# Option A: add the library path at runtime
+# Option A: runtime library path
 LD_LIBRARY_PATH=../sdk/lib ./facebetter_demo
 
-# Option B: copy the shared library next to the executable
+# Option B: copy the .so next to the binary
 cp ../sdk/lib/libfacebetter.so .
 ./facebetter_demo
 ```
 
-Once running, the window shows:
-
-- **Left panel** – live beauty-processed preview
-- **Right panel** – Beauty Control Panel:
-  - **Basic Beauty**: Smoothing / Whitening / Rosiness / Sharpening
-  - **Face Reshape**: Face Thin / V Face / Narrow Face / Short Face / Cheekbone / Jawbone / Chin / Nose Slim / Eye Size / Eye Distance
-  - **Makeup**: Lipstick / Blush
-  - **Sticker**: dropdown (Off / rabbit)
-
-Click **Reset All** to restore all parameters to zero.
+The window shows a live preview and a control panel (skin, 26 reshape params, makeup, filter, sticker, virtual background). Click **Reset All** to zero intensities.
 
 ## Troubleshooting
 
 **Q: `libfacebetter.so: cannot open shared object file`**  
-A: Run with `LD_LIBRARY_PATH=../sdk/lib ./facebetter_demo`, copy the library to the executable directory, or add the path to `/etc/ld.so.conf` and run `ldconfig`.
+A: Use `LD_LIBRARY_PATH=../sdk/lib ./facebetter_demo`, copy the `.so` next to the binary, or add the path with `ldconfig`.
+
+**Q: Engine create returns `nullptr` / license failed**  
+A: Point `resource_path` at `resource.fbd`, and set `license_token` or valid `app_id` + `app_key`. See [License & Auth](/intro/license).
 
 **Q: CMake cannot find OpenGL**  
 A: Install `libgl1-mesa-dev` (Ubuntu) or `mesa-libGL-devel` (Fedora), then re-run CMake.
 
-**Q: Window shows "Put demo.png …"**  
-A: Place a face photo named `demo.png` in `demo/cpp/` and restart the demo.
-
 **Q: `GLFW: X11: Display variable not set`**  
-A: Make sure you are running in a graphical session, or set the `DISPLAY` environment variable.
+A: Run inside a graphical session, or set `DISPLAY` (X11) / `WAYLAND_DISPLAY` (Wayland).
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Implement beauty" href="/linux/implement-beauty">
+    Create the engine, set effects, and process frames.
+  </Card>
+  <Card title="API reference" href="/linux/api-reference">
+    Full C++ API (same as Windows) plus Linux notes.
+  </Card>
+</CardGroup>

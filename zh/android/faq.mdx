@@ -1,147 +1,140 @@
 ---
 title: "常见问题"
-description: "Android 美颜 SDK 常见问题解答"
+description: "Facebetter SDK 2.0 Android 常见问题"
 ---
 
-## 集成问题
+## 集成
 
-### Q: 引擎创建失败怎么办？
-A: 检查以下几点：
-- 确认 `appId` 和 `appKey` 是否正确
-- 检查网络连接是否正常
-- 查看日志输出获取详细错误信息
-- 确认 SDK 版本是否最新
+### 引擎构造抛异常或一直无法就绪
 
-### Q: 编译时找不到类或方法？
-A: 可能的原因：
-- 确认已正确添加 `facebetter.aar` 依赖
-- 检查 `build.gradle` 配置是否正确
-- 尝试 Clean Project 后重新构建
-- 确认使用的是正确的包名 `net.pixpark.facebetter`
+- `IllegalArgumentException`：`EngineConfig` 需要非空 `licenseToken`，**或者**同时提供 `appId` 与 `appKey`
+- 在控制台绑定的 **应用包名** 必须与当前 App 一致
+- 在线鉴权需能访问 `/facebetter/v2/auth`
+- 监听 `EngineEventCode.LICENSE_VALIDATION_FAILED` / `INITIALIZATION_FAILED`
+- 在 `new BeautyEffectEngine(...)` **之前** 调用 `setLogConfig`
 
-### Q: 运行时出现 UnsatisfiedLinkError？
-A: 解决方案：
-- 确认设备架构是否支持（arm64-v8a, armeabi-v7a）
-- 检查 AAR 文件是否完整
-- 确认没有混淆 native 方法
+鉴权说明见 [授权认证](/zh/intro/license)。
 
-## 功能问题
+### 编译找不到 `net.pixpark.facebetter`
 
-### Q: 美颜效果不明显？
-A: 可以尝试：
-- 增加美颜参数值（范围 0.0-1.0）
-- 确保启用了对应的美颜类型
-- 检查图像质量是否足够清晰
-- 确认人脸检测是否正常
+- Maven：`implementation 'net.pixpark:facebetter:2.0.0'`
+- 本地 AAR：`implementation files('libs/facebetter.aar')` 后 Sync
+- Clean / Rebuild
 
-### Q: 美颜效果过度或失真？
-A: 建议：
-- 降低美颜参数值
-- 检查参数组合是否合理
-- 避免同时启用过多美颜类型
-- 根据图像质量调整参数
+### 运行时 `UnsatisfiedLinkError`
 
-### Q: 虚拟背景不生效？
-A: 检查：
-- 确认已启用 `BeautyType.VIRTUAL_BACKGROUND`
-- 检查背景图片路径是否正确
-- 确认图片格式是否支持（PNG、JPG）
-- 检查图片文件是否存在且可读
+- 设备 ABI 须为 `arm64-v8a` 或 `armeabi-v7a`
+- 开启混淆 / 缩减时保留 `libfacebetter.so`，并在 ProGuard / R8 中保留 Facebetter 的 native 方法
+- 确认 AAR / Maven 产物完整
 
-## 性能问题
+## 效果
 
-### Q: 处理速度慢怎么办？
-A: 优化建议：
-- 使用 VIDEO 模式进行实时处理
-- 降低图像分辨率
-- 减少同时启用的美颜类型
-- 及时释放不用的图像对象
-- 避免在主线程进行图像处理
+### 美颜不明显
 
-### Q: 内存占用过高？
-A: 解决方案：
-- 使用 `ByteBuffer.allocateDirect()` 创建直接内存缓冲区
-- 及时调用 `release()` 方法释放资源
-- 避免频繁创建和销毁引擎实例
-- 复用 `ImageFrame` 对象
+- 在 `[0, 1]` 内加大 `setSmoothing`、`setWhitening`、美妆等强度
+- 整形范围是 **`[-1, 1]`**，接近 `0` 几乎等于关闭
+- 确认收到 `INITIALIZATION_COMPLETE`，且 `processImage` 返回非空帧
+- 通过 `onFaceLandmarks` 查看关键点（空列表表示未检测到人脸）
 
-### Q: 应用崩溃或 ANR？
-A: 排查步骤：
-- 检查是否在主线程进行图像处理
-- 确认资源释放是否完整
-- 查看日志中的异常信息
-- 检查参数值是否在有效范围内
+### 脸型变形过度
 
-## 图像处理问题
+- 减小 `setReshape` 的绝对值；改符号会反向
+- 避免多个整形参数同时拉到很大
+- 静图导出可用 `FrameType.IMAGE`；直播 `VIDEO` 更偏流畅而非更强效果
 
-### Q: 如何处理不同格式的图像？
-A: 使用 `ImageFrame` 的格式转换方法：
-- `toRGBA()` - 转换为 RGBA 格式
-- `toI420()` - 转换为 I420 格式
-- `toNV21()` - 转换为 NV21 格式（Android 相机默认格式）
-- `toBGRA()` - 转换为 BGRA 格式
+### 虚拟背景无效
 
-### Q: 相机预览图像处理？
-A: 建议流程：
-1. 从相机获取 YUV 数据
-2. 使用 `createWithAndroid420()` 创建 ImageFrame
-3. 调用 `processImage()` 处理
-4. 转换为目标格式显示
+- 调用 `setVirtualBackgroundBlur(level)` 且 `level > 0`，**或** `setVirtualBackground(path|bytes)`
+- `setVirtualBackgroundBlur(0)` **会清除**效果
+- 图片路径必须是可读的 PNG/JPG；空路径返回 `ErrorCode.INVALID_ARGUMENT`
+- 绿幕：`setChromaKey(ChromaKeyColor.GREEN)` 并配合填充（模糊或图片）
+- `clearChromaKey()` 只恢复肖像遮罩，不会去掉填充
 
-### Q: 图像旋转问题？
-A: 解决方案：
-- 使用 `ImageFrame.rotate()` 方法旋转图像
-- 支持 0°、90°、180°、270° 旋转
-- 旋转操作会修改原始图像数据
+### 滤镜或贴纸不出现
 
-## 权限问题
+- 向 `setFilter` / `setSticker` 传入 `.fbd` 的 **路径或字节**（没有注册接口）
+- 在**下一次** `processImage` 后生效
+- `externalContext = true` 时，该调用必须在已绑定的 GL 上下文中执行
+- `setFilterIntensity(0)` 会让 LUT 看不见
 
-### Q: 文件访问权限问题？
-A: 需要添加权限：
-```xml
-<uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
-<uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+## 性能与内存
+
+### 预览卡顿
+
+- `input.type = ImageFrame.FrameType.VIDEO`
+- 降低采集分辨率
+- 减少同时开启的整形 / 美妆 / 虚拟背景
+- 在相机或 GL 线程执行 `processImage`，不要放在主线程
+- 查看 `engine.getStats().avgProcessTimeMs`
+
+### 内存持续上涨或原生崩溃
+
+- 每个 `ImageFrame` 都要 `release()`，包括 `convert()` 结果和 `processImage` 输出
+- 使用 `ByteBuffer.allocateDirect`
+- 全程一个引擎实例；在 `onDestroy` 调用 `engine.release()`
+
+### ANR
+
+- 不要在 UI 线程对高清视频跑 `processImage`
+- 不要在主线程加载大型 `.fbd` / JPEG
+
+## 图像与相机
+
+### 如何转换像素格式？
+
+使用 `ImageFrame.convert(Format)`（返回新帧）：
+
+```java
+ImageFrame rgba = frame.convert(ImageFrame.Format.RGBA);
+ImageFrame nv21 = frame.convert(ImageFrame.Format.NV21);
+ImageFrame i420 = frame.convert(ImageFrame.Format.I420);
 ```
 
-### Q: 相机权限问题？
-A: 需要添加权限：
+打包像素用 `getData()`。平面 YUV 用 `getDataY()` / `getDataU()` / `getDataV()` 或 `getDataUV()`。
+
+### Camera2 预览
+
+1. 从 `YUV_420_888` 得到 `Image`
+2. `ImageFrame.createWithAndroid420(...)`
+3. 按传感器与前置摄像头 `rotate` / `mirror`
+4. `input.type = FrameType.VIDEO`
+5. `processImage(input)`
+6. `convert` 或 `getTexture()` 后显示
+
+### 旋转
+
+`rotate(ImageFrame.Rotation.ROTATION_90)`（0 / 90 / 180 / 270，顺时针）会修改原帧。
+
+## 权限
+
+在线鉴权：
+
 ```xml
-<uses-permission android:name="android.permission.CAMERA" />
+<uses-permission android:name="android.permission.INTERNET" />
+<uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 ```
 
-## 调试问题
+相机预览需要 `CAMERA`（API 23+ 运行时申请）。把日志写到应用存储之外时，旧系统可能还需要存储权限。
 
-### Q: 如何开启调试日志？
-A: 在创建引擎前配置：
+## 调试
+
+在创建引擎之前打开日志：
+
 ```java
 BeautyEffectEngine.LogConfig logConfig = new BeautyEffectEngine.LogConfig();
 logConfig.consoleEnabled = true;
 logConfig.fileEnabled = true;
 logConfig.level = BeautyEffectEngine.LogLevel.DEBUG;
+logConfig.fileName = getFilesDir() + "/facebetter.log";
 BeautyEffectEngine.setLogConfig(logConfig);
 ```
 
-### Q: 如何获取详细错误信息？
-A: 方法：
-- 开启 DEBUG 级别日志
-- 检查 API 返回值（0 表示成功）
-- 查看文件日志输出
-- 使用 Android Studio 的 Logcat 查看日志
+Setter 返回 `0` 表示成功。**`-1` = 参数无效，`-2` = 未初始化。** 完整列表见 [错误处理](/zh/android/error-handling)。
 
-## 版本兼容性
+## 兼容性
 
-### Q: 支持哪些 Android 版本？
-A: 支持 Android 5.0 (API 21) 及以上版本
+- Android 7.0（API 24）及以上
+- ABI：`arm64-v8a`、`armeabi-v7a`
+- Maven：`net.pixpark:facebetter:2.0.0`
 
-### Q: 支持哪些设备架构？
-A: 支持：
-- arm64-v8a（64位 ARM）
-- armeabi-v7a（32位 ARM）
-
-### Q: 如何升级 SDK 版本？
-A: 步骤：
-1. 下载新版本 SDK
-2. 替换旧的 AAR 文件
-3. 清理项目缓存
-4. 重新构建项目
-5. 测试功能是否正常
+升级：提高 Maven / AAR 版本，Clean 后重建，并回归授权、相机与静图流程。

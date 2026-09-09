@@ -1,68 +1,92 @@
 ---
 title: "错误处理"
-description: "Linux 平台 Facebetter SDK 错误处理与故障排除指南"
+description: "Facebetter SDK 2.0 错误码与 Linux 排查"
 ---
 
-Linux 平台使用与 Windows 相同的 C++ API，大部分错误处理逻辑一致。本文额外列出 Linux 特有的问题。
+<Note>
+SDK **2.0.0**。鉴权见 [许可证与鉴权](/zh/intro/license)。
+</Note>
 
-## 返回值约定
+## 返回值
 
-| 返回值 | 含义 |
+| 码 | 含义 |
 | --- | --- |
-| `0` | 操作成功 |
-| 非 `0` | 操作失败，结合日志查看详细原因 |
+| `0` | 成功 |
+| `-1` | 参数非法 |
+| `-2` | 未初始化 |
+| `-3` | 授权 |
+| `-4` | 不支持 |
+| `-5` | I/O |
+| `-6` | 无空闲槽位（背压） |
+| `-7` | 处理失败 |
+| `-8` | 内存不足 |
 
-`BeautyEffectEngine::Create()` 失败时返回 `nullptr`。
+`Create()` 失败返回 `nullptr`。`ProcessImage` 也可能返回空指针。
+
+```cpp
+int ret = engine->SetSmoothing(0.5f);
+if (ret != 0) {
+    std::cerr << "SetSmoothing failed: " << ret << std::endl;
+}
+```
+
+## 引擎事件
+
+| 码 | 含义 |
+| --- | --- |
+| `0` | 授权成功 |
+| `1` | 授权失败 |
+| `100` | 初始化完成 |
+| `101` | 初始化失败 |
+
+```cpp
+EngineCallbacks cbs;
+cbs.on_engine_event = [](int code, const std::string& message) {
+    if (code == 1 || code == 101) {
+        std::cerr << "engine event " << code << ": " << message << std::endl;
+    }
+};
+engine->SetCallbacks(cbs);
+```
 
 ---
 
-## 常见错误与处理
+## 常见失败
 
-### 1. 引擎创建失败（`Create` 返回 `nullptr`）
+### 1. `Create` 返回 `nullptr`
 
-参考原因与解决方式与 Windows 一致，请先开启日志定位：
+- `resource_path` 不是 **`resource.fbd` 文件**
+- `license_token` 或 `app_id` + `app_key` 无效
+- 无法访问 `/facebetter/v2/auth`
+- `libfacebetter.so` 版本不匹配
 
 ```cpp
 LogConfig log_cfg;
 log_cfg.console_enabled = true;
-log_cfg.level           = LogLevel::Debug;
+log_cfg.level = LogLevel::Debug;
 BeautyEffectEngine::SetLogConfig(log_cfg);
 
-auto engine = BeautyEffectEngine::Create(eng_cfg);
-if (!engine) {
-    std::cerr << "[Error] Engine creation failed." << std::endl;
-    return -1;
-}
+cfg.resource_path =
+    (std::filesystem::current_path() / "resource" / "resource.fbd").string();
+auto engine = BeautyEffectEngine::Create(cfg);
 ```
-
-**常见原因**：`app_id` / `app_key` 无效、`resource.fbd` 路径错误、网络不通。
 
 ---
 
-### 2. `libfacebetter.so` 运行时加载失败
-
-**错误信息**：
+### 2. 找不到 `libfacebetter.so`
 
 ```
-./facebetter_demo: error while loading shared libraries:
-libfacebetter.so: cannot open shared object file: No such file or directory
+error while loading shared libraries: libfacebetter.so: cannot open shared object file
 ```
-
-**解决方法**（三选一）：
 
 ```bash
-# 方式一：运行时指定库路径
-LD_LIBRARY_PATH=/path/to/sdk/lib ./facebetter_demo
-
-# 方式二：将库复制到可执行文件同目录
-cp sdk/lib/libfacebetter.so build/
-cd build && ./facebetter_demo
-
-# 方式三：将路径写入系统库配置
+LD_LIBRARY_PATH=/path/to/sdk/lib ./your_app
+cp /path/to/sdk/lib/libfacebetter.so ./
 echo "/path/to/sdk/lib" | sudo tee /etc/ld.so.conf.d/facebetter.conf
 sudo ldconfig
-./facebetter_demo
 ```
+
+链接时也可设置 `RPATH`（`-Wl,-rpath,/path/to/sdk/lib`）。
 
 ---
 
@@ -70,98 +94,63 @@ sudo ldconfig
 
 ```cpp
 auto input = ImageFrame::CreateWithFile("input.jpg");
-if (!input || !input->Data()) {
-    std::cerr << "[Error] Failed to load input image." << std::endl;
-    return;
-}
+if (!input || !input->Data()) return;
+input->type = FrameType::Image;
 auto output = engine->ProcessImage(input);
 if (!output || !output->Data()) {
-    std::cerr << "[Error] ProcessImage failed." << std::endl;
-    return;
+    std::cerr << "ProcessImage 失败。" << std::endl;
 }
 ```
 
 ---
 
-### 4. 美颜效果不生效
+### 4. 效果看起来没变化
 
-确认每个 `BeautyType` 已启用，且参数值大于 `0`：
+2.0 没有 `SetBeautyTypeEnabled`。强度需 `> 0`。美型 / 美妆需要检测到人脸。
 
 ```cpp
-engine->SetBeautyTypeEnabled(BeautyType::Basic,   true);
-engine->SetBeautyTypeEnabled(BeautyType::Reshape, true);
-engine->SetBeautyTypeEnabled(BeautyType::Makeup,  true);
-engine->SetBeautyTypeEnabled(BeautyType::Sticker, true);
-
-engine->SetBeautyParam(Basic::Smoothing, 0.5f);
+engine->SetSmoothing(0.5f);
+engine->SetReshape(Reshape::FaceThin, 0.3f);
+input->type = FrameType::Video;
 ```
 
 ---
 
-### 5. GLFW 无法打开显示器
-
-**错误信息**：
+### 5. GLFW 打不开显示器
 
 ```
-Error: GLFW: X11: Display variable not set
+GLFW: X11: Display variable not set
 ```
-
-**解决方法**：
 
 ```bash
-# 确认在图形会话中运行
-echo $DISPLAY        # 应输出如 :0 或 :1
-
-# 如果为空，手动设置（Xorg）
+echo $DISPLAY
 export DISPLAY=:0
-./facebetter_demo
-
-# Wayland 环境
 export WAYLAND_DISPLAY=wayland-0
-./facebetter_demo
 ```
+
+SSH 需要 X11 转发（`ssh -X`）或本机合成器。
 
 ---
 
 ### 6. OpenGL 初始化失败
 
-**可能原因**：系统缺少 OpenGL 驱动或 Mesa 库。
-
-**解决方法**：
-
 ```bash
-# Ubuntu
-sudo apt install libgl1-mesa-glx libglu1-mesa
-
-# Fedora
-sudo dnf install mesa-libGL mesa-libGLU
-
-# 验证 OpenGL 支持
+# Ubuntu / Debian
+sudo apt install libgl1-mesa-dev libglu1-mesa-dev mesa-utils
 glxinfo | grep "OpenGL version"
-# 需要 3.0 以上
 ```
+
+需要 OpenGL 3.0+。无头服务器可用 OSMesa（`libosmesa6-dev`），并为离屏上下文设置 `external_context`。
 
 ---
 
-## 日志调试
+## 调试日志
 
 ```cpp
 LogConfig log_cfg;
 log_cfg.console_enabled = true;
-log_cfg.file_enabled    = true;
-log_cfg.level           = LogLevel::Debug;
-log_cfg.file_name       = "facebetter.log";
+log_cfg.file_enabled = true;
+log_cfg.level = LogLevel::Debug;
+log_cfg.file_name = "facebetter.log";
 BeautyEffectEngine::SetLogConfig(log_cfg);
 ```
-
----
-
-## 错误码速查
-
-| 错误码 | 含义 |
-| --- | --- |
-| `0` | 成功 |
-| `-1` | 引擎未初始化 |
-| `-2` | 无效参数 |
-| `-3` | 资源文件未找到 |
-| `-4` | 处理失败 |

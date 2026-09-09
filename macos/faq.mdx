@@ -1,227 +1,134 @@
 ---
 title: "FAQ"
-description: "macOS Beauty SDK Common Questions and Answers"
+description: "macOS Facebetter SDK 2.0 common questions"
 ---
 
-## Integration Issues
+<Note>
+This page matches SDK **2.0.0**. Auth: [License & Auth](/intro/license). Enums: [Parameter enums](/intro/makeup).
+</Note>
 
-### Q: What to do if engine creation fails?
-A: Check the following points:
-- Confirm that `appId` and `appKey` are correct
-- Check if network connection is normal
-- View log output for detailed error information
-- Confirm if SDK version is latest
-- Check if Framework is properly linked
+## Integration
 
-### Q: Can't find header files or classes during compilation?
-A: Possible reasons:
-- Confirm that `Facebetter.framework` has been properly added to the project
-- Check if Framework's "Embed & Sign" setting is correct
-- Confirm import statement: `#import <Facebetter/FBBeautyEffectEngine.h>`
-- Try Clean Build Folder and rebuild
+### Engine creation returns `nil`
 
-### Q: Link errors at runtime?
-A: Solutions:
-- Confirm if device architecture is supported (x86_64, arm64)
-- Check if Framework file is complete
-- Confirm Framework's deployment target setting is correct
-- Check for other Framework conflicts
+- Confirm `licenseToken` **or** `appId` + `appKey` is set. Token wins if both are present.
+- Bind the Mac **Bundle ID** (CLI tools: process name).
+- Online auth needs **Outgoing Connections** in the App Sandbox and a path to `/facebetter/v2/auth`.
+- Enable logs **before** `createEngineWithConfig:` and watch events `1` / `101`.
+- CocoaPods: `pod 'Facebetter', '2.0.0'`. Open the `.xcworkspace`.
 
-## Functionality Issues
+### Missing headers or classes
 
-### Q: Beauty effects are not obvious?
-A: You can try:
-- Increase beauty parameter values (range 0.0-1.0)
-- Ensure corresponding beauty types are enabled
-- Check if image quality is clear enough
-- Confirm if face detection is working normally
+- Import `#import <Facebetter/FBBeautyEffectEngine.h>`.
+- Manual `.framework`: **Embed & Sign**.
+- Xcode 15+ CocoaPods sandbox: set `ENABLE_USER_SCRIPT_SANDBOXING` to **No**.
 
-### Q: Beauty effects are excessive or distorted?
-A: Recommendations:
-- Reduce beauty parameter values
-- Check if parameter combinations are reasonable
-- Avoid enabling too many beauty types simultaneously
-- Adjust parameters based on image quality
+### Runtime link / dyld errors
 
-### Q: Virtual background not working?
-A: Check:
-- Confirm `FBBeautyType_VirtualBackground` is enabled
-- Check if background image path is correct
-- Confirm if image format is supported (PNG, JPG)
-- Check if image file exists and is readable
+- Architectures: **x86_64** and **arm64**.
+- Deployment target **macOS 10.15+**.
 
-## Performance Issues
+## Auth
 
-### Q: What to do if processing is slow?
-A: Optimization suggestions:
-- Use `FBFrameTypeVideo` for real-time processing
-- Reduce image resolution
-- Reduce number of simultaneously enabled beauty types
-- Avoid image processing on main thread
-- Use multi-threading for image processing
-- Leverage macOS multi-core advantages
+### `licenseToken` vs `appId` / `appKey`
 
-### Q: High memory usage?
-A: Solutions:
-- Release `FBImageFrame` and `FBImageBuffer` objects timely
-- Avoid frequent creation and destruction of engine instances
-- Reuse `FBImageFrame` objects
-- Use object pool pattern to manage image buffers
-- Monitor system memory usage
+If `licenseToken` is non-empty, the SDK verifies that token / `{token}` JSON / `.lic` locally. Otherwise it uses online auth. Details: [License & Auth](/intro/license).
 
-### Q: App crashes or freezes?
-A: Troubleshooting steps:
-- Check if image processing is done on main thread
-- Confirm resource release is complete
-- View exception information in logs
-- Check if parameter values are within valid range
-- Use Instruments tool to analyze memory and performance
-- Check compatibility in multi-display environments
+### Event `1` or `101`
 
-## Image Processing Issues
+License or init failed. Check Bundle ID, sandbox network, token expiry, and logs.
 
-### Q: How to handle different image formats?
-A: Use `FBImageFrame`'s format conversion methods:
-- `toRGBA` - Convert to RGBA format
-- `toI420` - Convert to I420 format
-- `toNV12` - Convert to NV12 format
-- `toBGRA` - Convert to BGRA format
+## Beauty
 
-### Q: Camera preview image processing?
-A: Recommended process:
-1. Get CVPixelBuffer from AVCaptureSession
-2. Use `createWithData` to create FBImageFrame
-3. Call `processImage` to process
-4. Convert to target format for display
+### Effect is too weak or too strong
 
-### Q: Image rotation issues?
-A: Solutions:
-- Use `FBImageFrame`'s `rotate` method to rotate images
-- Supports 0°, 90°, 180°, 270° rotation
-- Rotation operation modifies original image data
+- Skin / makeup / filter: `[0.0, 1.0]`.
+- Reshape: **`[-1.0, 1.0]`** via `setReshape:intensity:`.
+- Intensity `0` disables that effect.
+- Skin-only: `setBeautySkinOnly:`.
 
-## Permission Issues
+Preset names: [Parameter enums](/intro/makeup).
 
-### Q: Camera permission issues?
-A: Need to add permission description:
-```xml
-<key>NSCameraUsageDescription</key>
-<string>Camera permission required for beauty photography</string>
-```
+## Filters, stickers, virtual background
 
-### Q: Microphone permission issues?
-A: Need to add permission description:
-```xml
-<key>NSMicrophoneUsageDescription</key>
-<string>Microphone permission required for audio/video recording</string>
-```
+Pass the `.fbd` path or bytes. Sandboxed apps must be able to read that path.
 
-## Debugging Issues
-
-### Q: How to enable debug logging?
-A: Configure before creating engine:
 ```objc
-FBLogConfig *logConfig = [[FBLogConfig alloc] init];
-logConfig.consoleEnabled = YES;
-logConfig.fileEnabled = YES;
-logConfig.level = FBLogLevel_Debug;
-[FBBeautyEffectEngine setLogConfig:logConfig];
+[engine setFilter:fbdPath];
+[engine setFilterIntensity:0.8f];
+[engine clearFilter];
+[engine setSticker:fbdPath];
+[engine clearSticker];
 ```
 
-### Q: How to get detailed error information?
-A: Methods:
-- Enable DEBUG level logging
-- Check API return values (0 indicates success)
-- View file log output
-- Use Xcode's Console to view logs
-- Use Console.app to view system logs
+Virtual background:
 
-## Version Compatibility
+```objc
+[engine setVirtualBackgroundBlur:0.6f];
+[engine setVirtualBackground:imagePath];
+[engine setVirtualBackgroundWithData:imageData];
+[engine clearVirtualBackground];
+[engine setChromaKey:FBChromaKeyColor_Green];
+[engine clearChromaKey];
+```
 
-### Q: Which macOS versions are supported?
-A: Supports macOS 10.14 and above
+## Processing
 
-### Q: Which device architectures are supported?
-A: Supports:
-- x86_64 (Intel Mac)
-- arm64 (Apple Silicon Mac)
+### `processImage:` returns `nil`
 
-### Q: How to upgrade SDK version?
-A: Steps:
-1. Download new version SDK
-2. Replace old Framework file
-3. Clean project cache
-4. Rebuild project
-5. Test if functionality works normally
+Invalid frame, failed init, or `externalContext = YES` without a current GL context.
 
-## ARC Related Issues
+### Frame type
 
-### Q: How to handle memory management?
-A: macOS uses ARC, but need to pay attention to:
-- Set objects to nil timely
-- Avoid circular references
-- Use weak references to avoid strong reference cycles
+Set `imageFrame.type` to `FBFrameTypeImage` (`0`) or `FBFrameTypeVideo` (`1`). No process-mode argument.
 
-### Q: How to handle CVPixelBuffer?
-A: Recommendations:
-- Use `CVPixelBufferRetain` and `CVPixelBufferRelease` for management
-- Or use `__bridge_transfer` and `__bridge_retained` for conversion
+### Format conversion
 
-## Multi-threading Issues
+Use `convert:`:
 
-### Q: How to process images in background thread?
-A: Recommendations:
-- Use `dispatch_async` to process in background queue
-- Avoid image processing on main thread
-- Use `dispatch_async(dispatch_get_main_queue())` to update UI
+```objc
+FBImageFrame *rgba = [frame convert:FBImageFormatRGBA];
+const uint8_t *data = [rgba data];
+```
 
-### Q: How to handle concurrent access?
-A: Solutions:
-- Use `@synchronized` to protect shared resources
-- Use serial queue for image processing
-- Avoid multi-threaded access to engine instance
+### NSImage
 
-## macOS-Specific Issues
+```objc
+FBImageFrame *frame = [FBImageFrame createWithNSImage:nsImage];
+frame.type = FBFrameTypeImage;
+FBImageFrame *out = [engine processImage:frame];
+```
 
-### Q: Multi-display support issues?
-A: Solutions:
-- Check resolution and scale factor of different displays
-- Adapt to Retina display high resolution
-- Handle window movement between displays
+### Camera
 
-### Q: Window state management issues?
-A: Recommendations:
-- Listen for window minimize/restore events
-- Pause processing when window is not visible
-- Resume processing when window is visible again
+1. `AVCaptureVideoDataOutput` → `CVPixelBuffer`.
+2. `createWithNV12:...` or `createWithBGRA:...`.
+3. `type = FBFrameTypeVideo`, optional `setMirror:@"horizontal"`.
+4. Display `[output data]` or `[output texture]` in an AppKit / OpenGL view.
 
-### Q: System performance monitoring?
-A: Methods:
-- Use `NSProcessInfo` to monitor system load
-- Dynamically adjust processing quality based on system performance
-- Listen for system memory warning notifications
+## Performance
 
-## Deployment Issues
+- `FBFrameTypeVideo` for live; watch `getStats`.
+- One engine, serial queue.
+- Pause capture when the window is miniaturized.
 
-### Q: Mac App Store review rejected?
-A: Possible reasons:
-- Missing necessary permission descriptions
-- Using private APIs
-- Memory leak issues
-- Crash issues
-- Sandbox permission configuration issues
+## Logging
 
-### Q: How to optimize app size?
-A: Recommendations:
-- Remove unused architectures (like x86_64)
-- Compress resource files
-- Use App Thinning
-- Remove unused Framework parts
-- Package separately for different architectures
+```objc
+[FBBeautyEffectEngine setLogConfig:logConfig];  // before createEngineWithConfig:
+```
 
-### Q: How to support Universal Binary?
-A: Steps:
-1. Ensure Framework contains both x86_64 and arm64 architectures
-2. Set "Architectures" to "Standard Architectures" in Xcode
-3. Use `lipo` command to verify architecture support
-4. Test on different architecture Macs
+Write logs inside the sandbox container. Return codes: [Error Handling](/macos/error-handling).
+
+## Version
+
+- **macOS 10.15+**, **x86_64** + **arm64**.
+- CocoaPods: `pod 'Facebetter', '2.0.0'`.
+- Universal Binary: confirm the xcframework contains both slices (`lipo -info`).
+
+## Sandbox and App Store
+
+- Outgoing network for online auth.
+- `NSCameraUsageDescription` for camera.
+- Security-scoped bookmarks for user-selected files.
+- Do not use private APIs; keep the engine off the main thread for live video.

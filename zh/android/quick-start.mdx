@@ -5,47 +5,54 @@ description: "跑通 Android 示例程序"
 
 ## 环境要求
 
-- **Android 版本**: `Android 5.0` 及以上
-- **开发语言**: `Java`
-- **架构支持**: `armeabi-v7a`, `arm64-v8a`
+- **Android**：7.0（API 24）及以上
+- **开发语言**：Java
+- **架构**：`armeabi-v7a`、`arm64-v8a`
+- **SDK**：Facebetter **2.0.0**（`net.pixpark:facebetter:2.0.0`）
 
 ## 获取示例源码
 
-克隆 [github 仓库](https://github.com/pixpark/facebetter-sdk) 到本地, 使用 Android Studio 打开 `android/demo` 目录的工程
+克隆 [GitHub 仓库](https://github.com/pixpark/facebetter-sdk)，用 Android Studio 打开 `demo/android`。
 
 ```bash
 git clone https://github.com/pixpark/facebetter-sdk.git
 ```
 
-## 配置应用信息与密钥
+## 绑定包名与凭证
 
 ### 绑定应用包名
 
-按照 [此页面](/zh/intro/enable-service#绑定应用信息) 指引，在控制台绑定您的 Android 应用包名（App Package Name），例如：`com.example.app`
+按 [订阅与凭证](/zh/intro/enable-service#绑定应用信息) 在控制台绑定 Android **应用包名**，例如 `com.example.app`。
 
-### 获取 AppID 和 AppKey
+### 创建引擎
 
-按照 [此页面](/zh/intro/enable-service#获取-appid-和-appkey) 指引，获取 `appid` 和 `appkey`, 打开工程中 `MainActivity.java`, 修改 `appid` 和 `appkey`
+按 [订阅与凭证](/zh/intro/enable-service#获取-appid-和-appkey) 复制 `appId` / `appKey`，或使用 `licenseToken`。打开 Demo 相机 Activity，在 `new BeautyEffectEngine(...)` 之前设置 `EngineConfig`。
+
+**在线鉴权**（`appId` + `appKey` → `/facebetter/v2/auth`）：
 
 ```java
 BeautyEffectEngine.EngineConfig config = new BeautyEffectEngine.EngineConfig();
 config.appId = "your appId";
-config.appKey = "your appkey";
-// 可选：如果提供了 licenseJson，则优先使用授权数据验证，不需要 appId 和 appKey
-// config.licenseJson = "your license json string";
+config.appKey = "your appKey";
+mBeautyEngine = new BeautyEffectEngine(this, config);
+```
 
+**Token**（许可证 token、`{token}` JSON，或离线 `.lic` 全文）。`licenseToken` 非空时优先使用，SDK **不会**再用 `appId` / `appKey` 请求网络：
+
+```java
+BeautyEffectEngine.EngineConfig config = new BeautyEffectEngine.EngineConfig();
+config.licenseToken = "/* 许可证 token、{token} JSON，或 .lic 全文 */";
 mBeautyEngine = new BeautyEffectEngine(this, config);
 ```
 
 <Tip>
-`licenseJson` 优先级高于 `appId` + `appKey`。离线文件下载与完整说明见 [授权认证](/zh/intro/license)。
+鉴权方式与离线 `.lic` 说明见 [授权认证](/zh/intro/license)。
 </Tip>
 
 ## 运行工程
 
-在 Android Studio 中 Sync 完毕工程，选择运行设备，运行即可
- 
+在 Android Studio 中 Sync Gradle，选择真机或模拟器后运行。
+
 <Frame>
-  <img src="/images/android-1.png" alt="Android Project" />
+  <img src="/images/android-1.png" alt="Android 工程" />
 </Frame>
- 

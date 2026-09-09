@@ -1,447 +1,94 @@
 ---
 title: "错误处理"
-description: "Web 美颜 SDK 错误处理指南"
+description: "Facebetter Web SDK 2.0 错误处理"
 ---
 
-## 错误处理基础
+<Note>
+SDK **2.0.0**。鉴权失败见 [授权与许可证](/zh/intro/license)。
+</Note>
 
-### 1. 使用 try-catch
+调用失败会抛 `FacebetterError`。数值型 `code` 见下表。加载 / 鉴权失败时部分错误使用**字符串** `code`。
 
-所有异步操作都应该使用 try-catch 进行错误处理：
+```javascript
+import { BeautyEffectEngine, EngineConfig, FacebetterError } from 'facebetter';
+
+try {
+  const engine = new BeautyEffectEngine(new EngineConfig({
+    authProxyUrl: '/api/facebetter/auth',
+  }));
+  await engine.init();
+  engine.setSmoothing(0.5);
+} catch (error) {
+  if (error instanceof FacebetterError) {
+    console.error(error.code, error.message);
+  } else {
+    console.error(error);
+  }
+}
+```
+
+## 数值错误码
+
+| 码 | 含义 |
+| --- | --- |
+| `0` | 成功（`checkResult` 不抛错） |
+| `-1` | 参数非法（空指针、空路径、强度越界等） |
+| `-2` | 引擎未初始化或已销毁 |
+| `-3` | 授权无效 |
+| `-4` | 当前平台 / 格式不支持 |
+| `-5` | I/O（资源包 / 滤镜 / 贴纸 / 背景图） |
+| `-6` | 槽位池已满（背压，应丢帧） |
+| `-7` | 处理失败 |
+| `-8` | 内存分配失败 |
+
+## JavaScript 层码（字符串）
+
+出现在 `init()` / 加载 / 鉴权阶段：
+
+| `error.code` | 场景 |
+| --- | --- |
+| `'TIMEOUT'` | `init()` 超时 |
+| `'NETWORK_ERROR'` | 网络 / fetch 失败 |
+| `'WASM_LOAD_ERROR'` | SDK 加载失败（网络、CDN 或广告拦截） |
+| `'LICENSE_ERROR'` | 缺少鉴权配置，或 `fetchAuthResponse` / 代理拒绝 |
+| `'ENGINE_CREATE_FAILED'` | 引擎创建失败 |
+| `'UNKNOWN_ERROR'` | 未分类的 JS 异常被包成 `FacebetterError` |
 
 ```javascript
 try {
-    const config = new EngineConfig({
-        appId: 'your-app-id',
-        appKey: 'your-app-key'
-        // 可选：如果提供了 licenseJson，则优先使用授权数据验证
-        // licenseJson: 'your license json string'
-    });
-    
-    const engine = new BeautyEffectEngine(config);
-    await engine.init();
-    
-    console.log('引擎初始化成功');
+  await engine.init({ timeout: 30000 });
 } catch (error) {
-    if (error instanceof FacebetterError) {
-        console.error('Facebetter 错误:', error.message);
-        console.error('错误代码:', error.code);
-    } else {
-        console.error('未知错误:', error);
-    }
+  if (!(error instanceof FacebetterError)) throw error;
+  if (error.code === 'LICENSE_ERROR' || error.code === -3) {
+    // 代理宕机、域名未绑定或 token 过期 — 见 /zh/intro/license
+  } else if (error.code === 'WASM_LOAD_ERROR' || error.code === 'TIMEOUT') {
+    // 网络、CDN 或广告拦截
+  }
 }
 ```
 
-### 2. 检查引擎初始化
+## 初始化排查
 
-```javascript
-let engine = null;
+1. 配置合法：`licenseToken`、`authProxyUrl`、`fetchAuthResponse` 至少有一个。
+2. `resource.fbd` 能从 `resourcePath` 访问到（默认 `/resource.fbd`）。
+3. 页面处于[安全上下文](https://developer.mozilla.org/zh-CN/docs/Web/Security/Secure_Contexts)。
+4. 生产环境控制台绑定的域名与页面 origin 一致。
+5. 生产前端包里**没有**嵌入 `appKey`。
 
-try {
-    const config = new EngineConfig({
-        appId: 'your-app-id',
-        appKey: 'your-app-key'
-    });
-    
-    engine = new BeautyEffectEngine(config);
-    await engine.init();
-    
-    if (!engine || !engine.initialized) {
-        throw new Error('引擎初始化失败');
-    }
-} catch (error) {
-    console.error('引擎初始化失败:', error);
-    // 处理错误，如显示用户提示
-    showErrorToUser('美颜引擎初始化失败，请刷新页面重试');
-}
-```
+## 参数与处理错误
 
-### 3. 检查 API 调用结果
+美颜强度必须在 `[0.0, 1.0]`，美型必须在 `[-1.0, 1.0]`。越界会在进入原生之前抛 `FacebetterError`。
 
-```javascript
-try {
-    engine.setBasicParam(BasicParam.Smoothing, 0.5);
-    console.log('成功设置磨皮参数');
-} catch (error) {
-    console.error('设置参数失败:', error);
-    // 处理错误
-}
+引擎未初始化、缓冲分配失败或原生处理返回非 0 时，`processImage` 会抛错。调用前确认视频 `readyState`，以及 `videoWidth` / `videoHeight` 非 0。
 
-try {
-    engine.setBasicParam(BasicParam.Whitening, 0.5);
-} catch (error) {
-    console.error('设置参数失败:', error);
-}
-```
+滤镜 / 贴纸 / 背景的**路径不能为空**；关闭请用 `clearFilter()`、`clearSticker()`、`clearVirtualBackground()`。
 
-## 常见错误码
+## 引擎事件与异常
 
-### FacebetterError 错误码
-
-FacebetterError 的错误码可以是数字或字符串：
-
-**数字错误码**（来自 WASM 层）：
-- **0**: 成功
-- **-1**: 通用错误（引擎未初始化、参数无效等）
-- **其他负数**: 根据具体操作返回的错误码
-
-**字符串错误码**（来自 JS 层）：
-- **'TIMEOUT'**: 操作超时（WASM 加载超时、认证超时等）
-- **'NETWORK_ERROR'**: 网络错误（在线认证失败等）
-- **'WASM_LOAD_ERROR'**: WASM 模块加载失败
-- **'LICENSE_ERROR'**: 许可证验证失败
-- **'AUTH_TIMEOUT'**: 在线认证超时
-- **'AUTH_EMPTY_RESPONSE'**: 在线认证返回空响应
-- **'ENGINE_CREATE_FAILED'**: 引擎创建失败（可能是许可证或资源路径问题）
-- **'UNKNOWN_ERROR'**: 未知错误
-
-```javascript
-try {
-    await engine.init();
-} catch (error) {
-    if (error instanceof FacebetterError) {
-        if (typeof error.code === 'string') {
-            // 字符串错误码
-            switch (error.code) {
-                case 'TIMEOUT':
-                    console.error('操作超时:', error.message);
-                    break;
-                case 'NETWORK_ERROR':
-                    console.error('网络错误:', error.message);
-                    break;
-                case 'WASM_LOAD_ERROR':
-                    console.error('WASM 加载失败:', error.message);
-                    break;
-                case 'LICENSE_ERROR':
-                case 'ENGINE_CREATE_FAILED':
-                    console.error('许可证错误:', error.message);
-                    break;
-                default:
-                    console.error('错误:', error.code, error.message);
-            }
-        } else {
-            // 数字错误码
-            switch (error.code) {
-                case -1:
-                    console.error('通用错误:', error.message);
-                    break;
-                default:
-                    console.error('错误码:', error.code, error.message);
-            }
-        }
-    }
-}
-```
-
-## 处理图像数据错误
-
-### 1. 输入图像验证
-
-```javascript
-function validateImageData(imageData) {
-    if (!imageData) {
-        throw new Error('图像数据不能为空');
-    }
-    
-    if (!(imageData instanceof ImageData)) {
-        throw new Error('图像数据必须是 ImageData 类型');
-    }
-    
-    if (imageData.width <= 0 || imageData.height <= 0) {
-        throw new Error('图像尺寸无效');
-    }
-    
-    if (!imageData.data || imageData.data.length === 0) {
-        throw new Error('图像数据为空');
-    }
-    
-    return true;
-}
-
-function processImageSafe(imageData, engine) {
-    try {
-        // 验证输入
-        validateImageData(imageData);
-        
-        // 处理图像（同步方法）
-        const result = engine.processImage(
-            imageData, 
-            imageData.width, 
-            imageData.height, 
-            FrameType.Video
-        );
-        
-        return result;
-    } catch (error) {
-        console.error('图像处理失败:', error);
-        throw error;
-    }
-}
-```
-
-### 2. Canvas 错误处理
-
-```javascript
-function getImageDataFromCanvas(canvas) {
-    try {
-        if (!canvas) {
-            throw new Error('Canvas 元素不存在');
-        }
-        
-        const ctx = canvas.getContext('2d');
-        if (!ctx) {
-            throw new Error('无法获取 Canvas 上下文');
-        }
-        
-        if (canvas.width === 0 || canvas.height === 0) {
-            throw new Error('Canvas 尺寸无效');
-        }
-        
-        return ctx.getImageData(0, 0, canvas.width, canvas.height);
-    } catch (error) {
-        console.error('获取 Canvas 图像数据失败:', error);
-        throw error;
-    }
-}
-```
-
-## 网络错误处理
-
-### 1. 在线验证错误
-
-```javascript
-async function initEngineWithRetry(config, maxRetries = 3) {
-    for (let i = 0; i < maxRetries; i++) {
-        try {
-            const engine = new BeautyEffectEngine(config);
-            await engine.init();
-            return engine;
-        } catch (error) {
-            if (error.message.includes('network') || error.message.includes('fetch')) {
-                console.warn(`初始化失败（尝试 ${i + 1}/${maxRetries}）:`, error.message);
-                
-                if (i < maxRetries - 1) {
-                    // 等待后重试
-                    await new Promise(resolve => setTimeout(resolve, 1000 * (i + 1)));
-                    continue;
-                }
-            }
-            
-            throw error;
-        }
-    }
-}
-
-// 使用
-try {
-    const engine = await initEngineWithRetry(config);
-} catch (error) {
-    console.error('初始化失败，已重试多次:', error);
-}
-```
-
-### 2. WASM 加载错误
-
-```javascript
-async function loadEngineWithFallback() {
-    try {
-        const engine = new BeautyEffectEngine(config);
-        await engine.init();
-        return engine;
-    } catch (error) {
-        if (error.message.includes('WASM') || error.message.includes('wasm')) {
-            console.error('WASM 加载失败:', error);
-            // 可以尝试重新加载或使用备用方案
-            showErrorToUser('美颜功能暂时不可用，请刷新页面重试');
-        }
-        throw error;
-    }
-}
-```
-
-## 错误处理最佳实践
-
-### 1. 统一错误处理函数
-
-```javascript
-class ErrorHandler {
-    static handle(error, context = '') {
-        console.error(`[${context}] 错误:`, error);
-        
-        if (error instanceof FacebetterError) {
-            // Facebetter 特定错误
-            this.handleFacebetterError(error, context);
-        } else if (error instanceof Error) {
-            // 通用错误
-            this.handleGenericError(error, context);
-        } else {
-            // 未知错误
-            console.error('未知错误类型:', error);
-        }
-    }
-    
-    static handleFacebetterError(error, context) {
-        switch (error.code) {
-            case -1:
-                console.error('Facebetter 通用错误:', error.message);
-                break;
-            default:
-                console.error('Facebetter 错误:', error.code, error.message);
-        }
-    }
-    
-    static handleGenericError(error, context) {
-        if (error.message.includes('network')) {
-            console.error('网络错误:', error.message);
-        } else if (error.message.includes('WASM')) {
-            console.error('WASM 错误:', error.message);
-        } else {
-            console.error('通用错误:', error.message);
-        }
-    }
-}
-
-// 使用
-try {
-    await engine.init();
-} catch (error) {
-    ErrorHandler.handle(error, '引擎初始化');
-}
-```
-
-### 2. 用户友好的错误提示
-
-```javascript
-function showErrorToUser(message) {
-    // 显示用户友好的错误提示
-    const errorDiv = document.createElement('div');
-    errorDiv.className = 'error-message';
-    errorDiv.textContent = message;
-    document.body.appendChild(errorDiv);
-    
-    // 3秒后自动隐藏
-    setTimeout(() => {
-        errorDiv.remove();
-    }, 3000);
-}
-
-try {
-    await engine.init();
-} catch (error) {
-    let userMessage = '美颜功能初始化失败';
-    
-    if (error.message.includes('network')) {
-        userMessage = '网络连接失败，请检查网络后重试';
-    } else if (error.message.includes('WASM')) {
-        userMessage = '浏览器不支持或加载失败，请刷新页面重试';
-    } else if (error.message.includes('appId') || error.message.includes('appKey')) {
-        userMessage = '配置错误，请联系技术支持';
-    }
-    
-    showErrorToUser(userMessage);
-    console.error('详细错误:', error);
-}
-```
-
-### 3. 错误日志记录
-
-```javascript
-class ErrorLogger {
-    static log(error, context = '', userInfo = {}) {
-        const errorLog = {
-            timestamp: new Date().toISOString(),
-            context: context,
-            error: {
-                message: error.message,
-                code: error.code || 'N/A',
-                stack: error.stack
-            },
-            userInfo: userInfo,
-            userAgent: navigator.userAgent,
-            url: window.location.href
-        };
-        
-        // 发送到服务器（可选）
-        if (window.fetch) {
-            fetch('/api/errors', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(errorLog)
-            }).catch(err => console.error('发送错误日志失败:', err));
-        }
-        
-        // 控制台输出
-        console.error('错误日志:', errorLog);
-    }
-}
-
-// 使用
-try {
-    await engine.init();
-} catch (error) {
-    ErrorLogger.log(error, '引擎初始化', {
-        appId: config.appId ? 'provided' : 'missing'
-    });
-}
-```
-
-## 预防性错误处理
-
-### 1. 参数验证
-
-```javascript
-function validateBeautyParam(value) {
-    if (typeof value !== 'number') {
-        throw new TypeError('参数值必须是数字');
-    }
-    
-    if (value < 0 || value > 1) {
-        throw new RangeError('参数值必须在 0.0-1.0 之间');
-    }
-    
-    return true;
-}
-
-function setBasicParamSafe(engine, param, value) {
-    try {
-        validateBeautyParam(value);
-        engine.setBasicParam(param, value);
-    } catch (error) {
-        console.error('设置参数失败:', error);
-        throw error;
-    }
-}
-```
-
-### 2. 状态检查
-
-```javascript
-function processImageWithValidation(engine, imageData) {
-    if (!engine) {
-        throw new Error('引擎未创建');
-    }
-    
-    if (!engine.initialized) {
-        throw new Error('引擎未初始化');
-    }
-    
-    if (!imageData) {
-        throw new Error('图像数据不能为空');
-    }
-    
-    // 处理图像（同步方法）
-    return engine.processImage(
-        imageData, 
-        imageData.width, 
-        imageData.height, 
-        FrameType.Video
-    );
-}
-```
+`init()` 已经成功返回后，鉴权 / 初始化结果仍可能通过 `onEngineEvent` 到达（`EngineEventCode` 的 `0` / `1` / `100` / `101`）。即使 `init()` 没抛错，也要监听 `LicenseValidationFailed` 和 `InitializationFailed`。
 
 ## 相关文档
 
-- [最佳实践](/zh/web/best-practices) - 性能优化和错误预防
-- [常见问题](/zh/web/faq) - 常见错误和解决方案
-- [API 参考](/zh/web/api-reference) - 完整的 API 文档
-
+- [实现美颜](/zh/web/implement-beauty)
+- [常见问题](/zh/web/faq)
+- [API 参考](/zh/web/api-reference)

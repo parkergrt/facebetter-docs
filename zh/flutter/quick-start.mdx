@@ -1,85 +1,85 @@
 ---
 title: "快速开始"
-description: "跑通 Flutter 示例程序"
+description: "跑通 Facebetter Flutter SDK 2.0 示例"
 ---
+
+<Note>
+本文档对应 SDK **2.0.0**。引擎类是 **`FBEngine`**（不是单例）。鉴权：[授权与许可证](/zh/intro/license)。枚举：[参数枚举](/zh/intro/makeup)。
+</Note>
 
 ## 环境要求
 
-- **Flutter 版本**: `3.10.0` 及以上
-- **Dart 版本**: `3.0.0` 及以上
-- **iOS 版本**: `iOS 12.0` 及以上
-- **Android 版本**: `Android 5.0`（API 21）及以上
-- **开发工具**: Android Studio / VS Code
+- **Flutter** `>= 3.24` / **Dart** `>= 3.5`
+- **iOS** 12.0+
+- **Android** minSdk **24**
+- 原生 Facebetter SDK **2.0**（由插件带入）
 
-## 获取示例源码
+## 安装
 
-克隆 [github 仓库](https://github.com/pixpark/facebetter-sdk) 到本地：
-
-```bash
-git clone https://github.com/pixpark/facebetter-sdk.git
+```yaml
+dependencies:
+  facebetter_flutter: ^2.0.0
 ```
 
-## 创建 Flutter 工程
-
-由于 Flutter Demo 项目仅保留了业务代码，需要先创建 Flutter 工程：
-
 ```bash
-# 进入 demo 目录
-cd facebetter-sdk/demo/flutter
-
-# 创建 Flutter 工程（会自动生成 ios/android 等目录）
-flutter create --org net.pixpark --project-name fbexample .
-```
-
-## 配置应用信息与密钥
-
-### 绑定应用信息
-
-按照 [此页面](/zh/intro/enable-service#绑定应用信息) 指引，在控制台绑定您的应用包名：
-
-- **iOS**: Bundle Identifier（如 `net.pixpark.fbexample`）
-- **Android**: Application ID（如 `net.pixpark.fbexample`）
-
-### 获取 AppID 和 AppKey
-
-按照 [此页面](/zh/intro/enable-service#获取-appid-和-appkey) 指引，获取 `appId` 和 `appKey`，修改 `lib/main.dart`：
-
-```dart
-await FBBeautyEffectEngine.init(
-  FBEngineConfig(appId: 'your appId', appKey: 'your appKey'),
-);
-```
-
-<Tip>
-`licenseJson` 优先级高于 `appId` + `appKey`。离线文件下载与完整说明见 [授权认证](/zh/intro/license)。
-</Tip>
-
-## 安装依赖
-
-```bash
-# 获取 Flutter 依赖
 flutter pub get
-
-# iOS 安装 CocoaPods 依赖
 cd ios && pod install && cd ..
 ```
 
-## 运行工程
-
-### iOS
+## 获取示例源码
 
 ```bash
-flutter run -d <your-ios-device-id>
+git clone https://github.com/pixpark/facebetter-sdk.git
+cd facebetter-sdk/demo/flutter
+flutter create --org net.pixpark --project-name fbexample .
 ```
 
-### Android
+Demo 目录只保留业务代码，`flutter create` 会生成 `ios/` 和 `android/`。
 
-```bash
-flutter run -d <your-android-device-id>
+## 绑定标识并获取密钥
+
+在控制台绑定：
+
+- **iOS**：Bundle ID（例如 `net.pixpark.fbexample`）
+- **Android**：Application ID（例如 `net.pixpark.fbexample`）
+
+复制 `appId` / `appKey`，或下载离线许可证，以 `licenseToken` 传入。见 [开通服务](/zh/intro/enable-service) 与 [授权与许可证](/zh/intro/license)。
+
+## 创建引擎
+
+修改 `lib/main.dart`。日志必须在 `create` **之前**配置：
+
+```dart
+import 'package:facebetter_flutter/facebetter_flutter.dart';
+
+FBEngine.setLogConfig(console: true, level: FBLogLevel.info);
+
+final engine = await FBEngine.create(FBEngineConfig(
+  appId: 'your_app_id',
+  appKey: 'your_app_key',
+  // 或 licenseToken: '...',
+  enableLandmarks: false,
+  externalContext: true, // 默认值；接 TRTC 必须为 true
+  resourcePath: null,    // 由插件定位 resource.fbd
+));
+
+engine.setSmoothing(0.8);
+engine.dispose();
 ```
 
-查看可用设备列表：
+<Tip>
+`externalContext: true`（默认）复用调用方 GL 上下文，接 TRTC 必须如此。静图接口需要**另一台**引擎且 `externalContext: false`。同一实例不要混用两种模式。
+</Tip>
+
+## 运行
 
 ```bash
 flutter devices
+flutter run -d <device-id>
 ```
+
+## 下一步
+
+- [实现美颜](/zh/flutter/implement-beauty) — 专用 setter、滤镜、静图
+- [TRTC 对接](/zh/flutter/trtc-integration) — 原生 `FacebetterPlugin.processTexture`
+- [API 参考](/zh/flutter/api-reference)
