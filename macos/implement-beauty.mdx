@@ -4,7 +4,7 @@ description: "Implement macOS beauty with Facebetter SDK 2.0"
 ---
 
 <Note>
-This page matches SDK **2.0.0**. Auth: [License & Auth](/intro/license). Makeup / reshape enums: [Parameter enums](/intro/makeup).
+This page matches SDK **2.0.0**. Auth: [Auth & License](/intro/license). Makeup / reshape enums: [Parameter enums](/intro/makeup).
 </Note>
 
 ## Add SDK dependency
@@ -74,7 +74,7 @@ logConfig.fileName = @"/path/in/container/facebetter.log";
 
 ## Create the engine
 
-Bind the macOS Bundle ID, then pass either `licenseToken` or `appId` + `appKey`. See [Get AppID and AppKey](/intro/enable-service#get-appid-and-appkey) and [License & Auth](/intro/license).
+Bind the macOS Bundle ID, then pass either `licenseToken` or `appId` + `appKey`. See [Get AppID and AppKey](/intro/enable-service#get-appid-and-appkey) and [Auth & License](/intro/license).
 
 **Priority:** if `licenseToken` is non-empty (license token string, `{token}` JSON, or `.lic` contents), the SDK validates it locally. Otherwise it uses `appId` + `appKey` against `/facebetter/v2/auth`.
 
@@ -259,6 +259,8 @@ FBImageFrame *outputFrame = [self.engine processImage:inputFrame];
 GLuint outputTexture = [outputFrame texture];
 ```
 
+For TRTC / Agora / LiveKit: [Third-party Integration](/macos/third-party-integration).
+
 ## Lifecycle
 
 Keep a strong reference on the `NSViewController`. Stop the capture session when the view disappears or the window miniaturizes. Nil the engine when the session ends.
@@ -271,6 +273,7 @@ Keep a strong reference on the `NSViewController`. Stop the capture session when
 
 ## Related
 
+- [Third-party Integration](/macos/third-party-integration)
 - [Best Practices](/macos/best-practices)
 - [Error Handling](/macos/error-handling)
 - [FAQ](/macos/faq)

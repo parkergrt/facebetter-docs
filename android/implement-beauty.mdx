@@ -107,7 +107,7 @@ BeautyEffectEngine.setLogConfig(logConfig);
 
 ## Create the engine
 
-Credentials: [Subscribe](/intro/enable-service#get-appid-and-appkey). Auth details: [License & Auth](/intro/license).
+Credentials: [Subscription](/intro/enable-service#get-appid-and-appkey). Auth details: [Auth & License](/intro/license).
 
 If `licenseToken` is non-empty, it is used (license token / `{token}` JSON / offline `.lic`). Otherwise `appId` + `appKey` call `/facebetter/v2/auth`.
 
@@ -419,6 +419,7 @@ Notes:
 - Output texture is owned by the SDK; do not `glDeleteTextures` it. Release the `ImageFrame`
 - If the GL context is lost, `release()` the engine and create it again on the new context
 - Use `FrameType.VIDEO` for live GL pipelines
+- For TRTC / Agora / LiveKit and similar SDKs: [Third-party Integration](/android/third-party-integration)
 
 ## Lifecycle
 
@@ -448,6 +449,7 @@ if (output != null) {
 
 ## Related
 
+- [Third-party Integration](/android/third-party-integration)
 - [Best Practices](/android/best-practices)
 - [Error Handling](/android/error-handling)
 - [FAQ](/android/faq)

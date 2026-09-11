@@ -4,7 +4,7 @@ description: "Integrate Facebetter SDK 2.0 on Linux with the C++ API"
 ---
 
 <Note>
-SDK **2.0.0**. Same C++ API as Windows (`facebetter` namespace). Enums: [Parameter enums](/intro/makeup). Auth: [License & Auth](/intro/license).
+SDK **2.0.0**. Same C++ API as Windows (`facebetter` namespace). Enums: [Parameter enums](/intro/makeup). Auth: [Auth & License](/intro/license).
 </Note>
 
 On Linux, Facebetter is `libfacebetter.so` plus `facebetter/*.h`. This guide follows the [C++ desktop demo](https://github.com/pixpark/facebetter-sdk) (`demo/cpp`). To compile the SDK itself, use `./scripts/build_linux.sh` or CMake in `build/linux`.
@@ -216,11 +216,13 @@ auto output = engine->ProcessImage(input);
 
 Release with `engine.reset()`. The engine is **not** a singleton.
 
+For TRTC / Agora / LiveKit: [Third-party Integration](/linux/third-party-integration).
+
 ## Related
 
 <CardGroup cols={2}>
+  <Card title="Third-party Integration" href="/linux/third-party-integration">TRTC / Agora / LiveKit</Card>
   <Card title="API reference" href="/linux/api-reference">C++ methods and Linux notes</Card>
   <Card title="Error handling" href="/linux/error-handling">Return codes and .so / DISPLAY issues</Card>
   <Card title="Best practices" href="/linux/best-practices">Performance and rpath</Card>
-  <Card title="FAQ" href="/linux/faq">Common questions</Card>
 </CardGroup>

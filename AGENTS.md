@@ -13,10 +13,7 @@ Mintlify docs for the Facebetter realtime beauty SDK.
 
 ## Source of truth for content migration
 
-Original VitePress docs live in the Facebetter SDK monorepo:
-
-- `../fb/site/docs/en/docs/`
-- `../fb/site/docs/zh/docs/`
+Original VitePress marketing site lives in `../fb-platform/website/` (en/zh). SDK docs have been migrated here.
 
 HarmonyOS docs were intentionally not migrated (hidden in the old site).
 

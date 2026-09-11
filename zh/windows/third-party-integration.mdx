@@ -1,0 +1,209 @@
+---
+title: "第三方对接"
+description: "在 Windows 上将 Facebetter 美颜接入 TRTC、声网 Agora、LiveKit 等第三方视频管线"
+---
+
+SDK **2.0.0**。桌面端与移动端不同：TRTC / 声网等在 **Windows 上多为 CPU 缓冲（I420 / YUV）**，很少给 OpenGL `textureId`。把 Facebetter 挂在对方的自定义前处理回调里，用 `ImageFrame::CreateWithI420`（或 NV12）跑 `ProcessImage`，再把平面写回对方帧。
+
+与 [Linux](/zh/linux/third-party-integration) 共用同一套 C++ API。基础用法见 [实现美颜](/zh/windows/implement-beauty)。对方进房 / 推流以其官方文档为准。
+
+```
+第三方 SDK（前处理回调）
+  I420 / YUV 平面
+       ↓
+BeautyEffectEngine（通常 external_context = false）
+  CreateWithI420 → ProcessImage
+       ↓
+  写回对方 dst 缓冲 / 原位修改
+```
+
+## 共性约定
+
+| 项 | 要求 |
+| --- | --- |
+| 引擎 | `BeautyEffectEngine::Create`；桌面必须设 `resource_path` 指向 `resource.fbd` **文件** |
+| 上下文 | 缓冲路径一般用 `external_context = false`；仅当你在对方 GL 线程喂 `CreateWithTexture` 时才设 `true` |
+| 格式 | PC 侧优先 **I420**（与 TRTC Buffer / 声网 YUV420 对齐） |
+| 帧类型 | `FrameType::Video` |
+| 生命周期 | 取消回调后 `engine.reset()`；引擎不是单例 |
+
+### 共用：处理 I420 并写回平面
+
+```cpp
+#include <facebetter/beauty_effect_engine.h>
+#include <facebetter/image_frame.h>
+#include <cstring>
+
+using namespace facebetter;
+
+static void CopyPlane(uint8_t* dst, int dst_stride,
+                      const uint8_t* src, int src_stride,
+                      int width, int height) {
+  for (int y = 0; y < height; ++y) {
+    std::memcpy(dst + y * dst_stride, src + y * src_stride, width);
+  }
+}
+
+/** 成功返回 true；失败时不要改对方缓冲 */
+static bool ProcessI420InPlace(BeautyEffectEngine* engine,
+                               uint8_t* y, int stride_y,
+                               uint8_t* u, int stride_u,
+                               uint8_t* v, int stride_v,
+                               int width, int height) {
+  if (!engine || !y || !u || !v || width <= 0 || height <= 0) {
+    return false;
+  }
+  auto input = ImageFrame::CreateWithI420(
+      width, height, y, stride_y, u, stride_u, v, stride_v);
+  if (!input) {
+    return false;
+  }
+  input->type = FrameType::Video;
+  auto output = engine->ProcessImage(input);
+  if (!output || !output->DataY()) {
+    return false;
+  }
+  CopyPlane(y, stride_y, output->DataY(), output->StrideY(), width, height);
+  CopyPlane(u, stride_u, output->DataU(), output->StrideU(), width / 2, height / 2);
+  CopyPlane(v, stride_v, output->DataV(), output->StrideV(), width / 2, height / 2);
+  return true;
+}
+```
+
+创建引擎：
+
+```cpp
+EngineConfig cfg;
+cfg.app_id = "your_app_id";
+cfg.app_key = "your_app_key";
+cfg.resource_path = "resource/resource.fbd";
+cfg.external_context = false;
+auto engine = BeautyEffectEngine::Create(cfg);
+if (!engine) {
+  return;
+}
+engine->SetSmoothing(0.5f);
+```
+
+凭证：[订阅服务](/zh/intro/enable-service)、[授权与许可](/zh/intro/license)。
+
+---
+
+## TRTC（腾讯云）
+
+Windows / 桌面 C++：**自定义前处理走 Buffer，不是 Texture**。较新 SDK 使用 `enableLocalVideoCustomProcess` + `setLocalVideoCustomProcessCallback`（旧名 `setLocalVideoProcessCallback` 已弃用，以你集成的版本为准）。
+
+像素格式选 **I420**，缓冲类型选 **Buffer**。在 `onProcessVideoFrame` 里处理 `srcFrame` 并写入 `dstFrame`（或按文档原位改 `dstFrame`）。
+
+```cpp
+#include "ITRTCCloud.h"
+#include "TRTCTypeDef.h"
+
+class BeautyFrameCallback : public liteav::ITRTCVideoFrameCallback {
+ public:
+  explicit BeautyFrameCallback(std::shared_ptr<BeautyEffectEngine> engine)
+      : engine_(std::move(engine)) {}
+
+  int onProcessVideoFrame(liteav::TRTCVideoFrame* src,
+                          liteav::TRTCVideoFrame* dst) override {
+    if (!src || !dst || !engine_) {
+      return 0;
+    }
+    // 字段名（data / yuv 平面拆分）随 LiteAV 头文件略有差异，请对照当前 SDK
+    ProcessI420InPlace(engine_.get(),
+                       /* y,u,v,strides,width,height 从 src 取出 */);
+    // 将处理后的平面拷到 dst，或按 TRTC 文档设置 dst->data / length
+    return 0;
+  }
+
+ private:
+  std::shared_ptr<BeautyEffectEngine> engine_;
+};
+
+// 示意注册（API 名以你的 TRTC C++ 版本为准）
+// trtc->enableLocalVideoCustomProcess(true);
+// trtc->setLocalVideoCustomProcessCallback(callback);
+```
+
+<Note>
+腾讯云文档写明：移动端可用 Texture；**PC 仅支持 Buffer**。不要在 Windows 上按 Android 的 `Texture_2D` 路径接入。
+</Note>
+
+---
+
+## 声网 Agora
+
+挂钩：`IRtcEngine::registerVideoFrameObserver`（C++ Video SDK **4.x**）。Windows 默认可拿到 **YUV420 / I420**。
+
+1. `getVideoFrameProcessMode` 返回 `PROCESS_MODE_READ_WRITE`
+2. 在 `onCaptureVideoFrame` 里用 `yBuffer` / `uBuffer` / `vBuffer` 调用 `ProcessI420InPlace`
+3. 返回 `true` 让 SDK 继续使用该帧
+
+```cpp
+#include "IAgoraMediaEngine.h"
+#include "IAgoraRtcEngine.h"
+
+class BeautyObserver : public agora::media::IVideoFrameObserver {
+ public:
+  explicit BeautyObserver(std::shared_ptr<BeautyEffectEngine> engine)
+      : engine_(std::move(engine)) {}
+
+  bool onCaptureVideoFrame(agora::rtc::VIDEO_SOURCE_TYPE /*type*/,
+                           VideoFrame& frame) override {
+    if (!engine_ || !frame.yBuffer || !frame.uBuffer || !frame.vBuffer) {
+      return true;
+    }
+    ProcessI420InPlace(engine_.get(),
+                       frame.yBuffer, frame.yStride,
+                       frame.uBuffer, frame.uStride,
+                       frame.vBuffer, frame.vStride,
+                       frame.width, frame.height);
+    return true;
+  }
+
+  VIDEO_FRAME_PROCESS_MODE getVideoFrameProcessMode() override {
+    return PROCESS_MODE_READ_WRITE;
+  }
+
+  // getVideoFormatPreference / getObservedFramePosition 按声网文档实现
+
+ private:
+  std::shared_ptr<BeautyEffectEngine> engine_;
+};
+
+// mediaEngine->registerVideoFrameObserver(observer);
+```
+
+销毁 `IRtcEngine` 前注销 observer，并 `engine.reset()`。
+
+---
+
+## LiveKit
+
+桌面侧常见做法是：**自定义视频源**，自行采集 / 处理后把帧推给 LiveKit（C++ / 自研桥接），而不是移动端那种 `VideoProcessor` 纹理回调。
+
+推荐管线：
+
+1. 用你的摄像头 / DXGI / V4L2 等拿到帧  
+2. `CreateWithI420` / `CreateWithRGBA` → `ProcessImage`  
+3. 将输出封装成 LiveKit / WebRTC 可接受的帧，推入 `VideoSource` / `RTCVideoSource`
+
+具体类名（`RtcVideoSource`、`VideoTrack` 工厂等）随 LiveKit 客户端版本变化，请对照 [LiveKit 客户端文档](https://docs.livekit.io/) 的自定义轨道说明。Facebetter 只负责第 2 步。
+
+---
+
+## 排错要点
+
+| 现象 | 排查 |
+| --- | --- |
+| `Create` 失败 | `resource_path` 是否指向 `.fbd` **文件**；鉴权是否有效 |
+| 美颜不生效 | 是否在 **ReadWrite** / 自定义前处理回调里处理；是否写回了正确平面 |
+| 花屏 | `stride` 是否按行拷贝；宽高是否偶对齐（I420） |
+| 卡顿 | 是否每帧分配大缓冲；把 `ProcessImage` 串到单线程 |
+
+## 相关文档
+
+- [实现美颜](/zh/windows/implement-beauty)
+- [Linux · 第三方对接](/zh/linux/third-party-integration)
+- [最佳实践](/zh/windows/best-practices)
+- [API 参考](/zh/windows/api-reference)

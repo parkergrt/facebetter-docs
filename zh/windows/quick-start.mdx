@@ -58,7 +58,7 @@ SDK 包见 [下载页](https://facebetter.net/zh/download) 或 [控制台](https
 
 ## 第三步：配置授权
 
-运行前设置 `app_id` / `app_key`（在线 v2 鉴权），或设置 `license_token`。`license_token` 非空时优先（许可证 token、`{token}` JSON，或离线 `.lic` 内容）。详见 [许可证与鉴权](/zh/intro/license)。
+运行前设置 `app_id` / `app_key`（在线 v2 鉴权），或设置 `license_token`。`license_token` 非空时优先（许可证 token、`{token}` JSON，或离线 `.lic` 内容）。详见 [授权与许可](/zh/intro/license)。
 
 ## 第四步：构建
 
@@ -104,7 +104,7 @@ cd demo\cpp\build
 A：确认 `demo/cpp/sdk/lib/facebetter.dll` 存在，再执行 `cmake --build build` 让 CMake 复制到可执行文件旁。
 
 **Q：`Create` 返回空指针 / 授权失败**  
-A：`resource_path` 必须指向 `resource.fbd`，并配置 `license_token` 或有效的 `app_id` + `app_key`。见 [许可证与鉴权](/zh/intro/license)。
+A：`resource_path` 必须指向 `resource.fbd`，并配置 `license_token` 或有效的 `app_id` + `app_key`。见 [授权与许可](/zh/intro/license)。
 
 **Q：CMake 找不到 Ninja**  
 A：执行 `winget install Ninja-build.Ninja`，或改用 `-G "Visual Studio 17 2022"` 并配合 `--config Release`。

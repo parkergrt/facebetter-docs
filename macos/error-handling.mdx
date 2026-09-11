@@ -4,7 +4,7 @@ description: "macOS Facebetter SDK 2.0 error handling"
 ---
 
 <Note>
-This page matches SDK **2.0.0**. Auth: [License & Auth](/intro/license).
+This page matches SDK **2.0.0**. Auth: [Auth & License](/intro/license).
 </Note>
 
 ## Error codes (`FBErrorCode`)
@@ -175,4 +175,4 @@ logConfig.fileName = logPath;
 
 - **`-1` Invalid argument**: empty `.fbd` path, nil `NSData`, intensity outside the documented range, or a nil config.
 - **`-2` Not initialized**: calling setters after a failed `createEngineWithConfig:` (the instance is `nil`).
-- **`-3` License**: wrong credentials, unbound Bundle ID, expired token, or sandbox blocking the auth request. See [License & Auth](/intro/license).
+- **`-3` License**: wrong credentials, unbound Bundle ID, expired token, or sandbox blocking the auth request. See [Auth & License](/intro/license).

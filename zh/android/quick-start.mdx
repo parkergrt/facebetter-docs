@@ -22,11 +22,11 @@ git clone https://github.com/pixpark/facebetter-sdk.git
 
 ### 绑定应用包名
 
-按 [订阅与凭证](/zh/intro/enable-service#绑定应用信息) 在控制台绑定 Android **应用包名**，例如 `com.example.app`。
+按 [订阅服务](/zh/intro/enable-service#绑定应用信息) 在控制台绑定 Android **应用包名**，例如 `com.example.app`。
 
 ### 创建引擎
 
-按 [订阅与凭证](/zh/intro/enable-service#获取-appid-和-appkey) 复制 `appId` / `appKey`，或使用 `licenseToken`。打开 Demo 相机 Activity，在 `new BeautyEffectEngine(...)` 之前设置 `EngineConfig`。
+按 [订阅服务](/zh/intro/enable-service#获取-appid-和-appkey) 复制 `appId` / `appKey`，或使用 `licenseToken`。打开 Demo 相机 Activity，在 `new BeautyEffectEngine(...)` 之前设置 `EngineConfig`。
 
 **在线鉴权**（`appId` + `appKey` → `/facebetter/v2/auth`）：
 
@@ -46,7 +46,7 @@ mBeautyEngine = new BeautyEffectEngine(this, config);
 ```
 
 <Tip>
-鉴权方式与离线 `.lic` 说明见 [授权认证](/zh/intro/license)。
+鉴权方式与离线 `.lic` 说明见 [授权与许可](/zh/intro/license)。
 </Tip>
 
 ## 运行工程

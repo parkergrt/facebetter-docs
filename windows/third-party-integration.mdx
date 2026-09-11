@@ -1,0 +1,209 @@
+---
+title: "Third-party Integration"
+description: "Wire Facebetter beauty into TRTC, Agora, LiveKit, and other Windows video pipelines"
+---
+
+SDK **2.0.0**. Desktop differs from mobile: TRTC / Agora on **Windows usually deliver CPU buffers (I420 / YUV)**, not OpenGL `textureId`. Hook Facebetter in the vendor’s custom preprocess callback, run `ImageFrame::CreateWithI420` (or NV12) → `ProcessImage`, then write planes back.
+
+Shares the same C++ API as [Linux](/linux/third-party-integration). Basics: [Implement Beauty](/windows/implement-beauty). Room join / publish belong in the vendor’s docs.
+
+```
+Third-party SDK (preprocess callback)
+  I420 / YUV planes
+       ↓
+BeautyEffectEngine (usually external_context = false)
+  CreateWithI420 → ProcessImage
+       ↓
+  write back to vendor dst / in-place buffers
+```
+
+## Shared contract
+
+| Item | Requirement |
+| --- | --- |
+| Engine | `BeautyEffectEngine::Create`; desktop must set `resource_path` to the `resource.fbd` **file** |
+| Context | Buffer path: `external_context = false`. Set `true` only when feeding `CreateWithTexture` on the vendor GL thread |
+| Format | Prefer **I420** on PC (matches TRTC Buffer / Agora YUV420) |
+| Frame type | `FrameType::Video` |
+| Lifecycle | After removing callbacks, `engine.reset()`. Not a singleton |
+
+### Shared: process I420 and write planes back
+
+```cpp
+#include <facebetter/beauty_effect_engine.h>
+#include <facebetter/image_frame.h>
+#include <cstring>
+
+using namespace facebetter;
+
+static void CopyPlane(uint8_t* dst, int dst_stride,
+                      const uint8_t* src, int src_stride,
+                      int width, int height) {
+  for (int y = 0; y < height; ++y) {
+    std::memcpy(dst + y * dst_stride, src + y * src_stride, width);
+  }
+}
+
+/** Returns true on success; leave vendor buffers untouched on failure */
+static bool ProcessI420InPlace(BeautyEffectEngine* engine,
+                               uint8_t* y, int stride_y,
+                               uint8_t* u, int stride_u,
+                               uint8_t* v, int stride_v,
+                               int width, int height) {
+  if (!engine || !y || !u || !v || width <= 0 || height <= 0) {
+    return false;
+  }
+  auto input = ImageFrame::CreateWithI420(
+      width, height, y, stride_y, u, stride_u, v, stride_v);
+  if (!input) {
+    return false;
+  }
+  input->type = FrameType::Video;
+  auto output = engine->ProcessImage(input);
+  if (!output || !output->DataY()) {
+    return false;
+  }
+  CopyPlane(y, stride_y, output->DataY(), output->StrideY(), width, height);
+  CopyPlane(u, stride_u, output->DataU(), output->StrideU(), width / 2, height / 2);
+  CopyPlane(v, stride_v, output->DataV(), output->StrideV(), width / 2, height / 2);
+  return true;
+}
+```
+
+Create the engine:
+
+```cpp
+EngineConfig cfg;
+cfg.app_id = "your_app_id";
+cfg.app_key = "your_app_key";
+cfg.resource_path = "resource/resource.fbd";
+cfg.external_context = false;
+auto engine = BeautyEffectEngine::Create(cfg);
+if (!engine) {
+  return;
+}
+engine->SetSmoothing(0.5f);
+```
+
+Credentials: [Subscription](/intro/enable-service), [Auth & License](/intro/license).
+
+---
+
+## TRTC (Tencent)
+
+Windows / desktop C++: **custom preprocess uses Buffer, not Texture**. Newer SDKs use `enableLocalVideoCustomProcess` + `setLocalVideoCustomProcessCallback` (older `setLocalVideoProcessCallback` is deprecated — check your version).
+
+Use pixel format **I420** and buffer type **Buffer**. In `onProcessVideoFrame`, process `srcFrame` and fill `dstFrame`.
+
+```cpp
+#include "ITRTCCloud.h"
+#include "TRTCTypeDef.h"
+
+class BeautyFrameCallback : public liteav::ITRTCVideoFrameCallback {
+ public:
+  explicit BeautyFrameCallback(std::shared_ptr<BeautyEffectEngine> engine)
+      : engine_(std::move(engine)) {}
+
+  int onProcessVideoFrame(liteav::TRTCVideoFrame* src,
+                          liteav::TRTCVideoFrame* dst) override {
+    if (!src || !dst || !engine_) {
+      return 0;
+    }
+    // Field names (data / split YUV planes) vary slightly by LiteAV headers
+    ProcessI420InPlace(engine_.get(),
+                       /* y,u,v,strides,width,height from src */);
+    // Copy processed planes into dst, or set dst->data / length per TRTC docs
+    return 0;
+  }
+
+ private:
+  std::shared_ptr<BeautyEffectEngine> engine_;
+};
+
+// Registration sketch (names per your TRTC C++ version):
+// trtc->enableLocalVideoCustomProcess(true);
+// trtc->setLocalVideoCustomProcessCallback(callback);
+```
+
+<Note>
+Tencent docs: mobile can use Texture; **PC supports Buffer only**. Do not follow the Android `Texture_2D` path on Windows.
+</Note>
+
+---
+
+## Agora
+
+Hook: `IRtcEngine::registerVideoFrameObserver` (C++ Video SDK **4.x**). Windows typically yields **YUV420 / I420**.
+
+1. Return `PROCESS_MODE_READ_WRITE` from `getVideoFrameProcessMode`
+2. In `onCaptureVideoFrame`, run `ProcessI420InPlace` on `yBuffer` / `uBuffer` / `vBuffer`
+3. Return `true` so the SDK keeps the frame
+
+```cpp
+#include "IAgoraMediaEngine.h"
+#include "IAgoraRtcEngine.h"
+
+class BeautyObserver : public agora::media::IVideoFrameObserver {
+ public:
+  explicit BeautyObserver(std::shared_ptr<BeautyEffectEngine> engine)
+      : engine_(std::move(engine)) {}
+
+  bool onCaptureVideoFrame(agora::rtc::VIDEO_SOURCE_TYPE /*type*/,
+                           VideoFrame& frame) override {
+    if (!engine_ || !frame.yBuffer || !frame.uBuffer || !frame.vBuffer) {
+      return true;
+    }
+    ProcessI420InPlace(engine_.get(),
+                       frame.yBuffer, frame.yStride,
+                       frame.uBuffer, frame.uStride,
+                       frame.vBuffer, frame.vStride,
+                       frame.width, frame.height);
+    return true;
+  }
+
+  VIDEO_FRAME_PROCESS_MODE getVideoFrameProcessMode() override {
+    return PROCESS_MODE_READ_WRITE;
+  }
+
+  // Implement getVideoFormatPreference / getObservedFramePosition per Agora docs
+
+ private:
+  std::shared_ptr<BeautyEffectEngine> engine_;
+};
+
+// mediaEngine->registerVideoFrameObserver(observer);
+```
+
+Unregister before destroying `IRtcEngine`, then `engine.reset()`.
+
+---
+
+## LiveKit
+
+On desktop, the usual pattern is a **custom video source**: capture / process yourself, then push frames into LiveKit (C++ client or your bridge) — not the mobile `VideoProcessor` texture callback.
+
+Recommended pipeline:
+
+1. Capture frames (camera / DXGI / etc.)  
+2. `CreateWithI420` / `CreateWithRGBA` → `ProcessImage`  
+3. Wrap the output as a LiveKit / WebRTC frame and push into `VideoSource` / `RTCVideoSource`
+
+Exact type names vary by LiveKit client version — see [LiveKit docs](https://docs.livekit.io/) for custom tracks. Facebetter only covers step 2.
+
+---
+
+## Troubleshooting
+
+| Symptom | Check |
+| --- | --- |
+| `Create` fails | `resource_path` points at the `.fbd` **file**; auth is valid |
+| No beauty | Processing inside ReadWrite / custom preprocess; planes written back |
+| Distortion | Row-by-row copy with correct `stride`; even width/height for I420 |
+| Stutter | Avoid large per-frame allocations; serialize `ProcessImage` on one thread |
+
+## Related
+
+- [Implement Beauty](/windows/implement-beauty)
+- [Linux · Third-party Integration](/linux/third-party-integration)
+- [Best Practices](/windows/best-practices)
+- [API Reference](/windows/api-reference)

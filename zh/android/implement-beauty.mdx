@@ -107,7 +107,7 @@ BeautyEffectEngine.setLogConfig(logConfig);
 
 ## 创建引擎
 
-凭证获取见 [订阅与凭证](/zh/intro/enable-service#获取-appid-和-appkey)。鉴权细节见 [授权认证](/zh/intro/license)。
+凭证获取见 [订阅服务](/zh/intro/enable-service#获取-appid-和-appkey)。鉴权细节见 [授权与许可](/zh/intro/license)。
 
 `licenseToken` 非空时使用该 token（许可证 token / `{token}` JSON / 离线 `.lic`）。否则用 `appId` + `appKey` 请求 `/facebetter/v2/auth`。
 
@@ -419,6 +419,7 @@ GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_WRAP_T, GLES20.GL
 - 输出纹理由 SDK 持有，不要 `glDeleteTextures`；释放对应的 `ImageFrame` 即可
 - GL 上下文丢失后，先 `release()` 再在新上下文中重建引擎
 - 实时 GL 管线使用 `FrameType.VIDEO`
+- 接入 TRTC / 声网 / LiveKit 等推流或会议 SDK：见 [第三方对接](/zh/android/third-party-integration)
 
 ## 生命周期
 
@@ -448,6 +449,7 @@ if (output != null) {
 
 ## 相关文档
 
+- [第三方对接](/zh/android/third-party-integration)
 - [最佳实践](/zh/android/best-practices)
 - [错误处理](/zh/android/error-handling)
 - [常见问题](/zh/android/faq)

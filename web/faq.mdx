@@ -4,7 +4,7 @@ description: "Facebetter Web SDK 2.0 FAQ"
 ---
 
 <Note>
-SDK **2.0.0**. Auth: [License & Auth](/intro/license). Enums: [Parameter enums](/intro/makeup).
+SDK **2.0.0**. Auth: [Auth & License](/intro/license). Enums: [Parameter enums](/intro/makeup).
 </Note>
 
 ## Integration
@@ -12,7 +12,7 @@ SDK **2.0.0**. Auth: [License & Auth](/intro/license). Enums: [Parameter enums](
 ### Engine create / `init()` failed
 
 - `EngineConfig` must set **one of** `licenseToken`, `authProxyUrl`, `fetchAuthResponse`. There are no `appId` / `appKey` fields on Web config.
-- Production: your proxy must return the auth API body (`{success, token}` or error JSON). See [License & Auth](/intro/license).
+- Production: your proxy must return the auth API body (`{success, token}` or error JSON). See [Auth & License](/intro/license).
 - Confirm `/resource.fbd` (or your `resourcePath`) is served with HTTP 200.
 - Confirm the page is HTTPS or localhost.
 - Check `FacebetterError.code` ([Error handling](/web/error-handling)).

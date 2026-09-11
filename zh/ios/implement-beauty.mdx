@@ -4,7 +4,7 @@ description: "用 Facebetter SDK 2.0 实现 iOS 美颜"
 ---
 
 <Note>
-本文档对应 SDK **2.0.0**。授权见 [授权认证](/zh/intro/license)。美妆 / 美型枚举见 [参数枚举](/zh/intro/makeup)。
+本文档对应 SDK **2.0.0**。授权见 [授权与许可](/zh/intro/license)。美妆 / 美型枚举见 [参数枚举](/zh/intro/makeup)。
 </Note>
 
 ## 添加 SDK 依赖
@@ -71,7 +71,7 @@ logConfig.fileName = @"/path/to/facebetter.log";
 
 ## 创建引擎
 
-绑定 iOS Bundle ID，然后传入 `licenseToken` 或 `appId` + `appKey`。见 [获取 AppID 和 AppKey](/zh/intro/enable-service#获取-appid-和-appkey) 与 [授权认证](/zh/intro/license)。
+绑定 iOS Bundle ID，然后传入 `licenseToken` 或 `appId` + `appKey`。见 [获取 AppID 和 AppKey](/zh/intro/enable-service#获取-appid-和-appkey) 与 [授权与许可](/zh/intro/license)。
 
 **优先级：** `licenseToken` 非空（许可证 token、`{token}` JSON 或 `.lic` 内容）时本地校验；否则用 `appId` + `appKey` 请求 `/facebetter/v2/auth`。
 
@@ -276,6 +276,8 @@ GLuint outputTexture = [outputFrame texture];
 
 建议纹理参数：`GL_LINEAR`、`GL_CLAMP_TO_EDGE`。引擎不会删除你的输入纹理。输出纹理由 SDK 持有。
 
+接入 TRTC / 声网 / LiveKit：见 [第三方对接](/zh/ios/third-party-integration)。
+
 ## 生命周期
 
 会话期间用 strong 引用持有引擎。ViewController 销毁时置 `nil`。离开页面时停止采集，从而停止调用 `processImage:`。
@@ -288,6 +290,7 @@ GLuint outputTexture = [outputFrame texture];
 
 ## 相关文档
 
+- [第三方对接](/zh/ios/third-party-integration)
 - [最佳实践](/zh/ios/best-practices)
 - [错误处理](/zh/ios/error-handling)
 - [常见问题](/zh/ios/faq)

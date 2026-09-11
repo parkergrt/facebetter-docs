@@ -4,7 +4,7 @@ description: "Facebetter Flutter SDK 2.0 API"
 ---
 
 <Note>
-This page matches SDK **2.0.0**. Class: **`FBEngine`**. Makeup / reshape enums: [Parameter enums](/intro/makeup). Auth: [License & Auth](/intro/license).
+This page matches SDK **2.0.0**. Class: **`FBEngine`**. Makeup / reshape enums: [Parameter enums](/intro/makeup). Auth: [Auth & License](/intro/license).
 </Note>
 
 ```yaml
@@ -95,7 +95,7 @@ void setChromaKeyDesaturation(double value)
 
 ### Photo
 
-Requires `externalContext: false`. Throws `StateError` otherwise. **Do not use for TRTC video.**
+Requires `externalContext: false`. Throws `StateError` otherwise. **Do not use for live preprocess video.**
 
 ```dart
 Future<void> processFile({required String input, required String output, int quality = 90})
@@ -148,14 +148,14 @@ Thrown when a native call returns `< 0`.
 
 - `FBBitmap` — `width`, `height`, `stride`, `pixels` (RGBA8888 copy)
 - `FBLogLevel` — `trace` … `critical`
-- `FBMirror` — `none`, `horizontal`, `vertical`, `both` (not used on the TRTC texture path)
+- `FBMirror` — `none`, `horizontal`, `vertical`, `both` (usually unused on the live texture path)
 - `FBFace` / `FBFaceList` / `FBRect` — landmark views (`kLandmarkCount` = 111) when `enableLandmarks: true`
 
 ## Native texture (not Dart)
 
-After `create` with `externalContext: true`, call on the **TRTC GL thread**:
+After `create` with `externalContext: true`, call on the **vendor SDK GL thread**:
 
 - iOS: `[FacebetterPlugin processTexture:width:height:]`
 - Android: `FacebetterPlugin.processTexture(textureId, width, height)`
 
-Returns `0` on failure. Full snippets: [TRTC integration](/flutter/trtc-integration).
+Returns `0` on failure. Full snippets: [Third-party Integration](/flutter/third-party-integration).

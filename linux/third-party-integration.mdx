@@ -1,0 +1,62 @@
+---
+title: "Third-party Integration"
+description: "Wire Facebetter beauty into TRTC, Agora, LiveKit, and other Linux video pipelines"
+---
+
+SDK **2.0.0**. Same C++ API and integration model as [Windows · Third-party Integration](/windows/third-party-integration): desktop vendors usually deliver **I420 / YUV buffers**, not mobile-style OpenGL texture callbacks.
+
+This page covers Linux-only differences. Shared helpers and TRTC / Agora / LiveKit wiring live on the Windows page — swap headers and library paths for the Linux package.
+
+```
+Third-party SDK (preprocess callback)
+  I420 planes
+       ↓
+BeautyEffectEngine (external_context = false)
+  CreateWithI420 → ProcessImage → write back
+```
+
+## Linux differences
+
+| Item | Notes |
+| --- | --- |
+| Library | `libfacebetter.so` + `facebetter/*.h` |
+| Link | See [Implement Beauty](/linux/implement-beauty); watch `LD_LIBRARY_PATH` / rpath at runtime |
+| GL | System GL with a display; headless via OSMesa / EGL ([Best Practices](/linux/best-practices)). Buffer path still uses `external_context = false` in most cases |
+| `resource_path` | Must point at the `resource.fbd` **file** |
+| Dashboard binding | Package / executable / process name — [Subscription](/intro/enable-service) |
+
+Create the engine:
+
+```cpp
+EngineConfig cfg;
+cfg.app_id = "your_app_id";
+cfg.app_key = "your_app_key";
+cfg.resource_path = "/opt/yourapp/resource/resource.fbd";
+cfg.external_context = false;
+auto engine = BeautyEffectEngine::Create(cfg);
+```
+
+Shared I420 helper and vendor hooks: **full copy on [Windows · Third-party Integration](/windows/third-party-integration)** (`ProcessI420InPlace`, TRTC Buffer, Agora `IVideoFrameObserver`, LiveKit custom video source).
+
+## Vendor snapshot
+
+| Vendor | Linux notes |
+| --- | --- |
+| **TRTC** | PC is **Buffer / I420** only — do not use the Android Texture path |
+| **Agora** | C++ `registerVideoFrameObserver`, ReadWrite + in-place I420 |
+| **LiveKit** | Custom video source; confirm capture + GL/software path for headless hosts |
+
+## Troubleshooting
+
+| Symptom | Check |
+| --- | --- |
+| Missing `.so` | `LD_LIBRARY_PATH`, rpath, matching architecture |
+| `Create` fails | `.fbd` path, auth, headless GL / OSMesa |
+| Everything else | Same as [Windows troubleshooting](/windows/third-party-integration#troubleshooting) |
+
+## Related
+
+- [Windows · Third-party Integration](/windows/third-party-integration) (primary)
+- [Implement Beauty](/linux/implement-beauty)
+- [Best Practices](/linux/best-practices)
+- [API Reference](/linux/api-reference)

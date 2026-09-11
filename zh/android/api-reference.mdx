@@ -4,7 +4,7 @@ description: "Facebetter SDK 2.0 Android API 参考"
 ---
 
 <Note>
-本文档对应 SDK **2.0.0**。包名：`net.pixpark.facebetter`。美妆、整形、美白、磨皮预设见 [参数枚举](/zh/intro/makeup)。鉴权见 [授权认证](/zh/intro/license)。
+本文档对应 SDK **2.0.0**。包名：`net.pixpark.facebetter`。美妆、整形、美白、磨皮预设见 [参数枚举](/zh/intro/makeup)。鉴权见 [授权与许可](/zh/intro/license)。
 </Note>
 
 美颜相关 setter 均返回 `int`。`0`（`ErrorCode.SUCCESS`）表示成功，负数为 [错误码](#errorcode)。
@@ -76,7 +76,7 @@ public static void setLogConfig(LogConfig config);
 | `licenseToken` | `String` | — | 许可证 token、`{token}` JSON，或离线 `.lic` 全文 |
 | `externalContext` | `boolean` | `false` | `true` = 使用调用方 OpenGL ES 上下文；`false` = SDK 自建上下文 |
 
-**鉴权优先级：** `licenseToken` 非空时，SDK 在本地校验该 token。否则必须提供 `appId` + `appKey`，SDK 请求 `/facebetter/v2/auth`。详见 [授权认证](/zh/intro/license)。
+**鉴权优先级：** `licenseToken` 非空时，SDK 在本地校验该 token。否则必须提供 `appId` + `appKey`，SDK 请求 `/facebetter/v2/auth`。详见 [授权与许可](/zh/intro/license)。
 
 ```java
 public static class EngineConfig {

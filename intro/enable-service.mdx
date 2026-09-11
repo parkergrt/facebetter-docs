@@ -1,13 +1,11 @@
 ---
-title: "Subscribe"
+title: "Subscription"
 description: "Enable Facebetter SDK subscription service and obtain AppID & AppKey to start using beauty features"
 ---
 
-# Enable Subscription Service
-
 ## Register / Login
 
-After registering and logging in to the dashboard, a default project is created with subscription information. The default project is on the **Free** plan (most effects available, output always watermarked). Plan details: [Plans](./pricing).
+After registering and logging in to the dashboard, a default project is created with subscription information. The default project is on the **Free** plan (most effects available, output always watermarked). Plan details: [Plans & Features](./pricing).
 
 <Frame>
   <img src="/images/dash-overview.jpg" alt="Dashboard Subscription Info" />
@@ -35,7 +33,7 @@ Click **"Edit Project"** on the dashboard, choose the identifier type for each p
 Click **"Subscribe"** on the "Your Subscription" card:
 
 1. **Billing cycle**: Monthly or Yearly (Yearly is about 20% off — 12 months for the price of 10).
-2. **Plan**: Free, Basic, Pro, or Pro+. See [Plans](./pricing) for what each includes.
+2. **Plan**: Free, Basic, Pro, or Pro+. See [Plans & Features](./pricing) for what each includes.
 3. **Pay**: Confirm the order summary and complete payment with Stripe.
 
 <Frame>
@@ -50,4 +48,4 @@ On the Dashboard **AppID & AppKey** card, copy `appId` and `appKey`.
   <img src="/images/dash-appid-appkey.jpg" alt="Console AppID & AppKey" />
 </Frame>
 
-Native apps can authenticate with `appId` + `appKey`, or with a `licenseToken` (license token string, `{token}` JSON, or offline `.lic` file contents). Web must not embed `appKey` in frontend JavaScript. Details: [License & Auth](./license).
+Native apps can authenticate with `appId` + `appKey`, or with a `licenseToken` (license token string, `{token}` JSON, or offline `.lic` file contents). Web must not embed `appKey` in frontend JavaScript. Details: [Auth & License](./license).

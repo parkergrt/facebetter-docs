@@ -9,7 +9,7 @@ description: >-
 
 # Facebetter 对外客户文档
 
-文档仓库：`/Users/admin/Desktop/github/fb-docs`（Mintlify）。英文在仓库根，中文在 `zh/`，树结构一致。
+文档仓库：本仓（Mintlify）。英文在仓库根，中文在 `zh/`，树结构一致。
 
 聊天用中文回复用户；文档正文按页面语言写。未要求时不要 commit。
 
@@ -70,7 +70,7 @@ description: >-
 
 ```bash
 rg -n -i 'WebAssembly|WASM|WebGL|Cloudflare|gpupixel|\\bMNN\\b|fb_engine_|fb_status|facebetter-core|compact JWS|紧凑 JWS|fbpack|setBeautyParam|registerFilter|ProcessMode|metered|按量|pay-as-you-go' \
-  --glob '*.mdx' /Users/admin/Desktop/github/fb-docs
+  --glob '*.mdx' .
 ```
 
 `'WASM_LOAD_ERROR'` 允许留在 Web 错误处理页。

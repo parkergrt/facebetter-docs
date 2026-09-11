@@ -4,7 +4,7 @@ description: "iOS Facebetter SDK 2.0 错误处理"
 ---
 
 <Note>
-本文档对应 SDK **2.0.0**。授权见 [授权认证](/zh/intro/license)。
+本文档对应 SDK **2.0.0**。授权见 [授权与许可](/zh/intro/license)。
 </Note>
 
 ## 错误码（`FBErrorCode`）
@@ -166,6 +166,6 @@ logConfig.fileName = logPath;
 
 - **`-1` 参数无效**：空 `.fbd` 路径、`NSData` 为 nil、强度越界、配置为 nil。
 - **`-2` 未初始化**：`createEngineWithConfig:` 失败后实例为 `nil`，不要再发消息。
-- **`-3` 授权**：`appId` / `appKey` 错误、未绑定 Bundle ID、token 过期，或在线授权无网络。见 [授权认证](/zh/intro/license)。
+- **`-3` 授权**：`appId` / `appKey` 错误、未绑定 Bundle ID、token 过期，或在线授权无网络。见 [授权与许可](/zh/intro/license)。
 - **`-5` I/O**：滤镜 / 贴纸 / 背景文件缺失或沙盒不可读。
 - **外部 GL**：`externalContext = YES` 时必须在同一 OpenGL ES 线程创建并处理，否则 `processImage:` 可能返回 `nil`。

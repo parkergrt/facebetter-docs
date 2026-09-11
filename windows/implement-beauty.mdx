@@ -4,7 +4,7 @@ description: "Integrate Facebetter SDK 2.0 on Windows with the C++ API"
 ---
 
 <Note>
-SDK **2.0.0**. Headers live in `facebetter/*.h`. Makeup / reshape / style enums: [Parameter enums](/intro/makeup). Auth: [License & Auth](/intro/license).
+SDK **2.0.0**. Headers live in `facebetter/*.h`. Makeup / reshape / style enums: [Parameter enums](/intro/makeup). Auth: [Auth & License](/intro/license).
 </Note>
 
 On Windows, Facebetter is a C++ library (`facebetter.lib` + `facebetter.dll`). This guide follows the [C++ desktop demo](https://github.com/pixpark/facebetter-sdk) (`demo/cpp`).
@@ -245,11 +245,13 @@ auto output = engine->ProcessImage(input);
 
 When you are done, drop the `shared_ptr` (`engine.reset()`). `BeautyEffectEngine` is **not** a singleton.
 
+For TRTC / Agora / LiveKit: [Third-party Integration](/windows/third-party-integration).
+
 ## Related
 
 <CardGroup cols={2}>
+  <Card title="Third-party Integration" href="/windows/third-party-integration">TRTC / Agora / LiveKit</Card>
   <Card title="API reference" href="/windows/api-reference">All C++ methods and types</Card>
   <Card title="Error handling" href="/windows/error-handling">Return codes and Windows DLL issues</Card>
   <Card title="Best practices" href="/windows/best-practices">Performance and threading</Card>
-  <Card title="FAQ" href="/windows/faq">Common integration questions</Card>
 </CardGroup>

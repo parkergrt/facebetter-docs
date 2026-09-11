@@ -58,7 +58,7 @@ SDK packages are on the [Download](https://facebetter.net/download) page and in 
 
 ## Step 3: Configure license
 
-Set `app_id` / `app_key` (online v2 auth) or `license_token` in the demo before you run it. If `license_token` is non-empty, it takes priority (license token string, `{token}` JSON, or offline `.lic` contents). Details: [License & Auth](/intro/license).
+Set `app_id` / `app_key` (online v2 auth) or `license_token` in the demo before you run it. If `license_token` is non-empty, it takes priority (license token string, `{token}` JSON, or offline `.lic` contents). Details: [Auth & License](/intro/license).
 
 ## Step 4: Build
 
@@ -108,7 +108,7 @@ Click **Reset All** to zero intensities.
 A: Confirm `demo/cpp/sdk/lib/facebetter.dll` exists, then re-run `cmake --build build` so CMake copies the DLL next to the executable.
 
 **Q: Engine create returns `nullptr` / license failed**  
-A: Point `resource_path` at `resource.fbd`, and set `license_token` or valid `app_id` + `app_key`. See [License & Auth](/intro/license).
+A: Point `resource_path` at `resource.fbd`, and set `license_token` or valid `app_id` + `app_key`. See [Auth & License](/intro/license).
 
 **Q: CMake cannot find Ninja**  
 A: Run `winget install Ninja-build.Ninja`, or use `-G "Visual Studio 17 2022"` and `--config Release`.

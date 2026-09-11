@@ -4,7 +4,7 @@ description: "Run the Facebetter Flutter SDK 2.0 example"
 ---
 
 <Note>
-This page matches SDK **2.0.0**. The engine class is **`FBEngine`** (not a singleton). Auth: [License & Auth](/intro/license). Enums: [Parameter enums](/intro/makeup).
+This page matches SDK **2.0.0**. The engine class is **`FBEngine`** (not a singleton). Auth: [Auth & License](/intro/license). Enums: [Parameter enums](/intro/makeup).
 </Note>
 
 ## Requirements
@@ -43,7 +43,7 @@ In the Dashboard, bind:
 - **iOS**: Bundle ID (for example `net.pixpark.fbexample`)
 - **Android**: Application ID (for example `net.pixpark.fbexample`)
 
-Copy `appId` / `appKey`, or download an offline license and pass it as `licenseToken`. See [Subscribe](/intro/enable-service) and [License & Auth](/intro/license).
+Copy `appId` / `appKey`, or download an offline license and pass it as `licenseToken`. See [Subscription](/intro/enable-service) and [Auth & License](/intro/license).
 
 ## Create the engine
 
@@ -59,7 +59,7 @@ final engine = await FBEngine.create(FBEngineConfig(
   appKey: 'your_app_key',
   // or licenseToken: '...',
   enableLandmarks: false,
-  externalContext: true, // default; required for TRTC
+  externalContext: true, // default; required for third-party live preprocess
   resourcePath: null,    // plugin locates resource.fbd
 ));
 
@@ -68,7 +68,7 @@ engine.dispose();
 ```
 
 <Tip>
-`externalContext: true` (default) reuses the caller GL context — required for TRTC. Still-image APIs need a **second** engine with `externalContext: false`. Do not mix the two on one instance.
+`externalContext: true` (default) reuses the caller GL context — required for third-party live preprocess. Still-image APIs need a **second** engine with `externalContext: false`. Do not mix the two on one instance.
 </Tip>
 
 ## Run
@@ -81,5 +81,5 @@ flutter run -d <device-id>
 ## Next
 
 - [Implement beauty](/flutter/implement-beauty) — dedicated setters, filters, photos
-- [TRTC integration](/flutter/trtc-integration) — native `FacebetterPlugin.processTexture`
+- [Third-party Integration](/flutter/third-party-integration) — native `FacebetterPlugin.processTexture`
 - [API reference](/flutter/api-reference)

@@ -4,7 +4,7 @@ description: "Android API reference for Facebetter SDK 2.0"
 ---
 
 <Note>
-This page matches SDK **2.0.0**. Package: `net.pixpark.facebetter`. Makeup, reshape, whitening, and smoothing presets: [Parameter enums](/intro/makeup). Auth: [License & Auth](/intro/license).
+This page matches SDK **2.0.0**. Package: `net.pixpark.facebetter`. Makeup, reshape, whitening, and smoothing presets: [Parameter enums](/intro/makeup). Auth: [Auth & License](/intro/license).
 </Note>
 
 All setter methods return `int`. `0` (`ErrorCode.SUCCESS`) means success; a negative value is an [error code](#errorcode).
@@ -76,7 +76,7 @@ Nested class: `BeautyEffectEngine.EngineConfig`.
 | `licenseToken` | `String` | — | License token string, `{token}` JSON, or offline `.lic` contents |
 | `externalContext` | `boolean` | `false` | `true` = use the caller’s OpenGL ES context; `false` = SDK-owned context |
 
-**Auth priority:** if `licenseToken` is non-empty, the SDK validates that token locally. Otherwise `appId` + `appKey` are required and the SDK calls `/facebetter/v2/auth`. Details: [License & Auth](/intro/license).
+**Auth priority:** if `licenseToken` is non-empty, the SDK validates that token locally. Otherwise `appId` + `appKey` are required and the SDK calls `/facebetter/v2/auth`. Details: [Auth & License](/intro/license).
 
 ```java
 public static class EngineConfig {

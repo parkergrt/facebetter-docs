@@ -4,10 +4,10 @@ description: "接入 Facebetter Flutter SDK 2.0"
 ---
 
 <Note>
-SDK **2.0.0**。类名：**`FBEngine`**。没有单例。鉴权：[授权与许可证](/zh/intro/license)。枚举：[参数枚举](/zh/intro/makeup)。
+SDK **2.0.0**。类名：**`FBEngine`**。没有单例。鉴权：[授权与许可](/zh/intro/license)。枚举：[参数枚举](/zh/intro/makeup)。
 </Note>
 
-Flutter **只设置美颜参数**。实时视频帧不进 Dart。TRTC / 推流 SDK 在原生 GL 线程喂纹理 — 见 [TRTC 对接](/zh/flutter/trtc-integration)。
+Flutter **只设置美颜参数**。实时视频帧不进 Dart。第三方 RTC 在原生 GL 线程喂纹理 — 见 [第三方对接](/zh/flutter/third-party-integration)。
 
 ## 添加插件
 
@@ -53,7 +53,7 @@ final engine = await FBEngine.create(FBEngineConfig(
 | `appId` / `appKey` | — | 在线鉴权 |
 | `licenseToken` | — | token / `{token}` JSON / `.lic` 全文 |
 | `enableLandmarks` | `false` | 引擎级开关，创建后不能改。不读关键点请保持 `false` |
-| `externalContext` | `true` | 接 TRTC 用 `true`；静图文件接口用 `false` |
+| `externalContext` | `true` | 接第三方实时前处理用 `true`；静图文件接口用 `false` |
 | `resourcePath` | 插件自动 | Android AAR 内 `resource.fbd` / iOS framework 内文件 |
 
 `FBEngine.version` 读取原生 SDK 版本字符串。
@@ -150,7 +150,7 @@ final FBStats s = engine.stats;
 
 ## 静图
 
-使用**另一台**引擎，且 `externalContext: false`。不要在 TRTC 引擎上调用这些接口，也不要从 Dart 逐帧处理 TRTC 视频。
+使用**另一台**引擎，且 `externalContext: false`。不要在实时前处理引擎上调用这些接口，也不要从 Dart 逐帧处理会议 / 推流视频。
 
 ```dart
 final photoEngine = await FBEngine.create(const FBEngineConfig(
@@ -176,7 +176,7 @@ setter 与异步任务失败时抛 `FBException`，错误码为 `0`、`-1` … `
 
 ## 释放
 
-先停 TRTC 自定义前处理，再：
+先停对方自定义前处理，再：
 
 ```dart
 engine.dispose();
@@ -184,6 +184,6 @@ engine.dispose();
 
 ## 相关文档
 
-- [TRTC 对接](/zh/flutter/trtc-integration)
+- [第三方对接](/zh/flutter/third-party-integration)
 - [API 参考](/zh/flutter/api-reference)
 - [快速开始](/zh/flutter/quick-start)

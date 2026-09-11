@@ -1,6 +1,7 @@
 ---
-description: Facebetter 对外客户 SDK 文档规范。写或改 Mintlify / *.mdx / 平台接入文档时必须遵守。
-alwaysApply: true
+description: 对外客户 SDK 文档规范。写或改 Mintlify / *.mdx 时必须遵守。
+globs: "**/*.mdx,fb-docs/**/*.mdx"
+alwaysApply: false
 ---
 
 # 对外客户文档（必守）

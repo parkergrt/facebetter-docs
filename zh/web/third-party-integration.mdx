@@ -1,0 +1,167 @@
+---
+title: "第三方对接"
+description: "在浏览器中把 Facebetter 美颜接入 TRTC、声网 Agora、LiveKit 等实时视频管线"
+---
+
+SDK **2.0.0**。Web **没有**原生那种统一的「GL 纹理前处理回调」。推荐管线是：
+
+**取帧 → `processImage` → 画到 canvas → `captureStream` / 取出 `MediaStreamTrack` → 交给第三方 SDK（`replaceTrack` 或自定义视频轨）。**
+
+鉴权必须用 Web 三选一（`licenseToken` / `authProxyUrl` / `fetchAuthResponse`），**禁止**把 `appKey` 打进前端。详见 [授权与许可](/zh/intro/license)、[实现美颜](/zh/web/implement-beauty)。
+
+```
+getUserMedia / 对方预览轨
+       ↓
+HTMLVideoElement
+       ↓
+BeautyEffectEngine.processImage(...)
+       ↓
+canvas + putImageData
+       ↓
+canvas.captureStream() → MediaStreamTrack
+       ↓
+TRTC / Agora / LiveKit 发布或 replaceTrack
+```
+
+## 推荐管线（与厂商无关）
+
+```javascript
+import {
+  BeautyEffectEngine,
+  EngineConfig,
+  FrameType,
+  MirrorMode,
+} from 'facebetter';
+
+const engine = new BeautyEffectEngine(new EngineConfig({
+  authProxyUrl: '/api/facebetter/auth', // 生产：你的鉴权代理
+  resourcePath: '/resource.fbd',
+}));
+await engine.setLogConfig({ consoleEnabled: true, level: 2 });
+await engine.init();
+
+const video = document.createElement('video');
+video.playsInline = true;
+video.muted = true;
+video.srcObject = await navigator.mediaDevices.getUserMedia({
+  video: { width: 1280, height: 720 },
+  audio: false,
+});
+await video.play();
+
+const canvas = document.createElement('canvas');
+const ctx = canvas.getContext('2d');
+
+function loop() {
+  if (engine.initialized && video.readyState >= 2 && video.videoWidth > 0) {
+    const result = engine.processImage(
+      video,
+      video.videoWidth,
+      video.videoHeight,
+      FrameType.Video,
+      MirrorMode.Horizontal, // 前置摄像头按需
+    );
+    if (result) {
+      if (canvas.width !== result.width) canvas.width = result.width;
+      if (canvas.height !== result.height) canvas.height = result.height;
+      ctx.putImageData(result, 0, 0);
+    }
+  }
+  requestAnimationFrame(loop);
+}
+loop();
+
+// 美颜后的视频轨：交给任意 RTC / 会议 SDK
+const beautyStream = canvas.captureStream(30);
+const beautyTrack = beautyStream.getVideoTracks()[0];
+```
+
+<Tip>
+优先 `processImage`。`processTexture` 面向已有 GPU 纹理句柄、且**不应用镜像**，一般实时预览 / 推流用上面的 canvas 管线即可。
+</Tip>
+
+页面卸载时：`beautyTrack.stop()`、停掉 `requestAnimationFrame`，并 `engine.destroy()`。
+
+---
+
+## 接到第三方 SDK
+
+各家 Web API 名称随版本变化。下面只写**把 `beautyTrack` 塞进去**的常见方式；进房、Token、设备枚举仍看对方文档。
+
+### TRTC（腾讯云 Web）
+
+常见两种思路（以你使用的 `trtc-js-sdk` / TUI 版本为准）：
+
+1. **用美颜轨创建本地流再发布**（自定义视频源 / 传入 `MediaStreamTrack`）  
+2. **先按官方创建摄像头流，再 `replaceTrack(beautyTrack)`** 替换视频轨
+
+```javascript
+// 示意：拿到本地流后替换视频轨
+// const localStream = TRTC.createStream({ ... });
+// await localStream.initialize();
+// await localStream.replaceTrack(beautyTrack);
+// await client.publish(localStream);
+```
+
+不要假设存在与原生一致的 `onProcessVideoFrame(textureId)`。
+
+### 声网 Agora Web
+
+使用 **自定义视频轨** 或对已有轨 `replaceTrack`：
+
+```javascript
+import AgoraRTC from 'agora-rtc-sdk-ng';
+
+// 方式 A：从 MediaStreamTrack 创建自定义视频轨（API 名以当前 agora-rtc-sdk-ng 为准）
+const customVideoTrack = AgoraRTC.createCustomVideoTrack({
+  mediaStreamTrack: beautyTrack,
+});
+await client.publish([customVideoTrack /*, microphoneTrack */]);
+
+// 方式 B：已有摄像头轨时
+// await cameraTrack.replaceTrack(beautyTrack);
+```
+
+### LiveKit Web
+
+把处理后的轨交给 LiveKit 的本地视频轨工厂，或对已发布轨换轨：
+
+```javascript
+import { Room, LocalVideoTrack, createLocalVideoTrack } from 'livekit-client';
+
+// 示意：从 MediaStreamTrack 创建并发布（具体工厂方法以 livekit-client 版本为准）
+const track = LocalVideoTrack.createFromMediaStreamTrack(beautyTrack);
+await room.localParticipant.publishTrack(track);
+
+// 或对已有 LocalVideoTrack：
+// await localVideoTrack.replaceTrack(beautyTrack);
+```
+
+---
+
+## 注意
+
+| 项 | 说明 |
+| --- | --- |
+| 鉴权 | 生产用 `authProxyUrl` 或自建 `fetchAuthResponse`；调试才可用 `createDirectAuthFetcher` |
+| 性能 | 复用同一个 canvas；控制 `captureStream` 帧率；避免每帧新建 canvas |
+| 音频 | 上面示例只处理视频；麦克风轨仍从 `getUserMedia({ audio: true })` 单独取并发布 |
+| 镜像 | 预览可在 `processImage` 用 `MirrorMode`；是否与编码侧一致按产品需求取舍 |
+| 厂商升级 | `replaceTrack` / `createCustomVideoTrack` 签名会变，以对方当前 Web SDK 为准 |
+
+## 排错
+
+| 现象 | 排查 |
+| --- | --- |
+| 黑屏 | `video.videoWidth === 0`、未 `await engine.init()`、canvas 尺寸未更新 |
+| 远端无美颜 | 是否发布了 **beautyTrack**，还是仍在发原始摄像头轨 |
+| 鉴权失败 | 代理是否原样返回鉴权响应；域名是否已在控制台绑定 |
+| 卡顿 | 降分辨率 / 帧率；确认没有重复 `processImage` 循环 |
+
+## 相关文档
+
+- [实现美颜](/zh/web/implement-beauty)
+- [最佳实践](/zh/web/best-practices)
+- [错误处理](/zh/web/error-handling)
+- [授权与许可](/zh/intro/license)
+- [API 参考](/zh/web/api-reference)

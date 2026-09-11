@@ -4,7 +4,7 @@ description: "iOS Facebetter SDK 2.0 error handling"
 ---
 
 <Note>
-This page matches SDK **2.0.0**. Auth: [License & Auth](/intro/license).
+This page matches SDK **2.0.0**. Auth: [Auth & License](/intro/license).
 </Note>
 
 ## Error codes (`FBErrorCode`)
@@ -166,6 +166,6 @@ logConfig.fileName = logPath;
 
 - **`-1` Invalid argument**: empty `.fbd` path, nil `NSData`, intensity outside the documented range, or a nil config.
 - **`-2` Not initialized**: calling setters after a failed `createEngineWithConfig:` (the instance is `nil` — do not send messages to it).
-- **`-3` License**: wrong `appId` / `appKey`, unbound Bundle ID, expired token, or no network for online auth. See [License & Auth](/intro/license).
+- **`-3` License**: wrong `appId` / `appKey`, unbound Bundle ID, expired token, or no network for online auth. See [Auth & License](/intro/license).
 - **`-5` I/O**: missing filter / sticker / background file, or unreadable sandbox path.
 - **External GL**: if `externalContext = YES`, create and process on the same OpenGL ES thread; otherwise `processImage:` can return `nil`.

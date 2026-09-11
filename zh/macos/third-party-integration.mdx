@@ -1,0 +1,264 @@
+---
+title: "第三方对接"
+description: "在 macOS 上将 Facebetter 美颜接入 TRTC、声网 Agora、LiveKit 等第三方视频管线"
+---
+
+SDK **2.0.0**。把 Facebetter 挂在第三方 SDK 的**自定义视频前处理**回调里：在对方提供的 **OpenGL 线程**（或像素缓冲回调）上处理帧，再交回对方。
+
+与 [iOS · 第三方对接](/zh/ios/third-party-integration) 共用同一套 Objective-C API；差异主要在运行时环境（OpenGL、App Sandbox、进程名绑定）。完整纹理约定见 [实现美颜 · 外部纹理](/zh/macos/implement-beauty#外部纹理)。
+
+```
+第三方 SDK
+  textureId 或 CVPixelBuffer
+       ↓
+FBBeautyEffectEngine
+  createWithTexture / createWithNV12|BGRA → processImage:
+       ↓
+  输出纹理或像素 → 写回第三方帧
+```
+
+## 共性约定
+
+| 项 | 要求 |
+| --- | --- |
+| 纹理路径 | `externalContext = YES`，在**对方 GL 回调线程**惰性 `createEngineWithConfig:` |
+| 输入纹理 | `GL_TEXTURE_2D`（RGBA）；`stride` 一般为 `width * 4` |
+| 像素缓冲路径 | 可用 `createWithNV12:` / `createWithBGRA:` 等；通常 **`externalContext = NO`** |
+| 帧类型 | `FBFrameTypeVideo` |
+| 输出 | 不要 `glDeleteTextures` 输出纹理；引擎 strong 持有，会话结束置 `nil` |
+| 沙盒 | 在线鉴权需允许 **Outgoing Connections**；离线用 `licenseToken` / `.lic` |
+
+TRTC 自定义前处理常用 **OpenGL 纹理**；声网 / LiveKit 更常见 **`CVPixelBuffer`**。不要在同一台引擎上混用两种模式。
+
+### 共用：处理纹理
+
+```objc
+#import <Facebetter/Facebetter.h>
+
+static GLuint FBProcessTexture(FBBeautyEffectEngine *engine,
+                               GLuint srcTextureId,
+                               int width,
+                               int height) {
+  if (!engine || srcTextureId == 0 || width <= 0 || height <= 0) {
+    return srcTextureId;
+  }
+  FBImageFrame *input = [FBImageFrame createWithTexture:srcTextureId
+                                                  width:width
+                                                 height:height
+                                                 stride:width * 4];
+  if (!input) {
+    return srcTextureId;
+  }
+  input.type = FBFrameTypeVideo;
+  FBImageFrame *output = [engine processImage:input];
+  if (!output) {
+    return srcTextureId;
+  }
+  GLuint dst = [output texture];
+  return dst != 0 ? dst : srcTextureId;
+}
+```
+
+```objc
+FBEngineConfig *config = [[FBEngineConfig alloc] init];
+config.appId = @"your appId";
+config.appKey = @"your appKey";
+config.externalContext = YES;
+self.beautyEngine = [FBBeautyEffectEngine createEngineWithConfig:config];
+[self.beautyEngine setSmoothing:0.5f];
+```
+
+### 共用：处理 CVPixelBuffer（NV12 示意）
+
+```objc
+static FBImageFrame *FBFrameFromNV12PixelBuffer(CVPixelBufferRef pb) {
+  OSType fmt = pb ? CVPixelBufferGetPixelFormatType(pb) : 0;
+  if (!pb || (fmt != kCVPixelFormatType_420YpCbCr8BiPlanarFullRange
+              && fmt != kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange)) {
+    return nil;
+  }
+  CVPixelBufferLockBaseAddress(pb, kCVPixelBufferLock_ReadOnly);
+  int width = (int)CVPixelBufferGetWidth(pb);
+  int height = (int)CVPixelBufferGetHeight(pb);
+  uint8_t *y = (uint8_t *)CVPixelBufferGetBaseAddressOfPlane(pb, 0);
+  uint8_t *uv = (uint8_t *)CVPixelBufferGetBaseAddressOfPlane(pb, 1);
+  int strideY = (int)CVPixelBufferGetBytesPerRowOfPlane(pb, 0);
+  int strideUV = (int)CVPixelBufferGetBytesPerRowOfPlane(pb, 1);
+  FBImageFrame *frame = [FBImageFrame createWithNV12:width
+                                              height:height
+                                               dataY:y
+                                             strideY:strideY
+                                              dataUV:uv
+                                            strideUV:strideUV];
+  CVPixelBufferUnlockBaseAddress(pb, kCVPixelBufferLock_ReadOnly);
+  return frame;
+}
+```
+
+像素缓冲路径用 `externalContext = NO`。凭证：[订阅服务](/zh/intro/enable-service)、[授权与许可](/zh/intro/license)。无 Bundle 的命令行工具在控制台绑定**进程名**。
+
+---
+
+## TRTC（腾讯云）
+
+挂钩 API：`setLocalVideoProcessDelegete:pixelFormat:bufferType:`（官方拼写 **Delegete**）。**`TRTCVideoPixelFormat_Texture_2D`** + **`TRTCVideoBufferType_Texture`**。
+
+```objc
+#import <TXLiteAVSDK_TRTC/TRTCCloud.h>
+#import <Facebetter/Facebetter.h>
+
+@interface BeautyProcessDelegate : NSObject <TRTCVideoFrameDelegate>
+@property (nonatomic, strong) FBBeautyEffectEngine *beautyEngine;
+@end
+
+@implementation BeautyProcessDelegate
+
+- (void)onGLContextCreated {
+  FBEngineConfig *config = [[FBEngineConfig alloc] init];
+  config.appId = @"your appId";
+  config.appKey = @"your appKey";
+  config.externalContext = YES;
+  self.beautyEngine = [FBBeautyEffectEngine createEngineWithConfig:config];
+  [self.beautyEngine setSmoothing:0.5f];
+}
+
+- (uint32_t)onProcessVideoFrame:(TRTCVideoFrame *)srcFrame
+                       dstFrame:(TRTCVideoFrame *)dstFrame {
+  GLuint out = FBProcessTexture(self.beautyEngine,
+                                srcFrame.textureId,
+                                srcFrame.width,
+                                srcFrame.height);
+  dstFrame.textureId = out;
+  return 0;
+}
+
+- (void)onGLContextDestory {
+  self.beautyEngine = nil;
+}
+
+@end
+
+BeautyProcessDelegate *delegate = [[BeautyProcessDelegate alloc] init];
+[[TRTCCloud sharedInstance] setLocalVideoProcessDelegete:delegate
+                                             pixelFormat:TRTCVideoPixelFormat_Texture_2D
+                                              bufferType:TRTCVideoBufferType_Texture];
+```
+
+取消委托或退房后将引擎置 `nil`。详见腾讯云 TRTC 第三方美颜文档。
+
+---
+
+## 声网 Agora
+
+挂钩 API：`AgoraRtcEngineKit.setVideoFrameDelegate:`（Video SDK **4.x**）。macOS 采集帧同样多为 **`CVPixelBuffer`**。
+
+```objc
+#import <AgoraRtcKit/AgoraRtcKit.h>
+
+@interface BeautyFrameDelegate : NSObject <AgoraVideoFrameDelegate>
+@property (nonatomic, strong) FBBeautyEffectEngine *beautyEngine;
+@end
+
+@implementation BeautyFrameDelegate
+
+- (AgoraVideoFrameProcessMode)getVideoFrameProcessMode {
+  return AgoraVideoFrameProcessModeReadWrite;
+}
+
+- (BOOL)onCapture:(AgoraOutputVideoFrame *)videoFrame
+       sourceType:(AgoraVideoSourceType)sourceType {
+  CVPixelBufferRef pb = videoFrame.pixelBuffer; // 或以头文件中的 textureBuf 为准
+  if (!pb) {
+    return YES;
+  }
+
+  if (!self.beautyEngine) {
+    FBEngineConfig *config = [[FBEngineConfig alloc] init];
+    config.appId = @"your appId";
+    config.appKey = @"your appKey";
+    config.externalContext = NO;
+    self.beautyEngine = [FBBeautyEffectEngine createEngineWithConfig:config];
+  }
+
+  FBImageFrame *input = FBFrameFromNV12PixelBuffer(pb);
+  if (!input) {
+    return YES;
+  }
+  input.type = FBFrameTypeVideo;
+  FBImageFrame *output = [self.beautyEngine processImage:input];
+  if (!output) {
+    return YES;
+  }
+
+  // 将 output 写回 videoFrame 的 CVPixelBuffer（细节随 Agora 版本变化）
+  return YES;
+}
+
+@end
+
+[agoraKit setVideoFrameDelegate:delegate];
+```
+
+<Warning>
+写回 `CVPixelBuffer` 的方式随声网大版本变化。Facebetter 输出与输入同格式；塞回 `AgoraOutputVideoFrame` 以声网文档为准。
+</Warning>
+
+销毁前 `setVideoFrameDelegate:nil` 并置 `beautyEngine = nil`。
+
+---
+
+## LiveKit
+
+实现 Swift `VideoProcessor`，在 `process(frame:)` 中处理 `CVPixelBuffer`，创建相机轨时传入 `processor:`（macOS 同样支持）。
+
+```swift
+import LiveKit
+import Facebetter
+
+final class FacebetterVideoProcessor: VideoProcessor {
+  private var beautyEngine: FBBeautyEffectEngine?
+
+  func process(frame: VideoFrame) -> VideoFrame? {
+    guard let pb = frame.buffer as CVPixelBuffer? else {
+      return frame
+    }
+
+    if beautyEngine == nil {
+      let config = FBEngineConfig()
+      config.appId = "your appId"
+      config.appKey = "your appKey"
+      config.externalContext = false
+      beautyEngine = FBBeautyEffectEngine.createEngine(with: config)
+      beautyEngine?.setSmoothing(0.5)
+    }
+
+    // FBFrameFromNV12PixelBuffer → processImage: → 包装为 LiveKit VideoFrame
+    return frame
+  }
+}
+
+let processor = FacebetterVideoProcessor()
+let track = LocalVideoTrack.createCameraTrack(processor: processor)
+try await room.localParticipant.publish(track: track)
+```
+
+官方示例见 `BackgroundBlurVideoProcessor`（macOS 12+）。屏幕共享轨也可挂同一套 processor（API 以当前 LiveKit Swift 为准）。
+
+---
+
+## 排错要点
+
+| 现象 | 排查 |
+| --- | --- |
+| 黑屏 / 无画面 | 是否在对方 **GL 线程**创建引擎；沙盒是否拦截在线鉴权 |
+| 美颜不生效 | `externalContext` 是否与路径匹配；像素格式是否 NV12/BGRA |
+| 偶发闪退 | `onGLContextDestory` 是否置 `nil` |
+| 花屏 / 拉伸 | 宽高、旋转、`BytesPerRow` stride |
+
+## 相关文档
+
+- [实现美颜](/zh/macos/implement-beauty)
+- [最佳实践](/zh/macos/best-practices)
+- [错误处理](/zh/macos/error-handling)
+- [API 参考](/zh/macos/api-reference)
+- [iOS · 第三方对接](/zh/ios/third-party-integration)

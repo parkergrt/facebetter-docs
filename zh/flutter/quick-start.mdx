@@ -4,7 +4,7 @@ description: "跑通 Facebetter Flutter SDK 2.0 示例"
 ---
 
 <Note>
-本文档对应 SDK **2.0.0**。引擎类是 **`FBEngine`**（不是单例）。鉴权：[授权与许可证](/zh/intro/license)。枚举：[参数枚举](/zh/intro/makeup)。
+本文档对应 SDK **2.0.0**。引擎类是 **`FBEngine`**（不是单例）。鉴权：[授权与许可](/zh/intro/license)。枚举：[参数枚举](/zh/intro/makeup)。
 </Note>
 
 ## 环境要求
@@ -43,7 +43,7 @@ Demo 目录只保留业务代码，`flutter create` 会生成 `ios/` 和 `androi
 - **iOS**：Bundle ID（例如 `net.pixpark.fbexample`）
 - **Android**：Application ID（例如 `net.pixpark.fbexample`）
 
-复制 `appId` / `appKey`，或下载离线许可证，以 `licenseToken` 传入。见 [开通服务](/zh/intro/enable-service) 与 [授权与许可证](/zh/intro/license)。
+复制 `appId` / `appKey`，或下载离线许可证，以 `licenseToken` 传入。见 [订阅服务](/zh/intro/enable-service) 与 [授权与许可](/zh/intro/license)。
 
 ## 创建引擎
 
@@ -59,7 +59,7 @@ final engine = await FBEngine.create(FBEngineConfig(
   appKey: 'your_app_key',
   // 或 licenseToken: '...',
   enableLandmarks: false,
-  externalContext: true, // 默认值；接 TRTC 必须为 true
+  externalContext: true, // 默认值；接第三方实时前处理必须为 true
   resourcePath: null,    // 由插件定位 resource.fbd
 ));
 
@@ -68,7 +68,7 @@ engine.dispose();
 ```
 
 <Tip>
-`externalContext: true`（默认）复用调用方 GL 上下文，接 TRTC 必须如此。静图接口需要**另一台**引擎且 `externalContext: false`。同一实例不要混用两种模式。
+`externalContext: true`（默认）复用调用方 GL 上下文，接第三方实时前处理必须如此。静图接口需要**另一台**引擎且 `externalContext: false`。同一实例不要混用两种模式。
 </Tip>
 
 ## 运行
@@ -81,5 +81,5 @@ flutter run -d <device-id>
 ## 下一步
 
 - [实现美颜](/zh/flutter/implement-beauty) — 专用 setter、滤镜、静图
-- [TRTC 对接](/zh/flutter/trtc-integration) — 原生 `FacebetterPlugin.processTexture`
+- [第三方对接](/zh/flutter/third-party-integration) — 原生 `FacebetterPlugin.processTexture`
 - [API 参考](/zh/flutter/api-reference)

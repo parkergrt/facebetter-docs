@@ -4,7 +4,7 @@ description: "在 Windows 上用 C++ API 集成 Facebetter SDK 2.0"
 ---
 
 <Note>
-SDK **2.0.0**。头文件位于 `facebetter/*.h`。美妆 / 美型枚举见 [参数枚举](/zh/intro/makeup)。鉴权见 [许可证与鉴权](/zh/intro/license)。
+SDK **2.0.0**。头文件位于 `facebetter/*.h`。美妆 / 美型枚举见 [参数枚举](/zh/intro/makeup)。鉴权见 [授权与许可](/zh/intro/license)。
 </Note>
 
 Windows 通过 C++ 库接入（`facebetter.lib` + `facebetter.dll`）。流程参考 [C++ 桌面 Demo](https://github.com/pixpark/facebetter-sdk)（`demo/cpp`）。
@@ -245,11 +245,13 @@ auto output = engine->ProcessImage(input);
 
 使用完毕后释放 `shared_ptr`（`engine.reset()`）。`BeautyEffectEngine` **不是**单例。
 
+接入 TRTC / 声网 / LiveKit：见 [第三方对接](/zh/windows/third-party-integration)。
+
 ## 相关文档
 
 <CardGroup cols={2}>
+  <Card title="第三方对接" href="/zh/windows/third-party-integration">TRTC / 声网 / LiveKit</Card>
   <Card title="API 参考" href="/zh/windows/api-reference">全部 C++ 方法与类型</Card>
   <Card title="错误处理" href="/zh/windows/error-handling">返回码与 DLL 问题</Card>
   <Card title="最佳实践" href="/zh/windows/best-practices">性能与线程</Card>
-  <Card title="常见问题" href="/zh/windows/faq">集成 FAQ</Card>
 </CardGroup>

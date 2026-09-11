@@ -22,11 +22,11 @@ git clone https://github.com/pixpark/facebetter-sdk.git
 
 ### Bind the application package name
 
-Follow [Subscribe](/intro/enable-service#bind-application-information) and bind your Android **application package name** in the Dashboard, for example `com.example.app`.
+Follow [Subscription](/intro/enable-service#bind-application-information) and bind your Android **application package name** in the Dashboard, for example `com.example.app`.
 
 ### Create the engine
 
-Follow [Subscribe](/intro/enable-service#get-appid-and-appkey) to copy `appId` / `appKey`, or use a `licenseToken`. Open the demo camera Activity and set `EngineConfig` before `new BeautyEffectEngine(...)`.
+Follow [Subscription](/intro/enable-service#get-appid-and-appkey) to copy `appId` / `appKey`, or use a `licenseToken`. Open the demo camera Activity and set `EngineConfig` before `new BeautyEffectEngine(...)`.
 
 **Online** (`appId` + `appKey` → `/facebetter/v2/auth`):
 
@@ -46,7 +46,7 @@ mBeautyEngine = new BeautyEffectEngine(this, config);
 ```
 
 <Tip>
-Auth modes and offline `.lic` files: [License & Auth](/intro/license).
+Auth modes and offline `.lic` files: [Auth & License](/intro/license).
 </Tip>
 
 ## Run

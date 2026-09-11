@@ -4,10 +4,10 @@ description: "Integrate Facebetter Flutter SDK 2.0"
 ---
 
 <Note>
-SDK **2.0.0**. Class: **`FBEngine`**. No singleton. Auth: [License & Auth](/intro/license). Enums: [Parameter enums](/intro/makeup).
+SDK **2.0.0**. Class: **`FBEngine`**. No singleton. Auth: [Auth & License](/intro/license). Enums: [Parameter enums](/intro/makeup).
 </Note>
 
-Flutter **only sets parameters**. Live video frames never enter Dart. TRTC / push SDKs feed textures on the native GL thread — see [TRTC integration](/flutter/trtc-integration).
+Flutter **only sets parameters**. Live video frames never enter Dart. Third-party RTC SDKs feed textures on the native GL thread — see [Third-party Integration](/flutter/third-party-integration).
 
 ## Add the plugin
 
@@ -53,7 +53,7 @@ final engine = await FBEngine.create(FBEngineConfig(
 | `appId` / `appKey` | — | Online auth |
 | `licenseToken` | — | token / `{token}` JSON / `.lic` contents |
 | `enableLandmarks` | `false` | Engine-level; cannot change later. Keep `false` unless you read landmarks |
-| `externalContext` | `true` | `true` for TRTC; `false` for photo file APIs |
+| `externalContext` | `true` | `true` for third-party live preprocess; `false` for photo file APIs |
 | `resourcePath` | plugin | Android AAR `resource.fbd` / iOS framework file |
 
 `FBEngine.version` reads the native SDK version string.
@@ -150,7 +150,7 @@ final FBStats s = engine.stats;
 
 ## Still images
 
-Use a **separate** engine with `externalContext: false`. Do **not** call these on a TRTC engine, and do **not** process TRTC video from Dart.
+Use a **separate** engine with `externalContext: false`. Do **not** call these on a live preprocess engine, and do **not** process meeting / push video from Dart.
 
 ```dart
 final photoEngine = await FBEngine.create(const FBEngineConfig(
@@ -176,7 +176,7 @@ Setters and async tasks throw `FBException` with codes `0`, `-1` … `-8`. See [
 
 ## Dispose
 
-Stop TRTC custom preprocess first, then:
+Stop the vendor’s custom preprocess first, then:
 
 ```dart
 engine.dispose();
@@ -184,6 +184,6 @@ engine.dispose();
 
 ## Related
 
-- [TRTC integration](/flutter/trtc-integration)
+- [Third-party Integration](/flutter/third-party-integration)
 - [API reference](/flutter/api-reference)
 - [Quick start](/flutter/quick-start)

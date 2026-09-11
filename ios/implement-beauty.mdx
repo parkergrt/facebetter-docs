@@ -4,7 +4,7 @@ description: "Implement iOS beauty with Facebetter SDK 2.0"
 ---
 
 <Note>
-This page matches SDK **2.0.0**. Auth: [License & Auth](/intro/license). Makeup / reshape enums: [Parameter enums](/intro/makeup).
+This page matches SDK **2.0.0**. Auth: [Auth & License](/intro/license). Makeup / reshape enums: [Parameter enums](/intro/makeup).
 </Note>
 
 ## Add SDK dependency
@@ -71,7 +71,7 @@ logConfig.fileName = @"/path/to/facebetter.log";
 
 ## Create the engine
 
-Bind the iOS Bundle ID, then pass either `licenseToken` or `appId` + `appKey`. See [Get AppID and AppKey](/intro/enable-service#get-appid-and-appkey) and [License & Auth](/intro/license).
+Bind the iOS Bundle ID, then pass either `licenseToken` or `appId` + `appKey`. See [Get AppID and AppKey](/intro/enable-service#get-appid-and-appkey) and [Auth & License](/intro/license).
 
 **Priority:** if `licenseToken` is non-empty (license token string, `{token}` JSON, or `.lic` contents), the SDK validates it locally. Otherwise it uses `appId` + `appKey` against `/facebetter/v2/auth`.
 
@@ -276,6 +276,8 @@ GLuint outputTexture = [outputFrame texture];
 
 Recommended texture params: `GL_LINEAR`, `GL_CLAMP_TO_EDGE`. The engine does not delete your input texture. Output textures are owned by the SDK.
 
+For TRTC / Agora / LiveKit: [Third-party Integration](/ios/third-party-integration).
+
 ## Lifecycle
 
 Keep a strong reference for the session. Nil the engine when the view controller is gone. Pause the capture session when leaving the screen so you stop calling `processImage:`.
@@ -288,6 +290,7 @@ Keep a strong reference for the session. Nil the engine when the view controller
 
 ## Related
 
+- [Third-party Integration](/ios/third-party-integration)
 - [Best Practices](/ios/best-practices)
 - [Error Handling](/ios/error-handling)
 - [FAQ](/ios/faq)

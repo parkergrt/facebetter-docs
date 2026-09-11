@@ -1,0 +1,152 @@
+---
+title: "第三方对接"
+description: "在 Flutter 上将 Facebetter 美颜接入 TRTC、声网 Agora、LiveKit 等第三方视频管线"
+---
+
+SDK **2.0.0**。Flutter **只设置美颜参数**。实时视频帧不进 Dart：在对方 SDK 的 **原生 GL 线程**上调用 `FacebetterPlugin.processTexture`，再把输出纹理写回对方帧。
+
+```
+Flutter（Dart）                              原生 GL 线程（iOS / Android）
+FBEngine.create(externalContext: true)
+engine.setSmoothing / setReshape / …  →     第三方前处理回调
+await engine.setFilter                      FacebetterPlugin.processTexture(tex, w, h)
+engine.dispose()                            写回对方 textureId
+```
+
+## 共性约定
+
+| 项 | 要求 |
+| --- | --- |
+| 实时引擎 | `externalContext: true`（默认）；在打开对方自定义前处理**之前** `FBEngine.create` |
+| 帧处理 | 仅原生 `FacebetterPlugin.processTexture`；必须在**当前 GL 线程** |
+| 静图 | 另建一台引擎且 `externalContext: false`；不要与实时引擎混用 |
+| 输入 | 优先对方提供的 **Texture2D / RGB（`GL_TEXTURE_2D`）**；OES / YUV 需先转换或按对方文档改格式 |
+| 销毁 | 先关对方自定义前处理 / 停轨，再 `engine.dispose()` |
+
+不要在这台实时引擎上调用 `processFile` / `processImageBytes` / `processImageFile` / `processImageToUiImage`。
+
+```dart
+import 'package:facebetter_flutter/facebetter_flutter.dart';
+
+FBEngine.setLogConfig(console: true, level: FBLogLevel.info);
+
+final engine = await FBEngine.create(const FBEngineConfig(
+  appId: 'your_app_id',
+  appKey: 'your_app_key',
+  externalContext: true,
+  enableLandmarks: false,
+));
+
+engine.setSmoothing(0.8);
+engine.setWhitening(0.5);
+engine.setReshape(FBReshape.faceThin, 0.3);
+engine.setLipstick(0.4);
+await engine.setFilter(path: '/path/to/filter.fbd');
+
+// 滑条可直接调同步 setter
+// onChanged: (v) => engine.setSmoothing(v),
+```
+
+凭证：[订阅服务](/zh/intro/enable-service)、[授权与许可](/zh/intro/license)。原生侧纹理约定还可对照 [Android · 第三方对接](/zh/android/third-party-integration)、[iOS · 第三方对接](/zh/ios/third-party-integration)。
+
+| | 实时引擎 | 静图引擎 |
+| --- | --- | --- |
+| `externalContext` | `true`（默认） | `false` |
+| 帧 | 原生 `processTexture` | Dart `processFile` / `processImageBytes` / … |
+| 混用 | 不要调静图接口 | 不要用于推流 / 会议前处理 |
+
+**不要：** 从 Dart 每帧传像素或 texture id；在非 GL 线程调 `processTexture`；把 `FBEngine` 当进程级单例。
+
+---
+
+## TRTC（腾讯云）
+
+前置：工程已接入 `tencent_trtc_cloud`（或原生 TRTC）、`facebetter_flutter: ^2.0.0`。打开自定义前处理时指定 **Texture2D + Texture buffer**，不要走 YUV / PixelBuffer。
+
+Dart 侧创建引擎后打开自定义前处理（方法名随插件版本可能略有差异）：
+
+```dart
+await trtcCloud.enableCustomVideoProcess(true);
+```
+
+### iOS — `onProcessVideoFrame`
+
+```objc
+#import <facebetter_flutter/FacebetterPlugin.h>
+
+- (uint32_t)onProcessVideoFrame:(TRTCVideoFrame *)srcFrame
+                        dstFrame:(TRTCVideoFrame *)dstFrame {
+  uint32_t out = [FacebetterPlugin processTexture:srcFrame.textureId
+                                            width:srcFrame.width
+                                           height:srcFrame.height];
+  if (out != 0) {
+    dstFrame.textureId = out;
+  }
+  return 0;
+}
+```
+
+若使用 `tencent_trtc_cloud` 的 `ITXCustomBeautyProcesser`，像素格式仍选 **Texture2D / Texture**，在回调里调同一个 `processTexture`。工厂注册必须在 `GeneratedPluginRegistrant.register(with:)` **之后**。
+
+### Android — Kotlin
+
+```kotlin
+import net.pixpark.facebetter.flutter.FacebetterPlugin
+
+override fun onProcessVideoFrame(
+    srcFrame: TRTCCloudDef.TRTCVideoFrame,
+    dstFrame: TRTCCloudDef.TRTCVideoFrame,
+): Int {
+    val out = FacebetterPlugin.processTexture(
+        srcFrame.texture.textureId,
+        srcFrame.width,
+        srcFrame.height,
+    )
+    if (out != 0) {
+        dstFrame.texture.textureId = out
+    }
+    return 0
+}
+```
+
+### 销毁
+
+```dart
+await trtcCloud.enableCustomVideoProcess(false);
+engine.dispose();
+```
+
+---
+
+## 声网 Agora
+
+挂钩思路与原生一致：在 **iOS / Android 原生**的视频帧观测 / 自定义前处理回调里调用 `FacebetterPlugin.processTexture`，Dart 只负责 `FBEngine` 参数。
+
+1. Dart：`FBEngine.create(externalContext: true)` 并设置美颜  
+2. 按 Agora Flutter 插件文档打开自定义视频处理或注册原生 observer（API 随 `agora_rtc_engine` 版本变化）  
+3. 在原生回调拿到 **`GL_TEXTURE_2D` textureId** 后调用 `processTexture`，写回对方帧  
+
+OES / 仅 YUV 的回调需先转成 Texture2D，或对照 [Android](/zh/android/third-party-integration#声网-agora) / [iOS](/zh/ios/third-party-integration#声网-agora) 的像素路径说明（Flutter 实时路径仍优先纹理 + `processTexture`）。
+
+销毁：先注销 Agora 前处理，再 `engine.dispose()`。
+
+---
+
+## LiveKit
+
+同样：**Dart 设参数，原生处理纹理**。
+
+1. Dart 创建 `externalContext: true` 的引擎  
+2. 用 LiveKit Flutter / 原生自定义 capturer 或 video processor 拿到纹理帧  
+3. 在 **GL 线程**调用 `FacebetterPlugin.processTexture`，再把输出送回 LiveKit 轨  
+
+具体挂点随 `livekit_client` 与平台实现变化；纹理约定见 [Android · LiveKit](/zh/android/third-party-integration#livekit)、[iOS · LiveKit](/zh/ios/third-party-integration#livekit)。
+
+---
+
+## 相关文档
+
+- [实现美颜](/zh/flutter/implement-beauty)
+- [API 参考](/zh/flutter/api-reference)
+- [Android · 第三方对接](/zh/android/third-party-integration)
+- [iOS · 第三方对接](/zh/ios/third-party-integration)

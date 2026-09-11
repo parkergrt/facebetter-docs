@@ -1,0 +1,271 @@
+---
+title: "第三方对接"
+description: "在 Android 上将 Facebetter 美颜接入 TRTC、声网 Agora、LiveKit 等第三方视频管线"
+---
+
+SDK **2.0.0**。把 Facebetter 挂在第三方 SDK 的**自定义视频前处理**回调里：在对方提供的 **OpenGL ES 线程**上，用外部纹理跑 `processImage`，再把输出纹理交回对方。
+
+完整纹理约定见 [实现美颜 · 外部纹理](/zh/android/implement-beauty#外部纹理opengl-es)。对方 SDK 的进房、推流、权限请以其官方文档为准；本页只写与 Facebetter 的接线。
+
+```
+第三方 SDK（GL 线程）
+  输入 textureId
+       ↓
+BeautyEffectEngine（externalContext = true）
+  ImageFrame.createWithTexture → processImage
+       ↓
+  输出 textureId → 写回第三方帧 / 回调
+```
+
+## 共性约定
+
+| 项 | 要求 |
+| --- | --- |
+| 引擎 | `externalContext = true`，在**对方 GL 回调线程**惰性创建 |
+| 输入 | `GL_TEXTURE_2D`（RGBA）；`stride` 一般为 `width * 4` |
+| 帧类型 | `ImageFrame.FrameType.VIDEO` |
+| 输出 | SDK 持有输出纹理，不要 `glDeleteTextures`；务必 `ImageFrame.release()` |
+| 生命周期 | 对方销毁 GL 上下文时先 `engine.release()`，再在新上下文重建 |
+
+Facebetter **不接受** `GL_TEXTURE_EXTERNAL_OES` 作为 `createWithTexture` 输入。若对方默认给 OES，请先按其文档切到 **Texture2D / RGB**，或自行 blit 成 `GL_TEXTURE_2D` 再处理。
+
+### 共用处理函数
+
+各厂商回调里都可以复用下面的辅助方法（在 GL 线程调用）：
+
+```java
+import net.pixpark.facebetter.BeautyEffectEngine;
+import net.pixpark.facebetter.ImageFrame;
+
+/** @return 美颜后的 GL_TEXTURE_2D；失败时返回 srcTextureId（或 0，按你的策略） */
+static int processTexture(BeautyEffectEngine engine, int srcTextureId, int width, int height) {
+    if (engine == null || srcTextureId == 0 || width <= 0 || height <= 0) {
+        return srcTextureId;
+    }
+    int stride = width * 4;
+    ImageFrame input = ImageFrame.createWithTexture(srcTextureId, width, height, stride);
+    if (input == null) {
+        return srcTextureId;
+    }
+    input.type = ImageFrame.FrameType.VIDEO;
+    ImageFrame output = engine.processImage(input);
+    if (output == null) {
+        input.release();
+        return srcTextureId;
+    }
+    int dst = output.getTexture();
+    output.release();
+    input.release();
+    return dst != 0 ? dst : srcTextureId;
+}
+```
+
+创建引擎（同样在 GL 线程）：
+
+```java
+BeautyEffectEngine.EngineConfig config = new BeautyEffectEngine.EngineConfig();
+config.appId = "your appId";
+config.appKey = "your appKey";
+// 或 config.licenseToken = "...";
+config.externalContext = true;
+BeautyEffectEngine engine = new BeautyEffectEngine(context, config);
+engine.setSmoothing(0.5f);
+```
+
+凭证与鉴权：[订阅服务](/zh/intro/enable-service)、[授权与许可](/zh/intro/license)。
+
+---
+
+## TRTC（腾讯云）
+
+挂钩 API：`TRTCCloud.setLocalVideoProcessListener`。像素格式选 **Texture_2D**，缓冲类型选 **TEXTURE**。
+
+在 `onGLContextCreated` 里创建 Facebetter；在 `onProcessVideoFrame` 里处理并写回 `dstFrame.texture.textureId`；在 `onGLContextDestory` 里 `release()`。
+
+```java
+import com.tencent.trtc.TRTCCloud;
+import com.tencent.trtc.TRTCCloudDef;
+import com.tencent.trtc.TRTCCloudListener;
+
+trtcCloud.setLocalVideoProcessListener(
+    TRTCCloudDef.TRTC_VIDEO_PIXEL_FORMAT_Texture_2D,
+    TRTCCloudDef.TRTC_VIDEO_BUFFER_TYPE_TEXTURE,
+    new TRTCCloudListener.TRTCVideoFrameListener() {
+        @Override
+        public void onGLContextCreated() {
+            // 此时 TRTC 已绑定 GL 上下文，惰性创建 BeautyEffectEngine
+            ensureEngine();
+        }
+
+        @Override
+        public int onProcessVideoFrame(
+                TRTCCloudDef.TRTCVideoFrame srcFrame,
+                TRTCCloudDef.TRTCVideoFrame dstFrame) {
+            int out = processTexture(
+                    beautyEngine,
+                    srcFrame.texture.textureId,
+                    srcFrame.width,
+                    srcFrame.height);
+            dstFrame.texture.textureId = out;
+            return 0;
+        }
+
+        @Override
+        public void onGLContextDestory() {
+            if (beautyEngine != null) {
+                beautyEngine.release();
+                beautyEngine = null;
+            }
+        }
+    });
+```
+
+取消监听或退房后释放引擎。更多说明见 [TRTC 第三方美颜](https://cloud.tencent.com/document/product/647/32270)（以腾讯云当前文档为准）。
+
+Flutter 工程请用 [Flutter · 第三方对接](/zh/flutter/third-party-integration)（走 `FacebetterPlugin.processTexture`，不是本页的 Java API）。
+
+---
+
+## 声网 Agora
+
+挂钩 API：`RtcEngine.registerVideoFrameObserver`（Video SDK **4.x**）。需要：
+
+1. `getVideoFrameProcessMode()` 返回 `PROCESS_MODE_READ_WRITE`
+2. 尽量拿到 **TextureBuffer**，且类型为 **RGB（`GL_TEXTURE_2D`）**
+3. 在 `onCaptureVideoFrame`（或你选择的观测位置）里跑 Facebetter，再把处理后的纹理**写回** `VideoFrame`
+
+```java
+import io.agora.rtc2.RtcEngine;
+import io.agora.rtc2.video.IVideoFrameObserver;
+import io.agora.base.VideoFrame;
+
+engine.registerVideoFrameObserver(new IVideoFrameObserver() {
+    @Override
+    public boolean onCaptureVideoFrame(int sourceType, VideoFrame videoFrame) {
+        VideoFrame.Buffer buffer = videoFrame.getBuffer();
+        if (!(buffer instanceof VideoFrame.TextureBuffer)) {
+            return true; // 非纹理：按你的策略透传或转纹理
+        }
+        VideoFrame.TextureBuffer tex = (VideoFrame.TextureBuffer) buffer;
+        if (tex.getType() != VideoFrame.TextureBuffer.Type.RGB) {
+            return true; // OES：先转 GL_TEXTURE_2D，或调整 format preference
+        }
+
+        ensureEngine(); // 须在当前 GL / EGL 上下文中
+        int outId = processTexture(
+                beautyEngine,
+                tex.getTextureId(),
+                tex.getWidth(),
+                tex.getHeight());
+
+        // 将 outId 包成 TextureBuffer 并写回 videoFrame。
+        // 具体 API（TextureBufferHelper / replaceBuffer 等）随 Agora SDK 版本变化，
+        // 请对照声网「原始视频数据」文档完成替换后再 return true。
+        return true;
+    }
+
+    @Override
+    public int getVideoFrameProcessMode() {
+        return IVideoFrameObserver.PROCESS_MODE_READ_WRITE;
+    }
+
+    @Override
+    public int getVideoFormatPreference() {
+        // 优先让 SDK 给出可处理的纹理；具体常量以你集成的 Agora 版本为准
+        return IVideoFrameObserver.VIDEO_PIXEL_DEFAULT;
+    }
+
+    // 其余回调按需实现；观测位置常用 POSITION_POST_CAPTURER
+});
+```
+
+<Warning>
+声网侧「如何把新 `textureId` 写回 `VideoFrame`」依赖其 TextureBuffer 工具类，不同大版本差异较大。Facebetter 只负责产出新的 `GL_TEXTURE_2D`；写回步骤以 [Agora 视频帧观测](https://docs.agora.io/en/video-calling/develop/product-workflow) / API Reference 为准。
+</Warning>
+
+销毁 `RtcEngine` 前注销 observer，并 `beautyEngine.release()`。
+
+---
+
+## LiveKit
+
+挂钩方式：创建本地视频轨时传入 `org.webrtc.VideoProcessor`（或等价的 track processor）。在 `onFrameCaptured` 里处理纹理，再通过 `sink.onFrame(...)` 送回。
+
+```kotlin
+import io.livekit.android.room.track.LocalVideoTrackOptions
+import org.webrtc.VideoFrame
+import org.webrtc.VideoProcessor
+import org.webrtc.VideoSink
+
+class FacebetterVideoProcessor(
+    private val appContext: android.content.Context,
+) : VideoProcessor {
+    private var sink: VideoSink? = null
+    private var beautyEngine: BeautyEffectEngine? = null
+
+    override fun setSink(videoSink: VideoSink?) {
+        sink = videoSink
+    }
+
+    override fun onCapturerStarted(success: Boolean) {}
+
+    override fun onCapturerStopped() {
+        beautyEngine?.release()
+        beautyEngine = null
+    }
+
+    override fun onFrameCaptured(frame: VideoFrame) {
+        val buffer = frame.buffer
+        if (buffer !is VideoFrame.TextureBuffer ||
+            buffer.type != VideoFrame.TextureBuffer.Type.RGB
+        ) {
+            sink?.onFrame(frame)
+            return
+        }
+
+        ensureEngine() // 使用 LiveKit / WebRTC 当前 EGL 上下文
+        val outId = processTexture(
+            beautyEngine,
+            buffer.textureId,
+            buffer.width,
+            buffer.height,
+        )
+
+        // 用 outId 构造新的 TextureBuffer / VideoFrame 后：
+        // sink?.onFrame(processedFrame)
+        // processedFrame.release()
+        //
+        // TextureBuffer 的构造依赖 WebRTC 的 Handler / YuvConverter 等，
+        // 请对照 LiveKit Android SDK 与 WebRTC 示例完成包装。
+        sink?.onFrame(frame)
+    }
+}
+
+// 创建轨道时挂上 processor（API 以你使用的 livekit-android 版本为准）
+val videoTrack = room.localParticipant.createVideoTrack(
+    options = LocalVideoTrackOptions(),
+    videoProcessor = FacebetterVideoProcessor(context),
+)
+videoTrack.startCapture()
+room.localParticipant.publishVideoTrack(videoTrack)
+```
+
+也可自研 `VideoCapturer`，在采到纹理后先 `processTexture` 再 `capturerObserver.onFrameCaptured`。虚拟背景等官方 processor 见 LiveKit 的 `livekit-android-track-processors` 模块。
+
+---
+
+## 排错要点
+
+| 现象 | 排查 |
+| --- | --- |
+| 黑屏 / 无画面 | 是否在对方 **GL 线程**创建引擎并 `processImage`；失败时是否错误丢弃了帧 |
+| 美颜不生效 | `externalContext` 是否为 `true`；输入是否为 `GL_TEXTURE_2D` |
+| 偶发闪退 | 是否在 `onGLContextDestory` / capturer stop 时 `release()`；是否对输出纹理 `glDeleteTextures` |
+| 花屏 / 拉伸 | 宽高、旋转、镜像是否与对方帧一致；OES 未转 2D |
+
+## 相关文档
+
+- [实现美颜](/zh/android/implement-beauty)
+- [最佳实践](/zh/android/best-practices)
+- [错误处理](/zh/android/error-handling)
+- [API 参考](/zh/android/api-reference)

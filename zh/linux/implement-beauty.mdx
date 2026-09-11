@@ -4,7 +4,7 @@ description: "在 Linux 上用 C++ API 集成 Facebetter SDK 2.0"
 ---
 
 <Note>
-SDK **2.0.0**。与 Windows 同一套 C++ API（`facebetter` 命名空间）。枚举见 [参数枚举](/zh/intro/makeup)。鉴权见 [许可证与鉴权](/zh/intro/license)。
+SDK **2.0.0**。与 Windows 同一套 C++ API（`facebetter` 命名空间）。枚举见 [参数枚举](/zh/intro/makeup)。鉴权见 [授权与许可](/zh/intro/license)。
 </Note>
 
 Linux 使用 `libfacebetter.so` 和 `facebetter/*.h`。流程参考 [C++ 桌面 Demo](https://github.com/pixpark/facebetter-sdk)（`demo/cpp`）。编译 SDK 本身可用 `./scripts/build_linux.sh`，或在 `build/linux` 下用 CMake。
@@ -216,11 +216,13 @@ auto output = engine->ProcessImage(input);
 
 用 `engine.reset()` 释放。引擎 **不是**单例。
 
+接入 TRTC / 声网 / LiveKit：见 [第三方对接](/zh/linux/third-party-integration)。
+
 ## 相关文档
 
 <CardGroup cols={2}>
+  <Card title="第三方对接" href="/zh/linux/third-party-integration">TRTC / 声网 / LiveKit</Card>
   <Card title="API 参考" href="/zh/linux/api-reference">C++ 方法与 Linux 说明</Card>
   <Card title="错误处理" href="/zh/linux/error-handling">返回码与 .so / DISPLAY</Card>
   <Card title="最佳实践" href="/zh/linux/best-practices">性能与 rpath</Card>
-  <Card title="常见问题" href="/zh/linux/faq">FAQ</Card>
 </CardGroup>

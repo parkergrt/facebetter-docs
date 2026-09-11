@@ -4,7 +4,7 @@ description: "Run the Facebetter Web SDK 2.0 example"
 ---
 
 <Note>
-This page matches SDK **2.0.0**. Auth: [License & Auth](/intro/license). Makeup / reshape enums: [Parameter enums](/intro/makeup).
+This page matches SDK **2.0.0**. Auth: [Auth & License](/intro/license). Makeup / reshape enums: [Parameter enums](/intro/makeup).
 </Note>
 
 ## Requirements
@@ -43,10 +43,10 @@ The demo is a Vite + React app. It depends on the in-repo SDK via `file:` during
 
 ## Bind domain and get credentials
 
-1. In the Dashboard, bind your Web **domain** (for example `example.com`). See [Subscribe](/intro/enable-service).
+1. In the Dashboard, bind your Web **domain** (for example `example.com`). See [Subscription](/intro/enable-service).
 2. Copy `appId` / `appKey` from the Dashboard. **Do not put them on `EngineConfig`.** On Web they belong on your **server**, or only inside `createDirectAuthFetcher` for local debug.
 
-Web has **no** offline `.lic`. Details: [License & Auth](/intro/license).
+Web has **no** offline `.lic`. Details: [Auth & License](/intro/license).
 
 ## Configure the demo
 
@@ -96,4 +96,4 @@ const engine = new BeautyEffectEngine(new EngineConfig({
 await engine.init();
 ```
 
-Your proxy holds `app_id` / `app_key` and forwards the SDK auth request. Example server code is on [License & Auth](/intro/license).
+Your proxy holds `app_id` / `app_key` and forwards the SDK auth request. Example server code is on [Auth & License](/intro/license).

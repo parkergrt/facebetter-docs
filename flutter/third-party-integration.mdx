@@ -1,0 +1,152 @@
+---
+title: "Third-party Integration"
+description: "Wire Facebetter beauty into TRTC, Agora, LiveKit, and other Flutter video pipelines"
+---
+
+SDK **2.0.0**. Flutter **only sets beauty parameters**. Live frames never enter Dart: call `FacebetterPlugin.processTexture` on the vendor SDK’s **native GL thread**, then write the output texture back.
+
+```
+Flutter (Dart)                              Native GL thread (iOS / Android)
+FBEngine.create(externalContext: true)
+engine.setSmoothing / setReshape / …  →     Vendor preprocess callback
+await engine.setFilter                      FacebetterPlugin.processTexture(tex, w, h)
+engine.dispose()                            Write back vendor textureId
+```
+
+## Shared contract
+
+| Item | Requirement |
+| --- | --- |
+| Live engine | `externalContext: true` (default); `FBEngine.create` **before** enabling vendor custom preprocess |
+| Frames | Native `FacebetterPlugin.processTexture` only; must run on the **current GL thread** |
+| Stills | Separate engine with `externalContext: false`; never mix with the live engine |
+| Input | Prefer vendor **Texture2D / RGB (`GL_TEXTURE_2D`)**; convert OES / YUV first or change format per vendor docs |
+| Tear-down | Disable vendor preprocess / stop tracks, then `engine.dispose()` |
+
+Do **not** call `processFile` / `processImageBytes` / `processImageFile` / `processImageToUiImage` on the live engine.
+
+```dart
+import 'package:facebetter_flutter/facebetter_flutter.dart';
+
+FBEngine.setLogConfig(console: true, level: FBLogLevel.info);
+
+final engine = await FBEngine.create(const FBEngineConfig(
+  appId: 'your_app_id',
+  appKey: 'your_app_key',
+  externalContext: true,
+  enableLandmarks: false,
+));
+
+engine.setSmoothing(0.8);
+engine.setWhitening(0.5);
+engine.setReshape(FBReshape.faceThin, 0.3);
+engine.setLipstick(0.4);
+await engine.setFilter(path: '/path/to/filter.fbd');
+
+// Sliders can call sync setters directly:
+// onChanged: (v) => engine.setSmoothing(v),
+```
+
+Credentials: [Subscription](/intro/enable-service), [Auth & License](/intro/license). Native texture rules: [Android · Third-party Integration](/android/third-party-integration), [iOS · Third-party Integration](/ios/third-party-integration).
+
+| | Live engine | Photo engine |
+| --- | --- | --- |
+| `externalContext` | `true` (default) | `false` |
+| Frames | Native `processTexture` | Dart `processFile` / `processImageBytes` / … |
+| Mixing | No photo APIs | Not for live / meeting preprocess |
+
+**Do not:** push pixels or texture ids from Dart every frame; call `processTexture` off the GL thread; treat `FBEngine` as a process-wide singleton.
+
+---
+
+## TRTC (Tencent)
+
+Prerequisites: `tencent_trtc_cloud` (or native TRTC) and `facebetter_flutter: ^2.0.0`. When enabling custom preprocess, use **Texture2D + Texture buffer**, not YUV / PixelBuffer.
+
+After creating the engine in Dart, enable custom process (API name may vary by plugin version):
+
+```dart
+await trtcCloud.enableCustomVideoProcess(true);
+```
+
+### iOS — `onProcessVideoFrame`
+
+```objc
+#import <facebetter_flutter/FacebetterPlugin.h>
+
+- (uint32_t)onProcessVideoFrame:(TRTCVideoFrame *)srcFrame
+                        dstFrame:(TRTCVideoFrame *)dstFrame {
+  uint32_t out = [FacebetterPlugin processTexture:srcFrame.textureId
+                                            width:srcFrame.width
+                                           height:srcFrame.height];
+  if (out != 0) {
+    dstFrame.textureId = out;
+  }
+  return 0;
+}
+```
+
+If you use `tencent_trtc_cloud`’s `ITXCustomBeautyProcesser`, keep **Texture2D / Texture** and call the same `processTexture` in the callback. Register the factory **after** `GeneratedPluginRegistrant.register(with:)`.
+
+### Android — Kotlin
+
+```kotlin
+import net.pixpark.facebetter.flutter.FacebetterPlugin
+
+override fun onProcessVideoFrame(
+    srcFrame: TRTCCloudDef.TRTCVideoFrame,
+    dstFrame: TRTCCloudDef.TRTCVideoFrame,
+): Int {
+    val out = FacebetterPlugin.processTexture(
+        srcFrame.texture.textureId,
+        srcFrame.width,
+        srcFrame.height,
+    )
+    if (out != 0) {
+        dstFrame.texture.textureId = out
+    }
+    return 0
+}
+```
+
+### Tear-down
+
+```dart
+await trtcCloud.enableCustomVideoProcess(false);
+engine.dispose();
+```
+
+---
+
+## Agora
+
+Same model as native: call `FacebetterPlugin.processTexture` inside the **iOS / Android** frame observer / custom preprocess callback; Dart only owns `FBEngine` parameters.
+
+1. Dart: `FBEngine.create(externalContext: true)` and set beauty  
+2. Enable custom video processing or register a native observer per the Agora Flutter plugin (APIs vary by `agora_rtc_engine` version)  
+3. On a **`GL_TEXTURE_2D` textureId**, call `processTexture` and write back to the vendor frame  
+
+For OES / YUV-only callbacks, convert to Texture2D first, or see [Android](/android/third-party-integration#agora) / [iOS](/ios/third-party-integration#agora) (Flutter live path still prefers texture + `processTexture`).
+
+Tear-down: unregister Agora preprocess, then `engine.dispose()`.
+
+---
+
+## LiveKit
+
+Again: **Dart sets parameters, native processes textures**.
+
+1. Create an `externalContext: true` engine in Dart  
+2. Obtain texture frames via LiveKit Flutter / a native custom capturer or video processor  
+3. Call `FacebetterPlugin.processTexture` on the **GL thread**, then feed the output back into the LiveKit track  
+
+Hook details vary by `livekit_client` and platform; texture rules: [Android · LiveKit](/android/third-party-integration#livekit), [iOS · LiveKit](/ios/third-party-integration#livekit).
+
+---
+
+## Related
+
+- [Implement Beauty](/flutter/implement-beauty)
+- [API Reference](/flutter/api-reference)
+- [Android · Third-party Integration](/android/third-party-integration)
+- [iOS · Third-party Integration](/ios/third-party-integration)

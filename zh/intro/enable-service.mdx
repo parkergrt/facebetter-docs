@@ -1,13 +1,11 @@
 ---
-title: "订阅与凭证"
+title: "订阅服务"
 description: "开通 Facebetter SDK 订阅服务并获取 AppID & AppKey，开始使用美颜功能"
 ---
 
-# 订阅服务
-
 ## 注册 / 登录
 
-注册并登录控制台后，会创建默认项目，并显示当前订阅。默认项目是**免费版**（可试用大部分效果，输出始终带水印）。套餐细则见 [套餐说明](./pricing)。
+注册并登录控制台后，会创建默认项目，并显示当前订阅。默认项目是**免费版**（可试用大部分效果，输出始终带水印）。套餐细则见 [套餐与功能](./pricing)。
 
 <Frame>
   <img src="/images/dash-overview.jpg" alt="控制台订阅信息" />
@@ -35,7 +33,7 @@ SDK 会校验运行中的应用是否与控制台绑定的标识一致：
 点击 "Your Subscription" 卡片上的 **"Subscribe"**：
 
 1. **计费周期**：月付或年付（年付约 8 折，买 10 送 2）。
-2. **套餐**：免费版、基础版、专业版或专业版 Plus。各档能力见 [套餐说明](./pricing)。
+2. **套餐**：免费版、基础版、专业版或专业版 Plus。各档能力见 [套餐与功能](./pricing)。
 3. **支付**：确认订单摘要后，通过 Stripe 完成付款。
 
 <Frame>
@@ -50,4 +48,4 @@ SDK 会校验运行中的应用是否与控制台绑定的标识一致：
   <img src="/images/dash-appid-appkey.jpg" alt="控制台 AppID & AppKey" />
 </Frame>
 
-原生应用可用 `appId` + `appKey` 在线鉴权，或传入 `licenseToken`（许可证 token、`{token}` JSON，或离线 `.lic` 全文）。Web **不要**把 `appKey` 打进前端 JavaScript。详见 [授权与许可证](./license)。
+原生应用可用 `appId` + `appKey` 在线鉴权，或传入 `licenseToken`（许可证 token、`{token}` JSON，或离线 `.lic` 全文）。Web **不要**把 `appKey` 打进前端 JavaScript。详见 [授权与许可](./license)。

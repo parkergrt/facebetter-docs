@@ -4,7 +4,7 @@ description: "Facebetter Web SDK 2.0 常见问题"
 ---
 
 <Note>
-SDK **2.0.0**。鉴权：[授权与许可证](/zh/intro/license)。枚举：[参数枚举](/zh/intro/makeup)。
+SDK **2.0.0**。鉴权：[授权与许可](/zh/intro/license)。枚举：[参数枚举](/zh/intro/makeup)。
 </Note>
 
 ## 接入
@@ -12,7 +12,7 @@ SDK **2.0.0**。鉴权：[授权与许可证](/zh/intro/license)。枚举：[参
 ### 引擎创建 / `init()` 失败
 
 - `EngineConfig` 必须设置 `licenseToken`、`authProxyUrl`、`fetchAuthResponse` **之一**。Web 配置上没有 `appId` / `appKey` 字段。
-- 生产环境：代理必须原样返回鉴权接口响应体（`{success, token}` 或错误 JSON）。见 [授权与许可证](/zh/intro/license)。
+- 生产环境：代理必须原样返回鉴权接口响应体（`{success, token}` 或错误 JSON）。见 [授权与许可](/zh/intro/license)。
 - 确认 `/resource.fbd`（或你的 `resourcePath`）返回 HTTP 200。
 - 确认页面是 HTTPS 或 localhost。
 - 查看 `FacebetterError.code`（[错误处理](/zh/web/error-handling)）。

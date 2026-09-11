@@ -4,7 +4,7 @@ description: "用 Facebetter SDK 2.0 实现 macOS 美颜"
 ---
 
 <Note>
-本文档对应 SDK **2.0.0**。授权见 [授权认证](/zh/intro/license)。美妆 / 美型枚举见 [参数枚举](/zh/intro/makeup)。
+本文档对应 SDK **2.0.0**。授权见 [授权与许可](/zh/intro/license)。美妆 / 美型枚举见 [参数枚举](/zh/intro/makeup)。
 </Note>
 
 ## 添加 SDK 依赖
@@ -74,7 +74,7 @@ logConfig.fileName = @"/path/in/container/facebetter.log";
 
 ## 创建引擎
 
-绑定 macOS Bundle ID，然后传入 `licenseToken` 或 `appId` + `appKey`。见 [获取 AppID 和 AppKey](/zh/intro/enable-service#获取-appid-和-appkey) 与 [授权认证](/zh/intro/license)。
+绑定 macOS Bundle ID，然后传入 `licenseToken` 或 `appId` + `appKey`。见 [获取 AppID 和 AppKey](/zh/intro/enable-service#获取-appid-和-appkey) 与 [授权与许可](/zh/intro/license)。
 
 **优先级：** `licenseToken` 非空（许可证 token、`{token}` JSON 或 `.lic` 内容）时本地校验；否则用 `appId` + `appKey` 请求 `/facebetter/v2/auth`。
 
@@ -259,6 +259,8 @@ FBImageFrame *outputFrame = [self.engine processImage:inputFrame];
 GLuint outputTexture = [outputFrame texture];
 ```
 
+接入 TRTC / 声网 / LiveKit：见 [第三方对接](/zh/macos/third-party-integration)。
+
 ## 生命周期
 
 用 `NSViewController` 的 strong 引用持有引擎。视图消失或窗口最小化时停止采集。会话结束时将引擎置 `nil`。
@@ -271,6 +273,7 @@ GLuint outputTexture = [outputFrame texture];
 
 ## 相关文档
 
+- [第三方对接](/zh/macos/third-party-integration)
 - [最佳实践](/zh/macos/best-practices)
 - [错误处理](/zh/macos/error-handling)
 - [常见问题](/zh/macos/faq)

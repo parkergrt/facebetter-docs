@@ -1,0 +1,62 @@
+---
+title: "第三方对接"
+description: "在 Linux 上将 Facebetter 美颜接入 TRTC、声网 Agora、LiveKit 等第三方视频管线"
+---
+
+SDK **2.0.0**。与 [Windows · 第三方对接](/zh/windows/third-party-integration) **同一套 C++ API** 与对接思路：桌面侧多为 **I420 / YUV 缓冲**，不是移动端的 OpenGL 纹理回调。
+
+本页只补 Linux 差异；共用辅助函数、TRTC / 声网 / LiveKit 接线请直接对照 Windows 页（把头文件与库路径换成 Linux 产物即可）。
+
+```
+第三方 SDK（前处理回调）
+  I420 平面
+       ↓
+BeautyEffectEngine（external_context = false）
+  CreateWithI420 → ProcessImage → 写回缓冲
+```
+
+## Linux 差异
+
+| 项 | 说明 |
+| --- | --- |
+| 库 | `libfacebetter.so` + `facebetter/*.h` |
+| 链接 | 见 [实现美颜](/zh/linux/implement-beauty)；运行时注意 `LD_LIBRARY_PATH` / rpath |
+| GL | 有显示器时用系统 GL；无头环境可用 OSMesa / EGL（见 [最佳实践](/zh/linux/best-practices)）。缓冲路径一般仍 `external_context = false` |
+| `resource_path` | 必须指向 `resource.fbd` **文件** |
+| 控制台绑定 | 包名或可执行文件名 / 进程名，见 [订阅服务](/zh/intro/enable-service) |
+
+创建引擎示意：
+
+```cpp
+EngineConfig cfg;
+cfg.app_id = "your_app_id";
+cfg.app_key = "your_app_key";
+cfg.resource_path = "/opt/yourapp/resource/resource.fbd";
+cfg.external_context = false;
+auto engine = BeautyEffectEngine::Create(cfg);
+```
+
+I420 共用处理函数与厂商挂钩点：**完整拷贝见 [Windows · 第三方对接](/zh/windows/third-party-integration)**（`ProcessI420InPlace`、TRTC Buffer、声网 `IVideoFrameObserver`、LiveKit 自定义视频源）。
+
+## 厂商速览
+
+| 厂商 | Linux 注意 |
+| --- | --- |
+| **TRTC** | PC 仅 **Buffer / I420**，不要套 Android Texture 路径 |
+| **声网** | C++ `registerVideoFrameObserver`，ReadWrite + I420 平面原位处理 |
+| **LiveKit** | 自定义视频源推帧；无头服务器需确认采集与 GL/软件路径 |
+
+## 排错
+
+| 现象 | 排查 |
+| --- | --- |
+| `.so` 找不到 | `LD_LIBRARY_PATH`、rpath、是否与可执行文件同架构 |
+| `Create` 失败 | `.fbd` 路径、鉴权、无头环境下的 GL / OSMesa |
+| 其余 | 同 [Windows 排错](/zh/windows/third-party-integration#排错要点) |
+
+## 相关文档
+
+- [Windows · 第三方对接](/zh/windows/third-party-integration)（主文档）
+- [实现美颜](/zh/linux/implement-beauty)
+- [最佳实践](/zh/linux/best-practices)
+- [API 参考](/zh/linux/api-reference)

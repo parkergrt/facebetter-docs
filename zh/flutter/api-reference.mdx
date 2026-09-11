@@ -4,7 +4,7 @@ description: "Facebetter Flutter SDK 2.0 API"
 ---
 
 <Note>
-本文档对应 SDK **2.0.0**。类名：**`FBEngine`**。美妆 / 美型枚举：[参数枚举](/zh/intro/makeup)。鉴权：[授权与许可证](/zh/intro/license)。
+本文档对应 SDK **2.0.0**。类名：**`FBEngine`**。美妆 / 美型枚举：[参数枚举](/zh/intro/makeup)。鉴权：[授权与许可](/zh/intro/license)。
 </Note>
 
 ```yaml
@@ -95,7 +95,7 @@ void setChromaKeyDesaturation(double value)
 
 ### 静图
 
-要求 `externalContext: false`，否则抛 `StateError`。**不要用于 TRTC 视频。**
+要求 `externalContext: false`，否则抛 `StateError`。**不要用于实时前处理视频。**
 
 ```dart
 Future<void> processFile({required String input, required String output, int quality = 90})
@@ -148,14 +148,14 @@ FBStats get stats
 
 - `FBBitmap` — `width`、`height`、`stride`、`pixels`（RGBA8888 拷贝）
 - `FBLogLevel` — `trace` … `critical`
-- `FBMirror` — `none`、`horizontal`、`vertical`、`both`（TRTC 纹理路径不用）
+- `FBMirror` — `none`、`horizontal`、`vertical`、`both`（实时纹理路径通常不用）
 - `FBFace` / `FBFaceList` / `FBRect` — `enableLandmarks: true` 时的关键点视图（`kLandmarkCount` = 111）
 
 ## 原生纹理（不经过 Dart）
 
-以 `externalContext: true` `create` 后，在 **TRTC 的 GL 线程**上：
+以 `externalContext: true` `create` 后，在 **对方 SDK 的 GL 线程**上：
 
 - iOS：`[FacebetterPlugin processTexture:width:height:]`
 - Android：`FacebetterPlugin.processTexture(textureId, width, height)`
 
-失败返回 `0`。完整片段见 [TRTC 对接](/zh/flutter/trtc-integration)。
+失败返回 `0`。完整片段见 [第三方对接](/zh/flutter/third-party-integration)。

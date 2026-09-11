@@ -82,6 +82,7 @@
                 "pages": [
                   "android/quick-start",
                   "android/implement-beauty",
+                  "android/third-party-integration",
                   "android/error-handling",
                   "android/api-reference",
                   "android/best-practices",
@@ -95,6 +96,7 @@
                 "pages": [
                   "ios/quick-start",
                   "ios/implement-beauty",
+                  "ios/third-party-integration",
                   "ios/error-handling",
                   "ios/api-reference",
                   "ios/best-practices",
@@ -108,6 +110,7 @@
                 "pages": [
                   "macos/quick-start",
                   "macos/implement-beauty",
+                  "macos/third-party-integration",
                   "macos/error-handling",
                   "macos/api-reference",
                   "macos/best-practices",
@@ -121,6 +124,7 @@
                 "pages": [
                   "windows/quick-start",
                   "windows/implement-beauty",
+                  "windows/third-party-integration",
                   "windows/error-handling",
                   "windows/api-reference",
                   "windows/best-practices",
@@ -134,6 +138,7 @@
                 "pages": [
                   "linux/quick-start",
                   "linux/implement-beauty",
+                  "linux/third-party-integration",
                   "linux/error-handling",
                   "linux/api-reference",
                   "linux/best-practices",
@@ -147,6 +152,7 @@
                 "pages": [
                   "web/quick-start",
                   "web/implement-beauty",
+                  "web/third-party-integration",
                   "web/error-handling",
                   "web/api-reference",
                   "web/best-practices",
@@ -160,8 +166,8 @@
                 "pages": [
                   "flutter/quick-start",
                   "flutter/implement-beauty",
-                  "flutter/api-reference",
-                  "flutter/trtc-integration"
+                  "flutter/third-party-integration",
+                  "flutter/api-reference"
                 ],
                 "icon": "mobile",
                 "iconType": "solid"
@@ -228,6 +234,7 @@
                 "pages": [
                   "zh/android/quick-start",
                   "zh/android/implement-beauty",
+                  "zh/android/third-party-integration",
                   "zh/android/error-handling",
                   "zh/android/api-reference",
                   "zh/android/best-practices",
@@ -241,6 +248,7 @@
                 "pages": [
                   "zh/ios/quick-start",
                   "zh/ios/implement-beauty",
+                  "zh/ios/third-party-integration",
                   "zh/ios/error-handling",
                   "zh/ios/api-reference",
                   "zh/ios/best-practices",
@@ -254,6 +262,7 @@
                 "pages": [
                   "zh/macos/quick-start",
                   "zh/macos/implement-beauty",
+                  "zh/macos/third-party-integration",
                   "zh/macos/error-handling",
                   "zh/macos/api-reference",
                   "zh/macos/best-practices",
@@ -267,6 +276,7 @@
                 "pages": [
                   "zh/windows/quick-start",
                   "zh/windows/implement-beauty",
+                  "zh/windows/third-party-integration",
                   "zh/windows/error-handling",
                   "zh/windows/api-reference",
                   "zh/windows/best-practices",
@@ -280,6 +290,7 @@
                 "pages": [
                   "zh/linux/quick-start",
                   "zh/linux/implement-beauty",
+                  "zh/linux/third-party-integration",
                   "zh/linux/error-handling",
                   "zh/linux/api-reference",
                   "zh/linux/best-practices",
@@ -293,6 +304,7 @@
                 "pages": [
                   "zh/web/quick-start",
                   "zh/web/implement-beauty",
+                  "zh/web/third-party-integration",
                   "zh/web/error-handling",
                   "zh/web/api-reference",
                   "zh/web/best-practices",
@@ -306,8 +318,8 @@
                 "pages": [
                   "zh/flutter/quick-start",
                   "zh/flutter/implement-beauty",
-                  "zh/flutter/api-reference",
-                  "zh/flutter/trtc-integration"
+                  "zh/flutter/third-party-integration",
+                  "zh/flutter/api-reference"
                 ],
                 "icon": "mobile",
                 "iconType": "solid"

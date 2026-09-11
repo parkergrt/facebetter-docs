@@ -81,7 +81,7 @@ Output installs under `build/linux/release`. You can copy `include/`, `lib/libfa
 
 ## Step 3: Configure license
 
-Set `app_id` / `app_key` (online v2 auth) or `license_token` before you run. If `license_token` is non-empty, it takes priority (license token string, `{token}` JSON, or offline `.lic` contents). Details: [License & Auth](/intro/license).
+Set `app_id` / `app_key` (online v2 auth) or `license_token` before you run. If `license_token` is non-empty, it takes priority (license token string, `{token}` JSON, or offline `.lic` contents). Details: [Auth & License](/intro/license).
 
 ## Step 4: Build the demo
 
@@ -120,7 +120,7 @@ The window shows a live preview and a control panel (skin, 26 reshape params, ma
 A: Use `LD_LIBRARY_PATH=../sdk/lib ./facebetter_demo`, copy the `.so` next to the binary, or add the path with `ldconfig`.
 
 **Q: Engine create returns `nullptr` / license failed**  
-A: Point `resource_path` at `resource.fbd`, and set `license_token` or valid `app_id` + `app_key`. See [License & Auth](/intro/license).
+A: Point `resource_path` at `resource.fbd`, and set `license_token` or valid `app_id` + `app_key`. See [Auth & License](/intro/license).
 
 **Q: CMake cannot find OpenGL**  
 A: Install `libgl1-mesa-dev` (Ubuntu) or `mesa-libGL-devel` (Fedora), then re-run CMake.
