@@ -9,16 +9,15 @@ SDK **2.0.0**. Auth: [Auth & License](/intro/license).
 
 ## Auth in production
 
-Keep `app_id` / `app_key` on the server. Configure the engine with `authProxyUrl` (or a short-lived `licenseToken` from your backend).
+Keep `app_id` / `app_key` on the server. Fetch a short-lived `licenseToken` from **your** backend, then pass it to the engine.
 
 ```javascript
-const engine = new BeautyEffectEngine(new EngineConfig({
-  authProxyUrl: '/api/facebetter/auth',
-}));
+const licenseToken = await fetch('/api/facebetter/auth', { method: 'POST' }).then((r) => r.text());
+const engine = new BeautyEffectEngine(new EngineConfig({ licenseToken }));
 ```
 
 <Warning>
-Never put `appKey` in a production frontend bundle. `createDirectAuthFetcher` is localhost-only.
+Never put `appKey` in a production frontend bundle. `fetchLicenseToken` is localhost-only.
 </Warning>
 
 Bind the exact production domain in the Dashboard. Web cannot use offline `.lic`.
@@ -31,7 +30,7 @@ Create **one** `BeautyEffectEngine`, call `init()` once, reuse it for the sessio
 useEffect(() => {
   let engine;
   (async () => {
-    engine = new BeautyEffectEngine(new EngineConfig({ authProxyUrl: '/api/facebetter/auth' }));
+    engine = new BeautyEffectEngine(new EngineConfig({ licenseToken }));
     await engine.init();
     engineRef.current = engine;
   })();

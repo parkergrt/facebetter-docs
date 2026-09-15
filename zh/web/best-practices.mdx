@@ -9,16 +9,15 @@ SDK **2.0.0**。鉴权：[授权与许可](/zh/intro/license)。
 
 ## 生产环境鉴权
 
-`app_id` / `app_key` 放在服务器。引擎配置用 `authProxyUrl`（或由后端下发短时有效的 `licenseToken`）。
+`app_id` / `app_key` 放在服务器。由**你的后端**换一张短时有效的 `licenseToken`，再传给引擎。
 
 ```javascript
-const engine = new BeautyEffectEngine(new EngineConfig({
-  authProxyUrl: '/api/facebetter/auth',
-}));
+const licenseToken = await fetch('/api/facebetter/auth', { method: 'POST' }).then((r) => r.text());
+const engine = new BeautyEffectEngine(new EngineConfig({ licenseToken }));
 ```
 
 <Warning>
-不要把 `appKey` 打进生产前端包。`createDirectAuthFetcher` 只适合 localhost。
+不要把 `appKey` 打进生产前端包。`fetchLicenseToken` 只适合 localhost。
 </Warning>
 
 在控制台绑定与线上一致的域名。Web 不能使用离线 `.lic`。
@@ -31,7 +30,7 @@ const engine = new BeautyEffectEngine(new EngineConfig({
 useEffect(() => {
   let engine;
   (async () => {
-    engine = new BeautyEffectEngine(new EngineConfig({ authProxyUrl: '/api/facebetter/auth' }));
+    engine = new BeautyEffectEngine(new EngineConfig({ licenseToken }));
     await engine.init();
     engineRef.current = engine;
   })();

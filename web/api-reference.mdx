@@ -16,7 +16,7 @@ import {
   FrameType,
   MirrorMode,
   Reshape,
-  createDirectAuthFetcher,
+  fetchLicenseToken,
 } from 'facebetter';
 ```
 
@@ -24,21 +24,19 @@ import {
 
 ```javascript
 new EngineConfig({
-  licenseToken,      // string — license token string, or `{token}` JSON
-  authProxyUrl,      // string — POST the SDK auth request to your server
-  fetchAuthResponse, // async (challenge) => string | object
+  licenseToken,      // string — required. License token string, or `{token}` JSON
   resourcePath,      // string — default `/resource.fbd`
 })
 ```
 
 Web **does not** accept `appId` / `appKey` on this object. Web **does not** support offline `.lic`.
 
-`isValid()` is true when `licenseToken`, `authProxyUrl`, or `fetchAuthResponse` is set.
+`isValid()` is true when `licenseToken` is a non-empty string.
 
-Local debug helper (never ship in production):
+Fetch the token **before** `init()`. Production: your server. Local debug:
 
 ```javascript
-fetchAuthResponse: createDirectAuthFetcher({ appId, appKey })
+licenseToken: await fetchLicenseToken({ appId, appKey })
 ```
 
 ## BeautyEffectEngine

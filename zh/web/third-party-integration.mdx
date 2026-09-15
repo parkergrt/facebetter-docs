@@ -7,7 +7,7 @@ SDK **2.0.0**。Web **没有**原生那种统一的「GL 纹理前处理回调�
 
 **取帧 → `processImage` → 画到 canvas → `captureStream` / 取出 `MediaStreamTrack` → 交给第三方 SDK（`replaceTrack` 或自定义视频轨）。**
 
-鉴权必须用 Web 三选一（`licenseToken` / `authProxyUrl` / `fetchAuthResponse`），**禁止**把 `appKey` 打进前端。详见 [授权与许可](/zh/intro/license)、[实现美颜](/zh/web/implement-beauty)。
+鉴权只使用 `licenseToken`。在 `init()` 之前由你的服务器换好。**禁止**把 `appKey` 打进前端。详见 [授权与许可](/zh/intro/license)、[实现美颜](/zh/web/implement-beauty)。
 
 ```
 getUserMedia / 对方预览轨
@@ -34,7 +34,7 @@ import {
 } from 'facebetter';
 
 const engine = new BeautyEffectEngine(new EngineConfig({
-  authProxyUrl: '/api/facebetter/auth', // 生产：你的鉴权代理
+  licenseToken: await fetch('/api/facebetter/auth', { method: 'POST' }).then((r) => r.text()),
   resourcePath: '/resource.fbd',
 }));
 await engine.setLogConfig({ consoleEnabled: true, level: 2 });
@@ -143,7 +143,7 @@ await room.localParticipant.publishTrack(track);
 
 | 项 | 说明 |
 | --- | --- |
-| 鉴权 | 生产用 `authProxyUrl` 或自建 `fetchAuthResponse`；调试才可用 `createDirectAuthFetcher` |
+| 鉴权 | 生产：从你的服务器换 `licenseToken`；`fetchLicenseToken` 仅用于调试 |
 | 性能 | 复用同一个 canvas；控制 `captureStream` 帧率；避免每帧新建 canvas |
 | 音频 | 上面示例只处理视频；麦克风轨仍从 `getUserMedia({ audio: true })` 单独取并发布 |
 | 镜像 | 预览可在 `processImage` 用 `MirrorMode`；是否与编码侧一致按产品需求取舍 |

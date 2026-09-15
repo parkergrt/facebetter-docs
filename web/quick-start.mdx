@@ -26,7 +26,7 @@ import {
   FrameType,
   MirrorMode,
   Reshape,
-  createDirectAuthFetcher,
+  fetchLicenseToken,
 } from 'facebetter';
 ```
 
@@ -44,28 +44,34 @@ The demo is a Vite + React app. It depends on the in-repo SDK via `file:` during
 ## Bind domain and get credentials
 
 1. In the Dashboard, bind your Web **domain** (for example `example.com`). See [Subscription](/intro/enable-service).
-2. Copy `appId` / `appKey` from the Dashboard. **Do not put them on `EngineConfig`.** On Web they belong on your **server**, or only inside `createDirectAuthFetcher` for local debug.
+2. Copy `appId` / `appKey` from the Dashboard. **Do not put them on `EngineConfig`.** On Web they belong on your **server**. Local debug only: `fetchLicenseToken({ appId, appKey })`.
 
 Web has **no** offline `.lic`. Details: [Auth & License](/intro/license).
 
 ## Configure the demo
 
-Open `src/views/BeautyPreview.jsx`. The sample uses direct auth for local debug:
+Open `src/useStudioEngine.js`. The sample fetches a token from `/api/fb-auth` (Vite proxy holds `app_id` / `app_key`), then passes `licenseToken`:
 
 ```javascript
-const config = new EngineConfig({
-  fetchAuthResponse: createDirectAuthFetcher({
+const licenseToken = await fetch('/api/fb-auth', { method: 'POST' }).then((r) => r.text());
+const engine = new BeautyEffectEngine(new EngineConfig({ licenseToken }));
+await engine.init();
+```
+
+Local debug without a proxy:
+
+```javascript
+const engine = new BeautyEffectEngine(new EngineConfig({
+  licenseToken: await fetchLicenseToken({
     appId: 'your-app-id',
     appKey: 'your-app-key',
   }),
-});
-
-const engine = new BeautyEffectEngine(config);
+}));
 await engine.init();
 ```
 
 <Warning>
-`createDirectAuthFetcher` puts `appKey` in the browser bundle. Use it only on localhost. Production must use `authProxyUrl` or a server-issued `licenseToken`.
+`fetchLicenseToken` puts `appKey` in the browser bundle. Use it only on localhost. Production must fetch the token from **your** server and pass `licenseToken`.
 </Warning>
 
 Serve `resource.fbd` at `/resource.fbd` (the default `resourcePath`). Copy the packed bundle into `public/` so Vite can serve it.
@@ -90,10 +96,9 @@ Open the URL Vite prints (usually `http://localhost:5173`).
 ```javascript
 import { BeautyEffectEngine, EngineConfig } from 'facebetter';
 
-const engine = new BeautyEffectEngine(new EngineConfig({
-  authProxyUrl: '/api/facebetter/auth',
-}));
+const licenseToken = await fetch('/api/facebetter/auth', { method: 'POST' }).then((r) => r.text());
+const engine = new BeautyEffectEngine(new EngineConfig({ licenseToken }));
 await engine.init();
 ```
 
-Your proxy holds `app_id` / `app_key` and forwards the SDK auth request. Example server code is on [Auth & License](/intro/license).
+Your server holds `app_id` / `app_key` and returns a token. Example server code is on [Auth & License](/intro/license).

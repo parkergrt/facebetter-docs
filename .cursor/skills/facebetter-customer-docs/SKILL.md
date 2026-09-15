@@ -46,7 +46,7 @@ description: >-
 这些不是八卦，客户不写就接不上：
 
 - 原生 OpenGL / `externalContext`（含 Flutter TRTC：在 GL 线程调 `processTexture`）
-- Web：`licenseToken` / `authProxyUrl` / `fetchAuthResponse`；**不要**把 `appKey` 放进前端；可给服务端 HMAC 代理示例
+- Web：`licenseToken`（create 前由服务器或 `fetchLicenseToken` 换好）；**不要**把 `appKey` 放进生产前端；可给服务端 HMAC 换 token 示例
 - 随包/随站提供 `resource.fbd`
 - Android Direct `ByteBuffer`；混淆时保留 native 方法
 - 控制台绑定 Bundle ID / 包名 / 域名（命令行工具绑定进程名）

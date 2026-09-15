@@ -64,34 +64,28 @@ Prefer shipping the offline `.lic` as an app asset and loading it at runtime ins
 
 ## Web
 
-The browser SDK has **no** `appId` / `appKey` fields. Pick one:
+The browser SDK has **no** `appId` / `appKey` fields. The engine only accepts `licenseToken` and verifies it locally. Fetch the token **before** `init()`.
 
-| Mode | Config field | When to use |
-|------|--------------|-------------|
-| Token | `licenseToken` | Your server already issued a license token or `{token}` JSON |
-| Proxy | `authProxyUrl` | The SDK posts an auth request to **your** server; the server holds `app_id` / `app_key` and calls the Facebetter auth API |
-| Custom | `fetchAuthResponse` | You implement `async (challenge) => string \| object`. Local debug only: `createDirectAuthFetcher({ appId, appKey })` |
+| Where you fetch | How | When to use |
+|------|------|-------------|
+| Your server | POST to your endpoint; server holds `app_id` / `app_key` and calls `/facebetter/v2/auth` | Production |
+| The page | `fetchLicenseToken({ appId, appKey })` | Local debug only |
 
 <Warning>
-Do not put `appKey` in a production frontend bundle. `createDirectAuthFetcher` is for local debugging. Web does **not** support offline `.lic` files.
+Do not put `appKey` in a production frontend bundle. Web does **not** support offline `.lic` files. Online tokens expire in minutes — fetch a new one before creating the engine again.
 </Warning>
 
 ```javascript
-import { BeautyEffectEngine, EngineConfig, createDirectAuthFetcher } from 'facebetter';
+import { BeautyEffectEngine, EngineConfig, fetchLicenseToken } from 'facebetter';
 
-// A. Server already returned a v2 token
+// Production: your server returns the auth API body (`{success, token}` or the token string)
 const config = new EngineConfig({
   licenseToken: await fetch('/api/facebetter/auth', { method: 'POST' }).then((r) => r.text()),
 });
 
-// B. Production: proxy the SDK auth request (recommended)
+// Local debug only — keys appear in the frontend
 const config = new EngineConfig({
-  authProxyUrl: '/api/facebetter/auth',
-});
-
-// C. Local debug only — keys appear in the frontend
-const config = new EngineConfig({
-  fetchAuthResponse: createDirectAuthFetcher({
+  licenseToken: await fetchLicenseToken({
     appId: 'your-app-id',
     appKey: 'your-app-key',
   }),
@@ -101,15 +95,17 @@ const engine = new BeautyEffectEngine(config);
 await engine.init();
 ```
 
-Example Node proxy:
+Example Node endpoint (holds the key, returns a token):
 
 ```javascript
-import { createHmac } from 'node:crypto';
+import { createHmac, randomBytes } from 'node:crypto';
 
 app.post('/api/facebetter/auth', async (req, res) => {
-  const { nonce, timestamp, platform, user_agent } = req.body;
   const appId = process.env.FB_APP_ID;
   const appKey = process.env.FB_APP_KEY;
+  const nonce = randomBytes(16).toString('hex');
+  const timestamp = Math.floor(Date.now() / 1000);
+  const platform = 'web';
   const payload = `v2|${appId}|${timestamp}|${nonce}|${platform}`;
   const hmac = createHmac('sha256', appKey).update(payload).digest('hex');
 
@@ -122,7 +118,7 @@ app.post('/api/facebetter/auth', async (req, res) => {
       timestamp,
       nonce,
       platform,
-      user_agent,
+      user_agent: req.headers['user-agent'] || '',
     }),
   });
   res.status(upstream.status).send(await upstream.text());

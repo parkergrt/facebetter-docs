@@ -13,9 +13,8 @@ Failed calls throw `FacebetterError`. Numeric `code` values are listed below. So
 import { BeautyEffectEngine, EngineConfig, FacebetterError } from 'facebetter';
 
 try {
-  const engine = new BeautyEffectEngine(new EngineConfig({
-    authProxyUrl: '/api/facebetter/auth',
-  }));
+  const licenseToken = await fetch('/api/facebetter/auth', { method: 'POST' }).then((r) => r.text());
+  const engine = new BeautyEffectEngine(new EngineConfig({ licenseToken }));
   await engine.init();
   engine.setSmoothing(0.5);
 } catch (error) {
@@ -50,7 +49,7 @@ These are thrown during `init()` / load / auth:
 | `'TIMEOUT'` | `init()` timed out |
 | `'NETWORK_ERROR'` | Fetch / network failure |
 | `'WASM_LOAD_ERROR'` | SDK failed to load (network, CDN, or ad blocker) |
-| `'LICENSE_ERROR'` | Missing auth config, or `fetchAuthResponse` / proxy rejected |
+| `'LICENSE_ERROR'` | Missing `licenseToken`, or the token was rejected |
 | `'ENGINE_CREATE_FAILED'` | Engine failed to create |
 | `'UNKNOWN_ERROR'` | Unclassified JS exception wrapped as `FacebetterError` |
 
@@ -60,7 +59,7 @@ try {
 } catch (error) {
   if (!(error instanceof FacebetterError)) throw error;
   if (error.code === 'LICENSE_ERROR' || error.code === -3) {
-    // proxy down, domain not bound, or token expired — see /intro/license
+    // token missing, expired, or domain not bound — see /intro/license
   } else if (error.code === 'WASM_LOAD_ERROR' || error.code === 'TIMEOUT') {
     // network, CDN, or ad blocker
   }
@@ -69,7 +68,7 @@ try {
 
 ## Init checklist
 
-1. Config is valid: at least one of `licenseToken`, `authProxyUrl`, `fetchAuthResponse`.
+1. Config is valid: non-empty `licenseToken`.
 2. `resource.fbd` is reachable at `resourcePath` (default `/resource.fbd`).
 3. Page is a [secure context](https://developer.mozilla.org/en-US/docs/Web/Security/Secure_Contexts).
 4. Dashboard domain matches the page origin (production).

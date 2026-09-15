@@ -64,34 +64,28 @@ config.appKey = "your appKey";
 
 ## Web
 
-浏览器 SDK **没有** `appId` / `appKey` 字段。三选一：
+浏览器 SDK **没有** `appId` / `appKey` 字段。引擎只接受 `licenseToken` 并在本地验签。请在 `init()` **之前**换好 token。
 
-| 模式 | 配置字段 | 适用场景 |
-|------|----------|----------|
-| Token | `licenseToken` | 你的服务器已经签发许可证 token 或 `{token}` JSON |
-| 代理 | `authProxyUrl` | SDK 把鉴权请求 POST 到**你的**服务器；服务器持有 `app_id` / `app_key` 再请求 Facebetter 鉴权接口 |
-| 自定义 | `fetchAuthResponse` | 自己实现 `async (challenge) => string \| object`。本地调试可用 `createDirectAuthFetcher({ appId, appKey })` |
+| 在哪换 token | 怎么做 | 适用场景 |
+|------|------|----------|
+| 你的服务器 | POST 到你的接口；服务器持有 `app_id` / `app_key` 再请求 `/facebetter/v2/auth` | 生产 |
+| 页面里 | `fetchLicenseToken({ appId, appKey })` | 仅本地调试 |
 
 <Warning>
-不要把 `appKey` 打进生产前端包。`createDirectAuthFetcher` 仅用于本地调试。Web **不支持**离线 `.lic`。
+不要把 `appKey` 打进生产前端包。Web **不支持**离线 `.lic`。在线 token 几分钟内过期，重新创建引擎前要再换一张。
 </Warning>
 
 ```javascript
-import { BeautyEffectEngine, EngineConfig, createDirectAuthFetcher } from 'facebetter';
+import { BeautyEffectEngine, EngineConfig, fetchLicenseToken } from 'facebetter';
 
-// A. 服务端已经返回 v2 token
+// 生产：你的服务器返回鉴权接口的响应体（`{success, token}` 或 token 字符串）
 const config = new EngineConfig({
   licenseToken: await fetch('/api/facebetter/auth', { method: 'POST' }).then((r) => r.text()),
 });
 
-// B. 生产推荐：由你的服务器代理 SDK 鉴权请求
+// 仅本地调试 —— 密钥会出现在前端
 const config = new EngineConfig({
-  authProxyUrl: '/api/facebetter/auth',
-});
-
-// C. 仅本地调试 —— 密钥会出现在前端
-const config = new EngineConfig({
-  fetchAuthResponse: createDirectAuthFetcher({
+  licenseToken: await fetchLicenseToken({
     appId: 'your-app-id',
     appKey: 'your-app-key',
   }),
@@ -101,15 +95,17 @@ const engine = new BeautyEffectEngine(config);
 await engine.init();
 ```
 
-Node 代理示例：
+Node 接口示例（密钥留在服务器，返回 token）：
 
 ```javascript
-import { createHmac } from 'node:crypto';
+import { createHmac, randomBytes } from 'node:crypto';
 
 app.post('/api/facebetter/auth', async (req, res) => {
-  const { nonce, timestamp, platform, user_agent } = req.body;
   const appId = process.env.FB_APP_ID;
   const appKey = process.env.FB_APP_KEY;
+  const nonce = randomBytes(16).toString('hex');
+  const timestamp = Math.floor(Date.now() / 1000);
+  const platform = 'web';
   const payload = `v2|${appId}|${timestamp}|${nonce}|${platform}`;
   const hmac = createHmac('sha256', appKey).update(payload).digest('hex');
 
@@ -122,7 +118,7 @@ app.post('/api/facebetter/auth', async (req, res) => {
       timestamp,
       nonce,
       platform,
-      user_agent,
+      user_agent: req.headers['user-agent'] || '',
     }),
   });
   res.status(upstream.status).send(await upstream.text());

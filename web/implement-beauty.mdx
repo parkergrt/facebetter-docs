@@ -26,7 +26,6 @@ import {
   ChromaKeyColor,
   EngineEventCode,
   FacebetterError,
-  createDirectAuthFetcher,
 } from 'facebetter';
 ```
 
@@ -36,17 +35,14 @@ import {
 
 | Field | Purpose |
 | --- | --- |
-| `licenseToken` | License token string, or `{token}` JSON |
-| `authProxyUrl` | Production: POST the SDK auth request to **your** server; the server holds `app_id` / `app_key` |
-| `fetchAuthResponse` | `async (challenge) => string \| object`. Local debug: `createDirectAuthFetcher({ appId, appKey })` |
+| `licenseToken` | License token string, or `{token}` JSON. **Required.** Fetch it before `init()`. |
 | `resourcePath` | URL of `resource.fbd`. Default `/resource.fbd` |
 
-Pick **one** auth mode. Web does **not** support offline `.lic`.
+The engine does not fetch tokens. Web does **not** support offline `.lic`.
 
 ```javascript
-const engine = new BeautyEffectEngine(new EngineConfig({
-  authProxyUrl: '/api/facebetter/auth',
-}));
+const licenseToken = await fetch('/api/facebetter/auth', { method: 'POST' }).then((r) => r.text());
+const engine = new BeautyEffectEngine(new EngineConfig({ licenseToken }));
 
 await engine.setLogConfig({
   consoleEnabled: true,
@@ -72,11 +68,13 @@ try {
 }
 ```
 
-Local debug only:
+Local debug only (`fetchLicenseToken` puts `appKey` in the page):
 
 ```javascript
+import { fetchLicenseToken } from 'facebetter';
+
 const engine = new BeautyEffectEngine(new EngineConfig({
-  fetchAuthResponse: createDirectAuthFetcher({
+  licenseToken: await fetchLicenseToken({
     appId: 'your-app-id',
     appKey: 'your-app-key',
   }),

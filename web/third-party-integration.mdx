@@ -7,7 +7,7 @@ SDK **2.0.0**. The Web SDK has **no** native-style unified “GL texture preproc
 
 **Capture → `processImage` → draw to canvas → `captureStream` / take a `MediaStreamTrack` → hand it to the third-party SDK (`replaceTrack` or a custom video track).**
 
-Auth must use one of the Web options (`licenseToken` / `authProxyUrl` / `fetchAuthResponse`). **Never** embed `appKey` in frontend JS. See [Auth & License](/intro/license) and [Implement Beauty](/web/implement-beauty).
+Auth uses `licenseToken` only. Fetch it from your server before `init()`. **Never** embed `appKey` in frontend JS. See [Auth & License](/intro/license) and [Implement Beauty](/web/implement-beauty).
 
 ```
 getUserMedia / vendor preview track
@@ -34,7 +34,7 @@ import {
 } from 'facebetter';
 
 const engine = new BeautyEffectEngine(new EngineConfig({
-  authProxyUrl: '/api/facebetter/auth', // production: your auth proxy
+  licenseToken: await fetch('/api/facebetter/auth', { method: 'POST' }).then((r) => r.text()),
   resourcePath: '/resource.fbd',
 }));
 await engine.setLogConfig({ consoleEnabled: true, level: 2 });
@@ -143,7 +143,7 @@ await room.localParticipant.publishTrack(track);
 
 | Item | Detail |
 | --- | --- |
-| Auth | Production: `authProxyUrl` or your own `fetchAuthResponse`; `createDirectAuthFetcher` is debug-only |
+| Auth | Production: fetch `licenseToken` from your server; `fetchLicenseToken` is debug-only |
 | Perf | Reuse one canvas; cap `captureStream` FPS; do not allocate a new canvas every frame |
 | Audio | Example is video-only; take the mic from a separate `getUserMedia({ audio: true })` and publish it |
 | Mirror | Preview can use `MirrorMode` in `processImage`; decide whether encode should match |

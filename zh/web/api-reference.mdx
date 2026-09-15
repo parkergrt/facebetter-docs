@@ -16,7 +16,7 @@ import {
   FrameType,
   MirrorMode,
   Reshape,
-  createDirectAuthFetcher,
+  fetchLicenseToken,
 } from 'facebetter';
 ```
 
@@ -24,21 +24,19 @@ import {
 
 ```javascript
 new EngineConfig({
-  licenseToken,      // string — 许可证 token，或 `{token}` JSON
-  authProxyUrl,      // string — 把 SDK 鉴权请求 POST 到你的服务器
-  fetchAuthResponse, // async (challenge) => string | object
+  licenseToken,      // string — 必填。许可证 token，或 `{token}` JSON
   resourcePath,      // string — 默认 `/resource.fbd`
 })
 ```
 
 Web **不接受**在该对象上设置 `appId` / `appKey`。Web **不支持**离线 `.lic`。
 
-`licenseToken`、`authProxyUrl` 或 `fetchAuthResponse` 任一存在时，`isValid()` 为 true。
+`licenseToken` 为非空字符串时 `isValid()` 为 true。
 
-本地调试辅助（禁止用于生产）：
+在 `init()` **之前**换好 token。生产走你的服务器。本地调试：
 
 ```javascript
-fetchAuthResponse: createDirectAuthFetcher({ appId, appKey })
+licenseToken: await fetchLicenseToken({ appId, appKey })
 ```
 
 ## BeautyEffectEngine

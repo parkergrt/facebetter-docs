@@ -11,15 +11,15 @@ SDK **2.0.0**. Auth: [Auth & License](/intro/license). Enums: [Parameter enums](
 
 ### Engine create / `init()` failed
 
-- `EngineConfig` must set **one of** `licenseToken`, `authProxyUrl`, `fetchAuthResponse`. There are no `appId` / `appKey` fields on Web config.
-- Production: your proxy must return the auth API body (`{success, token}` or error JSON). See [Auth & License](/intro/license).
+- `EngineConfig` must set a non-empty `licenseToken`. There are no `appId` / `appKey` fields on Web config.
+- Production: your server must return the auth API body (`{success, token}` or error JSON). See [Auth & License](/intro/license).
 - Confirm `/resource.fbd` (or your `resourcePath`) is served with HTTP 200.
 - Confirm the page is HTTPS or localhost.
 - Check `FacebetterError.code` ([Error handling](/web/error-handling)).
 
 ### How do I pass AppID / AppKey?
 
-You don't — not on `EngineConfig`. Hold them on the server and use `authProxyUrl`, or issue a `licenseToken`. Localhost only: `createDirectAuthFetcher({ appId, appKey })`.
+You don't — not on `EngineConfig`. Hold them on the server, fetch a token, and pass `licenseToken`. Localhost only: `fetchLicenseToken({ appId, appKey })`.
 
 ### Can I use an offline `.lic` in the browser?
 
@@ -73,13 +73,15 @@ function BeautyPreview() {
   const engineRef = useRef(null);
 
   useEffect(() => {
-    const engine = new BeautyEffectEngine(new EngineConfig({
-      authProxyUrl: '/api/facebetter/auth',
-    }));
-    engineRef.current = engine;
-    engine.init().catch(console.error);
+    let engine;
+    (async () => {
+      const licenseToken = await fetch('/api/facebetter/auth', { method: 'POST' }).then((r) => r.text());
+      engine = new BeautyEffectEngine(new EngineConfig({ licenseToken }));
+      engineRef.current = engine;
+      await engine.init();
+    })().catch(console.error);
     return () => {
-      engine.destroy();
+      engine?.destroy();
       engineRef.current = null;
     };
   }, []);

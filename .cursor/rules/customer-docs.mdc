@@ -23,7 +23,7 @@ OpenGL / `externalContext`、Web 服务端鉴权代理、`resource.fbd`、Direct
 - 只文档 **SDK 2.0**，不要写 1.x 兼容或旧 API
 - 滤镜/贴纸是 **`.fbd`**，不要写 `.fbpack` / 预加载 / 热加载
 - 运行时关键点 **111**；鉴权见 `intro/license.mdx`
-- Web **禁止**把 `appKey` 写进前端；原生可用 `licenseToken` 或 `appId`+`appKey`
+- Web **禁止**把 `appKey` 写进生产前端；原生可用 `licenseToken` 或 `appId`+`appKey`。Web 引擎只收 `licenseToken`。
 - 中英文同步改（根目录英文，`zh/` 中文）
 - 枚举以 `intro/makeup.mdx` 为准，平台页只链过去
 - 没有按量付费；不要写 metered / 不开放新购 / 已有按量订阅继续

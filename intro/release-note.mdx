@@ -9,7 +9,7 @@ This site documents **SDK 2.0**.
 
 2026-09-09
 
-1. **Auth**: Native uses `licenseToken` or `appId` + `appKey`. Web uses `licenseToken` / `authProxyUrl` / `fetchAuthResponse` — never put `appKey` in browser JS
+1. **Auth**: Native uses `licenseToken` or `appId` + `appKey`. Web uses `licenseToken` only — fetch the token on your server (or `fetchLicenseToken` for local debug); never put `appKey` in production browser JS
 2. **Beauty**: `setSmoothing`, `setWhitening`, `setSharpening`, `setRosiness`, `setBeautySkinOnly`, plus style presets
 3. **Reshape**: 26 parameters (`FaceThin` … `BrowThickness`), intensity `[-1.0, 1.0]`
 4. **Makeup**: intensity + Style (shape) + Color (tint). See [Parameter enums](./makeup)

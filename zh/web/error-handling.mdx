@@ -13,9 +13,8 @@ SDK **2.0.0**。鉴权失败见 [授权与许可](/zh/intro/license)。
 import { BeautyEffectEngine, EngineConfig, FacebetterError } from 'facebetter';
 
 try {
-  const engine = new BeautyEffectEngine(new EngineConfig({
-    authProxyUrl: '/api/facebetter/auth',
-  }));
+  const licenseToken = await fetch('/api/facebetter/auth', { method: 'POST' }).then((r) => r.text());
+  const engine = new BeautyEffectEngine(new EngineConfig({ licenseToken }));
   await engine.init();
   engine.setSmoothing(0.5);
 } catch (error) {
@@ -50,7 +49,7 @@ try {
 | `'TIMEOUT'` | `init()` 超时 |
 | `'NETWORK_ERROR'` | 网络 / fetch 失败 |
 | `'WASM_LOAD_ERROR'` | SDK 加载失败（网络、CDN 或广告拦截） |
-| `'LICENSE_ERROR'` | 缺少鉴权配置，或 `fetchAuthResponse` / 代理拒绝 |
+| `'LICENSE_ERROR'` | 缺少 `licenseToken`，或 token 被拒绝 |
 | `'ENGINE_CREATE_FAILED'` | 引擎创建失败 |
 | `'UNKNOWN_ERROR'` | 未分类的 JS 异常被包成 `FacebetterError` |
 
@@ -60,7 +59,7 @@ try {
 } catch (error) {
   if (!(error instanceof FacebetterError)) throw error;
   if (error.code === 'LICENSE_ERROR' || error.code === -3) {
-    // 代理宕机、域名未绑定或 token 过期 — 见 /zh/intro/license
+    // token 缺失、过期或域名未绑定 — 见 /zh/intro/license
   } else if (error.code === 'WASM_LOAD_ERROR' || error.code === 'TIMEOUT') {
     // 网络、CDN 或广告拦截
   }
@@ -69,7 +68,7 @@ try {
 
 ## 初始化排查
 
-1. 配置合法：`licenseToken`、`authProxyUrl`、`fetchAuthResponse` 至少有一个。
+1. 配置合法：非空 `licenseToken`。
 2. `resource.fbd` 能从 `resourcePath` 访问到（默认 `/resource.fbd`）。
 3. 页面处于[安全上下文](https://developer.mozilla.org/zh-CN/docs/Web/Security/Secure_Contexts)。
 4. 生产环境控制台绑定的域名与页面 origin 一致。
