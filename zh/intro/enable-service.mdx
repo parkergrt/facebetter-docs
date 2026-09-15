@@ -5,15 +5,13 @@ description: "开通 Facebetter SDK 订阅服务并获取 AppID & AppKey，开�
 
 ## 注册 / 登录
 
-注册并登录控制台后，会创建默认项目，并显示当前订阅。默认项目是**免费版**（可试用大部分效果，输出始终带水印）。套餐细则见 [套餐与功能](./pricing)。
+打开 [Facebetter 官网](https://facebetter.net/zh)，进入 [登录](https://facebetter.net/zh/sign-in) 或 [注册](https://facebetter.net/zh/sign-up)。支持邮箱密码，以及 Google、GitHub 等社交账号。
 
-<Frame>
-  <img src="/images/dash-overview.jpg" alt="控制台订阅信息" />
-</Frame>
+登录成功后进入 [控制台](https://facebetter.net/zh/dashboard)。可创建项目；每个项目有独立的套餐、凭证与平台绑定。新项目默认为**免费版**（可试用大部分效果，输出始终带水印）。套餐细则见 [套餐与功能](./pricing)。
 
 ## 绑定应用信息
 
-SDK 会校验运行中的应用是否与控制台绑定的标识一致：
+在项目左侧进入 **凭证**。SDK 会校验运行中的应用是否与控制台绑定的标识一致，请按实际上线平台填写并保存：
 
 - **iOS / macOS**：Bundle ID（例如 `com.example.app`）
 - **Android**：应用包名（例如 `com.example.app`）
@@ -22,30 +20,23 @@ SDK 会校验运行中的应用是否与控制台绑定的标识一致：
 - **Web**：应用域名（例如 `example.com`）
 - **Flutter**：需要同时绑定 **iOS Bundle ID** 和 **Android 包名**
 
-点击仪表板中的 **"编辑工程"**，为要上线的平台填写对应标识并保存。
-
-<Frame>
-  <img src="/images/dash-edit-project.jpg" alt="控制台编辑工程" />
-</Frame>
+未绑定或不匹配时，鉴权会失败。命令行工具等无 Bundle 的场景，请按控制台提示绑定进程名。
 
 ## 开通订阅
 
-点击 "Your Subscription" 卡片上的 **"Subscribe"**：
+在项目 **概览** 或 **账单** 中升级套餐：
 
-1. **计费周期**：月付或年付（年付约 8 折，买 10 送 2）。
-2. **套餐**：免费版、基础版、专业版或专业版 Plus。各档能力见 [套餐与功能](./pricing)。
-3. **支付**：确认订单摘要后，通过 Stripe 完成付款。
+1. 打开 **调整套餐**（或概览上的升级入口）。
+2. 选择 **按月** 或 **按年**（年付约 8 折）。
+3. 选择 **基础版 / 专业版 / 专业版 Plus** 等付费档。各档能力见 [套餐与功能](./pricing)。
+4. 完成结账。支持银行卡等常见支付方式；中文控制台另提供支付宝一次性预付（按月或按年，不自动续费）。
 
-<Frame>
-  <img src="/images/dash-subscribe.jpg" alt="控制台订阅方案" />
-</Frame>
+付费后可在 **账单** 查看有效期、发票，以及取消自动续费（银行卡订阅）。支付宝预付费到期前需自行重新购买。
 
 ## 获取 AppID 和 AppKey
 
-在控制台 **AppID & AppKey** 卡片上复制 `appId` 和 `appKey`。
-
-<Frame>
-  <img src="/images/dash-appid-appkey.jpg" alt="控制台 AppID & AppKey" />
-</Frame>
+在项目 **凭证** 页复制 **App ID** 与 **App Key**。
 
 原生应用可用 `appId` + `appKey` 在线鉴权，或传入 `licenseToken`（许可证 token、`{token}` JSON，或离线 `.lic` 全文）。Web **不要**把 `appKey` 打进前端 JavaScript。详见 [授权与许可](./license)。
+
+如需重置 App Key，仍在 **凭证** 页操作；重置后旧密钥立即失效，请先更新客户端再继续。

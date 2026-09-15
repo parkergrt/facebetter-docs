@@ -5,15 +5,13 @@ description: "Enable Facebetter SDK subscription service and obtain AppID & AppK
 
 ## Register / Login
 
-After registering and logging in to the dashboard, a default project is created with subscription information. The default project is on the **Free** plan (most effects available, output always watermarked). Plan details: [Plans & Features](./pricing).
+Open the [Facebetter website](https://facebetter.net), then [Sign in](https://facebetter.net/sign-in) or [Create an account](https://facebetter.net/sign-up). Email/password and social sign-in (Google, GitHub) are supported.
 
-<Frame>
-  <img src="/images/dash-overview.jpg" alt="Dashboard Subscription Info" />
-</Frame>
+After sign-in you land in the [Console](https://facebetter.net/dashboard). Create a project; each project has its own plan, credentials, and platform bindings. New projects start on the **Free** plan (most effects available, output always watermarked). Plan details: [Plans & Features](./pricing).
 
 ## Bind Application Information
 
-The SDK checks that the running app matches the identifiers bound in the Dashboard:
+Open **Credentials** for the project. The SDK checks that the running app matches the identifiers bound in the Console—fill in each platform you ship and save:
 
 - **iOS / macOS**: Bundle ID (e.g. `com.example.app`)
 - **Android**: Application package name (e.g. `com.example.app`)
@@ -22,30 +20,23 @@ The SDK checks that the running app matches the identifiers bound in the Dashboa
 - **Web**: Application domain (e.g. `example.com`)
 - **Flutter**: bind **both** the iOS Bundle ID and the Android package name
 
-Click **"Edit Project"** on the dashboard, choose the identifier type for each platform you ship, and save.
-
-<Frame>
-  <img src="/images/dash-edit-project.jpg" alt="Console Edit Project" />
-</Frame>
+Auth fails if bindings are missing or do not match. For CLI tools without a Bundle ID, bind the process name as shown in the Console.
 
 ## Subscribe to a Plan
 
-Click **"Subscribe"** on the "Your Subscription" card:
+Upgrade from the project **Overview** or **Billing** page:
 
-1. **Billing cycle**: Monthly or Yearly (Yearly is about 20% off — 12 months for the price of 10).
-2. **Plan**: Free, Basic, Pro, or Pro+. See [Plans & Features](./pricing) for what each includes.
-3. **Pay**: Confirm the order summary and complete payment with Stripe.
+1. Open **Adjust plan** (or an upgrade action on Overview).
+2. Choose **Monthly** or **Yearly** (yearly is about 20% off).
+3. Pick **Basic / Pro / Pro+** (or another paid tier). See [Plans & Features](./pricing).
+4. Complete checkout. Card and other common methods are supported. The Chinese console also offers Alipay as one-time prepaid (monthly or yearly, no auto-renew).
 
-<Frame>
-  <img src="/images/dash-subscribe.jpg" alt="Console Subscription Plan" />
-</Frame>
+On **Billing** you can review renewals or expiry, invoices, and cancel auto-renew for card subscriptions. Alipay prepaid must be purchased again before it expires.
 
 ## Get AppID and AppKey
 
-On the Dashboard **AppID & AppKey** card, copy `appId` and `appKey`.
-
-<Frame>
-  <img src="/images/dash-appid-appkey.jpg" alt="Console AppID & AppKey" />
-</Frame>
+On the project **Credentials** page, copy **App ID** and **App Key**.
 
 Native apps can authenticate with `appId` + `appKey`, or with a `licenseToken` (license token string, `{token}` JSON, or offline `.lic` file contents). Web must not embed `appKey` in frontend JavaScript. Details: [Auth & License](./license).
+
+To rotate the App Key, use **Reset key** on the same page. The previous key stops working immediately—update your apps first.
