@@ -26,7 +26,6 @@ import {
   FrameType,
   MirrorMode,
   Reshape,
-  fetchLicenseToken,
 } from 'facebetter';
 ```
 
@@ -44,37 +43,23 @@ The demo is a Vite + React app. It depends on the in-repo SDK via `file:` during
 ## Bind domain and get credentials
 
 1. In the Dashboard, bind your Web **domain** (for example `example.com`). See [Subscription](/intro/enable-service).
-2. Copy `appId` / `appKey` from the Dashboard. **Do not put them on `EngineConfig`.** On Web they belong on your **server**. Local debug only: `fetchLicenseToken({ appId, appKey })`.
+2. Copy `appId` / `appKey` from the Dashboard. **Do not put them on `EngineConfig`.** On Web they belong on your **server**.
 
 Web has **no** offline `.lic`. Details: [Auth & License](/intro/license).
 
 ## Configure the demo
 
-Open `src/useStudioEngine.js`. The sample fetches a token from `/api/fb-auth` (Vite proxy holds `app_id` / `app_key`), then passes `licenseToken`:
+The demo **does not put keys in the page**. The page calls your proxy at `/api/facebetter/auth` (`src/fetchLicenseToken.js`) and passes the response into the engine. The production proxy lives in `api/facebetter/auth.js`; during local `vite` that path is forwarded to the deployed demo proxy.
 
 ```javascript
-const licenseToken = await fetch('/api/fb-auth', { method: 'POST' }).then((r) => r.text());
+const licenseToken = await fetch('/api/facebetter/auth', { method: 'POST' }).then((r) => r.text());
 const engine = new BeautyEffectEngine(new EngineConfig({ licenseToken }));
 await engine.init();
 ```
 
-Local debug without a proxy:
+In production, implement the same proxy on **your** server. Full steps and a Node example: [Auth & License](/intro/license).
 
-```javascript
-const engine = new BeautyEffectEngine(new EngineConfig({
-  licenseToken: await fetchLicenseToken({
-    appId: 'your-app-id',
-    appKey: 'your-app-key',
-  }),
-}));
-await engine.init();
-```
-
-<Warning>
-`fetchLicenseToken` puts `appKey` in the browser bundle. Use it only on localhost. Production must fetch the token from **your** server and pass `licenseToken`.
-</Warning>
-
-Serve `resource.fbd` at `/resource.fbd` (the default `resourcePath`). Copy the packed bundle into `public/` so Vite can serve it.
+The SDK loads runtime files from the `facebetter-core` package during `init()`. You do **not** need to copy `resource.fbd` into `public/`. Optional: `init({ onProgress })` reports download percent.
 
 ## Run
 
@@ -83,7 +68,7 @@ npm install
 npm run dev
 ```
 
-Open the URL Vite prints (usually `http://localhost:5173`).
+Open the URL Vite prints (usually `http://localhost:5175`).
 
 ## Verify
 

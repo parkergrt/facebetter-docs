@@ -36,9 +36,8 @@ Web 的 `EngineConfig` **只有**下列字段，配置对象上没有 `appId` / 
 | 字段 | 用途 |
 | --- | --- |
 | `licenseToken` | 许可证 token，或 `{token}` JSON。**必填。** 在 `init()` 之前换好。 |
-| `resourcePath` | `resource.fbd` 的 URL，默认 `/resource.fbd` |
 
-引擎不会去换 token。Web **不支持**离线 `.lic`。
+引擎运行时文件在 `init()` 时由 SDK 加载，不必在站点根路径放 `resource.fbd`。可选下载进度：`init({ onProgress })`。引擎不会去换 token。Web **不支持**离线 `.lic`。
 
 ```javascript
 const licenseToken = await fetch('/api/facebetter/auth', { method: 'POST' }).then((r) => r.text());
@@ -66,19 +65,6 @@ try {
   }
   throw error;
 }
-```
-
-仅本地调试（`fetchLicenseToken` 会把 `appKey` 放进页面）：
-
-```javascript
-import { fetchLicenseToken } from 'facebetter';
-
-const engine = new BeautyEffectEngine(new EngineConfig({
-  licenseToken: await fetchLicenseToken({
-    appId: 'your-app-id',
-    appKey: 'your-app-key',
-  }),
-}));
 ```
 
 ## 皮肤美颜

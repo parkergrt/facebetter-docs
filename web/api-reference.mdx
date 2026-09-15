@@ -16,7 +16,6 @@ import {
   FrameType,
   MirrorMode,
   Reshape,
-  fetchLicenseToken,
 } from 'facebetter';
 ```
 
@@ -25,7 +24,6 @@ import {
 ```javascript
 new EngineConfig({
   licenseToken,      // string — required. License token string, or `{token}` JSON
-  resourcePath,      // string — default `/resource.fbd`
 })
 ```
 
@@ -33,24 +31,24 @@ Web **does not** accept `appId` / `appKey` on this object. Web **does not** supp
 
 `isValid()` is true when `licenseToken` is a non-empty string.
 
-Fetch the token **before** `init()`. Production: your server. Local debug:
-
-```javascript
-licenseToken: await fetchLicenseToken({ appId, appKey })
-```
+Fetch the token from **your server** **before** `init()`. See [Auth & License](/intro/license).
 
 ## BeautyEffectEngine
 
 ```javascript
 const engine = new BeautyEffectEngine(config);
-await engine.init();
+await engine.init({
+  onProgress: ({ percent }) => {
+    // 0–100 while runtime files download
+  },
+});
 ```
 
 ### Lifecycle
 
 | Method | Description |
 | --- | --- |
-| `init(options?)` | Initialize the engine (auth and resources). `options.timeout` (default `30000`) is the init timeout in ms. |
+| `init(options?)` | Initialize the engine (auth and resources). `options.timeout` (default `120000`) is the init timeout in ms. `options.onProgress({ loaded, total, percent })` reports **download** progress of the runtime files. |
 | `setLogConfig({ consoleEnabled, fileEnabled, level, fileName })` | Global log config. Call before `init()`. `level`: `0` TRACE … `5` CRITICAL. File logging is not supported in the browser. Returns `Promise<void>`. |
 | `destroy()` | Release the engine and its resources. |
 

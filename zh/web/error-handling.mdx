@@ -69,7 +69,7 @@ try {
 ## 初始化排查
 
 1. 配置合法：非空 `licenseToken`。
-2. `resource.fbd` 能从 `resourcePath` 访问到（默认 `/resource.fbd`）。
+2. SDK 能下载到运行时文件（`facebetter-core` 包，或与 UMD 脚本同目录的文件）。
 3. 页面处于[安全上下文](https://developer.mozilla.org/zh-CN/docs/Web/Security/Secure_Contexts)。
 4. 生产环境控制台绑定的域名与页面 origin 一致。
 5. 生产前端包里**没有**嵌入 `appKey`。

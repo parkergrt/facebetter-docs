@@ -17,7 +17,7 @@ const engine = new BeautyEffectEngine(new EngineConfig({ licenseToken }));
 ```
 
 <Warning>
-不要把 `appKey` 打进生产前端包。`fetchLicenseToken` 只适合 localhost。
+不要把 `appKey` 打进前端包。
 </Warning>
 
 在控制台绑定与线上一致的域名。Web 不能使用离线 `.lic`。
@@ -70,8 +70,8 @@ ctx.putImageData(result, 0, 0);
 
 ## 资源
 
-- 把 `resource.fbd` 放到 `/resource.fbd`（或你配置的 `resourcePath`）。
 - 滤镜 / 贴纸 `.fbd` 和背景 jpg/png 作为静态文件托管，把 URL 传给 `setFilter` / `setSticker` / `setVirtualBackground`。
+- 引擎运行时资源由 SDK 在 `init()` 时加载，不必在站点根路径放 `resource.fbd`。
 - 在用户操作时切换滤镜 / 贴纸，不要每帧切换。
 
 ## 内存
@@ -81,7 +81,7 @@ ctx.putImageData(result, 0, 0);
 
 ## HTTPS 与 CORS
 
-摄像头需要 HTTPS 或 localhost。若 `resource.fbd` 在其他源，需要配置 CORS。
+摄像头需要 HTTPS 或 localhost。若滤镜 / 贴纸等静态资源在其他源，需要配置 CORS。
 
 ## 相关文档
 

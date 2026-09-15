@@ -20,6 +20,10 @@ SDK **2.0** 使用 **license token** 鉴权。原生平台也可以用 `appId` +
 
 **优先级**：`licenseToken` 非空时，SDK 本地校验该 token，**不会**再用 `appId` / `appKey` 请求网络。
 
+<Tip>
+推荐与 Web 相同：由**你的服务器**保管 `appId` / `appKey` 并换短时 `licenseToken`，再下发给 App。签名请求里的 `platform` 需与客户端一致（如 `ios` / `android` / `macos` / `windows` / `linux`），服务端示例见下方 [Web → 服务端代理](#server-proxy)。`appId` + `appKey` 直连与离线 `.lic` 仍可使用。
+</Tip>
+
 **iOS / macOS**
 
 ```objc
@@ -60,56 +64,67 @@ config.appId = "your appId";
 config.appKey = "your appKey";
 ```
 
-离线 `.lic` 建议作为资源随包分发，运行时读取，不要写死在源码里。
+离线 `.lic` 建议作为资源随包分发，运行时读取，不要写死在源码里。获取方式见下方 [离线许可证](#offline-license)。
 
 ## Web
 
-浏览器 SDK **没有** `appId` / `appKey` 字段。引擎只接受 `licenseToken` 并在本地验签。请在 `init()` **之前**换好 token。
+浏览器 SDK **没有** `appId` / `appKey` 字段。引擎只接受 `licenseToken`，并在本地验签。请在 `init()` **之前**由**你的服务器**向 Facebetter 换好 token。
 
-| 在哪换 token | 怎么做 | 适用场景 |
-|------|------|----------|
-| 你的服务器 | POST 到你的接口；服务器持有 `app_id` / `app_key` 再请求 `/facebetter/v2/auth` | 生产 |
-| 页面里 | `fetchLicenseToken({ appId, appKey })` | 仅本地调试 |
+### 推荐流程
+
+1. 控制台创建应用，绑定 Web **域名**，拿到 `appId` / `appKey`（见 [订阅服务](./enable-service)）
+2. 在**你的后端**保管密钥；对外提供一个接口（例如 `POST /api/facebetter/auth`）
+3. 后端用密钥签名后请求 `https://facebetter.pixpark.net/facebetter/v2/auth`，把**响应原文**返回给页面
+4. 页面把该字符串传给 `EngineConfig.licenseToken`，再 `init()`
+
+官方 Demo（`demo/web/react`）也是这套模式：前端见 `src/fetchLicenseToken.js`，服务端代理见 `api/facebetter/auth.js`。
 
 <Warning>
-不要把 `appKey` 打进生产前端包。Web **不支持**离线 `.lic`。在线 token 几分钟内过期，重新创建引擎前要再换一张。
+不要把 `appKey` 打进前端包。Web **不支持**离线 `.lic`。在线 token 几分钟内过期，重新创建引擎前要再换一张。
 </Warning>
 
+### 前端
+
 ```javascript
-import { BeautyEffectEngine, EngineConfig, fetchLicenseToken } from 'facebetter';
+import { BeautyEffectEngine, EngineConfig } from 'facebetter';
 
-// 生产：你的服务器返回鉴权接口的响应体（`{success, token}` 或 token 字符串）
-const config = new EngineConfig({
-  licenseToken: await fetch('/api/facebetter/auth', { method: 'POST' }).then((r) => r.text()),
+// 响应可以是纯 token，也可以是上游返回的 JSON 原文（含 token 字段）
+const licenseToken = await fetch('/api/facebetter/auth', {
+  method: 'POST',
+}).then((r) => {
+  if (!r.ok) throw new Error(`auth failed: ${r.status}`);
+  return r.text();
 });
 
-// 仅本地调试 —— 密钥会出现在前端
-const config = new EngineConfig({
-  licenseToken: await fetchLicenseToken({
-    appId: 'your-app-id',
-    appKey: 'your-app-key',
-  }),
-});
-
-const engine = new BeautyEffectEngine(config);
+const engine = new BeautyEffectEngine(new EngineConfig({ licenseToken }));
 await engine.init();
 ```
 
-Node 接口示例（密钥留在服务器，返回 token）：
+### 服务端代理（Node 示例） {#server-proxy}
+
+把 `FB_APP_ID` / `FB_APP_KEY` 放在环境变量里。下面可直接嵌进 Express / Fastify / 无服务器函数：
 
 ```javascript
 import { createHmac, randomBytes } from 'node:crypto';
 
+const AUTH_URL = 'https://facebetter.pixpark.net/facebetter/v2/auth';
+
 app.post('/api/facebetter/auth', async (req, res) => {
   const appId = process.env.FB_APP_ID;
   const appKey = process.env.FB_APP_KEY;
+  if (!appId || !appKey) {
+    res.status(500).json({ error: 'FB_APP_ID / FB_APP_KEY not configured' });
+    return;
+  }
+
   const nonce = randomBytes(16).toString('hex');
   const timestamp = Math.floor(Date.now() / 1000);
   const platform = 'web';
+  // 签名串：v2|{app_id}|{timestamp}|{nonce}|{platform}
   const payload = `v2|${appId}|${timestamp}|${nonce}|${platform}`;
   const hmac = createHmac('sha256', appKey).update(payload).digest('hex');
 
-  const upstream = await fetch('https://facebetter.pixpark.net/facebetter/v2/auth', {
+  const upstream = await fetch(AUTH_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -121,23 +136,41 @@ app.post('/api/facebetter/auth', async (req, res) => {
       user_agent: req.headers['user-agent'] || '',
     }),
   });
+
+  // 原样转发给前端，作为 EngineConfig.licenseToken
   res.status(upstream.status).send(await upstream.text());
 });
 ```
 
-## 离线许可证（仅原生）
+其它语言只需实现同样步骤：拼签名串 → HMAC-SHA256（hex）→ POST 上游 → 把 body 交给前端。可运行的参考实现：[GitHub Demo `api/facebetter/auth.js`](https://github.com/pixpark/facebetter-sdk/blob/main/demo/web/react/api/facebetter/auth.js)。
 
-1. 登录 [控制台](https://facebetter.net/zh/dashboard)
-2. 选择项目，下载离线许可证
-3. 把**文件全文**赋给 `licenseToken` / `license_token`
+### 上游请求字段
 
-有效期与当前订阅一致。续费或改套餐后需重新下载并替换。
+| 字段 | 说明 |
+|------|------|
+| `app_id` | 控制台 AppID |
+| `hmac_signature` | 对 `v2\|{app_id}\|{timestamp}\|{nonce}\|web` 做 HMAC-SHA256，结果为 hex |
+| `timestamp` | Unix 秒 |
+| `nonce` | 随机字符串（建议 ≥16 字节 hex） |
+| `platform` | 固定 `web` |
+| `user_agent` | 可选，建议传浏览器 UA |
+
+成功时上游返回 JSON（含 `token` 字段）。你可原样把响应文本交给 SDK，也可只抽出 `token` 字符串；两者 SDK 都接受。
+
+## 离线许可证（仅原生） {#offline-license}
+
+控制台**不再提供**离线 `.lic` 自助下载。如需离线授权，请联系销售或管理员：
+
+- 邮箱：[hello@facebetter.net](mailto:hello@facebetter.net)（主题建议注明 `[商务合作] 离线许可证`）
+- 更多方式：[联系我们](https://facebetter.net/zh/contact)
+
+获得文件后，把**全文**赋给 `licenseToken` / `license_token`。有效期与当前订阅一致；续费或改套餐后需重新申请并替换。
 
 ### 注意
 
 - 离线许可证绑定控制台里配置的应用标识，不匹配会校验失败。
 - 未过期：能力跟随订阅套餐。
-- 已过期：引擎仍可初始化，能力回退到**免费版**（始终带水印，不含关键点回调）。续费后重新下载。
+- 已过期：引擎仍可初始化，能力回退到**免费版**（始终带水印，不含关键点回调）。续费后重新申请。
 - Web 不能使用离线许可证，必须走在线 v2 鉴权。
 
 ## 引擎事件

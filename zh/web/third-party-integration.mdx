@@ -35,7 +35,6 @@ import {
 
 const engine = new BeautyEffectEngine(new EngineConfig({
   licenseToken: await fetch('/api/facebetter/auth', { method: 'POST' }).then((r) => r.text()),
-  resourcePath: '/resource.fbd',
 }));
 await engine.setLogConfig({ consoleEnabled: true, level: 2 });
 await engine.init();
@@ -143,7 +142,7 @@ await room.localParticipant.publishTrack(track);
 
 | 项 | 说明 |
 | --- | --- |
-| 鉴权 | 生产：从你的服务器换 `licenseToken`；`fetchLicenseToken` 仅用于调试 |
+| 鉴权 | 从你的服务器换 `licenseToken` |
 | 性能 | 复用同一个 canvas；控制 `captureStream` 帧率；避免每帧新建 canvas |
 | 音频 | 上面示例只处理视频；麦克风轨仍从 `getUserMedia({ audio: true })` 单独取并发布 |
 | 镜像 | 预览可在 `processImage` 用 `MirrorMode`；是否与编码侧一致按产品需求取舍 |

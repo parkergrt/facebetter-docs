@@ -35,7 +35,6 @@ import {
 
 const engine = new BeautyEffectEngine(new EngineConfig({
   licenseToken: await fetch('/api/facebetter/auth', { method: 'POST' }).then((r) => r.text()),
-  resourcePath: '/resource.fbd',
 }));
 await engine.setLogConfig({ consoleEnabled: true, level: 2 });
 await engine.init();
@@ -143,7 +142,7 @@ await room.localParticipant.publishTrack(track);
 
 | Item | Detail |
 | --- | --- |
-| Auth | Production: fetch `licenseToken` from your server; `fetchLicenseToken` is debug-only |
+| Auth | Fetch `licenseToken` from your server |
 | Perf | Reuse one canvas; cap `captureStream` FPS; do not allocate a new canvas every frame |
 | Audio | Example is video-only; take the mic from a separate `getUserMedia({ audio: true })` and publish it |
 | Mirror | Preview can use `MirrorMode` in `processImage`; decide whether encode should match |

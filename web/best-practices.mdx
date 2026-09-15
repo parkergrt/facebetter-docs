@@ -17,7 +17,7 @@ const engine = new BeautyEffectEngine(new EngineConfig({ licenseToken }));
 ```
 
 <Warning>
-Never put `appKey` in a production frontend bundle. `fetchLicenseToken` is localhost-only.
+Never put `appKey` in a frontend bundle.
 </Warning>
 
 Bind the exact production domain in the Dashboard. Web cannot use offline `.lic`.
@@ -70,8 +70,8 @@ Do not register `onFaceLandmarks` unless the UI needs them — it forces per-fra
 
 ## Resources
 
-- Put `resource.fbd` at `/resource.fbd` (or the `resourcePath` you configured).
 - Host filter / sticker `.fbd` and background jpg/png as static files; pass the URL into `setFilter` / `setSticker` / `setVirtualBackground`.
+- Runtime resources are loaded by the SDK during `init()`. Do not put a site-root `resource.fbd` for the engine.
 - Switch filter / sticker on user input, not every frame.
 
 ## Memory
@@ -81,7 +81,7 @@ Do not register `onFaceLandmarks` unless the UI needs them — it forces per-fra
 
 ## HTTPS and CORS
 
-Camera access needs HTTPS or localhost. If `resource.fbd` is on another origin, send CORS headers.
+Camera access needs HTTPS or localhost. If filter / sticker assets are on another origin, send CORS headers.
 
 ## Related
 

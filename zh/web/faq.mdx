@@ -13,13 +13,13 @@ SDK **2.0.0**。鉴权：[授权与许可](/zh/intro/license)。枚举：[参数
 
 - `EngineConfig` 必须设置非空的 `licenseToken`。Web 配置上没有 `appId` / `appKey` 字段。
 - 生产环境：你的服务器必须返回鉴权接口的响应体（`{success, token}` 或错误 JSON）。见 [授权与许可](/zh/intro/license)。
-- 确认 `/resource.fbd`（或你的 `resourcePath`）返回 HTTP 200。
+- 确认页面能下载到 SDK 运行时文件（打包器 / CDN）。见 [错误处理](/zh/web/error-handling)。
 - 确认页面是 HTTPS 或 localhost。
 - 查看 `FacebetterError.code`（[错误处理](/zh/web/error-handling)）。
 
 ### 怎么传 AppID / AppKey？
 
-不要写在 `EngineConfig` 上。密钥放在服务器，换好 token 再传入 `licenseToken`。仅 localhost：`fetchLicenseToken({ appId, appKey })`。
+不要写在 `EngineConfig` 上。密钥放在服务器，换好 token 再传入 `licenseToken`。
 
 ### 浏览器能用离线 `.lic` 吗？
 

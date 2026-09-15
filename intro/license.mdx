@@ -20,6 +20,10 @@ Pass one of the following when creating the engine:
 
 **Priority**: if `licenseToken` is non-empty, the SDK validates that token locally and does **not** call the network with `appId` / `appKey`.
 
+<Tip>
+Recommended (same idea as Web): keep `appId` / `appKey` on **your server**, mint a short-lived `licenseToken`, and deliver it to the app. Set `platform` in the signed request to match the client (`ios` / `android` / `macos` / `windows` / `linux`). See [Web → Server proxy](#server-proxy) below. Direct `appId` + `appKey` and offline `.lic` remain supported.
+</Tip>
+
 **iOS / macOS**
 
 ```objc
@@ -60,56 +64,67 @@ config.appId = "your appId";
 config.appKey = "your appKey";
 ```
 
-Prefer shipping the offline `.lic` as an app asset and loading it at runtime instead of hard-coding it in source.
+Prefer shipping the offline `.lic` as an app asset and loading it at runtime instead of hard-coding it in source. How to obtain one: [Offline license](#offline-license) below.
 
 ## Web
 
-The browser SDK has **no** `appId` / `appKey` fields. The engine only accepts `licenseToken` and verifies it locally. Fetch the token **before** `init()`.
+The browser SDK has **no** `appId` / `appKey` fields. The engine only accepts `licenseToken` and verifies it locally. Fetch the token from **your server** **before** `init()`.
 
-| Where you fetch | How | When to use |
-|------|------|-------------|
-| Your server | POST to your endpoint; server holds `app_id` / `app_key` and calls `/facebetter/v2/auth` | Production |
-| The page | `fetchLicenseToken({ appId, appKey })` | Local debug only |
+### Recommended flow
+
+1. Create an app in the Dashboard, bind your Web **domain**, and copy `appId` / `appKey` (see [Subscription](./enable-service))
+2. Keep the keys on **your backend**; expose an endpoint (for example `POST /api/facebetter/auth`)
+3. Your backend signs a request to `https://facebetter.pixpark.net/facebetter/v2/auth` and returns the **raw response body** to the page
+4. Pass that string to `EngineConfig.licenseToken`, then call `init()`
+
+The official demo (`demo/web/react`) uses the same pattern: frontend in `src/fetchLicenseToken.js`, server proxy in `api/facebetter/auth.js`.
 
 <Warning>
-Do not put `appKey` in a production frontend bundle. Web does **not** support offline `.lic` files. Online tokens expire in minutes — fetch a new one before creating the engine again.
+Do not put `appKey` in a frontend bundle. Web does **not** support offline `.lic` files. Online tokens expire in minutes — fetch a new one before creating the engine again.
 </Warning>
 
+### Frontend
+
 ```javascript
-import { BeautyEffectEngine, EngineConfig, fetchLicenseToken } from 'facebetter';
+import { BeautyEffectEngine, EngineConfig } from 'facebetter';
 
-// Production: your server returns the auth API body (`{success, token}` or the token string)
-const config = new EngineConfig({
-  licenseToken: await fetch('/api/facebetter/auth', { method: 'POST' }).then((r) => r.text()),
+// Body may be a bare token, or the upstream JSON text (with a token field)
+const licenseToken = await fetch('/api/facebetter/auth', {
+  method: 'POST',
+}).then((r) => {
+  if (!r.ok) throw new Error(`auth failed: ${r.status}`);
+  return r.text();
 });
 
-// Local debug only — keys appear in the frontend
-const config = new EngineConfig({
-  licenseToken: await fetchLicenseToken({
-    appId: 'your-app-id',
-    appKey: 'your-app-key',
-  }),
-});
-
-const engine = new BeautyEffectEngine(config);
+const engine = new BeautyEffectEngine(new EngineConfig({ licenseToken }));
 await engine.init();
 ```
 
-Example Node endpoint (holds the key, returns a token):
+### Server proxy (Node example) {#server-proxy}
+
+Store `FB_APP_ID` / `FB_APP_KEY` in environment variables. Drop this into Express / Fastify / a serverless function:
 
 ```javascript
 import { createHmac, randomBytes } from 'node:crypto';
 
+const AUTH_URL = 'https://facebetter.pixpark.net/facebetter/v2/auth';
+
 app.post('/api/facebetter/auth', async (req, res) => {
   const appId = process.env.FB_APP_ID;
   const appKey = process.env.FB_APP_KEY;
+  if (!appId || !appKey) {
+    res.status(500).json({ error: 'FB_APP_ID / FB_APP_KEY not configured' });
+    return;
+  }
+
   const nonce = randomBytes(16).toString('hex');
   const timestamp = Math.floor(Date.now() / 1000);
   const platform = 'web';
+  // Sign string: v2|{app_id}|{timestamp}|{nonce}|{platform}
   const payload = `v2|${appId}|${timestamp}|${nonce}|${platform}`;
   const hmac = createHmac('sha256', appKey).update(payload).digest('hex');
 
-  const upstream = await fetch('https://facebetter.pixpark.net/facebetter/v2/auth', {
+  const upstream = await fetch(AUTH_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -121,23 +136,41 @@ app.post('/api/facebetter/auth', async (req, res) => {
       user_agent: req.headers['user-agent'] || '',
     }),
   });
+
+  // Forward as-is for EngineConfig.licenseToken
   res.status(upstream.status).send(await upstream.text());
 });
 ```
 
-## Offline license (native)
+In other languages, implement the same steps: build the sign string → HMAC-SHA256 (hex) → POST upstream → hand the body to the frontend. Runnable reference: [GitHub Demo `api/facebetter/auth.js`](https://github.com/pixpark/facebetter-sdk/blob/main/demo/web/react/api/facebetter/auth.js).
 
-1. Sign in to the [Dashboard](https://facebetter.net/dashboard)
-2. Select a project, then download the offline license
-3. Pass the **entire file contents** as `licenseToken` / `license_token`
+### Upstream request fields
 
-Validity matches your current subscription. After renewing or changing the plan, download again and replace the token in your app.
+| Field | Description |
+|------|-------------|
+| `app_id` | Dashboard AppID |
+| `hmac_signature` | HMAC-SHA256 of `v2\|{app_id}\|{timestamp}\|{nonce}\|web`, hex-encoded |
+| `timestamp` | Unix seconds |
+| `nonce` | Random string (recommend ≥16 bytes hex) |
+| `platform` | Always `web` |
+| `user_agent` | Optional; pass the browser UA when available |
+
+On success the upstream returns JSON (including a `token` field). You may forward the response text as-is, or extract only the `token` string — the SDK accepts either.
+
+## Offline license (native) {#offline-license}
+
+The Dashboard **no longer** offers self-serve offline `.lic` downloads. To get an offline license, contact sales or an administrator:
+
+- Email: [hello@facebetter.net](mailto:hello@facebetter.net) (subject tip: `[Business Partnership] Offline license`)
+- More options: [Contact Us](https://facebetter.net/contact)
+
+After you receive the file, pass the **entire contents** as `licenseToken` / `license_token`. Validity matches your current subscription; after renewing or changing the plan, request a new file and replace it in the app.
 
 ### Notes
 
 - The offline license is bound to the app identifiers configured in the Dashboard; a mismatch fails validation.
 - Not expired: features follow your subscription plan.
-- Expired: the engine can still initialize, but capabilities fall back to the **Free** plan (watermarked trial, no keypoint callbacks). Renew and download a new license.
+- Expired: the engine can still initialize, but capabilities fall back to the **Free** plan (watermarked trial, no keypoint callbacks). Renew and request a new license.
 - Web cannot use offline licenses; it must complete an online v2 auth path.
 
 ## Engine events

@@ -16,7 +16,6 @@ import {
   FrameType,
   MirrorMode,
   Reshape,
-  fetchLicenseToken,
 } from 'facebetter';
 ```
 
@@ -25,7 +24,6 @@ import {
 ```javascript
 new EngineConfig({
   licenseToken,      // string — 必填。许可证 token，或 `{token}` JSON
-  resourcePath,      // string — 默认 `/resource.fbd`
 })
 ```
 
@@ -33,24 +31,24 @@ Web **不接受**在该对象上设置 `appId` / `appKey`。Web **不支持**离
 
 `licenseToken` 为非空字符串时 `isValid()` 为 true。
 
-在 `init()` **之前**换好 token。生产走你的服务器。本地调试：
-
-```javascript
-licenseToken: await fetchLicenseToken({ appId, appKey })
-```
+在 `init()` **之前**由**你的服务器**换好 token。见 [授权与许可](/zh/intro/license)。
 
 ## BeautyEffectEngine
 
 ```javascript
 const engine = new BeautyEffectEngine(config);
-await engine.init();
+await engine.init({
+  onProgress: ({ percent }) => {
+    // 运行时文件下载时 0–100
+  },
+});
 ```
 
 ### 生命周期
 
 | 方法 | 说明 |
 | --- | --- |
-| `init(options?)` | 初始化引擎（鉴权与资源）。`options.timeout`（默认 `30000`）为初始化超时（毫秒）。 |
+| `init(options?)` | 初始化引擎（鉴权与资源）。`options.timeout`（默认 `120000`）为初始化超时（毫秒）。`options.onProgress({ loaded, total, percent })` 报告运行时文件的**下载**进度。 |
 | `setLogConfig({ consoleEnabled, fileEnabled, level, fileName })` | 全局日志。请在 `init()` 前调用。`level`：`0` TRACE … `5` CRITICAL。浏览器不支持文件日志。返回 `Promise<void>`。 |
 | `destroy()` | 释放引擎及其资源。 |
 

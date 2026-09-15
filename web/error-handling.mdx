@@ -69,7 +69,7 @@ try {
 ## Init checklist
 
 1. Config is valid: non-empty `licenseToken`.
-2. `resource.fbd` is reachable at `resourcePath` (default `/resource.fbd`).
+2. The SDK can download its runtime files (`facebetter-core` package, or files next to the UMD script).
 3. Page is a [secure context](https://developer.mozilla.org/en-US/docs/Web/Security/Secure_Contexts).
 4. Dashboard domain matches the page origin (production).
 5. Production does **not** embed `appKey` in frontend JS.
