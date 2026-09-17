@@ -13,6 +13,7 @@ description: "在 Linux 上构建并运行 Facebetter C++ 桌面示例（GLFW + 
 
 | 工具 | 版本 |
 | --- | --- |
+| 系统（官方预编译 zip） | **Ubuntu 22.04+** 或同等环境（**glibc ≥ 2.35**）。CI 在 Ubuntu 22.04 上构建。 |
 | GCC 或 Clang | C++17（GCC 7+ / Clang 5+） |
 | CMake | 3.16+ |
 | Ninja | `apt install ninja-build` / `dnf install ninja-build` |
@@ -60,7 +61,8 @@ demo/cpp/sdk/
 ├── lib/
 │   └── libfacebetter.so    ← 动态库
 └── resource/
-    └── resource.fbd        ← 模型与资源包（必需）
+    ├── resource.fbd        ← 模型与资源包（必需）
+    └── resource_3d.fbd     ← 可选；3D 贴纸。与 `resource.fbd` 同目录或调用 `AddResourcePack`
 ```
 
 <Warning>

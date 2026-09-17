@@ -263,6 +263,11 @@ public int setFilterIntensity(float intensity);
 public int setSticker(String fbdFilePath);
 public int setSticker(byte[] fbdData);
 public int clearSticker();
+public int addResourcePack(String fbdFilePath);
+public int addResourcePack(byte[] fbdData);
+public int set3DSticker(String resource);
+public int set3DSticker(byte[] fbdData);
+public int clear3DSticker();
 ```
 
 | Method | Description |
@@ -272,6 +277,9 @@ public int clearSticker();
 | `setFilterIntensity` | Mix `[0.0, 1.0]` |
 | `setSticker` | Apply a 2D sticker from a `.fbd` path or bytes |
 | `clearSticker` | Remove the current sticker |
+| `addResourcePack` | Register an extra capability pack (for example `resource_3d.fbd` before `set3DSticker`) |
+| `set3DSticker` | Apply a 3D sticker from a `.fbd` path or bytes |
+| `clear3DSticker` | Remove the 3D sticker |
 
 Empty path / empty `byte[]` returns `ErrorCode.INVALID_ARGUMENT`.
 

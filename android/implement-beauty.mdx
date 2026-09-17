@@ -240,6 +240,14 @@ engine.setSticker(sticker);
 engine.clearSticker();
 ```
 
+3D stickers need the optional `resource_3d.fbd` pack (not in the AAR). See [Optional resource packs](/intro/resource-packs). Register it from your app assets, then apply a 3D sticker `.fbd`:
+
+```java
+engine.addResourcePack(loadAssetBytes("resource_3d.fbd"));
+engine.set3DSticker(loadAssetBytes("stickers/3d/oculos.fbd"));
+engine.clear3DSticker();
+```
+
 Filter / sticker changes take effect on the next `processImage`.
 
 ```java

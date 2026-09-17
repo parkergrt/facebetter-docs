@@ -113,10 +113,16 @@ engine.clearFilter();
 await engine.setSticker(path: '/path/to/sticker.fbd');
 engine.clearSticker();
 
+await engine.addResourcePack(path: '/path/to/resource_3d.fbd');
+await engine.set3DSticker(path: '/path/to/oculos.fbd');
+engine.clear3DSticker();
+
 engine.setVirtualBackgroundBlur(0.6);
 await engine.setVirtualBackground(path: '/path/to/bg.jpg');
 engine.clearVirtualBackground();
 ```
+
+3D 贴纸需要可选包 `resource_3d.fbd`（不在插件内）。见 [可选资源包](/zh/intro/resource-packs)。
 
 色度键（同步），与原生一致：
 

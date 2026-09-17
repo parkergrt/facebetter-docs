@@ -136,6 +136,10 @@ engine->ClearFilter();
 engine->SetSticker("assets/stickers/face/black_glass.fbd");
 engine->ClearSticker();
 
+engine->AddResourcePack("resource/resource_3d.fbd");  // or place it next to resource.fbd
+engine->Set3DSticker("assets/stickers/3d/oculos.fbd");
+engine->Clear3DSticker();
+
 engine->SetVirtualBackgroundBlur(0.6f);           // [0, 1]; 0 clears fill
 engine->SetVirtualBackground("assets/background.jpg");
 engine->ClearVirtualBackground();
@@ -147,7 +151,7 @@ engine->SetChromaKeyDesaturation(0.2f);
 engine->ClearChromaKey();  // back to portrait segmentation
 ```
 
-LUT / sticker textures are created on the next `ProcessImage` call (the active GL thread).
+LUT / sticker textures are created on the next `ProcessImage` call (the active GL thread). For 3D stickers see [Optional resource packs](/intro/resource-packs).
 
 ---
 

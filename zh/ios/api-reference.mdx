@@ -135,6 +135,11 @@ FB_OBJC_API @interface FBBeautyEffectEngine : NSObject
 - (int)setSticker:(NSString *)fbdFilePath;
 - (int)setStickerWithData:(NSData *)fbdData;
 - (int)clearSticker;
+- (int)addResourcePack:(NSString *)fbdFilePath;
+- (int)addResourcePackWithData:(NSData *)fbdData;
+- (int)set3DSticker:(NSString *)resource;
+- (int)set3DStickerWithData:(NSData *)fbdData;
+- (int)clear3DSticker;
 
 - (FBEngineStats *)getStats;
 - (int)setCallbacks:(FBEngineCallbacks *)callbacks;
@@ -243,6 +248,11 @@ typedef NS_ENUM(NSInteger, FBChromaKeyColor) {
 | `setFilterIntensity:` | `[0, 1]` |
 | `setSticker:` | 2D 贴纸 `.fbd` 路径 |
 | `setStickerWithData:` | 贴纸字节 |
+| `addResourcePack:` | 额外能力包路径（例如 3D 贴纸前加载 `resource_3d.fbd`） |
+| `addResourcePackWithData:` | 额外包字节 |
+| `set3DSticker:` | 3D 贴纸 `.fbd` 路径 |
+| `set3DStickerWithData:` | 3D 贴纸字节 |
+| `clear3DSticker` | 移除 3D 贴纸 |
 | `clearSticker` | 移除贴纸 |
 
 空路径 / nil 或空 `NSData` → `FBErrorCode_InvalidArgument`。

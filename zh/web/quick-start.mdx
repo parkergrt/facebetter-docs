@@ -59,7 +59,7 @@ await engine.init();
 
 生产环境请在**你们自己的服务器**实现同样的代理。完整步骤与 Node 示例见 [授权与许可](/zh/intro/license)。
 
-SDK 会在 `init()` 时从 `facebetter-core` 包加载运行时文件。**不必**把 `resource.fbd` 拷进 `public/`。可选：`init({ onProgress })` 报告下载百分比。
+SDK 会在 `init()` 时加载运行时文件。**不必**把 `resource.fbd` 拷进 `public/`。可选：`init({ onProgress })` 报告下载百分比。3D 贴纸需要额外包 `resource_3d.fbd`，见 [可选资源包](/zh/intro/resource-packs)。
 
 ## 运行
 

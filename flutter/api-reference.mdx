@@ -80,6 +80,10 @@ void setFilterIntensity(double intensity) // [0, 1]
 Future<void> setSticker({String? path, Uint8List? data})
 void clearSticker()
 
+Future<void> addResourcePack({String? path, Uint8List? data})
+Future<void> set3DSticker({String? path, Uint8List? data})
+void clear3DSticker()
+
 void setVirtualBackgroundBlur(double level) // [0, 1]; 0 clears
 Future<void> setVirtualBackground({String? path, Uint8List? data})
 void clearVirtualBackground()
@@ -91,7 +95,7 @@ void setChromaKeySmoothness(double value)
 void setChromaKeyDesaturation(double value)
 ```
 
-`path` and `data` are mutually exclusive; exactly one is required.
+`path` and `data` are mutually exclusive; exactly one is required. For 3D stickers see [Optional resource packs](/intro/resource-packs).
 
 ### Photo
 

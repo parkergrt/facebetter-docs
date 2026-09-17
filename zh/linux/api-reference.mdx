@@ -130,7 +130,14 @@ int SetFilterIntensity(float intensity);
 int SetSticker(const std::string& fbd_file_path);
 int SetSticker(const std::vector<uint8_t>& fbd_data);
 int ClearSticker();
+int AddResourcePack(const std::string& fbd_file_path);
+int AddResourcePack(const std::vector<uint8_t>& fbd_data);
+int Set3DSticker(const std::string& resource);
+int Set3DSticker(const std::vector<uint8_t>& fbd_data);
+int Clear3DSticker();
 ```
+
+3D 贴纸前请先加载可选包，见 [可选资源包](/zh/intro/resource-packs)。
 
 ### 统计、回调、处理
 

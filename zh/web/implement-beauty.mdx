@@ -144,6 +144,17 @@ engine.setSticker('/stickers/face/fox.fbd');
 engine.clearSticker();
 ```
 
+3D 贴纸需要可选包 `resource_3d.fbd`（不在 Web SDK 内）。见 [可选资源包](/zh/intro/resource-packs)。`init()` 之后用字节登记：
+
+```javascript
+const pack = new Uint8Array(
+  await (await fetch('/resource_3d.fbd')).arrayBuffer()
+);
+engine.addResourcePack(pack);
+engine.set3DSticker('/stickers/3d/oculos.fbd');
+engine.clear3DSticker();
+```
+
 ```javascript
 const bytes = new Uint8Array(await (await fetch('/filters/chuxin.fbd')).arrayBuffer());
 engine.setFilter(bytes);

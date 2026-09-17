@@ -41,12 +41,13 @@ Powered by real-time portrait segmentation:
 
 ### Sticker Effects
 
-2D sticker effects including:
+2D and 3D sticker effects:
 
 - **Screen stickers**: overlaid at a fixed position on the frame
 - **Face-tracking stickers**: anchored to face keypoints and follow head movement
+- **3D stickers**: mesh props (glasses, hats, masks). Requires the optional `resource_3d.fbd` pack — see [Optional resource packs](./resource-packs)
 
-Sticker (and filter) resources are **`.fbd` files**. Apply one at a time with `setSticker` / `setFilter` (path or bytes) and remove it with `clearSticker` / `clearFilter`. Apply one at a time; the new resource takes effect on the next processed frame.
+Sticker (and filter) resources are **`.fbd` files**. Apply one 2D sticker at a time with `setSticker` and one 3D sticker with `set3DSticker` (path or bytes). Remove with `clearSticker` / `clear3DSticker`. The new resource takes effect on the next processed frame.
 
 ### Advanced Features
 

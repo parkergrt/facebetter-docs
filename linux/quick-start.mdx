@@ -13,6 +13,7 @@ This guide builds the Facebetter C++ desktop demo on Linux. The demo uses **GLFW
 
 | Tool | Version |
 | --- | --- |
+| OS (prebuilt SDK zip) | **Ubuntu 22.04+** or equivalent (**glibc ≥ 2.35**). Official CI builds on Ubuntu 22.04. |
 | GCC or Clang | C++17 (GCC 7+ / Clang 5+) |
 | CMake | 3.16+ |
 | Ninja | `apt install ninja-build` / `dnf install ninja-build` |
@@ -60,7 +61,8 @@ demo/cpp/sdk/
 ├── lib/
 │   └── libfacebetter.so    ← shared library
 └── resource/
-    └── resource.fbd        ← models and assets (required)
+    ├── resource.fbd        ← models and assets (required)
+    └── resource_3d.fbd     ← optional; 3D stickers. Place next to `resource.fbd` or call `AddResourcePack`
 ```
 
 <Warning>

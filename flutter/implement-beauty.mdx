@@ -113,10 +113,16 @@ engine.clearFilter();
 await engine.setSticker(path: '/path/to/sticker.fbd');
 engine.clearSticker();
 
+await engine.addResourcePack(path: '/path/to/resource_3d.fbd');
+await engine.set3DSticker(path: '/path/to/oculos.fbd');
+engine.clear3DSticker();
+
 engine.setVirtualBackgroundBlur(0.6);
 await engine.setVirtualBackground(path: '/path/to/bg.jpg');
 engine.clearVirtualBackground();
 ```
+
+3D stickers need the optional `resource_3d.fbd` pack (not in the plugin). See [Optional resource packs](/intro/resource-packs).
 
 Chroma key (sync), same as native:
 

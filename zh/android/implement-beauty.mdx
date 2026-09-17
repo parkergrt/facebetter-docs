@@ -240,6 +240,14 @@ engine.setSticker(sticker);
 engine.clearSticker();
 ```
 
+3D 贴纸需要可选包 `resource_3d.fbd`（不在 AAR 内）。见 [可选资源包](/zh/intro/resource-packs)。从应用 `assets` 登记后再设置 3D 贴纸 `.fbd`：
+
+```java
+engine.addResourcePack(loadAssetBytes("resource_3d.fbd"));
+engine.set3DSticker(loadAssetBytes("stickers/3d/oculos.fbd"));
+engine.clear3DSticker();
+```
+
 滤镜 / 贴纸在**下一帧**处理后生效。
 
 ```java

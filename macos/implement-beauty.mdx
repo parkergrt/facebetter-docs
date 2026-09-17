@@ -188,6 +188,16 @@ NSString *stickerPath = [[NSBundle mainBundle] pathForResource:@"cherry" ofType:
 [self.beautyEffectEngine setStickerWithData:stickerData];
 ```
 
+3D stickers need the optional `resource_3d.fbd` pack (not in the framework). See [Optional resource packs](/intro/resource-packs):
+
+```objc
+NSString *packPath = [[NSBundle mainBundle] pathForResource:@"resource_3d" ofType:@"fbd"];
+[self.beautyEffectEngine addResourcePack:packPath];
+NSString *sticker3dPath = [[NSBundle mainBundle] pathForResource:@"oculos" ofType:@"fbd"];
+[self.beautyEffectEngine set3DSticker:sticker3dPath];
+[self.beautyEffectEngine clear3DSticker];
+```
+
 ## Callbacks and stats
 
 ```objc

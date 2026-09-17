@@ -135,6 +135,11 @@ FB_OBJC_API @interface FBBeautyEffectEngine : NSObject
 - (int)setSticker:(NSString *)fbdFilePath;
 - (int)setStickerWithData:(NSData *)fbdData;
 - (int)clearSticker;
+- (int)addResourcePack:(NSString *)fbdFilePath;
+- (int)addResourcePackWithData:(NSData *)fbdData;
+- (int)set3DSticker:(NSString *)resource;
+- (int)set3DStickerWithData:(NSData *)fbdData;
+- (int)clear3DSticker;
 
 - (FBEngineStats *)getStats;
 - (int)setCallbacks:(FBEngineCallbacks *)callbacks;
@@ -243,6 +248,11 @@ No register-by-id. Path or bytes; GPU resources are created on the next `process
 | `setFilterIntensity:` | `[0, 1]` |
 | `setSticker:` | 2D sticker `.fbd` path |
 | `setStickerWithData:` | Sticker bytes |
+| `addResourcePack:` | Extra capability pack path (for example `resource_3d.fbd` before `set3DSticker:`) |
+| `addResourcePackWithData:` | Extra pack bytes |
+| `set3DSticker:` | 3D sticker `.fbd` path |
+| `set3DStickerWithData:` | 3D sticker bytes |
+| `clear3DSticker` | Remove the 3D sticker |
 | `clearSticker` | Remove sticker |
 
 Empty path / nil or empty `NSData` → `FBErrorCode_InvalidArgument`.

@@ -136,6 +136,10 @@ engine->ClearFilter();
 engine->SetSticker("assets/stickers/face/black_glass.fbd");
 engine->ClearSticker();
 
+engine->AddResourcePack("resource/resource_3d.fbd");  // 或与 resource.fbd 同目录
+engine->Set3DSticker("assets/stickers/3d/oculos.fbd");
+engine->Clear3DSticker();
+
 engine->SetVirtualBackgroundBlur(0.6f);  // [0, 1]；0 清除填充
 engine->SetVirtualBackground("assets/background.jpg");
 engine->ClearVirtualBackground();
@@ -147,7 +151,7 @@ engine->SetChromaKeyDesaturation(0.2f);
 engine->ClearChromaKey();  // 回到人像分割蒙版
 ```
 
-LUT / 贴纸纹理在下一次 `ProcessImage`（当前 GL 线程）时创建。
+LUT / 贴纸纹理在下一次 `ProcessImage`（当前 GL 线程）时创建。3D 贴纸见 [可选资源包](/zh/intro/resource-packs)。
 
 ---
 

@@ -125,6 +125,10 @@ engine->ClearFilter();
 engine->SetSticker("assets/stickers/face/black_glass.fbd");
 engine->ClearSticker();
 
+engine->AddResourcePack("resource/resource_3d.fbd");  // 或与 resource.fbd 同目录
+engine->Set3DSticker("assets/stickers/3d/oculos.fbd");
+engine->Clear3DSticker();
+
 engine->SetVirtualBackgroundBlur(0.6f);
 engine->SetVirtualBackground("assets/background.jpg");
 engine->ClearVirtualBackground();
