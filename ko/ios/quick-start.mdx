@@ -1,0 +1,79 @@
+---
+title: "빠른 시작"
+description: "Facebetter SDK 2.0 iOS 샘플 앱을 실행합니다"
+---
+
+<Note>
+이 페이지는 SDK **2.0.0**에 해당합니다. 인증: [인증 및 라이선스](/ko/intro/license). 메이크업 / 리셰이프 열거형: [파라미터 열거형](/ko/intro/makeup).
+</Note>
+
+## 환경 요구 사항
+
+- **iOS 버전**: `iOS 12.0` 이상
+- **개발 언어**: `Objective-C`
+- **아키텍처 지원**: `arm64`
+
+## 샘플 소스 코드 받기
+
+[GitHub 저장소](https://github.com/pixpark/facebetter-sdk)를 로컬에 클론하고 `demo/ios` 디렉터리로 이동합니다.
+
+```bash
+# clone
+git clone https://github.com/pixpark/facebetter-sdk.git
+
+# Enter iOS Demo directory
+cd facebetter-sdk/demo/ios
+
+# Install dependencies
+pod install
+```
+
+<Warning>
+**Xcode 15+ 컴파일 오류**
+
+**Xcode 15** 이상을 사용하면 컴파일 중 `Sandbox: rsync.samba deny(1)` 오류가 발생할 수 있습니다. Xcode 기본값인 **User Script Sandboxing** 때문입니다.
+
+**해결 방법:**
+1. Xcode에서 **Project**를 선택합니다.
+2. **Build Settings** 탭으로 이동합니다.
+3. `ENABLE_USER_SCRIPT_SANDBOXING`을 검색합니다.
+4. 값을 `Yes`에서 **`No`**로 바꿉니다.
+</Warning>
+
+## 애플리케이션 정보와 키 설정
+
+### 애플리케이션 Bundle ID 바인딩
+
+[애플리케이션 정보 바인딩](/ko/intro/enable-service#bind-application-information)을 따라 콘솔에서 iOS 애플리케이션 Bundle ID를 바인딩하세요. 예: `com.example.app`.
+
+### 자격 증명 받기
+
+[AppID와 AppKey 받기](/ko/intro/enable-service#get-appid-and-appkey)를 따라 `appId`와 `appKey`를 받습니다. `demo/ios/FBExampleObjc/CameraViewController.m`을 열고 `FBEngineConfig`에 자격 증명을 설정하세요.
+
+```objc
+FBEngineConfig *engineConfig = [[FBEngineConfig alloc] init];
+engineConfig.appId = @"your appId";
+engineConfig.appKey = @"your appKey";
+// Preferred: licenseToken (license token, {token} JSON, or .lic contents)
+// engineConfig.licenseToken = @"your license token";
+
+self.beautyEffectEngine = [FBBeautyEffectEngine createEngineWithConfig:engineConfig];
+```
+
+<Tip>
+`licenseToken`이 비어 있지 않으면 SDK는 해당 토큰을 로컬에서 검증하며, `appId` / `appKey`로 `/facebetter/v2/auth`를 호출하지 **않습니다**. [인증 및 라이선스](/ko/intro/license)를 참고하세요.
+</Tip>
+
+## 프로젝트 실행
+
+`demo/ios/FBExampleObjc.xcworkspace`를 엽니다.
+
+1. Xcode 프로젝트 서명이 올바른지 확인합니다.
+
+<Frame>
+  <img src="/images/ios-1.png" alt="Xcode 서명" />
+</Frame>
+
+2. 빌드하고 실행합니다.
+
+실제 기기를 선택한 뒤 빌드 및 실행 버튼을 클릭합니다.

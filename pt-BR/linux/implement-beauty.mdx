@@ -1,0 +1,232 @@
+---
+title: "Implementar beleza"
+description: "Integre o Facebetter SDK 2.0 no Linux com a API C++"
+---
+
+<Note>
+SDK **2.0.0**. A mesma API C++ do Windows (namespace `facebetter`). Enums: [Enums de parâmetros](/pt-BR/intro/makeup). Autenticação: [Autenticação e licença](/pt-BR/intro/license).
+</Note>
+
+No Linux, o Facebetter é `libfacebetter.so` mais `facebetter/*.h`. Este guia segue o [demo desktop C++](https://github.com/pixpark/facebetter-sdk) (`demo/cpp`). Para compilar o próprio SDK, use `./scripts/build_linux.sh` ou CMake em `build/linux`.
+
+## Incluir headers
+
+```cpp
+#include <facebetter/beauty_effect_engine.h>
+#include <facebetter/beauty_params.h>
+#include <facebetter/image_frame.h>
+#include <facebetter/type_defines.h>
+
+using namespace facebetter;
+using namespace facebetter::beauty_params;
+```
+
+## Linkagem CMake
+
+```cmake
+target_include_directories(your_target PRIVATE /path/to/sdk/include)
+target_link_libraries(your_target PRIVATE
+    /path/to/sdk/lib/libfacebetter.so
+    GL
+)
+```
+
+Em runtime, defina `LD_LIBRARY_PATH`, copie `libfacebetter.so` para ao lado do binário, ou instale com `ldconfig`.
+
+## Fluxo de integração
+
+```
+SetLogConfig → Create(EngineConfig) → set effects → ProcessImage → render
+```
+
+Não há um passo de habilitar tipo. Intensidade `0` desliga um efeito.
+
+---
+
+## 1. Configurar logging (opcional)
+
+Chame **antes** de `Create`.
+
+```cpp
+LogConfig log_cfg;
+log_cfg.console_enabled = true;
+log_cfg.file_enabled = false;
+log_cfg.level = LogLevel::Info;
+BeautyEffectEngine::SetLogConfig(log_cfg);
+```
+
+---
+
+## 2. Criar o mecanismo
+
+O desktop **precisa** definir `resource_path` como o **arquivo** `resource.fbd`.
+
+**Prioridade de autenticação:** `license_token` não vazio (token / JSON `{token}` / `.lic`) prevalece; caso contrário, `app_id` + `app_key` online v2.
+
+```cpp
+EngineConfig cfg;
+cfg.app_id = "your_app_id";
+cfg.app_key = "your_app_key";
+cfg.resource_path = "resource/resource.fbd";  // path to the .fbd file
+cfg.external_context = false;
+
+// cfg.license_token = "/* license token, {token} JSON, or .lic contents */";
+
+auto engine = BeautyEffectEngine::Create(cfg);
+if (!engine) {
+    return -1;
+}
+```
+
+<Warning>
+`resource_path` precisa ser o arquivo `resource.fbd`, não uma pasta. Prefira um caminho absoluto em produção.
+</Warning>
+
+---
+
+## 3. Definir parâmetros de beleza
+
+Pele / maquiagem `[0.0, 1.0]`. Remodelagem **`[-1.0, 1.0]`**. Enums completos: [Enums de parâmetros](/pt-BR/intro/makeup).
+
+```cpp
+engine->SetSmoothing(0.5f);
+engine->SetSmoothingStyle(SmoothingStyle::Natural);
+engine->SetWhitening(0.3f);
+engine->SetWhiteningStyle(WhiteningStyle::ColdWhite);
+engine->SetSharpening(0.2f);
+engine->SetRosiness(0.2f);
+engine->SetBeautySkinOnly(true);
+
+engine->SetReshape(Reshape::FaceThin, 0.4f);
+engine->SetReshape(Reshape::EyeSize, 0.3f);
+
+engine->SetLipstick(0.6f);
+engine->SetLipstickColor(LipstickColor::Rouge);
+engine->SetBlush(0.4f);
+engine->SetBlushStyle(BlushStyle::SunKissed);
+engine->SetBlushColor(BlushColor::CoralPink);
+engine->SetContour(0.5f);
+engine->SetContourStyle(ContourStyle::Natural);
+```
+
+O mesmo padrão para sombra, delineador, sobrancelha, cílios e pupila.
+
+---
+
+## 4. Filtros, adesivos e fundo virtual
+
+Passe um **caminho** ou **bytes**.
+
+```cpp
+engine->SetFilter("assets/filters/natural.fbd");
+engine->SetFilterIntensity(0.8f);
+engine->ClearFilter();
+
+engine->SetSticker("assets/stickers/face/black_glass.fbd");
+engine->ClearSticker();
+
+engine->AddResourcePack("resource/resource_3d.fbd");  // or place it next to resource.fbd
+engine->Set3DSticker("assets/stickers/3d/oculos.fbd");
+engine->Clear3DSticker();
+
+engine->SetVirtualBackgroundBlur(0.6f);
+engine->SetVirtualBackground("assets/background.jpg");
+engine->ClearVirtualBackground();
+
+engine->SetChromaKey(ChromaKeyColor::Green);
+engine->SetChromaKeySimilarity(0.4f);
+engine->ClearChromaKey();
+```
+
+---
+
+## 5. Callbacks e estatísticas
+
+```cpp
+EngineCallbacks cbs;
+cbs.on_engine_event = [](int code, const std::string& message) {
+    // 0 license OK, 1 failed, 100 init complete, 101 init failed
+    printf("[event] %d %s\n", code, message.c_str());
+};
+cbs.on_face_landmarks = [](const std::vector<FaceDetectionResult>& faces) {
+    printf("faces=%zu\n", faces.size());
+};
+engine->SetCallbacks(cbs);
+
+EngineStats stats = engine->GetStats();
+```
+
+---
+
+## 6. Processar quadros
+
+Defina `ImageFrame::type`.
+
+```cpp
+auto input = ImageFrame::CreateWithRGBA(rgba_data, width, height, stride);
+input->type = FrameType::Video;
+auto output = engine->ProcessImage(input);
+```
+
+Foto:
+
+```cpp
+auto input = ImageFrame::CreateWithFile("input.jpg");
+input->type = FrameType::Image;
+auto output = engine->ProcessImage(input);
+output->ToFile("output.jpg", 95);
+```
+
+<Tip>
+O formato de saída acompanha a entrada quando possível. Converta com `output->Convert(Format::BGRA)`.
+</Tip>
+
+### Prévia OpenGL
+
+```cpp
+glBindTexture(GL_TEXTURE_2D, tex);
+glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA,
+             output->Width(), output->Height(),
+             0, GL_RGBA, GL_UNSIGNED_BYTE, output->Data());
+```
+
+Se o seu app já tiver um contexto GL atual, defina `cfg.external_context = true` e chame `ProcessImage` nesse thread.
+
+---
+
+## 7. Loop mínimo
+
+```cpp
+LogConfig log_cfg;
+log_cfg.console_enabled = true;
+log_cfg.level = LogLevel::Info;
+BeautyEffectEngine::SetLogConfig(log_cfg);
+
+EngineConfig cfg;
+cfg.app_id = "your_app_id";
+cfg.app_key = "your_app_key";
+cfg.resource_path = "resource/resource.fbd";
+auto engine = BeautyEffectEngine::Create(cfg);
+if (!engine) return -1;
+
+engine->SetSmoothing(0.5f);
+engine->SetReshape(Reshape::FaceThin, 0.3f);
+engine->SetLipstick(0.5f);
+
+auto input = ImageFrame::CreateWithRGBA(rgba, width, height, stride);
+input->type = FrameType::Video;
+auto output = engine->ProcessImage(input);
+```
+
+Libere com `engine.reset()`. O mecanismo **não** é um singleton.
+
+Para TRTC / Agora / LiveKit: [Integração com terceiros](/pt-BR/linux/third-party-integration).
+
+## Relacionado
+
+<CardGroup cols={2}>
+  <Card title="Integração com terceiros" href="/pt-BR/linux/third-party-integration">TRTC / Agora / LiveKit</Card>
+  <Card title="Referência da API" href="/pt-BR/linux/api-reference">Métodos C++ e notas do Linux</Card>
+  <Card title="Tratamento de erros" href="/pt-BR/linux/error-handling">Códigos de retorno e problemas de .so / DISPLAY</Card>
+  <Card title="Práticas recomendadas" href="/pt-BR/linux/best-practices">Desempenho e rpath</Card>
+</CardGroup>

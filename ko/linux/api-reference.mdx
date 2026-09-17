@@ -1,0 +1,222 @@
+---
+title: "API 레퍼런스"
+description: "Linux용 Facebetter SDK 2.0 C++ API"
+---
+
+<Note>
+SDK **2.0.0**. 네임스페이스 `facebetter`. [Windows](/ko/windows/api-reference)와 동일한 공개 C++ API입니다. 헤더: `facebetter/*.h`. 열거형: [파라미터 열거형](/ko/intro/makeup). 인증: [인증 및 라이선스](/ko/intro/license).
+</Note>
+
+## Linux 참고
+
+- `libfacebetter.so`를 배포하세요. `LD_LIBRARY_PATH`, rpath, 또는 `ldconfig`를 설정하세요.
+- `./scripts/build_linux.sh`로 SDK를 빌드하세요(출력 `build/linux/release`) 또는 CMake를 사용하세요.
+- `resource_path`는 **`resource.fbd` 파일**이어야 합니다.
+- `SetRenderView`는 없습니다.
+- `external_context = true`는 호출 스레드의 현재 GL 컨텍스트를 사용합니다(GLFW / EGL / OSMesa).
+
+```cmake
+target_include_directories(app PRIVATE /path/to/sdk/include)
+target_link_libraries(app PRIVATE /path/to/sdk/lib/libfacebetter.so GL)
+```
+
+---
+
+## 로깅
+
+```cpp
+enum class LogLevel { Trace = 0, Debug, Info, Warn, Error, Critical };
+
+struct LogConfig {
+  bool console_enabled = false;
+  bool file_enabled = false;
+  LogLevel level = LogLevel::Info;
+  std::string file_name = "";
+};
+
+static int BeautyEffectEngine::SetLogConfig(const LogConfig& config);
+```
+
+`Create` **전에** `SetLogConfig`를 호출하세요.
+
+---
+
+## 엔진
+
+### `EngineConfig`
+
+| 필드 | 설명 |
+| --- | --- |
+| `app_id` / `app_key` | 네이티브 온라인 v2 인증 |
+| `resource_path` | `resource.fbd` 경로(파일이며 디렉터리 아님) |
+| `license_token` | 토큰 / `{token}` JSON / `.lic` — 비어 있지 않으면 우선 |
+| `external_context` | `false`: SDK가 OpenGL 관리; `true`: 호출 측 컨텍스트 |
+
+```cpp
+struct EngineConfig {
+  std::string app_id;
+  std::string app_key;
+  std::string resource_path;
+  std::string license_token;
+  bool external_context = false;
+};
+
+static std::shared_ptr<BeautyEffectEngine> BeautyEffectEngine::Create(
+    const EngineConfig& config);
+```
+
+---
+
+### 피부
+
+```cpp
+int SetSmoothing(float intensity);          // [0, 1]
+int SetSmoothingStyle(SmoothingStyle style);
+int SetWhitening(float intensity);
+int SetWhiteningStyle(WhiteningStyle style);
+int SetSharpening(float intensity);
+int SetRosiness(float intensity);
+int SetBeautySkinOnly(bool enabled);
+```
+
+### 리셰이프
+
+```cpp
+int SetReshape(Reshape param, float intensity);  // [-1, 1]
+```
+
+전체 `Reshape` 목록: [파라미터 열거형](/ko/intro/makeup).
+
+### 메이크업
+
+```cpp
+int SetLipstick(float);        int SetLipstickColor(LipstickColor);
+int SetBlush(float);           int SetBlushStyle(BlushStyle); int SetBlushColor(BlushColor);
+int SetContour(float);         int SetContourStyle(ContourStyle);
+int SetEyeShadow(float);       int SetEyeShadowStyle(...); int SetEyeShadowColor(...);
+int SetEyeLiner(float);        int SetEyeLinerStyle(...);  int SetEyeLinerColor(...);
+int SetEyebrow(float);         int SetEyebrowStyle(...);   int SetEyebrowColor(...);
+int SetEyelash(float);         int SetEyelashStyle(...);   int SetEyelashColor(...);
+int SetPupil(float);           int SetPupilColor(PupilColor);
+```
+
+립스틱은 Color만, 렌즈는 Color만, 컨투어는 Style만입니다. 값: [파라미터 열거형](/ko/intro/makeup).
+
+### 크로마키와 가상 배경
+
+```cpp
+int SetChromaKey(ChromaKeyColor color);  // Green, Blue, Red
+int ClearChromaKey();
+int SetChromaKeySimilarity(float);
+int SetChromaKeySmoothness(float);
+int SetChromaKeyDesaturation(float);
+
+int SetVirtualBackgroundBlur(float level);  // [0, 1]; 0 clears fill
+int SetVirtualBackground(const std::string& image_path);
+int SetVirtualBackground(const std::vector<uint8_t>& image_data);
+int ClearVirtualBackground();
+```
+
+### 필터와 스티커
+
+경로 또는 인코딩된 `.fbd` 바이트입니다. 등록 / ID API는 없습니다. 다음 `ProcessImage`에서 적용됩니다.
+
+```cpp
+int SetFilter(const std::string& fbd_file_path);
+int SetFilter(const std::vector<uint8_t>& fbd_data);
+int ClearFilter();
+int SetFilterIntensity(float intensity);
+
+int SetSticker(const std::string& fbd_file_path);
+int SetSticker(const std::vector<uint8_t>& fbd_data);
+int ClearSticker();
+int AddResourcePack(const std::string& fbd_file_path);
+int AddResourcePack(const std::vector<uint8_t>& fbd_data);
+int Set3DSticker(const std::string& resource);
+int Set3DSticker(const std::vector<uint8_t>& fbd_data);
+int Clear3DSticker();
+```
+
+선택 3D 팩을 먼저 로드하세요. [선택 리소스 팩](/ko/intro/resource-packs)을 참고하세요.
+
+### 통계, 콜백, 처리
+
+```cpp
+EngineStats GetStats() const;
+int SetCallbacks(const EngineCallbacks& callbacks);
+const std::shared_ptr<ImageFrame> ProcessImage(
+    const std::shared_ptr<ImageFrame> image_frame);
+```
+
+`frame->type`을 `FrameType::Image` 또는 `FrameType::Video`로 설정하세요.
+
+```cpp
+struct EngineStats {
+  double fps = 0.0;
+  double avg_process_time_ms = 0.0;
+  double session_time_s = 0.0;
+};
+```
+
+---
+
+## 이벤트
+
+| 코드 | 의미 |
+| --- | --- |
+| `0` | 라이선스 성공 |
+| `1` | 라이선스 실패 |
+| `100` | 초기화 완료 |
+| `101` | 초기화 실패 |
+
+```cpp
+struct EngineCallbacks {
+  std::function<void(const std::vector<FaceDetectionResult>&)> on_face_landmarks;
+  std::function<void(int code, const std::string& message)> on_engine_event;
+};
+```
+
+---
+
+## 이미지
+
+```cpp
+enum class Format { I420, NV12, NV21, BGRA, RGBA, BGR, RGB, Texture };
+enum class Rotation { Rotation_0, Rotation_90, Rotation_180, Rotation_270 };
+enum class FrameType { Image = 0, Video = 1 };
+```
+
+**팩토리:** `CreateWithFile`, `Create`, `CreateWithRGBA/BGRA/RGB/BGR`, `CreateWithI420/NV12/NV21`, `CreateWithTexture`.
+
+**연산:** `Rotate`, `Mirror("horizontal"|"vertical"|"both")`, `SetMirror`, `Convert`, `ToFile`.
+
+**접근자:** `Width/Height/Stride/Size/GetFormat/Data`, YUV 평면, `Texture()`, `Buffer()`. 필드: `FrameType type`.
+
+```cpp
+struct FaceDetectionResult {
+  Rect rect;
+  std::vector<Point2d> key_points;  // 111
+  std::vector<float> visibility;
+  int face_id = -1;
+  float score = 0.0f;
+  float pitch, roll, yaw;
+};
+```
+
+---
+
+## 오류 코드
+
+| 코드 | 의미 |
+| --- | --- |
+| `0` | OK |
+| `-1` | 잘못된 인자 |
+| `-2` | 미초기화 |
+| `-3` | 라이선스 |
+| `-4` | 미지원 |
+| `-5` | I/O |
+| `-6` | 슬롯 없음 |
+| `-7` | 처리 |
+| `-8` | 메모리 부족 |
+
+`ProcessImage`를 한 스레드에서 직렬화하세요. 픽셀 `Data()` 포인터는 읽기 전용입니다.

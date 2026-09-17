@@ -1,0 +1,89 @@
+---
+title: "Início rápido"
+description: "Execute o exemplo do Facebetter Web SDK 2.0"
+---
+
+<Note>
+Esta página corresponde ao SDK **2.0.0**. Autenticação: [Autenticação e licença](/pt-BR/intro/license). Enums de maquiagem / remodelagem: [Enums de parâmetros](/pt-BR/intro/makeup).
+</Note>
+
+## Requisitos
+
+- **Navegador**: Chrome 57+, Firefox 52+, Safari 11+, Edge 16+
+- **Linguagem**: JavaScript (ES6+) ou TypeScript
+- **Contexto**: HTTPS ou `localhost` (obrigatório para a câmera)
+
+## Instalar o SDK
+
+```bash
+npm install facebetter
+```
+
+```javascript
+import {
+  BeautyEffectEngine,
+  EngineConfig,
+  FrameType,
+  MirrorMode,
+  Reshape,
+} from 'facebetter';
+```
+
+## Obter o exemplo
+
+Clone o [repositório GitHub](https://github.com/pixpark/facebetter-sdk) e abra `demo/web/react`:
+
+```bash
+git clone https://github.com/pixpark/facebetter-sdk.git
+cd demo/web/react
+```
+
+O demo é um app Vite + React. Ele depende do SDK no repositório via `file:` durante o desenvolvimento.
+
+## Vincular o domínio e obter credenciais
+
+1. No Console, vincule o **domínio** Web (por exemplo `example.com`). Veja [Assinatura](/pt-BR/intro/enable-service).
+2. Copie `appId` / `appKey` do Console. **Não os coloque em `EngineConfig`.** Na Web eles pertencem ao **seu servidor**.
+
+A Web **não** tem `.lic` offline. Detalhes: [Autenticação e licença](/pt-BR/intro/license).
+
+## Configurar o demo
+
+O demo **não coloca chaves na página**. A página chama o seu proxy em `/api/facebetter/auth` (`src/fetchLicenseToken.js`) e passa a resposta para o mecanismo. O proxy de produção fica em `api/facebetter/auth.js`; durante o `vite` local esse caminho é encaminhado ao proxy do demo implantado.
+
+```javascript
+const licenseToken = await fetch('/api/facebetter/auth', { method: 'POST' }).then((r) => r.text());
+const engine = new BeautyEffectEngine(new EngineConfig({ licenseToken }));
+await engine.init();
+```
+
+Em produção, implemente o mesmo proxy **no seu** servidor. Passos completos e um exemplo Node: [Autenticação e licença](/pt-BR/intro/license).
+
+O SDK carrega os arquivos de runtime durante `init()`. Você **não** precisa copiar `resource.fbd` para `public/`. Opcional: `init({ onProgress })` informa o percentual de download. Adesivos 3D precisam do pacote extra `resource_3d.fbd` — veja [Pacotes de recursos opcionais](/pt-BR/intro/resource-packs).
+
+## Executar
+
+```bash
+npm install
+npm run dev
+```
+
+Abra a URL que o Vite imprimir (geralmente `http://localhost:5175`).
+
+## Verificar
+
+1. Abra o DevTools (F12) e observe o console.
+2. Permita a câmera se solicitado.
+3. Arraste os sliders de beleza — você deve ver suavização da pele / remodelagem na prévia.
+
+## Init mínimo de produção
+
+```javascript
+import { BeautyEffectEngine, EngineConfig } from 'facebetter';
+
+const licenseToken = await fetch('/api/facebetter/auth', { method: 'POST' }).then((r) => r.text());
+const engine = new BeautyEffectEngine(new EngineConfig({ licenseToken }));
+await engine.init();
+```
+
+Seu servidor guarda `app_id` / `app_key` e devolve um token. O código de exemplo do servidor está em [Autenticação e licença](/pt-BR/intro/license).

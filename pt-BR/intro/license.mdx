@@ -1,0 +1,185 @@
+---
+title: "Autenticação e licença"
+description: "Autenticação online e licença offline do Facebetter SDK 2.0"
+---
+
+O SDK **2.0** autentica com um **token de licença**. Plataformas nativas também podem usar `appId` + `appKey` para autenticação online. A Web nunca deve incorporar `appKey` no JavaScript do frontend.
+
+<Tip>
+Conclua primeiro a [Assinatura](/pt-BR/intro/enable-service): vincule os identificadores do app no Console (Bundle ID / nome do pacote / domínio) e ative um plano.
+</Tip>
+
+## Nativo (Android / iOS / macOS / Windows / Linux / Flutter)
+
+Passe um dos seguintes ao criar o mecanismo:
+
+| Modo | Campos de configuração | Quando usar |
+|------|---------------|-------------|
+| Online | `appId` + `appKey` | O dispositivo consegue alcançar `/facebetter/v2/auth` |
+| Token | `licenseToken` | String do token de licença, JSON `{token}` ou `.lic` offline nativo |
+
+**Prioridade**: se `licenseToken` não estiver vazio, o SDK valida esse token localmente e **não** chama a rede com `appId` / `appKey`.
+
+<Tip>
+Recomendado (mesma ideia da Web): mantenha `appId` / `appKey` **no seu servidor**, gere um `licenseToken` de curta duração e entregue-o ao app. Defina `platform` na requisição assinada para corresponder ao cliente (`ios` / `android` / `macos` / `windows` / `linux`). Veja [Web → Proxy no servidor](#server-proxy) abaixo. `appId` + `appKey` direto e `.lic` offline continuam suportados.
+</Tip>
+
+**iOS / macOS**
+
+```objc
+FBEngineConfig *config = [[FBEngineConfig alloc] init];
+config.licenseToken = @"/* license token, {token} JSON, or .lic contents */";
+self.beautyEffectEngine = [FBBeautyEffectEngine createEngineWithConfig:config];
+```
+
+**Android**
+
+```java
+BeautyEffectEngine.EngineConfig config = new BeautyEffectEngine.EngineConfig();
+config.licenseToken = "/* license token, {token} JSON, or .lic contents */";
+mBeautyEngine = new BeautyEffectEngine(this, config);
+```
+
+**C++ (Windows / Linux)**
+
+```cpp
+facebetter::EngineConfig config;
+config.license_token = "/* license token, {token} JSON, or .lic contents */";
+config.resource_path = "/path/to/resource.fbd";
+auto engine = facebetter::BeautyEffectEngine::Create(config);
+```
+
+**Flutter**
+
+```dart
+final engine = await FBEngine.create(
+  FBEngineConfig(licenseToken: '/* license token, {token} JSON, or .lic contents */'),
+);
+```
+
+Alternativa online nas plataformas nativas:
+
+```java
+config.appId = "your appId";
+config.appKey = "your appKey";
+```
+
+Prefira enviar o `.lic` offline como asset do app e carregá-lo em runtime em vez de hardcoded no código-fonte. Como obter um: [Licença offline](#offline-license) abaixo.
+
+## Web
+
+O SDK do navegador **não** tem campos `appId` / `appKey`. O mecanismo aceita apenas `licenseToken` e o verifica localmente. Busque o token **no seu servidor** **antes** de `init()`.
+
+### Fluxo recomendado
+
+1. Crie um app no Console, vincule o **domínio** Web e copie `appId` / `appKey` (veja [Assinatura](/pt-BR/intro/enable-service))
+2. Mantenha as chaves **no seu backend**; exponha um endpoint (por exemplo `POST /api/facebetter/auth`)
+3. Seu backend assina uma requisição para `https://facebetter.pixpark.net/facebetter/v2/auth` e devolve o **corpo bruto da resposta** à página
+4. Passe essa string para `EngineConfig.licenseToken` e, em seguida, chame `init()`
+
+O demo oficial (`demo/web/react`) usa o mesmo padrão: frontend em `src/fetchLicenseToken.js`, proxy do servidor em `api/facebetter/auth.js`.
+
+<Warning>
+Não coloque `appKey` em um bundle de frontend. A Web **não** suporta arquivos `.lic` offline. Tokens online expiram em minutos — busque um novo antes de criar o mecanismo novamente.
+</Warning>
+
+### Frontend
+
+```javascript
+import { BeautyEffectEngine, EngineConfig } from 'facebetter';
+
+// Body may be a bare token, or the upstream JSON text (with a token field)
+const licenseToken = await fetch('/api/facebetter/auth', {
+  method: 'POST',
+}).then((r) => {
+  if (!r.ok) throw new Error(`auth failed: ${r.status}`);
+  return r.text();
+});
+
+const engine = new BeautyEffectEngine(new EngineConfig({ licenseToken }));
+await engine.init();
+```
+
+### Proxy no servidor (exemplo Node) {#server-proxy}
+
+Armazene `FB_APP_ID` / `FB_APP_KEY` em variáveis de ambiente. Coloque isto no Express / Fastify / uma função serverless:
+
+```javascript
+import { createHmac, randomBytes } from 'node:crypto';
+
+const AUTH_URL = 'https://facebetter.pixpark.net/facebetter/v2/auth';
+
+app.post('/api/facebetter/auth', async (req, res) => {
+  const appId = process.env.FB_APP_ID;
+  const appKey = process.env.FB_APP_KEY;
+  if (!appId || !appKey) {
+    res.status(500).json({ error: 'FB_APP_ID / FB_APP_KEY not configured' });
+    return;
+  }
+
+  const nonce = randomBytes(16).toString('hex');
+  const timestamp = Math.floor(Date.now() / 1000);
+  const platform = 'web';
+  // Sign string: v2|{app_id}|{timestamp}|{nonce}|{platform}
+  const payload = `v2|${appId}|${timestamp}|${nonce}|${platform}`;
+  const hmac = createHmac('sha256', appKey).update(payload).digest('hex');
+
+  const upstream = await fetch(AUTH_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      app_id: appId,
+      hmac_signature: hmac,
+      timestamp,
+      nonce,
+      platform,
+      user_agent: req.headers['user-agent'] || '',
+    }),
+  });
+
+  // Forward as-is for EngineConfig.licenseToken
+  res.status(upstream.status).send(await upstream.text());
+});
+```
+
+Em outras linguagens, implemente os mesmos passos: montar a string de assinatura → HMAC-SHA256 (hex) → POST ao upstream → entregar o corpo ao frontend. Referência executável: [GitHub Demo `api/facebetter/auth.js`](https://github.com/pixpark/facebetter-sdk/blob/main/demo/web/react/api/facebetter/auth.js).
+
+### Campos da requisição upstream
+
+| Campo | Descrição |
+|------|-------------|
+| `app_id` | AppID do Console |
+| `hmac_signature` | HMAC-SHA256 de `v2\|{app_id}\|{timestamp}\|{nonce}\|web`, em hex |
+| `timestamp` | Segundos Unix |
+| `nonce` | String aleatória (recomendado ≥16 bytes hex) |
+| `platform` | Sempre `web` |
+| `user_agent` | Opcional; passe o UA do navegador quando disponível |
+
+Em caso de sucesso, o upstream devolve JSON (incluindo um campo `token`). Você pode encaminhar o texto da resposta como está ou extrair apenas a string `token` — o SDK aceita os dois.
+
+## Licença offline (nativo) {#offline-license}
+
+O Console **não oferece mais** download self-serve de `.lic` offline. Para obter uma licença offline, fale com vendas ou um administrador:
+
+- E-mail: [hello@facebetter.net](mailto:hello@facebetter.net) (dica de assunto: `[Business Partnership] Offline license`)
+- Mais opções: [Fale conosco](https://facebetter.net/pt-BR/contact)
+
+Depois de receber o arquivo, passe o **conteúdo inteiro** como `licenseToken` / `license_token`. A validade acompanha sua assinatura atual; após renovar ou alterar o plano, solicite um arquivo novo e substitua-o no app.
+
+### Observações
+
+- A licença offline está vinculada aos identificadores do app configurados no Console; uma divergência falha na validação.
+- Não expirada: os recursos seguem o plano de assinatura.
+- Expirada: o mecanismo ainda pode inicializar, mas as capacidades voltam ao plano **Free** (teste com marca d'água, sem callbacks de pontos-chave). Renove e solicite uma nova licença.
+- A Web não pode usar licenças offline; precisa concluir um caminho de autenticação online v2.
+
+## Eventos do mecanismo
+
+Escute resultados de licença e inicialização via `onEngineEvent` / Flutter `engine.events`:
+
+| Código | Nome | Significado |
+| --- | --- | --- |
+| 0 | `LICENSE_VALIDATION_SUCCESS` | Token / autenticação online bem-sucedida |
+| 1 | `LICENSE_VALIDATION_FAILED` | Autenticação falhou (veja a mensagem) |
+| 100 | `INITIALIZATION_COMPLETE` | Mecanismo pronto |
+| 101 | `INITIALIZATION_FAILED` | Falha na inicialização do mecanismo |

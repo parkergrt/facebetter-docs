@@ -1,0 +1,509 @@
+---
+title: "Referência da API"
+description: "Referência da API Android do Facebetter SDK 2.0"
+---
+
+<Note>
+Esta página corresponde ao SDK **2.0.0**. Pacote: `net.pixpark.facebetter`. Predefinições de maquiagem, remodelagem, clareamento e suavização: [Enums de parâmetros](/pt-BR/intro/makeup). Autenticação: [Autenticação e licença](/pt-BR/intro/license).
+</Note>
+
+Todos os métodos setter retornam `int`. `0` (`ErrorCode.SUCCESS`) significa sucesso; um valor negativo é um [código de erro](#errorcode).
+
+## Logs
+
+Chame `BeautyEffectEngine.setLogConfig` **antes** de construir o mecanismo para capturar os logs de inicialização.
+
+### LogLevel
+
+```java
+public enum LogLevel {
+  TRACE(0, "TRACE"),
+  DEBUG(1, "DEBUG"),
+  INFO(2, "INFO"),
+  WARN(3, "WARN"),
+  ERROR(4, "ERROR"),
+  CRITICAL(5, "CRITICAL");
+}
+```
+
+| Método | Descrição |
+| --- | --- |
+| `int getLevel()` | Nível numérico (`0`–`5`) |
+| `String getName()` | String do nome |
+| `boolean isEnabledFor(LogLevel other)` | `true` se este nível for pelo menos tão grave quanto `other` |
+| `static LogLevel fromLevel(int level)` | Busca pelo valor numérico, ou `null` |
+| `static LogLevel fromName(String name)` | Busca sem diferenciar maiúsculas, ou `null` |
+
+### LogConfig
+
+Classe aninhada: `BeautyEffectEngine.LogConfig`.
+
+| Campo | Tipo | Padrão | Descrição |
+| --- | --- | --- | --- |
+| `consoleEnabled` | `boolean` | `false` | Escrever no logcat / stdout |
+| `fileEnabled` | `boolean` | `false` | Escrever em um arquivo |
+| `level` | `LogLevel` | `INFO` | Nível mínimo a emitir |
+| `fileName` | `String` | `""` | Caminho do arquivo de log; usado somente quando `fileEnabled` é `true` |
+
+```java
+public static class LogConfig {
+  public boolean consoleEnabled = false;
+  public boolean fileEnabled = false;
+  public LogLevel level = LogLevel.INFO;
+  public String fileName = "";
+
+  public LogConfig();
+  public LogConfig(boolean consoleEnabled, boolean fileEnabled, LogLevel level, String fileName);
+}
+```
+
+```java
+public static void setLogConfig(LogConfig config);
+```
+
+Lança `IllegalArgumentException` se `config` ou `config.level` for `null`.
+
+## Mecanismo
+
+### EngineConfig
+
+Classe aninhada: `BeautyEffectEngine.EngineConfig`.
+
+| Campo | Tipo | Padrão | Descrição |
+| --- | --- | --- | --- |
+| `appId` | `String` | — | App ID do Console |
+| `appKey` | `String` | — | App Key do Console |
+| `licenseToken` | `String` | — | String do token de licença, JSON `{token}` ou conteúdo de `.lic` offline |
+| `externalContext` | `boolean` | `false` | `true` = usar o contexto OpenGL ES do chamador; `false` = contexto do SDK |
+
+**Prioridade de autenticação:** se `licenseToken` não estiver vazio, o SDK valida esse token localmente. Caso contrário, `appId` + `appKey` são obrigatórios e o SDK chama `/facebetter/v2/auth`. Detalhes: [Autenticação e licença](/pt-BR/intro/license).
+
+```java
+public static class EngineConfig {
+  public String appId;
+  public String appKey;
+  public String licenseToken;
+  public boolean externalContext = false;
+
+  public EngineConfig();
+  public EngineConfig(String appId, String appKey);
+  public boolean isValid();
+}
+```
+
+`isValid()` retorna `true` quando `licenseToken` não está vazio, ou quando `appId` e `appKey` não estão vazios.
+
+### BeautyEffectEngine
+
+Mecanismo principal. Construa uma vez e chame `release()` quando a Activity / Fragment for destruída.
+
+```java
+public BeautyEffectEngine(Context context, EngineConfig config);
+public void release();
+```
+
+O construtor lança `IllegalArgumentException` se `context` ou `config` for `null`, ou se `config.isValid()` for `false`. O SDK lê `context.getPackageName()` para a vinculação da licença.
+
+### FrameType
+
+Defina em `ImageFrame.type` **antes** de `processImage`. Não há argumento separado de modo de processamento.
+
+| Valor | Descrição |
+| --- | --- |
+| `IMAGE` | Foto única / still. Qualidade mais alta. |
+| `VIDEO` | Câmera / stream ao vivo. Menor latência. Padrão. |
+
+```java
+public enum FrameType {
+  IMAGE(0),
+  VIDEO(1);
+}
+```
+
+```java
+public ImageFrame processImage(ImageFrame inputFrame);
+```
+
+Lê `inputFrame.type`. Retorna o quadro processado (mesmo formato de pixel da entrada) ou `null` se o mecanismo já tiver sido liberado. Lança `IllegalArgumentException` se `inputFrame` ou `inputFrame.type` for `null`.
+
+## Beleza
+
+Faixa de intensidade `[0.0, 1.0]`, salvo indicação em contrário. `0` desliga o efeito.
+
+```java
+public int setSmoothing(float value);
+public int setSmoothingStyle(SmoothingStyle style);
+public int setWhitening(float value);
+public int setWhiteningStyle(WhiteningStyle style);
+public int setSharpening(float value);
+public int setRosiness(float value);
+public int setBeautySkinOnly(boolean enabled);
+```
+
+| Método | Descrição |
+| --- | --- |
+| `setSmoothing` | Intensidade da suavização da pele |
+| `setSmoothingStyle` | Visual da suavização (`NATURAL`, `TEXTURE`, `SMOOTH`) |
+| `setWhitening` | Intensidade do clareamento |
+| `setWhiteningStyle` | LUT de clareamento (`COLD_WHITE`, `PINK_WHITE`, `WARM_WHITE`, `WHEAT`, `TAN`) |
+| `setSharpening` | Intensidade da nitidez |
+| `setRosiness` | Intensidade do tom rosado |
+| `setBeautySkinOnly` | `true` = aplicar beleza da pele apenas na pele detectada; `false` = quadro inteiro |
+
+Enums de estilo: [Enums de parâmetros](/pt-BR/intro/makeup).
+
+## Remodelagem
+
+```java
+public int setReshape(Reshape param, float value);
+```
+
+Faixa de intensidade **`[-1.0, 1.0]`**. `0` desliga. Positivo e negativo são direções opostas.
+
+```java
+public enum Reshape {
+  FACE_THIN(0), FACE_V_SHAPE(1), FACE_NARROW(2), FACE_SHORT(3),
+  CHEEKBONE(4), JAWBONE(5), CHIN(6), NOSE_SLIM(7),
+  EYE_SIZE(8), EYE_DISTANCE(9), FACE_SMALL(10), FOREHEAD(11),
+  NOSE_LONG(12), PHILTRUM(13), MOUTH_SIZE(14), MOUTH_POSITION(15),
+  MOUTH_SMILE(16), LIP_THICKNESS(17), EYE_ROUND(18), EYE_POSITION(19),
+  EYE_ANGLE(20), EYE_CORNER_OPEN(21), LOWER_EYELID(22),
+  BROW_POSITION(23), BROW_DISTANCE(24), BROW_THICKNESS(25);
+}
+```
+
+Significado positivo / negativo de cada valor: [Enums de parâmetros](/pt-BR/intro/makeup).
+
+## Maquiagem
+
+Intensidade `[0.0, 1.0]`. Defina a intensidade e, em seguida, o estilo (máscara) e/ou a cor (tintura). Pupila e contorno não recebem tintura da mesma forma; veja [Enums de parâmetros](/pt-BR/intro/makeup).
+
+```java
+public int setLipstick(float value);
+public int setLipstickColor(LipstickColor color);
+
+public int setBlush(float value);
+public int setBlushStyle(BlushStyle style);
+public int setBlushColor(BlushColor color);
+
+public int setContour(float value);
+public int setContourStyle(ContourStyle style);
+
+public int setEyeShadow(float value);
+public int setEyeShadowStyle(EyeShadowStyle style);
+public int setEyeShadowColor(EyeShadowColor color);
+
+public int setEyeLiner(float value);
+public int setEyeLinerStyle(EyeLinerStyle style);
+public int setEyeLinerColor(EyeLinerColor color);
+
+public int setEyebrow(float value);
+public int setEyebrowStyle(EyebrowStyle style);
+public int setEyebrowColor(EyebrowColor color);
+
+public int setEyelash(float value);
+public int setEyelashStyle(EyelashStyle style);
+public int setEyelashColor(EyelashColor color);
+
+public int setPupil(float value);
+public int setPupilColor(PupilColor color);
+```
+
+Os nomes das predefinições ficam em `BeautyParams.*`. Tabelas completas: [Enums de parâmetros](/pt-BR/intro/makeup).
+
+## Fundo virtual e chroma key
+
+A segmentação de retrato é a máscara padrão. O chroma key substitui a origem da máscara; o preenchimento continua sendo desfoque ou uma imagem estática.
+
+```java
+public int setChromaKey(ChromaKeyColor color);
+public int clearChromaKey();
+public int setChromaKeySimilarity(float value);
+public int setChromaKeySmoothness(float value);
+public int setChromaKeyDesaturation(float value);
+
+public int setVirtualBackgroundBlur(float level);
+public int setVirtualBackground(String imagePath);
+public int setVirtualBackground(byte[] imageData);
+public int clearVirtualBackground();
+```
+
+| Método | Descrição |
+| --- | --- |
+| `setChromaKey` | Usar chroma key como máscara (`GREEN`, `BLUE`, `RED`) |
+| `clearChromaKey` | Restaurar a máscara de segmentação de retrato; **não** limpa o preenchimento atual |
+| `setChromaKeySimilarity` | Quão próximo um pixel precisa estar da cor-chave. `[0.0, 1.0]` |
+| `setChromaKeySmoothness` | Suavização da borda. `[0.0, 1.0]` |
+| `setChromaKeyDesaturation` | Supressão de spill em bordas semitransparentes. `[0.0, 1.0]` |
+| `setVirtualBackgroundBlur` | Desfoque de fundo. `[0.0, 1.0]`. **`0` limpa** o fundo virtual |
+| `setVirtualBackground(String)` | Substituir o fundo por um arquivo PNG/JPG. O caminho não pode estar vazio |
+| `setVirtualBackground(byte[])` | O mesmo, a partir de bytes PNG/JPG codificados |
+| `clearVirtualBackground` | Limpar o preenchimento de desfoque ou imagem |
+
+```java
+public enum ChromaKeyColor {
+  GREEN(0),
+  BLUE(1),
+  RED(2);
+}
+```
+
+Caminho vazio / `byte[]` vazio retorna `ErrorCode.INVALID_ARGUMENT`.
+
+## Filtros e adesivos
+
+Passe um caminho de arquivo `.fbd` ou os bytes do arquivo (por exemplo de `assets`). O recurso passa a valer no próximo quadro processado. Não há API de register / unregister.
+
+```java
+public int setFilter(String fbdFilePath);
+public int setFilter(byte[] fbdData);
+public int clearFilter();
+public int setFilterIntensity(float intensity);
+
+public int setSticker(String fbdFilePath);
+public int setSticker(byte[] fbdData);
+public int clearSticker();
+public int addResourcePack(String fbdFilePath);
+public int addResourcePack(byte[] fbdData);
+public int set3DSticker(String resource);
+public int set3DSticker(byte[] fbdData);
+public int clear3DSticker();
+```
+
+| Método | Descrição |
+| --- | --- |
+| `setFilter` | Aplicar um filtro LUT a partir de um caminho `.fbd` ou bytes em memória |
+| `clearFilter` | Remover o LUT atual |
+| `setFilterIntensity` | Mistura `[0.0, 1.0]` |
+| `setSticker` | Aplicar um adesivo 2D a partir de um caminho `.fbd` ou bytes |
+| `clearSticker` | Remover o adesivo atual |
+| `addResourcePack` | Registrar um pacote extra de capacidade (por exemplo `resource_3d.fbd` antes de `set3DSticker`) |
+| `set3DSticker` | Aplicar um adesivo 3D a partir de um caminho `.fbd` ou bytes |
+| `clear3DSticker` | Remover o adesivo 3D |
+
+Caminho vazio / `byte[]` vazio retorna `ErrorCode.INVALID_ARGUMENT`.
+
+## Estatísticas e callbacks
+
+```java
+public EngineStats getStats();
+public int setCallbacks(EngineCallbacks callbacks);
+```
+
+`getStats()` retorna um snapshot. Os campos são `0` se o mecanismo não estiver inicializado. `setCallbacks` retorna `ErrorCode.INVALID_ARGUMENT` se `callbacks` for `null`.
+
+### EngineStats
+
+```java
+public class EngineStats {
+  public double fps;
+  public double avgProcessTimeMs;
+  public double sessionTimeS;
+
+  public EngineStats();
+  public EngineStats(double fps, double avgProcessTimeMs, double sessionTimeS);
+}
+```
+
+| Campo | Descrição |
+| --- | --- |
+| `fps` | FPS recente de processamento |
+| `avgProcessTimeMs` | Tempo médio de `processImage` em milissegundos |
+| `sessionTimeS` | Segundos desde a criação do mecanismo |
+
+### EngineCallbacks
+
+```java
+public class EngineCallbacks {
+  public OnFaceLandmarksCallback onFaceLandmarks;
+  public OnEngineEventCallback onEngineEvent;
+
+  public interface OnFaceLandmarksCallback {
+    void onFaceLandmarks(List<FaceDetectionResult> results);
+  }
+
+  public interface OnEngineEventCallback {
+    void onEngineEvent(int code, String message);
+  }
+}
+```
+
+Deixe um campo `null` para pular esse callback.
+
+### EngineEventCode
+
+```java
+public final class EngineEventCode {
+  public static final int LICENSE_VALIDATION_SUCCESS = 0;
+  public static final int LICENSE_VALIDATION_FAILED = 1;
+  public static final int INITIALIZATION_COMPLETE = 100;
+  public static final int INITIALIZATION_FAILED = 101;
+}
+```
+
+| Código | Significado |
+| --- | --- |
+| `0` | Licença aceita |
+| `1` | Licença recusada; `message` tem o detalhe |
+| `100` | Mecanismo pronto para processar quadros |
+| `101` | Falha na inicialização do mecanismo; `message` tem o detalhe |
+
+### FaceDetectionResult
+
+Coordenadas normalizadas estão em `[0, 1]` em relação ao quadro processado.
+
+| Campo | Tipo | Descrição |
+| --- | --- | --- |
+| `rect` | `Rect` | Caixa do rosto |
+| `keyPoints` | `List<Point2d>` | 111 landmarks |
+| `visibility` | `List<Float>` | Visibilidade por ponto `[0, 1]` |
+| `faceId` | `int` | Id de rastreamento |
+| `score` | `float` | Confiança da detecção `[0, 1]` |
+| `pitch` / `roll` / `yaw` | `float` | Pose da cabeça em radianos, faixa `[-π, π]` |
+
+`Point2d` tem `float x, y`. `Rect` tem `float x, y, width, height` (origem no canto superior esquerdo).
+
+## ErrorCode
+
+Os valores numéricos são os mesmos em todas as plataformas.
+
+```java
+public final class ErrorCode {
+  public static final int SUCCESS = 0;
+  public static final int INVALID_ARGUMENT = -1;
+  public static final int NOT_INITIALIZED = -2;
+  public static final int LICENSE = -3;
+  public static final int UNSUPPORTED = -4;
+  public static final int IO = -5;
+  public static final int NO_SLOT = -6;
+  public static final int PROCESS = -7;
+  public static final int OUT_OF_MEMORY = -8;
+}
+```
+
+| Valor | Constante | Significado |
+| --- | --- | --- |
+| `0` | `SUCCESS` | OK |
+| `-1` | `INVALID_ARGUMENT` | Argumento nulo, vazio ou fora da faixa |
+| `-2` | `NOT_INITIALIZED` | Mecanismo não inicializado ou já liberado |
+| `-3` | `LICENSE` | Falha de licença / autenticação |
+| `-4` | `UNSUPPORTED` | Recurso ou formato não suportado |
+| `-5` | `IO` | Falha de I/O de arquivo ou recurso |
+| `-6` | `NO_SLOT` | Slot de recurso esgotado |
+| `-7` | `PROCESS` | Falha no processamento do quadro |
+| `-8` | `OUT_OF_MEMORY` | Falha na alocação |
+
+<Note>
+**`-1` é argumento inválido. `-2` é não inicializado.**
+</Note>
+
+## ImageFrame
+
+Encapsula buffers de pixel nativos. Sempre chame `release()` ao terminar.
+
+### Criar
+
+```java
+public static ImageFrame createWithFile(String filePath);
+public static ImageFrame createWithRGBA(ByteBuffer data, int width, int height, int stride);
+public static ImageFrame createWithBGRA(ByteBuffer data, int width, int height, int stride);
+public static ImageFrame createWithRGB(ByteBuffer data, int width, int height, int stride);
+public static ImageFrame createWithBGR(ByteBuffer data, int width, int height, int stride);
+public static ImageFrame createWithI420(int width, int height,
+    ByteBuffer yBuffer, int strideY, ByteBuffer uBuffer, int strideU,
+    ByteBuffer vBuffer, int strideV);
+public static ImageFrame createWithNV12(int width, int height,
+    ByteBuffer yBuffer, int strideY, ByteBuffer uvBuffer, int strideUV);
+public static ImageFrame createWithNV21(int width, int height,
+    ByteBuffer yBuffer, int strideY, ByteBuffer vuBuffer, int strideVU);
+public static ImageFrame createWithAndroid420(int width, int height,
+    ByteBuffer yBuffer, int strideY, ByteBuffer uBuffer, int strideU,
+    ByteBuffer vBuffer, int strideV, int pixelStrideUV);
+public static ImageFrame createWithTexture(int texture, int width, int height, int stride);
+public static ImageFrame createWithBitmap(Bitmap bitmap);
+```
+
+| Factory | Observações |
+| --- | --- |
+| `createWithFile` | Caminho PNG / JPG |
+| `createWithAndroid420` | Camera2 `YUV_420_888` |
+| `createWithTexture` | `GL_TEXTURE_2D` no contexto GL **atual**; `stride` costuma ser `width * 4` |
+| `createWithBitmap` | Copia pixels `ARGB_8888` para um quadro RGBA |
+
+Retorna `null` em caso de falha (bitmap inválido, alocação nativa falhou, …). Prefira `ByteBuffer.allocateDirect` para as factories empacotadas / planares.
+
+### Campos e operações
+
+```java
+public FrameType type = FrameType.VIDEO;
+
+public int rotate(Rotation rotation);
+public int mirror(String mode);
+public void setMirror(String mode);
+public ImageFrame convert(Format format);
+public int toFile(String path, int quality);
+public int toFile(String path);
+public Bitmap toBitmap();
+public boolean isValid();
+public void release();
+```
+
+| Método | Descrição |
+| --- | --- |
+| `rotate` | Rotacionar no lugar. Retorna `0` em caso de sucesso |
+| `mirror` | Espelhamento imediato. `mode`: `"horizontal"`, `"vertical"`, `"both"` (sem diferenciar maiúsculas) |
+| `setMirror` | Flag aplicada **dentro** de `processImage` (evita um convert extra). `""` / `null` limpa |
+| `convert` | Retorna um quadro **novo** em `format`; o chamador precisa dar `release()` |
+| `toFile` | Gravar PNG/JPG. Qualidade `1`–`100`; o overload usa `90` por padrão |
+| `toBitmap` | `Bitmap` `ARGB_8888` (converte para RGBA primeiro se necessário) |
+
+### Acessores
+
+```java
+public int getWidth();
+public int getHeight();
+public int getStride();
+public int getSize();
+public ByteBuffer getData();
+public Format getFormat();
+public int getTexture();
+
+public ByteBuffer getDataY();
+public ByteBuffer getDataU();
+public ByteBuffer getDataV();
+public ByteBuffer getDataUV();
+public int getStrideY();
+public int getStrideU();
+public int getStrideV();
+public int getStrideUV();
+```
+
+`getTexture()` retorna `0` se o quadro não estiver vinculado a uma textura GPU.
+
+### Format
+
+```java
+public enum Format {
+  I420(0),     // YUV 4:2:0 planar Y, U, V
+  NV12(1),     // YUV 4:2:0 Y + UV
+  NV21(2),     // YUV 4:2:0 Y + VU (Android camera default)
+  BGRA(3),
+  RGBA(4),
+  BGR(5),
+  RGB(6),
+  Texture(7);
+}
+```
+
+### Rotation
+
+Sentido horário.
+
+```java
+public enum Rotation {
+  ROTATION_0(0),
+  ROTATION_90(1),
+  ROTATION_180(2),
+  ROTATION_270(3);
+}
+```

@@ -1,0 +1,261 @@
+---
+title: "Implementar belleza"
+description: "Integra Facebetter SDK 2.0 en Windows con la API C++"
+---
+
+<Note>
+SDK **2.0.0**. Los headers están en `facebetter/*.h`. Enumeraciones de maquillaje / remodelado / estilo: [Enumeraciones de parámetros](/es/intro/makeup). Autenticación: [Autenticación y licencia](/es/intro/license).
+</Note>
+
+En Windows, Facebetter es una biblioteca C++ (`facebetter.lib` + `facebetter.dll`). Esta guía sigue el [demo de escritorio C++](https://github.com/pixpark/facebetter-sdk) (`demo/cpp`).
+
+## Incluir headers
+
+```cpp
+#include <facebetter/beauty_effect_engine.h>
+#include <facebetter/beauty_params.h>
+#include <facebetter/image_frame.h>
+#include <facebetter/type_defines.h>
+
+using namespace facebetter;
+using namespace facebetter::beauty_params;
+```
+
+## Flujo de integración
+
+```
+SetLogConfig → Create(EngineConfig) → set effects → ProcessImage → render
+```
+
+No hay un paso de activar tipos. Poner una intensidad por encima de `0` activa ese efecto.
+
+---
+
+## 1. Configurar logging (opcional)
+
+Llama a esto **antes** de `Create` para capturar los logs de inicialización.
+
+```cpp
+LogConfig log_cfg;
+log_cfg.console_enabled = true;
+log_cfg.file_enabled = false;
+log_cfg.level = LogLevel::Info;
+BeautyEffectEngine::SetLogConfig(log_cfg);
+```
+
+Niveles (bajo → alto): `Trace` / `Debug` / `Info` / `Warn` / `Error` / `Critical`.
+
+---
+
+## 2. Crear el motor
+
+En escritorio **debes** configurar `resource_path` al **archivo** `resource.fbd`.
+
+**Prioridad de autenticación:** si `license_token` no está vacío, el SDK valida ese token (cadena del token de licencia, JSON `{token}` o `.lic` sin conexión) y no llama a la red con `app_id` / `app_key`. En caso contrario usa `app_id` + `app_key` contra `/facebetter/v2/auth`.
+
+```cpp
+EngineConfig cfg;
+cfg.app_id = "your_app_id";
+cfg.app_key = "your_app_key";
+cfg.resource_path = "resource/resource.fbd";  // path to the .fbd file
+cfg.external_context = false;                 // SDK-managed OpenGL context
+
+// Optional: token takes priority when non-empty
+// cfg.license_token = "/* license token, {token} JSON, or .lic contents */";
+
+std::shared_ptr<BeautyEffectEngine> engine = BeautyEffectEngine::Create(cfg);
+if (!engine) {
+    // Check resource_path, license_token / app_id+app_key, and logs
+    return -1;
+}
+```
+
+<Warning>
+`resource_path` debe ser el archivo `resource.fbd`, no una carpeta. Las rutas relativas se resuelven desde el directorio de trabajo del proceso. En producción prefiera una ruta absoluta.
+</Warning>
+
+---
+
+## 3. Configurar parámetros de belleza
+
+Las intensidades de piel / maquillaje son `[0.0, 1.0]`. `0` desactiva. El remodelado es **`[-1.0, 1.0]`**. Listas completas de enumeraciones: [Enumeraciones de parámetros](/es/intro/makeup).
+
+### Piel
+
+```cpp
+engine->SetSmoothing(0.5f);
+engine->SetSmoothingStyle(SmoothingStyle::Natural);
+engine->SetWhitening(0.3f);
+engine->SetWhiteningStyle(WhiteningStyle::ColdWhite);
+engine->SetSharpening(0.2f);
+engine->SetRosiness(0.2f);
+engine->SetBeautySkinOnly(true);  // beauty only on detected skin
+```
+
+### Remodelado facial
+
+```cpp
+engine->SetReshape(Reshape::FaceThin, 0.4f);
+engine->SetReshape(Reshape::EyeSize, 0.3f);
+engine->SetReshape(Reshape::Chin, -0.2f);  // negative = opposite direction
+```
+
+### Maquillaje
+
+Intensidad, forma y color son setters separados. El labial es solo color; la pupila es solo color; el contorno es solo estilo.
+
+```cpp
+engine->SetLipstick(0.6f);
+engine->SetLipstickColor(LipstickColor::Rouge);
+
+engine->SetBlush(0.4f);
+engine->SetBlushStyle(BlushStyle::SunKissed);
+engine->SetBlushColor(BlushColor::CoralPink);
+
+engine->SetContour(0.5f);
+engine->SetContourStyle(ContourStyle::Natural);
+
+engine->SetEyeShadow(0.4f);
+engine->SetEyeShadowStyle(EyeShadowStyle::Soft);
+engine->SetEyeShadowColor(EyeShadowColor::Plum);
+```
+
+El mismo patrón para delineador, cejas, pestañas y pupila (`SetEyeLiner` / `SetEyebrow` / `SetEyelash` / `SetPupil` más Style / Color cuando aplique).
+
+---
+
+## 4. Filtros, stickers y fondo virtual
+
+Pasa una **ruta de archivo** o **bytes codificados**.
+
+```cpp
+engine->SetFilter("assets/filters/natural.fbd");
+engine->SetFilterIntensity(0.8f);
+engine->ClearFilter();
+
+engine->SetSticker("assets/stickers/face/black_glass.fbd");
+engine->ClearSticker();
+
+engine->AddResourcePack("resource/resource_3d.fbd");  // or place it next to resource.fbd
+engine->Set3DSticker("assets/stickers/3d/oculos.fbd");
+engine->Clear3DSticker();
+
+engine->SetVirtualBackgroundBlur(0.6f);           // [0, 1]; 0 clears fill
+engine->SetVirtualBackground("assets/background.jpg");
+engine->ClearVirtualBackground();
+
+engine->SetChromaKey(ChromaKeyColor::Green);
+engine->SetChromaKeySimilarity(0.4f);
+engine->SetChromaKeySmoothness(0.1f);
+engine->SetChromaKeyDesaturation(0.2f);
+engine->ClearChromaKey();  // back to portrait segmentation
+```
+
+Las texturas LUT / sticker se crean en la siguiente llamada a `ProcessImage` (el hilo GL activo). Para stickers 3D consulta [Paquetes de recursos opcionales](/es/intro/resource-packs).
+
+---
+
+## 5. Callbacks y estadísticas
+
+```cpp
+EngineCallbacks cbs;
+cbs.on_engine_event = [](int code, const std::string& message) {
+    // 0 license OK, 1 license failed, 100 init complete, 101 init failed
+    printf("[event] %d %s\n", code, message.c_str());
+};
+cbs.on_face_landmarks = [](const std::vector<FaceDetectionResult>& faces) {
+    printf("faces=%zu\n", faces.size());
+};
+engine->SetCallbacks(cbs);
+
+EngineStats stats = engine->GetStats();
+printf("fps=%.1f avg=%.2fms session=%.1fs\n",
+       stats.fps, stats.avg_process_time_ms, stats.session_time_s);
+```
+
+---
+
+## 6. Procesar fotogramas
+
+Configura `ImageFrame::type` a `FrameType::Video` (tiempo real, predeterminado) o `FrameType::Image` (foto única).
+
+```cpp
+auto input = ImageFrame::CreateWithRGBA(rgba_data, width, height, stride);
+input->type = FrameType::Video;
+
+auto output = engine->ProcessImage(input);
+if (output && output->Data()) {
+    const uint8_t* p = output->Data();
+    int w = output->Width();
+    int h = output->Height();
+}
+```
+
+**Archivo (modo foto):**
+
+```cpp
+auto input = ImageFrame::CreateWithFile("input.jpg");
+input->type = FrameType::Image;
+auto output = engine->ProcessImage(input);
+output->ToFile("output.jpg", 95);
+```
+
+<Tip>
+El motor mantiene el formato de salida alineado con la entrada cuando es posible (RGBA in → RGBA out, I420 in → I420 out). Usa `Convert(Format::BGRA)` si necesitas otro layout.
+</Tip>
+
+### Subir a OpenGL (vista previa)
+
+```cpp
+GLuint tex = 0;
+glGenTextures(1, &tex);
+glBindTexture(GL_TEXTURE_2D, tex);
+glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA,
+             output->Width(), output->Height(),
+             0, GL_RGBA, GL_UNSIGNED_BYTE, output->Data());
+```
+
+Mantén `facebetter.dll` junto al ejecutable (el CMake del demo la copia tras la compilación).
+
+---
+
+## 7. Bucle mínimo
+
+```cpp
+LogConfig log_cfg;
+log_cfg.console_enabled = true;
+log_cfg.level = LogLevel::Info;
+BeautyEffectEngine::SetLogConfig(log_cfg);
+
+EngineConfig cfg;
+cfg.app_id = "your_app_id";
+cfg.app_key = "your_app_key";
+cfg.resource_path = "resource/resource.fbd";
+auto engine = BeautyEffectEngine::Create(cfg);
+if (!engine) return -1;
+
+engine->SetSmoothing(0.5f);
+engine->SetReshape(Reshape::FaceThin, 0.3f);
+engine->SetLipstick(0.5f);
+engine->SetLipstickColor(LipstickColor::Rouge);
+
+auto input = ImageFrame::CreateWithRGBA(rgba, width, height, stride);
+input->type = FrameType::Video;
+auto output = engine->ProcessImage(input);
+```
+
+Cuando termines, suelta el `shared_ptr` (`engine.reset()`). `BeautyEffectEngine` **no** es un singleton.
+
+Para TRTC / Agora / LiveKit: [Integración con terceros](/es/windows/third-party-integration).
+
+## Relacionado
+
+<CardGroup cols={2}>
+  <Card title="Integración con terceros" href="/es/windows/third-party-integration">TRTC / Agora / LiveKit</Card>
+  <Card title="Referencia de la API" href="/es/windows/api-reference">Todos los métodos y tipos C++</Card>
+  <Card title="Manejo de errores" href="/es/windows/error-handling">Códigos de retorno y problemas de DLL en Windows</Card>
+  <Card title="Prácticas recomendadas" href="/es/windows/best-practices">Rendimiento e hilos</Card>
+</CardGroup>

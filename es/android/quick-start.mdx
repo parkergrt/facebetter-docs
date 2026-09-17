@@ -1,0 +1,58 @@
+---
+title: "Inicio rápido"
+description: "Ejecuta la aplicación de ejemplo de Android"
+---
+
+## Requisitos
+
+- **Android**: 7.0 (API 24) o superior
+- **Lenguaje**: Java
+- **ABIs**: `armeabi-v7a`, `arm64-v8a`
+- **SDK**: Facebetter **2.0.0** (`net.pixpark:facebetter:2.0.0`)
+
+## Obtener el ejemplo
+
+Clona el [repositorio de GitHub](https://github.com/pixpark/facebetter-sdk) y abre `demo/android` en Android Studio.
+
+```bash
+git clone https://github.com/pixpark/facebetter-sdk.git
+```
+
+## Vincular el nombre de paquete y las credenciales
+
+### Vincular el nombre de paquete de la aplicación
+
+Sigue [Suscripción](/es/intro/enable-service#bind-application-information) y vincula el **nombre de paquete de la aplicación** Android en la Consola, por ejemplo `com.example.app`.
+
+### Crear el motor
+
+Sigue [Suscripción](/es/intro/enable-service#get-appid-and-appkey) para copiar `appId` / `appKey`, o usa un `licenseToken`. Abre la Activity de cámara del demo y configura `EngineConfig` antes de `new BeautyEffectEngine(...)`.
+
+**En línea** (`appId` + `appKey` → `/facebetter/v2/auth`):
+
+```java
+BeautyEffectEngine.EngineConfig config = new BeautyEffectEngine.EngineConfig();
+config.appId = "your appId";
+config.appKey = "your appKey";
+mBeautyEngine = new BeautyEffectEngine(this, config);
+```
+
+**Token** (cadena del token de licencia, JSON `{token}` o contenido de `.lic` sin conexión). Si `licenseToken` no está vacío, tiene prioridad y el SDK no llama a la red con `appId` / `appKey`:
+
+```java
+BeautyEffectEngine.EngineConfig config = new BeautyEffectEngine.EngineConfig();
+config.licenseToken = "/* license token, {token} JSON, or .lic contents */";
+mBeautyEngine = new BeautyEffectEngine(this, config);
+```
+
+<Tip>
+Modos de autenticación y archivos `.lic` sin conexión: [Autenticación y licencia](/es/intro/license).
+</Tip>
+
+## Ejecutar
+
+Sincroniza Gradle en Android Studio, elige un dispositivo o emulador y ejecuta.
+
+<Frame>
+  <img src="/images/android-1.png" alt="Proyecto Android" />
+</Frame>

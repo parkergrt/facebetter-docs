@@ -1,0 +1,93 @@
+---
+title: "오류 처리"
+description: "Facebetter Web SDK 2.0 오류"
+---
+
+<Note>
+SDK **2.0.0**. 인증 실패: [인증 및 라이선스](/ko/intro/license).
+</Note>
+
+실패한 호출은 `FacebetterError`를 던집니다. 숫자 `code` 값은 아래에 있습니다. 일부 로드 / 인증 실패는 **문자열** `code`를 사용합니다.
+
+```javascript
+import { BeautyEffectEngine, EngineConfig, FacebetterError } from 'facebetter';
+
+try {
+  const licenseToken = await fetch('/api/facebetter/auth', { method: 'POST' }).then((r) => r.text());
+  const engine = new BeautyEffectEngine(new EngineConfig({ licenseToken }));
+  await engine.init();
+  engine.setSmoothing(0.5);
+} catch (error) {
+  if (error instanceof FacebetterError) {
+    console.error(error.code, error.message);
+  } else {
+    console.error(error);
+  }
+}
+```
+
+## 숫자 코드
+
+| 코드 | 의미 |
+| --- | --- |
+| `0` | 성공 (`checkResult`가 예외를 던지지 않음) |
+| `-1` | 잘못된 인자(null, 빈 경로, 범위 밖 강도, …) |
+| `-2` | 엔진이 초기화되지 않았거나 이미 destroy됨 |
+| `-3` | 라이선스 무효 |
+| `-4` | 미지원 플랫폼 / 형식 |
+| `-5` | I/O (리소스 / 필터 / 스티커 / 배경 파일) |
+| `-6` | 슬롯 한도 초과(배압; 프레임을 버리세요) |
+| `-7` | 처리 실패 |
+| `-8` | 메모리 부족 |
+
+## JavaScript 레이어 코드 (문자열)
+
+`init()` / 로드 / 인증 중에 던져집니다.
+
+| `error.code` | 시점 |
+| --- | --- |
+| `'TIMEOUT'` | `init()` 시간 초과 |
+| `'NETWORK_ERROR'` | Fetch / 네트워크 실패 |
+| `'WASM_LOAD_ERROR'` | SDK 로드 실패(네트워크, CDN, 또는 광고 차단) |
+| `'LICENSE_ERROR'` | `licenseToken` 없음, 또는 토큰이 거부됨 |
+| `'ENGINE_CREATE_FAILED'` | 엔진 생성 실패 |
+| `'UNKNOWN_ERROR'` | 분류되지 않은 JS 예외가 `FacebetterError`로 래핑됨 |
+
+```javascript
+try {
+  await engine.init({ timeout: 30000 });
+} catch (error) {
+  if (!(error instanceof FacebetterError)) throw error;
+  if (error.code === 'LICENSE_ERROR' || error.code === -3) {
+    // token missing, expired, or domain not bound — see /ko/intro/license
+  } else if (error.code === 'WASM_LOAD_ERROR' || error.code === 'TIMEOUT') {
+    // network, CDN, or ad blocker
+  }
+}
+```
+
+## 초기화 체크리스트
+
+1. 설정이 유효함: 비어 있지 않은 `licenseToken`.
+2. SDK가 런타임 파일을 다운로드할 수 있음(번들러 / CDN, 또는 UMD 스크립트와 같은 디렉터리의 파일).
+3. 페이지가 [보안 컨텍스트](https://developer.mozilla.org/en-US/docs/Web/Security/Secure_Contexts)입니다.
+4. 대시보드 도메인이 페이지 origin과 일치합니다(프로덕션).
+5. 프로덕션 프론트엔드 JS에 `appKey`를 넣지 **않습니다**.
+
+## 파라미터 및 처리 오류
+
+뷰티 강도는 `[0.0, 1.0]`이어야 합니다. 리셰이프는 `[-1.0, 1.0]`이어야 합니다. 범위를 벗어나면 네이티브 호출 전에 `FacebetterError`를 던집니다.
+
+엔진이 초기화되지 않았거나, 버퍼를 할당할 수 없거나, 네이티브 처리가 0이 아닌 상태를 반환하면 `processImage`가 예외를 던집니다. 호출 전에 비디오 `readyState`와 0이 아닌 `videoWidth` / `videoHeight`를 확인하세요.
+
+빈 필터 / 스티커 / 배경 **경로는** 거부됩니다. `clearFilter()`, `clearSticker()`, 또는 `clearVirtualBackground()`를 사용하세요.
+
+## 엔진 이벤트 vs 예외
+
+인증 / 초기화는 `init()`이 이미 resolve된 뒤에도 `onEngineEvent`(`EngineEventCode` `0` / `1` / `100` / `101`)로 올 수 있습니다. `init()`이 예외를 던지지 않아도 `LicenseValidationFailed`와 `InitializationFailed`를 수신하세요.
+
+## 관련 문서
+
+- [뷰티 효과 적용](/ko/web/implement-beauty)
+- [FAQ](/ko/web/faq)
+- [API 레퍼런스](/ko/web/api-reference)

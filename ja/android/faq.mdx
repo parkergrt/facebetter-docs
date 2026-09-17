@@ -1,0 +1,140 @@
+---
+title: "よくある質問"
+description: "Android Facebetter SDK 2.0 のよくある質問"
+---
+
+## 統合
+
+### エンジン構築時に例外が出る、または準備完了にならない
+
+- `IllegalArgumentException`: `EngineConfig` には空でない `licenseToken`、**または** `appId` と `appKey` の両方が必要です
+- ダッシュボードの **アプリケーションパッケージ名** をこのアプリにバインドしてください
+- オンライン認証では `/facebetter/v2/auth` へのネットワークアクセスを確認してください
+- `EngineEventCode.LICENSE_VALIDATION_FAILED` / `INITIALIZATION_FAILED` を監視してください
+- `setLogConfig` は `new BeautyEffectEngine(...)` の**前**に呼び出してください
+
+認証: [認証とライセンス](/ja/intro/license)。
+
+### コンパイル: `net.pixpark.facebetter` を解決できない
+
+- Maven: `implementation 'net.pixpark:facebetter:2.0.0'`
+- ローカル AAR: `implementation files('libs/facebetter.aar')` のあと Sync
+- Clean / Rebuild
+
+### `UnsatisfiedLinkError`
+
+- デバイス ABI は `arm64-v8a` または `armeabi-v7a` である必要があります
+- 縮小 / 難読化する場合は `libfacebetter.so` を保持し、ProGuard / R8 で Facebetter の native メソッドを保持してください
+- AAR / Maven 成果物が完全か確認してください
+
+## 効果
+
+### 美顔が弱い
+
+- `[0, 1]` の範囲で強度を上げてください（`setSmoothing`、`setWhitening`、メイクなど）
+- リシェイプは **`[-1, 1]`** です。`0` に近い値はほぼオフです
+- `INITIALIZATION_COMPLETE` を確認し、`processImage` が null でないフレームを返すことを確認してください
+- `onFaceLandmarks` でランドマークを確認してください（空リスト = 顔なし）
+
+### 顔が歪んで見える
+
+- `setReshape` の絶対値を下げてください。符号を逆にすると方向が反転します
+- 多くのリシェイプつまみを高い絶対値で重ねないでください
+- ライブ `VIDEO` が柔らかく見える場合、静止画書き出しには `FrameType.IMAGE` を使ってください（効果は強くなりません）
+
+### バーチャル背景が効かない
+
+- `setVirtualBackgroundBlur(level)` を `level > 0` で呼ぶか、**または** `setVirtualBackground(path|bytes)` を使います
+- `setVirtualBackgroundBlur(0)` は効果を**クリア**します
+- 画像パスは読み取り可能な PNG/JPG である必要があります。空パスは `ErrorCode.INVALID_ARGUMENT` を返します
+- グリーンスクリーン: `setChromaKey(ChromaKeyColor.GREEN)` に塗りつぶし（ぼかしまたは画像）を組み合わせます
+- `clearChromaKey()` はポートレートマスクを復元するだけで、塗りつぶしは取り除きません
+
+### フィルターまたはステッカーが表示されない
+
+- `setFilter` / `setSticker` に `.fbd` の **パスまたはバイト** を渡します（登録 API はありません）
+- 反映は GL スレッド上の**次の** `processImage` です
+- `externalContext = true` の場合、その呼び出しはカレントな GL コンテキスト付きで実行する必要があります
+- `setFilterIntensity(0)` にすると LUT は見えなくなります
+
+## パフォーマンスとメモリ
+
+### プレビューが遅い
+
+- `input.type = ImageFrame.FrameType.VIDEO`
+- キャプチャ解像度を下げてください
+- 同時に使うリシェイプ / メイク / バーチャル背景を減らしてください
+- `processImage` はメインスレッド以外（カメラまたは GL スレッド）で実行してください
+- `engine.getStats().avgProcessTimeMs` を確認してください
+
+### メモリが増え続ける、またはネイティブクラッシュする
+
+- すべての `ImageFrame` を `release()` してください。`convert()` の結果と `processImage` の出力も含みます
+- `ByteBuffer.allocateDirect` を使ってください
+- エンジンは 1 インスタンス。`onDestroy` で `engine.release()` を呼び出してください
+
+### ANR
+
+- HD 動画の `processImage` を UI スレッドで実行しないでください
+- 大きな `.fbd` / JPEG をメインスレッドで読み込まないでください
+
+## 画像とカメラ
+
+### ピクセルフォーマットを変更するには？
+
+`ImageFrame.convert(Format)` を使います（新しいフレームを返します）。
+
+```java
+ImageFrame rgba = frame.convert(ImageFrame.Format.RGBA);
+ImageFrame nv21 = frame.convert(ImageFrame.Format.NV21);
+ImageFrame i420 = frame.convert(ImageFrame.Format.I420);
+```
+
+パックドピクセル: `getData()`。プレーナー YUV: `getDataY()` / `getDataU()` / `getDataV()` または `getDataUV()`。
+
+### Camera2 プレビュー
+
+1. `YUV_420_888` から `Image` を取得
+2. `ImageFrame.createWithAndroid420(...)`
+3. センサーとフロントカメラ向けに `rotate` / `mirror`
+4. `input.type = FrameType.VIDEO`
+5. `processImage(input)`
+6. 表示用に変換するか `getTexture()` を使います
+
+### 回転
+
+`rotate(ImageFrame.Rotation.ROTATION_90)`（0 / 90 / 180 / 270、時計回り）はフレームを変更します。
+
+## 権限
+
+オンライン認証:
+
+```xml
+<uses-permission android:name="android.permission.INTERNET" />
+<uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+```
+
+カメラプレビュー: `CAMERA`（API 23+ では実行時リクエスト）。アプリストレージ外へのファイルログは、古い API ではストレージ権限が必要な場合があります。
+
+## デバッグ
+
+エンジン作成前にログを有効にします。
+
+```java
+BeautyEffectEngine.LogConfig logConfig = new BeautyEffectEngine.LogConfig();
+logConfig.consoleEnabled = true;
+logConfig.fileEnabled = true;
+logConfig.level = BeautyEffectEngine.LogLevel.DEBUG;
+logConfig.fileName = getFilesDir() + "/facebetter.log";
+BeautyEffectEngine.setLogConfig(logConfig);
+```
+
+Setter は成功時に `0` を返します。**`-1` = 引数不正、`-2` = 未初期化。** 一覧は [エラー処理](/ja/android/error-handling) を参照してください。
+
+## 互換性
+
+- Android 7.0（API 24）以上
+- ABI: `arm64-v8a`、`armeabi-v7a`
+- Maven: `net.pixpark:facebetter:2.0.0`
+
+アップグレード時は、Maven / AAR バージョンを上げ、Clean して再ビルドし、ライセンス + カメラ + 静止画を再テストしてください。

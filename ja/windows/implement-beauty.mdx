@@ -1,0 +1,261 @@
+---
+title: "美顔の実装"
+description: "Windows 上で C++ API を使って Facebetter SDK 2.0 を統合します"
+---
+
+<Note>
+SDK **2.0.0**。ヘッダーは `facebetter/*.h` にあります。メイク / リシェイプ列挙: [パラメータ列挙](/ja/intro/makeup)。認証: [認証とライセンス](/ja/intro/license)。
+</Note>
+
+Windows は C++ ライブラリ（`facebetter.lib` + `facebetter.dll`）で接続します。流れは [C++ デスクトップ Demo](https://github.com/pixpark/facebetter-sdk)（`demo/cpp`）を参照してください。
+
+## ヘッダーの導入
+
+```cpp
+#include <facebetter/beauty_effect_engine.h>
+#include <facebetter/beauty_params.h>
+#include <facebetter/image_frame.h>
+#include <facebetter/type_defines.h>
+
+using namespace facebetter;
+using namespace facebetter::beauty_params;
+```
+
+## 統合の流れ
+
+```
+SetLogConfig → Create(EngineConfig) → 効果を設定 → ProcessImage → レンダリング
+```
+
+「美顔タイプを有効化」するステップはありません。強度が `0` より大きいとその効果がオンになります。
+
+---
+
+## 1. ログの設定（任意）
+
+初期化ログを見るには、`Create` **の前**に呼び出す必要があります。
+
+```cpp
+LogConfig log_cfg;
+log_cfg.console_enabled = true;
+log_cfg.file_enabled = false;
+log_cfg.level = LogLevel::Info;
+BeautyEffectEngine::SetLogConfig(log_cfg);
+```
+
+レベルは低い順に `Trace` / `Debug` / `Info` / `Warn` / `Error` / `Critical` です。
+
+---
+
+## 2. エンジンの作成
+
+デスクトップでは **必ず** `resource_path` を `resource.fbd` **ファイル**のパスに設定してください。
+
+**認証の優先順位:** `license_token` が空でない場合、そのトークン（ライセンストークン、`{token}` JSON、またはオフライン `.lic`）をローカル検証し、`app_id` + `app_key` ではネット接続しません。それ以外は `app_id` + `app_key` で `/facebetter/v2/auth` をリクエストします。
+
+```cpp
+EngineConfig cfg;
+cfg.app_id = "your_app_id";
+cfg.app_key = "your_app_key";
+cfg.resource_path = "resource/resource.fbd";  // .fbd ファイルを指す
+cfg.external_context = false;                 // SDK が OpenGL コンテキストを管理
+
+// 任意: 空でなければ優先
+// cfg.license_token = "/* ライセンストークン、{token} JSON、または .lic の内容 */";
+
+std::shared_ptr<BeautyEffectEngine> engine = BeautyEffectEngine::Create(cfg);
+if (!engine) {
+    // resource_path、license_token / app_id+app_key、およびログを確認
+    return -1;
+}
+```
+
+<Warning>
+`resource_path` は `resource.fbd` ファイルである必要があります。ディレクトリにはできません。相対パスはプロセスの作業ディレクトリ基準です。本番では絶対パスを推奨します。
+</Warning>
+
+---
+
+## 3. 美顔パラメータの設定
+
+肌 / メイクの強度は `[0.0, 1.0]`、`0` はオフです。リシェイプは **`[-1.0, 1.0]`** です。完全な列挙: [パラメータ列挙](/ja/intro/makeup)。
+
+### 肌
+
+```cpp
+engine->SetSmoothing(0.5f);
+engine->SetSmoothingStyle(SmoothingStyle::Natural);
+engine->SetWhitening(0.3f);
+engine->SetWhiteningStyle(WhiteningStyle::ColdWhite);
+engine->SetSharpening(0.2f);
+engine->SetRosiness(0.2f);
+engine->SetBeautySkinOnly(true);  // 検出した肌のみに適用
+```
+
+### リシェイプ
+
+```cpp
+engine->SetReshape(Reshape::FaceThin, 0.4f);
+engine->SetReshape(Reshape::EyeSize, 0.3f);
+engine->SetReshape(Reshape::Chin, -0.2f);  // 負の値は反対方向
+```
+
+### メイク
+
+強度、形状、色番号は分けて設定します。口紅は色番号のみ、瞳は色番号のみ、コントアは形状のみです。
+
+```cpp
+engine->SetLipstick(0.6f);
+engine->SetLipstickColor(LipstickColor::Rouge);
+
+engine->SetBlush(0.4f);
+engine->SetBlushStyle(BlushStyle::SunKissed);
+engine->SetBlushColor(BlushColor::CoralPink);
+
+engine->SetContour(0.5f);
+engine->SetContourStyle(ContourStyle::Natural);
+
+engine->SetEyeShadow(0.4f);
+engine->SetEyeShadowStyle(EyeShadowStyle::Soft);
+engine->SetEyeShadowColor(EyeShadowColor::Plum);
+```
+
+アイライナー、眉、まつ毛、瞳も同様です（`SetEyeLiner` / `SetEyebrow` / `SetEyelash` / `SetPupil` と対応する Style / Color）。
+
+---
+
+## 4. フィルター、ステッカー、バーチャル背景
+
+**ファイルパス** または **エンコード済みバイト** を渡します。
+
+```cpp
+engine->SetFilter("assets/filters/natural.fbd");
+engine->SetFilterIntensity(0.8f);
+engine->ClearFilter();
+
+engine->SetSticker("assets/stickers/face/black_glass.fbd");
+engine->ClearSticker();
+
+engine->AddResourcePack("resource/resource_3d.fbd");  // または resource.fbd と同じディレクトリ
+engine->Set3DSticker("assets/stickers/3d/oculos.fbd");
+engine->Clear3DSticker();
+
+engine->SetVirtualBackgroundBlur(0.6f);  // [0, 1]；0 で塗りつぶしをクリア
+engine->SetVirtualBackground("assets/background.jpg");
+engine->ClearVirtualBackground();
+
+engine->SetChromaKey(ChromaKeyColor::Green);
+engine->SetChromaKeySimilarity(0.4f);
+engine->SetChromaKeySmoothness(0.1f);
+engine->SetChromaKeyDesaturation(0.2f);
+engine->ClearChromaKey();  // 人物セグメンテーションマスクに戻す
+```
+
+LUT / ステッカーテクスチャは次の `ProcessImage`（現在の GL スレッド）で作成されます。3D ステッカー: [オプションリソースパック](/ja/intro/resource-packs)。
+
+---
+
+## 5. コールバックと統計
+
+```cpp
+EngineCallbacks cbs;
+cbs.on_engine_event = [](int code, const std::string& message) {
+    // 0 認証成功、1 認証失敗、100 初期化完了、101 初期化失敗
+    printf("[event] %d %s\n", code, message.c_str());
+};
+cbs.on_face_landmarks = [](const std::vector<FaceDetectionResult>& faces) {
+    printf("faces=%zu\n", faces.size());
+};
+engine->SetCallbacks(cbs);
+
+EngineStats stats = engine->GetStats();
+printf("fps=%.1f avg=%.2fms session=%.1fs\n",
+       stats.fps, stats.avg_process_time_ms, stats.session_time_s);
+```
+
+---
+
+## 6. 画像の処理
+
+`ImageFrame::type` に `FrameType::Video`（リアルタイム、デフォルト）または `FrameType::Image`（1 枚の写真）を設定します。
+
+```cpp
+auto input = ImageFrame::CreateWithRGBA(rgba_data, width, height, stride);
+input->type = FrameType::Video;
+
+auto output = engine->ProcessImage(input);
+if (output && output->Data()) {
+    const uint8_t* p = output->Data();
+    int w = output->Width();
+    int h = output->Height();
+}
+```
+
+**ファイルから（写真モード）:**
+
+```cpp
+auto input = ImageFrame::CreateWithFile("input.jpg");
+input->type = FrameType::Image;
+auto output = engine->ProcessImage(input);
+output->ToFile("output.jpg", 95);
+```
+
+<Tip>
+エンジンは入力 / 出力形式をできるだけ揃えます（RGBA 入力なら RGBA 出力、I420 入力なら I420 出力）。別レイアウトが必要なときは `Convert(Format::BGRA)` を使います。
+</Tip>
+
+### OpenGL へのアップロード（プレビュー）
+
+```cpp
+GLuint tex = 0;
+glGenTextures(1, &tex);
+glBindTexture(GL_TEXTURE_2D, tex);
+glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA,
+             output->Width(), output->Height(),
+             0, GL_RGBA, GL_UNSIGNED_BYTE, output->Data());
+```
+
+`facebetter.dll` は実行ファイルと同じディレクトリに置いてください（Demo の CMake ビルド後は自動コピーされます）。
+
+---
+
+## 7. 最小サンプル
+
+```cpp
+LogConfig log_cfg;
+log_cfg.console_enabled = true;
+log_cfg.level = LogLevel::Info;
+BeautyEffectEngine::SetLogConfig(log_cfg);
+
+EngineConfig cfg;
+cfg.app_id = "your_app_id";
+cfg.app_key = "your_app_key";
+cfg.resource_path = "resource/resource.fbd";
+auto engine = BeautyEffectEngine::Create(cfg);
+if (!engine) return -1;
+
+engine->SetSmoothing(0.5f);
+engine->SetReshape(Reshape::FaceThin, 0.3f);
+engine->SetLipstick(0.5f);
+engine->SetLipstickColor(LipstickColor::Rouge);
+
+auto input = ImageFrame::CreateWithRGBA(rgba, width, height, stride);
+input->type = FrameType::Video;
+auto output = engine->ProcessImage(input);
+```
+
+使い終わったら `shared_ptr` を解放します（`engine.reset()`）。`BeautyEffectEngine` は**シングルトンではありません**。
+
+TRTC / Agora / LiveKit への接続: [サードパーティ連携](/ja/windows/third-party-integration)。
+
+## 関連ドキュメント
+
+<CardGroup cols={2}>
+  <Card title="サードパーティ連携" href="/ja/windows/third-party-integration">TRTC / Agora / LiveKit</Card>
+  <Card title="API リファレンス" href="/ja/windows/api-reference">すべての C++ メソッドと型</Card>
+  <Card title="エラー処理" href="/ja/windows/error-handling">戻り値と DLL の問題</Card>
+  <Card title="ベストプラクティス" href="/ja/windows/best-practices">パフォーマンスとスレッド</Card>
+</CardGroup>

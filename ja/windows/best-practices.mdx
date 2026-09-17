@@ -1,0 +1,87 @@
+---
+title: "ベストプラクティス"
+description: "Windows 上の Facebetter 2.0 のパフォーマンスと統合の推奨"
+---
+
+<Note>
+SDK **2.0.0**。C++ API は Linux と同じです。列挙: [パラメータ列挙](/ja/intro/makeup)。
+</Note>
+
+## `resource_path` は `resource.fbd` を指す
+
+デスクトップエンジンはリソースパックを `fopen` で開きます。**ファイルパス**を渡し、ディレクトリは渡さないでください。
+
+```cpp
+cfg.resource_path = "C:/app/assets/resource.fbd";
+```
+
+`resource.fbd` をアプリと一緒に配布し、起動時に絶対パスへ解決します。
+
+## 1 つのエンジン、シリアルな `ProcessImage`
+
+`Create` でインスタンスを取得します。**シングルトンではありません**。セッション中はエンジンを 1 つ保持します。`ImageFrame` とエンジンはスレッドセーフではありません。`ProcessImage` はワーカースレッドへシリアル化します（`external_context = true` の場合は、GL コンテキストを持つスレッドで呼び出す必要があります）。
+
+```cpp
+std::shared_ptr<BeautyEffectEngine> engine = BeautyEffectEngine::Create(cfg);
+```
+
+カメラセッション終了後に `shared_ptr` を解放します。毎フレームのエンジン再作成はコストが高いです（認証 + 初期化）。
+
+## フレームに `FrameType` を設定
+
+`ProcessImage` の前に `frame->type` を設定します。
+
+| 値 | 用途 |
+| --- | --- |
+| `FrameType::Video`（デフォルト） | カメラ、キャプチャ、ライブプレビュー |
+| `FrameType::Image` | 単一写真 / 書き出し |
+
+## 強度
+
+リアルタイムでは低めから始めます。リシェイプは **`[-1.0, 1.0]`**、その他の強度は `[0.0, 1.0]` です。
+
+```cpp
+engine->SetSmoothing(0.25f);
+engine->SetWhitening(0.15f);
+engine->SetReshape(Reshape::FaceThin, 0.15f);
+engine->SetBeautySkinOnly(true);
+```
+
+`SetBeautySkinOnly(true)` をオンにすると、スムージング / 美白は肌にのみ適用されます。
+
+## フィルターとステッカー
+
+`.fbd` のパスまたはバイトを渡します。次の `ProcessImage` のあとで有効になります。毎フレームのフィルター / ステッカー切り替えは避けてください。
+
+```cpp
+engine->SetFilter(filter_path);
+engine->SetFilterIntensity(0.7f);
+```
+
+## `GetStats` で監視
+
+```cpp
+EngineStats s = engine->GetStats();
+if (s.avg_process_time_ms > 33.0) {
+    // lower resolution, reduce intensity, or turn off stickers
+}
+```
+
+`avg_process_time_ms` はフレーム予算より低くする必要があります（30 fps で約 33 ms）。プレビューは 720p を推奨します。静止画書き出しは `FrameType::Image` を使います。
+
+## OpenGL コンテキスト
+
+| `external_context` | 場面 |
+| --- | --- |
+| `false`（デフォルト） | SDK が OpenGL を管理 |
+| `true` | 呼び出し側にカレント GL コンテキストがあり、そのスレッドで `ProcessImage` を呼ぶ |
+
+`facebetter.dll` を `.exe` の隣に置きます（または `PATH` に追加）。リンク時は `facebetter.lib` を使います。
+
+## アイドル時は一時停止
+
+ウィンドウ最小化またはカメラ停止時は `ProcessImage` をスキップします。セッション終了時は `engine.reset()` できます。操作を止める UI スレッドでは処理しないでください。
+
+## 認証
+
+オフラインまたは制限されたネットワークでは `license_token` を優先します。それ以外は `app_id` + `app_key` のオンライン v2 です。本番キーを公開リポジトリに書かないでください。[認証とライセンス](/ja/intro/license) を参照してください。

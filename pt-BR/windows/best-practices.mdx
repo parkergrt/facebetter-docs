@@ -1,0 +1,87 @@
+---
+title: "Práticas recomendadas"
+description: "Orientação de desempenho e integração do Facebetter 2.0 no Windows"
+---
+
+<Note>
+SDK **2.0.0**. A API C++ é compartilhada com o Linux. Enums: [Enums de parâmetros](/pt-BR/intro/makeup).
+</Note>
+
+## Aponte `resource_path` para `resource.fbd`
+
+Os mecanismos desktop abrem o pacote com `fopen`. Passe o **arquivo**, não uma pasta:
+
+```cpp
+cfg.resource_path = "C:/app/assets/resource.fbd";
+```
+
+Envie `resource.fbd` junto com o app (ou em um diretório de assets) e resolva um caminho absoluto na inicialização.
+
+## Um mecanismo, `ProcessImage` serial
+
+`BeautyEffectEngine` é criado com `Create` e **não** é um singleton. Mantenha uma instância para a sessão. `ImageFrame` e o mecanismo não são thread-safe — serialize `ProcessImage` em um único worker (ou no thread GL quando `external_context = true`).
+
+```cpp
+// good: one engine, one processing thread
+std::shared_ptr<BeautyEffectEngine> engine = BeautyEffectEngine::Create(cfg);
+```
+
+Solte o `shared_ptr` quando a sessão da câmera terminar. Recriar o mecanismo a cada quadro é caro (licença + init).
+
+## `FrameType` no quadro
+
+Defina `frame->type` antes de `ProcessImage`.
+| Valor | Uso |
+| --- | --- |
+| `FrameType::Video` (padrão) | Câmera, captura, prévia ao vivo |
+| `FrameType::Image` | Foto única / exportação |
+
+## Intensidades
+
+Comece baixo em tempo real. A remodelagem é **`[-1.0, 1.0]`**; as outras intensidades são `[0.0, 1.0]`.
+
+```cpp
+engine->SetSmoothing(0.25f);
+engine->SetWhitening(0.15f);
+engine->SetReshape(Reshape::FaceThin, 0.15f);
+engine->SetBeautySkinOnly(true);
+```
+
+Ative `SetBeautySkinOnly(true)` para que suavização / clareamento fiquem na pele.
+
+## Filtros e adesivos
+
+Passe caminhos ou bytes `.fbd`. As alterações passam a valer no próximo `ProcessImage`. Evite trocar filtro/adesivo a cada quadro.
+
+```cpp
+engine->SetFilter(filter_path);
+engine->SetFilterIntensity(0.7f);
+```
+
+## Monitorar com `GetStats`
+
+```cpp
+EngineStats s = engine->GetStats();
+if (s.avg_process_time_ms > 33.0) {
+    // drop resolution, lower intensities, or skip stickers
+}
+```
+
+Mire `avg_process_time_ms` abaixo do orçamento de quadro (cerca de 33 ms a 30 fps). Prefira 720p para a prévia; use `FrameType::Image` para exportação de still.
+
+## Contexto OpenGL
+
+| `external_context` | Quando |
+| --- | --- |
+| `false` (padrão) | O SDK gerencia o OpenGL |
+| `true` | Você já tem um contexto GL atual; chame `ProcessImage` nesse thread |
+
+Coloque `facebetter.dll` ao lado do `.exe` (ou no `PATH`). Vincule `facebetter.lib` na compilação.
+
+## Pausar quando ocioso
+
+Quando a janela estiver minimizada ou a câmera parar, pule `ProcessImage` e opcionalmente `engine.reset()` se a sessão tiver acabado. Não processe no thread de UI se isso bloquear a entrada.
+
+## Autenticação
+
+Prefira `license_token` para redes offline / restritas. Caso contrário, `app_id` + `app_key` online v2. Não hardcode chaves de produção em repositórios públicos — carregue da configuração. Veja [Autenticação e licença](/pt-BR/intro/license).

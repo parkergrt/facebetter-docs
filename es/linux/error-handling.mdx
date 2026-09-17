@@ -1,0 +1,156 @@
+---
+title: "Manejo de errores"
+description: "Códigos de error del SDK Facebetter 2.0 y solución de problemas en Linux"
+---
+
+<Note>
+SDK **2.0.0**. Autenticación: [Autenticación y licencia](/es/intro/license).
+</Note>
+
+## Valores de retorno
+
+| Código | Significado |
+| --- | --- |
+| `0` | Correcto |
+| `-1` | Argumento no válido |
+| `-2` | No inicializado |
+| `-3` | Licencia |
+| `-4` | No admitido |
+| `-5` | E/S |
+| `-6` | Sin slot |
+| `-7` | Fallo de proceso |
+| `-8` | Memoria insuficiente |
+
+`Create()` devuelve `nullptr` si falla. `ProcessImage` puede devolver `nullptr`.
+
+```cpp
+int ret = engine->SetSmoothing(0.5f);
+if (ret != 0) {
+    std::cerr << "SetSmoothing failed: " << ret << std::endl;
+}
+```
+
+## Eventos del motor
+
+| Código | Significado |
+| --- | --- |
+| `0` | Licencia correcta |
+| `1` | Licencia fallida |
+| `100` | Init completo |
+| `101` | Init fallido |
+
+```cpp
+EngineCallbacks cbs;
+cbs.on_engine_event = [](int code, const std::string& message) {
+    if (code == 1 || code == 101) {
+        std::cerr << "engine event " << code << ": " << message << std::endl;
+    }
+};
+engine->SetCallbacks(cbs);
+```
+
+---
+
+## Fallos habituales
+
+### 1. `Create` devuelve `nullptr`
+
+- `resource_path` no es el **archivo `resource.fbd`**
+- `license_token` o `app_id` + `app_key` no válidos
+- La autenticación en línea no puede alcanzar `/facebetter/v2/auth`
+- Desajuste de versión de `libfacebetter.so`
+
+```cpp
+LogConfig log_cfg;
+log_cfg.console_enabled = true;
+log_cfg.level = LogLevel::Debug;
+BeautyEffectEngine::SetLogConfig(log_cfg);
+
+cfg.resource_path =
+    (std::filesystem::current_path() / "resource" / "resource.fbd").string();
+auto engine = BeautyEffectEngine::Create(cfg);
+```
+
+---
+
+### 2. No se encuentra `libfacebetter.so`
+
+```
+error while loading shared libraries: libfacebetter.so: cannot open shared object file
+```
+
+```bash
+LD_LIBRARY_PATH=/path/to/sdk/lib ./your_app
+cp /path/to/sdk/lib/libfacebetter.so ./
+echo "/path/to/sdk/lib" | sudo tee /etc/ld.so.conf.d/facebetter.conf
+sudo ldconfig
+```
+
+También puedes configurar `RPATH` en el enlace (`-Wl,-rpath,/path/to/sdk/lib`).
+
+---
+
+### 3. `ProcessImage` devuelve `nullptr`
+
+```cpp
+auto input = ImageFrame::CreateWithFile("input.jpg");
+if (!input || !input->Data()) return;
+input->type = FrameType::Image;
+auto output = engine->ProcessImage(input);
+if (!output || !output->Data()) {
+    std::cerr << "ProcessImage failed." << std::endl;
+}
+```
+
+---
+
+### 4. Los efectos se ven igual
+
+No hay `SetBeautyTypeEnabled` en 2.0. Pon intensidades `> 0`. El remodelado / maquillaje necesitan un rostro.
+
+```cpp
+engine->SetSmoothing(0.5f);
+engine->SetReshape(Reshape::FaceThin, 0.3f);
+input->type = FrameType::Video;
+```
+
+---
+
+### 5. GLFW no puede abrir la pantalla
+
+```
+GLFW: X11: Display variable not set
+```
+
+```bash
+echo $DISPLAY
+export DISPLAY=:0
+export WAYLAND_DISPLAY=wayland-0
+```
+
+SSH necesita reenvío X11 (`ssh -X`) o un compositor local.
+
+---
+
+### 6. Falla el init de OpenGL
+
+```bash
+# Ubuntu / Debian
+sudo apt install libgl1-mesa-dev libglu1-mesa-dev mesa-utils
+glxinfo | grep "OpenGL version"
+```
+
+Hace falta OpenGL 3.0+. Los servidores headless pueden usar OSMesa (`libosmesa6-dev`) con `external_context` configurado para tu contexto offscreen.
+
+---
+
+## Logs de depuración
+
+```cpp
+LogConfig log_cfg;
+log_cfg.console_enabled = true;
+log_cfg.file_enabled = true;
+log_cfg.level = LogLevel::Debug;
+log_cfg.file_name = "facebetter.log";
+BeautyEffectEngine::SetLogConfig(log_cfg);
+```

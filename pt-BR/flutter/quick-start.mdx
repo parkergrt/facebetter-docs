@@ -1,0 +1,85 @@
+---
+title: "Início rápido"
+description: "Execute o exemplo do Facebetter Flutter SDK 2.0"
+---
+
+<Note>
+Esta página corresponde ao SDK **2.0.0**. A classe do mecanismo é **`FBEngine`** (não é um singleton). Autenticação: [Autenticação e licença](/pt-BR/intro/license). Enums: [Enums de parâmetros](/pt-BR/intro/makeup).
+</Note>
+
+## Requisitos
+
+- **Flutter** `>= 3.24` / **Dart** `>= 3.5`
+- **iOS** 12.0+
+- **Android** minSdk **24**
+- SDK nativo Facebetter **2.0** (baixado pelo plugin)
+
+## Instalar
+
+```yaml
+dependencies:
+  facebetter_flutter: ^2.0.0
+```
+
+```bash
+flutter pub get
+cd ios && pod install && cd ..
+```
+
+## Obter o exemplo
+
+```bash
+git clone https://github.com/pixpark/facebetter-sdk.git
+cd facebetter-sdk/demo/flutter
+flutter create --org net.pixpark --project-name fbexample .
+```
+
+A pasta do demo guarda apenas o código do app; `flutter create` gera `ios/` e `android/`.
+
+## Vincular identificadores e chaves
+
+No Console, vincule:
+
+- **iOS**: Bundle ID (por exemplo `net.pixpark.fbexample`)
+- **Android**: Application ID (por exemplo `net.pixpark.fbexample`)
+
+Copie `appId` / `appKey`, ou passe um `licenseToken` (token de curta duração emitido pelo servidor, ou um `.lic` offline obtido via vendas). Veja [Assinatura](/pt-BR/intro/enable-service) e [Autenticação e licença](/pt-BR/intro/license).
+
+## Criar o mecanismo
+
+Edite `lib/main.dart`. O logging precisa rodar **antes** de `create`:
+
+```dart
+import 'package:facebetter_flutter/facebetter_flutter.dart';
+
+FBEngine.setLogConfig(console: true, level: FBLogLevel.info);
+
+final engine = await FBEngine.create(FBEngineConfig(
+  appId: 'your_app_id',
+  appKey: 'your_app_key',
+  // or licenseToken: '...',
+  enableLandmarks: false,
+  externalContext: true, // default; required for third-party live preprocess
+  resourcePath: null,    // plugin locates resource.fbd
+));
+
+engine.setSmoothing(0.8);
+engine.dispose();
+```
+
+<Tip>
+`externalContext: true` (padrão) reutiliza o contexto GL do chamador — obrigatório para o pré-processamento ao vivo de terceiros. As APIs de imagem estática precisam de um **segundo** mecanismo com `externalContext: false`. Não misture os dois na mesma instância.
+</Tip>
+
+## Executar
+
+```bash
+flutter devices
+flutter run -d <device-id>
+```
+
+## Próximos
+
+- [Implementar beleza](/pt-BR/flutter/implement-beauty) — setters dedicados, filtros, fotos
+- [Integração com terceiros](/pt-BR/flutter/third-party-integration) — `FacebetterPlugin.processTexture` nativo
+- [Referência da API](/pt-BR/flutter/api-reference)

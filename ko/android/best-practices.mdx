@@ -1,0 +1,198 @@
+---
+title: "권장 사항"
+description: "Android에서 Facebetter SDK 2.0의 성능과 아키텍처"
+---
+
+## FrameType 선택
+
+`processImage` 전에 `ImageFrame.type`을 설정하세요. 추가 모드 인자는 없습니다.
+
+**`FrameType.VIDEO`** (기본값)
+
+- 카메라 미리보기, 영상 통화, 라이브 스트리밍
+- 더 낮은 지연
+
+**`FrameType.IMAGE`**
+
+- 갤러리 사진, 내보내기, 정지 캡처
+- 더 높은 품질, 프레임당 비용이 더 큼
+
+```java
+input.type = ImageFrame.FrameType.VIDEO;
+ImageFrame output = engine.processImage(input);
+```
+
+## 파라미터 범위
+
+낮게 시작한 뒤 얼굴 검출과 FPS를 확인한 다음 올리세요.
+
+| API | 범위 | 참고 |
+| --- | --- | --- |
+| 스무딩 / 미백 / 샤프닝 / 혈색 / 메이크업 강도 / 필터 강도 / VB 블러 / 크로마 노브 | `[0, 1]` | `0` 꺼짐 |
+| `setReshape` | **`[-1, 1]`** | `0` 꺼짐; 부호가 방향 |
+
+라이브 미리보기 (예시):
+
+```java
+engine.setSmoothing(0.25f);
+engine.setWhitening(0.12f);
+engine.setRosiness(0.08f);
+engine.setReshape(Reshape.FACE_THIN, 0.15f);
+engine.setReshape(Reshape.EYE_SIZE, 0.12f);
+```
+
+스무딩을 머리카락 / 옷 / 배경에 적용하지 않으려면 `setBeautySkinOnly(true)`를 켜세요.
+
+프리셋 이름: [파라미터 열거형](/ko/intro/makeup).
+
+## 메모리
+
+픽셀 데이터로 프레임을 만들 때는 **direct** `ByteBuffer`를 사용하세요.
+
+```java
+ByteBuffer data = ByteBuffer.allocateDirect(width * height * 4);
+```
+
+네이티브 프레임을 해제하세요.
+
+```java
+ImageFrame input = ImageFrame.createWithRGBA(data, width, height, stride);
+try {
+    input.type = ImageFrame.FrameType.VIDEO;
+    ImageFrame output = engine.processImage(input);
+    try {
+        // draw / encode output
+    } finally {
+        if (output != null) {
+            output.release();
+        }
+    }
+} finally {
+    if (input != null) {
+        input.release();
+    }
+}
+```
+
+- 프로세스 / GL 컨텍스트당 엔진 하나. 프레임마다 만들지 마세요
+- `createWithBitmap` 전에 정지를 제한하세요(데모는 긴 변을 1920으로 스케일)
+- `convert()`는 **새** 프레임을 할당합니다. 해제하세요
+
+## OpenGL ES
+
+`externalContext = true`일 때:
+
+- 현재 컨텍스트가 있는 GL 스레드에서 엔진을 생성하세요
+- 입력 텍스처, `processImage`, 출력 텍스처를 같은 컨텍스트에 유지하세요
+- 컨텍스트 손실 후 엔진을 다시 만드세요
+- GPU에 남을 때는 CPU 다운로드가 아니라 `output.getTexture()`로 결과를 읽으세요
+
+[뷰티 효과 적용](/ko/android/implement-beauty#external-texture-opengl-es)을 참고하세요.
+
+## 엔진 하나, application context
+
+단일 `BeautyEffectEngine`을 유지하세요. Activity보다 오래 살도록 `getApplicationContext()`를 쓰고, 세션이 끝나면 여전히 `release()`하세요.
+
+```java
+public final class BeautyEngineHolder {
+    private static BeautyEngineHolder sInstance;
+    private BeautyEffectEngine mEngine;
+
+    public static synchronized BeautyEngineHolder get(Context context) {
+        if (sInstance == null) {
+            sInstance = new BeautyEngineHolder(context.getApplicationContext());
+        }
+        return sInstance;
+    }
+
+    private BeautyEngineHolder(Context app) {
+        BeautyEffectEngine.EngineConfig config = new BeautyEffectEngine.EngineConfig();
+        config.appId = "your_app_id";
+        config.appKey = "your_app_key";
+        mEngine = new BeautyEffectEngine(app, config);
+    }
+
+    public BeautyEffectEngine engine() {
+        return mEngine;
+    }
+
+    public synchronized void release() {
+        if (mEngine != null) {
+            mEngine.release();
+            mEngine = null;
+        }
+        sInstance = null;
+    }
+}
+```
+
+<Warning>
+세션이 끝나면 항상 엔진을 `release()`하세요. ImageFrame 객체도 `release()`가 필요합니다.
+</Warning>
+
+## UI 스레드 밖에서
+
+`processImage`는 카메라 / GL / 전용 스레드에서 실행하세요. UI용으로만 결과를 메인 looper에 post하세요.
+
+```java
+executor.execute(() -> {
+    input.type = ImageFrame.FrameType.VIDEO;
+    ImageFrame output = engine.processImage(input);
+    mainHandler.post(() -> callback.onFrame(output));
+});
+```
+
+자체 락 없이 스레드 간에 하나의 `ImageFrame`을 공유하지 마세요. 데모 카메라 경로는 렌더 스레드에서 최신 프레임을 처리합니다.
+
+## assets에서 필터와 스티커
+
+`.fbd` 파일을 `assets/`에 두고 `byte[]`를 전달하세요(또는 `filesDir`에 복사한 뒤 경로를 전달). 사용자가 효과를 고를 때 `setFilter` / `setSticker`를 한 번 호출하고, 매 프레임마다 호출하지 마세요. 믹스는 `setFilterIntensity`로 조절하세요.
+
+GPU 업로드는 다음 `processImage`에서 이루어집니다.
+
+## getStats로 모니터링
+
+```java
+EngineStats stats = engine.getStats();
+Log.d(TAG, "fps=" + stats.fps
+    + " avgMs=" + stats.avgProcessTimeMs
+    + " sessionS=" + stats.sessionTimeS);
+```
+
+라이브 30 FPS 미리보기에서 `avgProcessTimeMs`가 약 33 ms를 계속 넘으면 해상도를 낮추거나, `FrameType.VIDEO`를 사용하거나, 동시 리셰이프 / 메이크업 / VB를 줄이세요.
+
+## 사용자 슬라이더 유지
+
+강도는 직접 저장하세요(`SharedPreferences`). 엔진이 만들어진 뒤 `setSmoothing`, `setReshape`, `setLipstick`, …으로 다시 적용하세요. SDK는 UI 상태를 유지하지 않습니다.
+
+## 라이프사이클
+
+- `onResume` / `onPause`: 카메라를 시작하고 중지합니다. 곧 재개할 거면 엔진을 유지하세요
+- `onDestroy` / `onDetach`: 이 소유자가 만들었다면 `engine.release()`
+- `externalContext`: GL 스레드에서 생성 / 파괴
+
+## 테스트
+
+```java
+@Test
+public void processRgbaFrame() {
+    BeautyEffectEngine.EngineConfig config = new BeautyEffectEngine.EngineConfig();
+    config.appId = "test_app_id";
+    config.appKey = "test_app_key";
+    BeautyEffectEngine engine = new BeautyEffectEngine(context, config);
+
+    ByteBuffer data = ByteBuffer.allocateDirect(640 * 480 * 4);
+    ImageFrame input = ImageFrame.createWithRGBA(data, 640, 480, 640 * 4);
+    input.type = ImageFrame.FrameType.IMAGE;
+    ImageFrame output = engine.processImage(input);
+
+    assertNotNull(output);
+    assertTrue(output.isValid());
+
+    input.release();
+    output.release();
+    engine.release();
+}
+```
+
+계측 테스트에는 유효한 라이선스가 필요합니다(`licenseToken`, 또는 도달 가능한 `/facebetter/v2/auth`와 바인딩된 패키지 이름).

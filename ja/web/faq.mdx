@@ -1,0 +1,101 @@
+---
+title: "よくある質問"
+description: "Facebetter Web SDK 2.0 のよくある質問"
+---
+
+<Note>
+SDK **2.0.0**。認証: [認証とライセンス](/ja/intro/license)。列挙: [パラメータ列挙](/ja/intro/makeup)。
+</Note>
+
+## 統合
+
+### エンジン作成 / `init()` が失敗する
+
+- `EngineConfig` には空でない `licenseToken` が必要です。Web 設定に `appId` / `appKey` フィールドはありません。
+- 本番: サーバーは認証 API のレスポンス本文（`{success, token}` またはエラー JSON）を返す必要があります。[認証とライセンス](/ja/intro/license) を参照してください。
+- ページが SDK ランタイムファイルをダウンロードできることを確認します（バンドラ / CDN）。[エラー処理](/ja/web/error-handling) を参照してください。
+- ページが HTTPS または localhost であることを確認します。
+- `FacebetterError.code` を確認します（[エラー処理](/ja/web/error-handling)）。
+
+### AppID / AppKey はどう渡す？
+
+`EngineConfig` には書かないでください。キーはサーバーに置き、トークンを取得してから `licenseToken` に渡します。
+
+### ブラウザでオフライン `.lic` は使える？
+
+使えません。Web はオンライン v2 認証が必要です。
+
+### パッケージのアップグレード方法は？
+
+```bash
+npm install facebetter@2.0.0
+```
+
+## 効果
+
+### 美顔が弱すぎる、または強すぎる
+
+強度範囲は `[0.0, 1.0]` です。リシェイプ範囲は `[-1.0, 1.0]`（`0` はオフ）です。静止画では `FrameType.Image` を試せます。スタイル列挙: [パラメータ列挙](/ja/intro/makeup)。
+
+### フィルター / ステッカーが効かない
+
+`.fbd` の**パスまたはバイト**を `setFilter` / `setSticker` に直接渡します。空文字列はエラーになります。オフにするには `clearFilter()` / `clearSticker()` を使います。
+
+### バーチャル背景が黒い / 変わらない
+
+`setVirtualBackgroundBlur(level)` または `setVirtualBackground(path|Uint8Array)` を呼び出してください。options オブジェクトは渡しません。ぼかしに `0` を渡すと効果はオフになります。グリーンスクリーンでは `setChromaKey` はマスクのみを設定するので、ぼかしまたは背景画像も必要です。
+
+### 出力が真っ黒
+
+動画にまだフレームがない（`videoWidth === 0`）、または Canvas コンテキストを取得できない場合があります。`processImage` は `engine.initialized` のあとでのみ呼び出してください。
+
+## パフォーマンス
+
+### プレビューがカクつく
+
+`FrameType.Video` を使い、キャプチャ解像度を制限し（例: 720p）、キーポイントコールバックをオフにし、ループは `requestAnimationFrame` 内に置きます。`engine.getStats().avgProcessTimeMs` を確認できます。
+
+### SPA でメモリが増え続ける
+
+ページを離れるときに `engine.destroy()` を呼び出します。ルート切り替えでエンジンインスタンスをリークしないでください。
+
+## 互換性
+
+Chrome 57+、Firefox 52+、Safari 11+、Edge 16+ に対応します。モバイルではキャプチャ解像度とパラメータ強度を下げることを推奨します。
+
+## React の例
+
+```jsx
+import { useEffect, useRef } from 'react';
+import { BeautyEffectEngine, EngineConfig } from 'facebetter';
+
+function BeautyPreview() {
+  const engineRef = useRef(null);
+
+  useEffect(() => {
+    let engine;
+    (async () => {
+      const licenseToken = await fetch('/api/facebetter/auth', { method: 'POST' }).then((r) => r.text());
+      engine = new BeautyEffectEngine(new EngineConfig({ licenseToken }));
+      engineRef.current = engine;
+      await engine.init();
+    })().catch(console.error);
+    return () => {
+      engine?.destroy();
+      engineRef.current = null;
+    };
+  }, []);
+
+  return <canvas />;
+}
+```
+
+完全な例は SDK リポジトリの `demo/web/react` にあります。
+
+## 関連ドキュメント
+
+- [クイックスタート](/ja/web/quick-start)
+- [美顔の実装](/ja/web/implement-beauty)
+- [エラー処理](/ja/web/error-handling)
+- [ベストプラクティス](/ja/web/best-practices)
+- [API リファレンス](/ja/web/api-reference)

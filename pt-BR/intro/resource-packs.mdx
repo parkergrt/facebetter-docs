@@ -1,0 +1,44 @@
+---
+title: "Pacotes de recursos opcionais"
+description: "Baixe pacotes extras de capacidade, como resource_3d.fbd, e registre-os com AddResourcePack"
+---
+
+O SDK inclui um pacote de runtime principal `resource.fbd` (~7 MB) para beleza 2D, maquiagem, filtros e adesivos 2D.
+
+Adesivos 3D precisam de um pacote **opcional**, `resource_3d.fbd` (~9 MB). Ele **não** está dentro do SDK iOS / Android / Web. Baixe-o você mesmo na integração e registre-o com `AddResourcePack` / `addResourcePack` **antes** de `Set3DSticker` / `set3DSticker`.
+
+Baixe `resource_3d.fbd` no [GitHub Release](https://github.com/pixpark/facebetter-sdk/releases) (também espelhado na [página de downloads](https://facebetter.net/pt-BR/download)).
+
+## Como funciona a busca
+
+O mecanismo pesquisa o pacote principal mais todos os pacotes extras que você adicionar. Os arquivos são indexados pelo **caminho relativo interno** (por exemplo `tddfa/models/mb05_120x120.mnn`). Mantenha os caminhos internos únicos entre os pacotes — dê a cada capacidade o próprio prefixo (`tddfa/…`, depois `body/…`). Se dois pacotes contiverem o mesmo caminho, o **último** `AddResourcePack` prevalece.
+
+Registre cada `.fbd` com uma chamada separada. **Não** concatene os arquivos dos pacotes.
+
+## Desktop (Windows / Linux / C++)
+
+Coloque `resource_3d.fbd` ao lado de `resource.fbd`. O mecanismo carrega esse arquivo irmão automaticamente. Você ainda pode chamar `AddResourcePack` explicitamente.
+
+```cpp
+engine->AddResourcePack("resource/resource_3d.fbd");
+engine->Set3DSticker("assets/stickers/3d/oculos.fbd");
+engine->Clear3DSticker();
+```
+
+## iOS / macOS / Android / Flutter / Web
+
+Os SDKs mobile e Web **não** incorporam `resource_3d.fbd`. Copie ou baixe o arquivo **no seu** app e, em seguida, chame `addResourcePack` (caminho ou bytes).
+
+```javascript
+const pack = new Uint8Array(
+  await (await fetch('/resource_3d.fbd')).arrayBuffer()
+);
+engine.addResourcePack(pack);
+engine.set3DSticker('/stickers/3d/oculos.fbd');
+```
+
+Adesivos 2D ainda usam apenas `setSticker`. `addResourcePack` é para modelos de capacidade, não para assets de adesivo.
+
+<Tip>
+Chame `addResourcePack` uma vez por pacote extra depois que o mecanismo for criado (Web: após `init()`). Adesivos 3D posteriores reutilizam o mesmo pacote.
+</Tip>

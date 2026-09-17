@@ -1,0 +1,58 @@
+---
+title: "Início rápido"
+description: "Execute o aplicativo de exemplo Android"
+---
+
+## Requisitos
+
+- **Android**: 7.0 (API 24) ou superior
+- **Linguagem**: Java
+- **ABIs**: `armeabi-v7a`, `arm64-v8a`
+- **SDK**: Facebetter **2.0.0** (`net.pixpark:facebetter:2.0.0`)
+
+## Obter o exemplo
+
+Clone o [repositório GitHub](https://github.com/pixpark/facebetter-sdk) e abra `demo/android` no Android Studio.
+
+```bash
+git clone https://github.com/pixpark/facebetter-sdk.git
+```
+
+## Vincular o nome do pacote e as credenciais
+
+### Vincular o nome do pacote do aplicativo
+
+Siga [Assinatura](/pt-BR/intro/enable-service#bind-application-information) e vincule o **nome do pacote do aplicativo** Android no Console, por exemplo `com.example.app`.
+
+### Criar o mecanismo
+
+Siga [Assinatura](/pt-BR/intro/enable-service#get-appid-and-appkey) para copiar `appId` / `appKey`, ou use um `licenseToken`. Abra a Activity da câmera do demo e defina `EngineConfig` antes de `new BeautyEffectEngine(...)`.
+
+**Online** (`appId` + `appKey` → `/facebetter/v2/auth`):
+
+```java
+BeautyEffectEngine.EngineConfig config = new BeautyEffectEngine.EngineConfig();
+config.appId = "your appId";
+config.appKey = "your appKey";
+mBeautyEngine = new BeautyEffectEngine(this, config);
+```
+
+**Token** (string do token de licença, JSON `{token}` ou conteúdo de `.lic` offline). Se `licenseToken` não estiver vazio, ele prevalece e o SDK não chama a rede com `appId` / `appKey`:
+
+```java
+BeautyEffectEngine.EngineConfig config = new BeautyEffectEngine.EngineConfig();
+config.licenseToken = "/* license token, {token} JSON, or .lic contents */";
+mBeautyEngine = new BeautyEffectEngine(this, config);
+```
+
+<Tip>
+Modos de autenticação e arquivos `.lic` offline: [Autenticação e licença](/pt-BR/intro/license).
+</Tip>
+
+## Executar
+
+Sincronize o Gradle no Android Studio, escolha um dispositivo ou emulador e execute.
+
+<Frame>
+  <img src="/images/android-1.png" alt="Projeto Android" />
+</Frame>

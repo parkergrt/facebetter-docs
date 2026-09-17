@@ -1,0 +1,307 @@
+---
+title: "뷰티 효과 적용"
+description: "Facebetter SDK 2.0으로 iOS 뷰티를 구현합니다"
+---
+
+<Note>
+이 페이지는 SDK **2.0.0**에 해당합니다. 인증: [인증 및 라이선스](/ko/intro/license). 메이크업 / 리셰이프 열거형: [파라미터 열거형](/ko/intro/makeup).
+</Note>
+
+## SDK 의존성 추가
+
+### 방법 A: CocoaPods (권장)
+
+```ruby
+target 'YourTargetName' do
+  pod 'Facebetter', '2.0.0'
+end
+```
+
+```bash
+pod install
+```
+
+<Warning>
+**Xcode 15+ 컴파일 오류**
+
+**Xcode 15** 이상을 사용하면 `Sandbox: rsync.samba deny(1)` 오류가 발생할 수 있습니다. 원인은 **User Script Sandboxing**입니다.
+
+**해결 방법:**
+1. Xcode에서 **Project**를 선택합니다.
+2. **Build Settings**를 엽니다.
+3. `ENABLE_USER_SCRIPT_SANDBOXING`을 검색합니다.
+4. 값을 `Yes`에서 **`No`**로 변경합니다.
+</Warning>
+
+### 방법 B: 수동 프레임워크
+
+[다운로드](https://facebetter.net/ko/download)에서 SDK를 받아 `Facebetter.framework`를 프로젝트에 복사하고, **Embed & Sign**으로 [동적 라이브러리를 임베드](https://help.apple.com/xcode/mac/current/#/dev51a648b07)합니다.
+
+<Frame>
+  <img src="/images/ios-3.png" alt="Xcode Link Library" />
+</Frame>
+
+### 권한
+
+앱이 카메라에서 캡처할 때만 `Info.plist`에 카메라 권한을 추가하세요.
+
+```xml
+<key>NSCameraUsageDescription</key>
+<string>Camera permission required for beauty photography</string>
+```
+
+## 가져오기
+
+```objc
+#import <Facebetter/FBBeautyEffectEngine.h>
+```
+
+## 로그 구성
+
+로깅은 기본적으로 꺼져 있습니다. 엔진을 만들기 **전에** `setLogConfig:`를 호출하세요.
+
+```objc
+FBLogConfig *logConfig = [[FBLogConfig alloc] init];
+logConfig.level = FBLogLevel_Info;
+logConfig.consoleEnabled = YES;
+logConfig.fileEnabled = YES;
+logConfig.fileName = @"/path/to/facebetter.log";
+[FBBeautyEffectEngine setLogConfig:logConfig];
+```
+
+## 엔진 생성
+
+iOS Bundle ID를 바인딩한 뒤 `licenseToken` 또는 `appId` + `appKey`를 전달합니다. [AppID 및 AppKey 받기](/ko/intro/enable-service#get-appid-and-appkey)와 [인증 및 라이선스](/ko/intro/license)를 참고하세요.
+
+**우선순위:** `licenseToken`이 비어 있지 않으면(라이선스 토큰 문자열, `{token}` JSON 또는 `.lic` 내용) SDK가 로컬에서 검증합니다. 그렇지 않으면 `appId` + `appKey`로 `/facebetter/v2/auth`를 사용합니다.
+
+```objc
+FBEngineConfig *engineConfig = [[FBEngineConfig alloc] init];
+engineConfig.appId = @"your appId";
+engineConfig.appKey = @"your appKey";
+// engineConfig.licenseToken = @"your license token";
+engineConfig.externalContext = NO;  // YES only when you own the GL context
+
+self.beautyEffectEngine = [FBBeautyEffectEngine createEngineWithConfig:engineConfig];
+if (self.beautyEffectEngine == nil) {
+  NSLog(@"Failed to create beauty engine");
+  return;
+}
+```
+
+`createEngineWithConfig:`는 **인스턴스**를 반환하며 싱글톤이 아닙니다.
+
+## 피부 뷰티
+
+강도는 보통 `[0.0, 1.0]`입니다. 스타일 열거형: [파라미터 열거형](/ko/intro/makeup).
+
+```objc
+[self.beautyEffectEngine setSmoothing:0.5f];
+[self.beautyEffectEngine setSmoothingStyle:FBSmoothingStyle_Natural];
+[self.beautyEffectEngine setWhitening:0.3f];
+[self.beautyEffectEngine setWhiteningStyle:FBWhiteningStyle_ColdWhite];
+[self.beautyEffectEngine setSharpening:0.2f];
+[self.beautyEffectEngine setRosiness:0.15f];
+```
+
+### 피부만
+
+활성화하면 스무딩 / 화이트닝 / 로지니스가 감지된 피부에만 적용됩니다.
+
+```objc
+[self.beautyEffectEngine setBeautySkinOnly:YES];
+```
+
+## 얼굴 리셰이프
+
+`setReshape:intensity:` 범위는 **`[-1.0, 1.0]`**입니다. `0`은 꺼짐입니다. 파라미터: `FBReshape_FaceThin` … `FBReshape_BrowThickness`(`0`–`25`). 의미: [파라미터 열거형](/ko/intro/makeup).
+
+```objc
+[self.beautyEffectEngine setReshape:FBReshape_FaceThin intensity:0.4f];
+[self.beautyEffectEngine setReshape:FBReshape_EyeSize intensity:0.2f];
+```
+
+## 메이크업
+
+강도, 형태, 색상은 별도 호출입니다. 전체 프리셋: [파라미터 열거형](/ko/intro/makeup).
+
+```objc
+[self.beautyEffectEngine setLipstick:0.5f];
+[self.beautyEffectEngine setLipstickColor:FBLipstickColor_Rouge];
+
+[self.beautyEffectEngine setBlush:0.4f];
+[self.beautyEffectEngine setBlushStyle:FBBlushStyle_SunKissed];
+[self.beautyEffectEngine setBlushColor:FBBlushColor_CoralPink];
+
+[self.beautyEffectEngine setContour:0.35f];
+[self.beautyEffectEngine setContourStyle:FBContourStyle_Natural];
+
+[self.beautyEffectEngine setEyeShadow:0.4f];
+[self.beautyEffectEngine setEyeShadowStyle:FBEyeShadowStyle_Soft];
+[self.beautyEffectEngine setEyeShadowColor:FBEyeShadowColor_Plum];
+
+[self.beautyEffectEngine setEyeLiner:0.4f];
+[self.beautyEffectEngine setEyeLinerStyle:FBEyeLinerStyle_Classic];
+[self.beautyEffectEngine setEyeLinerColor:FBEyeLinerColor_Coffee];
+
+[self.beautyEffectEngine setEyebrow:0.4f];
+[self.beautyEffectEngine setEyebrowStyle:FBEyebrowStyle_Natural];
+[self.beautyEffectEngine setEyebrowColor:FBEyebrowColor_DarkBrown];
+
+[self.beautyEffectEngine setEyelash:0.4f];
+[self.beautyEffectEngine setEyelashStyle:FBEyelashStyle_Classic];
+[self.beautyEffectEngine setEyelashColor:FBEyelashColor_Black];
+
+[self.beautyEffectEngine setPupil:0.4f];
+[self.beautyEffectEngine setPupilColor:FBPupilColor_Hazel];
+```
+
+## 가상 배경
+
+인물 세그멘테이션이 기본 마스크입니다. 블러 레벨은 `[0.0, 1.0]`이며 `0`은 블러를 지웁니다. 이미지 경로는 비어 있지 않은 png/jpg여야 합니다.
+
+```objc
+[self.beautyEffectEngine setVirtualBackgroundBlur:0.6f];
+[self.beautyEffectEngine setVirtualBackground:imagePath];
+[self.beautyEffectEngine setVirtualBackgroundWithData:pngOrJpegData];
+[self.beautyEffectEngine clearVirtualBackground];
+```
+
+### 크로마키
+
+크로마키는 마스크만 바꿉니다. 채우기는 여전히 블러 또는 대체 이미지입니다.
+
+```objc
+[self.beautyEffectEngine setChromaKey:FBChromaKeyColor_Green];
+[self.beautyEffectEngine setChromaKeySimilarity:0.4f];
+[self.beautyEffectEngine setChromaKeySmoothness:0.3f];
+[self.beautyEffectEngine setChromaKeyDesaturation:0.2f];
+[self.beautyEffectEngine clearChromaKey];  // back to portrait segmentation
+```
+
+## 필터와 스티커
+
+`.fbd` 파일 경로 또는 메모리 바이트를 전달합니다. 변경은 다음 `processImage:`에서 적용됩니다.
+
+```objc
+NSString *filterPath = [[NSBundle mainBundle] pathForResource:@"chuxin" ofType:@"fbd"];
+[self.beautyEffectEngine setFilter:filterPath];
+[self.beautyEffectEngine setFilterIntensity:0.8f];
+[self.beautyEffectEngine clearFilter];
+
+NSData *filterData = [NSData dataWithContentsOfFile:filterPath];
+[self.beautyEffectEngine setFilterWithData:filterData];
+
+NSString *stickerPath = [[NSBundle mainBundle] pathForResource:@"cherry" ofType:@"fbd"];
+[self.beautyEffectEngine setSticker:stickerPath];
+[self.beautyEffectEngine clearSticker];
+[self.beautyEffectEngine setStickerWithData:stickerData];
+```
+
+3D 스티커는 선택 `resource_3d.fbd` 팩이 필요합니다(프레임워크에 없음). [선택 리소스 팩](/ko/intro/resource-packs)을 참고하세요.
+
+```objc
+NSString *packPath = [[NSBundle mainBundle] pathForResource:@"resource_3d" ofType:@"fbd"];
+[self.beautyEffectEngine addResourcePack:packPath];
+NSString *sticker3dPath = [[NSBundle mainBundle] pathForResource:@"oculos" ofType:@"fbd"];
+[self.beautyEffectEngine set3DSticker:sticker3dPath];
+[self.beautyEffectEngine clear3DSticker];
+```
+
+## 콜백과 통계
+
+```objc
+FBEngineCallbacks *callbacks = [[FBEngineCallbacks alloc] init];
+__weak typeof(self) weakSelf = self;
+callbacks.onEngineEvent = ^(FBEngineEventCode code, NSString * _Nullable message) {
+  // 0 license OK, 1 license fail, 100 init complete, 101 init fail
+  NSLog(@"engine event %ld %@", (long)code, message);
+};
+callbacks.onFaceLandmarks = ^(NSArray<FBFaceDetectionResult *> * _Nullable results) {
+  for (FBFaceDetectionResult *face in results) {
+    NSLog(@"face %d keypoints %lu", face.faceId, (unsigned long)face.keyPoints.count);
+  }
+};
+[self.beautyEffectEngine setCallbacks:callbacks];
+
+FBEngineStats *stats = [self.beautyEffectEngine getStats];
+NSLog(@"fps=%.1f avg=%.2fms session=%.1fs",
+      stats.fps, stats.avgProcessTimeMs, stats.sessionTimeS);
+```
+
+## 이미지 처리
+
+`FBImageFrame`은 I420, NV12, NV21, RGB, RGBA, BGR, BGRA, 파일, 텍스처, `UIImage`를 지원합니다.
+
+```objc
+FBImageFrame *fromFile = [FBImageFrame createWithFile:@"/path/photo.png"];
+FBImageFrame *fromRGBA = [FBImageFrame createWithRGBA:data width:width height:height stride:stride];
+FBImageFrame *fromUIImage = [FBImageFrame createWithUIImage:uiImage];
+```
+
+`type`을 설정한 뒤 `processImage:`를 호출합니다(추가 모드 인자는 없음). 출력은 입력 형식을 유지합니다.
+
+```objc
+input.type = FBFrameTypeVideo;  // or FBFrameTypeImage
+FBImageFrame *output = [self.beautyEffectEngine processImage:input];
+```
+
+<Tip>
+`FBFrameTypeVideo`는 라이브 스트림용이고, `FBFrameTypeImage`는 정지 이미지용입니다.
+</Tip>
+
+회전 / 미러 / 변환 / 저장:
+
+```objc
+[input rotate:FBImageRotation90];
+[input setMirror:@"horizontal"];  // applied during processImage:
+FBImageFrame *rgba = [output convert:FBImageFormatRGBA];
+const uint8_t *bytes = [rgba data];
+[output toFile:@"/path/out.jpg" quality:90];
+```
+
+YUV 평면: `dataY`, `dataU`, `dataV`, `dataUV` 및 `strideY` / `strideU` / `strideV` / `strideUV`.
+
+## 외부 텍스처 {#external-texture}
+
+<Warning>
+OpenGL ES 스레드에서 엔진을 만들고 `externalContext = YES`를 설정하세요. 입력과 출력 텍스처는 해당 컨텍스트를 공유해야 합니다.
+</Warning>
+
+```objc
+FBEngineConfig *config = [[FBEngineConfig alloc] init];
+config.appId = @"your appId";
+config.appKey = @"your appKey";
+config.externalContext = YES;
+self.engine = [FBBeautyEffectEngine createEngineWithConfig:config];
+
+FBImageFrame *inputFrame = [FBImageFrame createWithTexture:textureId
+                                                     width:width
+                                                    height:height
+                                                    stride:width * 4];
+inputFrame.type = FBFrameTypeVideo;
+FBImageFrame *outputFrame = [self.engine processImage:inputFrame];
+GLuint outputTexture = [outputFrame texture];
+```
+
+권장 텍스처 파라미터: `GL_LINEAR`, `GL_CLAMP_TO_EDGE`. 엔진은 입력 텍스처를 삭제하지 않습니다. 출력 텍스처는 SDK가 소유합니다.
+
+TRTC / Agora / LiveKit: [서드파티 연동](/ko/ios/third-party-integration).
+
+## 라이프사이클
+
+세션 동안 strong 참조를 유지하세요. 뷰 컨트롤러가 사라지면 엔진을 nil로 둡니다. 화면을 떠날 때 캡처 세션을 일시 중지하여 `processImage:` 호출을 멈추세요.
+
+```objc
+- (void)dealloc {
+  self.beautyEffectEngine = nil;
+}
+```
+
+## 관련 문서
+
+- [서드파티 연동](/ko/ios/third-party-integration)
+- [권장 사항](/ko/ios/best-practices)
+- [오류 처리](/ko/ios/error-handling)
+- [FAQ](/ko/ios/faq)
+- [API 레퍼런스](/ko/ios/api-reference)

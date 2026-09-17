@@ -1,0 +1,166 @@
+---
+title: "서드파티 연동"
+description: "TRTC, Agora, LiveKit 및 기타 브라우저 실시간 파이프라인에 Facebetter 뷰티를 연결합니다"
+---
+
+SDK **2.0.0**. Web SDK에는 네이티브 스타일의 통합 “GL 텍스처 전처리 콜백”이 **없습니다**. 대신 이 파이프라인을 사용하세요.
+
+**캡처 → `processImage` → 캔버스에 그리기 → `captureStream` / `MediaStreamTrack` 가져오기 → 서드파티 SDK에 전달(`replaceTrack` 또는 커스텀 비디오 트랙).**
+
+인증은 `licenseToken`만 사용합니다. `init()` 전에 서버에서 받으세요. 프론트엔드 JS에 `appKey`를 넣지 **마세요**. [인증 및 라이선스](/ko/intro/license)와 [뷰티 효과 적용](/ko/web/implement-beauty)을 참고하세요.
+
+```
+getUserMedia / vendor preview track
+       ↓
+HTMLVideoElement
+       ↓
+BeautyEffectEngine.processImage(...)
+       ↓
+canvas + putImageData
+       ↓
+canvas.captureStream() → MediaStreamTrack
+       ↓
+TRTC / Agora / LiveKit publish or replaceTrack
+```
+
+## 권장 파이프라인 (벤더 무관)
+
+```javascript
+import {
+  BeautyEffectEngine,
+  EngineConfig,
+  FrameType,
+  MirrorMode,
+} from 'facebetter';
+
+const engine = new BeautyEffectEngine(new EngineConfig({
+  licenseToken: await fetch('/api/facebetter/auth', { method: 'POST' }).then((r) => r.text()),
+}));
+await engine.setLogConfig({ consoleEnabled: true, level: 2 });
+await engine.init();
+
+const video = document.createElement('video');
+video.playsInline = true;
+video.muted = true;
+video.srcObject = await navigator.mediaDevices.getUserMedia({
+  video: { width: 1280, height: 720 },
+  audio: false,
+});
+await video.play();
+
+const canvas = document.createElement('canvas');
+const ctx = canvas.getContext('2d');
+
+function loop() {
+  if (engine.initialized && video.readyState >= 2 && video.videoWidth > 0) {
+    const result = engine.processImage(
+      video,
+      video.videoWidth,
+      video.videoHeight,
+      FrameType.Video,
+      MirrorMode.Horizontal, // front camera as needed
+    );
+    if (result) {
+      if (canvas.width !== result.width) canvas.width = result.width;
+      if (canvas.height !== result.height) canvas.height = result.height;
+      ctx.putImageData(result, 0, 0);
+    }
+  }
+  requestAnimationFrame(loop);
+}
+loop();
+
+// Beauty video track — pass to any RTC / meeting SDK
+const beautyStream = canvas.captureStream(30);
+const beautyTrack = beautyStream.getVideoTracks()[0];
+```
+
+<Tip>
+`processImage`를 권장합니다. `processTexture`는 기존 GPU 텍스처 핸들용이며 **미러를 적용하지 않습니다**. 라이브 미리보기 / 퍼블리시에는 위의 캔버스 파이프라인을 사용하세요.
+</Tip>
+
+페이지 언로드 시: `beautyTrack.stop()`, `requestAnimationFrame` 취소, `engine.destroy()`.
+
+---
+
+## 서드파티 SDK에 연결
+
+벤더 Web API는 버전에 따라 바뀝니다. 아래는 **`beautyTrack`을 넣는** 방법만입니다. 입장, 토큰, 기기 선택은 해당 문서를 따르세요.
+
+### TRTC (Tencent Web)
+
+두 가지 일반적인 패턴입니다(`trtc-js-sdk` / TUI 버전 확인):
+
+1. **뷰티 트랙에서 로컬 스트림 생성**(커스텀 비디오 소스 / `MediaStreamTrack` 전달)  
+2. **카메라 스트림을 먼저 만든 뒤 `replaceTrack(beautyTrack)`**
+
+```javascript
+// Sketch: replace the video track on a local stream
+// const localStream = TRTC.createStream({ ... });
+// await localStream.initialize();
+// await localStream.replaceTrack(beautyTrack);
+// await client.publish(localStream);
+```
+
+Web에 네이티브 스타일 `onProcessVideoFrame(textureId)`가 있다고 가정하지 마세요.
+
+### Agora Web
+
+**커스텀 비디오 트랙**을 사용하거나 기존 트랙에서 `replaceTrack`을 사용하세요.
+
+```javascript
+import AgoraRTC from 'agora-rtc-sdk-ng';
+
+// A: custom video track from MediaStreamTrack (API name per agora-rtc-sdk-ng)
+const customVideoTrack = AgoraRTC.createCustomVideoTrack({
+  mediaStreamTrack: beautyTrack,
+});
+await client.publish([customVideoTrack /*, microphoneTrack */]);
+
+// B: already have a camera track
+// await cameraTrack.replaceTrack(beautyTrack);
+```
+
+### LiveKit Web
+
+처리된 트랙을 LiveKit 로컬 비디오 트랙 팩토리에 넣거나, 게시된 트랙에서 교체하세요.
+
+```javascript
+import { Room, LocalVideoTrack, createLocalVideoTrack } from 'livekit-client';
+
+// Sketch: create from MediaStreamTrack and publish (factory name per livekit-client)
+const track = LocalVideoTrack.createFromMediaStreamTrack(beautyTrack);
+await room.localParticipant.publishTrack(track);
+
+// Or on an existing LocalVideoTrack:
+// await localVideoTrack.replaceTrack(beautyTrack);
+```
+
+---
+
+## 참고
+
+| 항목 | 세부 사항 |
+| --- | --- |
+| 인증 | 서버에서 `licenseToken`을 받으세요 |
+| 성능 | 캔버스 하나를 재사용하고, `captureStream` FPS를 제한하고, 매 프레임 새 캔버스를 할당하지 마세요 |
+| 오디오 | 예제는 비디오만입니다. 마이크는 별도 `getUserMedia({ audio: true })`에서 가져와 게시하세요 |
+| 미러 | 미리보기는 `processImage`의 `MirrorMode`를 사용할 수 있습니다. 인코드가 일치해야 하는지는 결정하세요 |
+| 벤더 변경 | `replaceTrack` / `createCustomVideoTrack` 서명은 바뀝니다. 현재 Web SDK를 따르세요 |
+
+## 문제 해결
+
+| 증상 | 확인 |
+| --- | --- |
+| 블랙 프레임 | `video.videoWidth === 0`, `await engine.init()` 누락, 캔버스 크기 미갱신 |
+| 원격에 뷰티 없음 | 원본 카메라 트랙이 아니라 **beautyTrack**을 게시했는지 |
+| 인증 실패 | 프록시가 인증 본문을 그대로 반환하는지, 대시보드에 도메인이 바인딩되었는지 |
+| 끊김 | 해상도 / FPS를 낮추세요. `processImage` 루프가 하나인지 확인하세요 |
+
+## 관련 문서
+
+- [뷰티 효과 적용](/ko/web/implement-beauty)
+- [권장 사항](/ko/web/best-practices)
+- [오류 처리](/ko/web/error-handling)
+- [인증 및 라이선스](/ko/intro/license)
+- [API 레퍼런스](/ko/web/api-reference)

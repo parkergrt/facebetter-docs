@@ -1,0 +1,156 @@
+---
+title: "エラー処理"
+description: "Facebetter SDK 2.0 のエラーコードと Linux の切り分け"
+---
+
+<Note>
+SDK **2.0.0**。認証: [認証とライセンス](/ja/intro/license)。
+</Note>
+
+## 戻り値
+
+| コード | 意味 |
+| --- | --- |
+| `0` | 成功 |
+| `-1` | 引数不正 |
+| `-2` | 未初期化 |
+| `-3` | ライセンス |
+| `-4` | 非対応 |
+| `-5` | I/O |
+| `-6` | 空きスロットなし（バックプレッシャー） |
+| `-7` | 処理失敗 |
+| `-8` | メモリ不足 |
+
+`Create()` 失敗は `nullptr` を返します。`ProcessImage` も空ポインタを返すことがあります。
+
+```cpp
+int ret = engine->SetSmoothing(0.5f);
+if (ret != 0) {
+    std::cerr << "SetSmoothing failed: " << ret << std::endl;
+}
+```
+
+## エンジンイベント
+
+| コード | 意味 |
+| --- | --- |
+| `0` | 認証成功 |
+| `1` | 認証失敗 |
+| `100` | 初期化完了 |
+| `101` | 初期化失敗 |
+
+```cpp
+EngineCallbacks cbs;
+cbs.on_engine_event = [](int code, const std::string& message) {
+    if (code == 1 || code == 101) {
+        std::cerr << "engine event " << code << ": " << message << std::endl;
+    }
+};
+engine->SetCallbacks(cbs);
+```
+
+---
+
+## よくある失敗
+
+### 1. `Create` が `nullptr` を返す
+
+- `resource_path` が **`resource.fbd` ファイル**ではない
+- `license_token` または `app_id` + `app_key` が無効
+- `/facebetter/v2/auth` に到達できない
+- `libfacebetter.so` のバージョンが一致しない
+
+```cpp
+LogConfig log_cfg;
+log_cfg.console_enabled = true;
+log_cfg.level = LogLevel::Debug;
+BeautyEffectEngine::SetLogConfig(log_cfg);
+
+cfg.resource_path =
+    (std::filesystem::current_path() / "resource" / "resource.fbd").string();
+auto engine = BeautyEffectEngine::Create(cfg);
+```
+
+---
+
+### 2. `libfacebetter.so` が見つからない
+
+```
+error while loading shared libraries: libfacebetter.so: cannot open shared object file
+```
+
+```bash
+LD_LIBRARY_PATH=/path/to/sdk/lib ./your_app
+cp /path/to/sdk/lib/libfacebetter.so ./
+echo "/path/to/sdk/lib" | sudo tee /etc/ld.so.conf.d/facebetter.conf
+sudo ldconfig
+```
+
+リンク時に `RPATH` を設定することもできます（`-Wl,-rpath,/path/to/sdk/lib`）。
+
+---
+
+### 3. `ProcessImage` が `nullptr` を返す
+
+```cpp
+auto input = ImageFrame::CreateWithFile("input.jpg");
+if (!input || !input->Data()) return;
+input->type = FrameType::Image;
+auto output = engine->ProcessImage(input);
+if (!output || !output->Data()) {
+    std::cerr << "ProcessImage failed." << std::endl;
+}
+```
+
+---
+
+### 4. 効果が変わって見えない
+
+2.0 には `SetBeautyTypeEnabled` はありません。強度は `> 0` が必要です。リシェイプ / メイクには顔検出が必要です。
+
+```cpp
+engine->SetSmoothing(0.5f);
+engine->SetReshape(Reshape::FaceThin, 0.3f);
+input->type = FrameType::Video;
+```
+
+---
+
+### 5. GLFW がディスプレイを開けない
+
+```
+GLFW: X11: Display variable not set
+```
+
+```bash
+echo $DISPLAY
+export DISPLAY=:0
+export WAYLAND_DISPLAY=wayland-0
+```
+
+SSH には X11 転送（`ssh -X`）またはローカルコンポジタが必要です。
+
+---
+
+### 6. OpenGL 初期化失敗
+
+```bash
+# Ubuntu / Debian
+sudo apt install libgl1-mesa-dev libglu1-mesa-dev mesa-utils
+glxinfo | grep "OpenGL version"
+```
+
+OpenGL 3.0+ が必要です。ヘッドレスサーバーでは OSMesa（`libosmesa6-dev`）を使い、オフスクリーンコンテキストに `external_context` を設定できます。
+
+---
+
+## デバッグログ
+
+```cpp
+LogConfig log_cfg;
+log_cfg.console_enabled = true;
+log_cfg.file_enabled = true;
+log_cfg.level = LogLevel::Debug;
+log_cfg.file_name = "facebetter.log";
+BeautyEffectEngine::SetLogConfig(log_cfg);
+```

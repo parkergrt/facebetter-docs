@@ -1,0 +1,185 @@
+---
+title: "認証とライセンス"
+description: "Facebetter SDK 2.0 のオンライン認証とオフラインライセンス"
+---
+
+SDK **2.0** は **ライセンストークン** で認証します。ネイティブプラットフォームでは、オンライン認証に `appId` + `appKey` も使えます。Web では、フロントエンドの JavaScript に `appKey` を埋め込まないでください。
+
+<Tip>
+先に [サブスクリプション](/ja/intro/enable-service) を完了してください。ダッシュボードでアプリ識別子（Bundle ID / パッケージ名 / ドメイン）をバインドし、プランを有効にします。
+</Tip>
+
+## ネイティブ（Android / iOS / macOS / Windows / Linux / Flutter）
+
+エンジン作成時に、次のいずれか一方を渡します。
+
+| モード | 設定フィールド | 使うタイミング |
+|------|---------------|-------------|
+| オンライン | `appId` + `appKey` | デバイスが `/facebetter/v2/auth` に到達できる場合 |
+| トークン | `licenseToken` | ライセンストークン文字列、`{token}` JSON、またはネイティブのオフライン `.lic` |
+
+**優先順位**: `licenseToken` が空でない場合、SDK はそのトークンをローカルで検証し、`appId` / `appKey` でネットワーク呼び出しは**行いません**。
+
+<Tip>
+推奨（Web と同じ考え方）: `appId` / `appKey` は**自社サーバー**に置き、短命の `licenseToken` を発行してアプリへ渡します。署名リクエストの `platform` はクライアントに合わせてください（`ios` / `android` / `macos` / `windows` / `linux`）。下記の [Web → サーバープロキシ](#server-proxy) を参照してください。直接の `appId` + `appKey` とオフライン `.lic` も引き続き利用できます。
+</Tip>
+
+**iOS / macOS**
+
+```objc
+FBEngineConfig *config = [[FBEngineConfig alloc] init];
+config.licenseToken = @"/* license token, {token} JSON, or .lic contents */";
+self.beautyEffectEngine = [FBBeautyEffectEngine createEngineWithConfig:config];
+```
+
+**Android**
+
+```java
+BeautyEffectEngine.EngineConfig config = new BeautyEffectEngine.EngineConfig();
+config.licenseToken = "/* license token, {token} JSON, or .lic contents */";
+mBeautyEngine = new BeautyEffectEngine(this, config);
+```
+
+**C++（Windows / Linux）**
+
+```cpp
+facebetter::EngineConfig config;
+config.license_token = "/* license token, {token} JSON, or .lic contents */";
+config.resource_path = "/path/to/resource.fbd";
+auto engine = facebetter::BeautyEffectEngine::Create(config);
+```
+
+**Flutter**
+
+```dart
+final engine = await FBEngine.create(
+  FBEngineConfig(licenseToken: '/* license token, {token} JSON, or .lic contents */'),
+);
+```
+
+ネイティブでのオンライン代替:
+
+```java
+config.appId = "your appId";
+config.appKey = "your appKey";
+```
+
+オフライン `.lic` はソースにハードコードせず、アプリアセットとして同梱し、実行時に読み込むことを推奨します。入手方法は下記の [オフラインライセンス](#offline-license) を参照してください。
+
+## Web
+
+ブラウザ SDK には `appId` / `appKey` フィールドは**ありません**。エンジンは `licenseToken` のみを受け取り、ローカルで検証します。`init()` の**前**に、**自社サーバー**からトークンを取得してください。
+
+### 推奨フロー
+
+1. ダッシュボードでアプリを作成し、Web **ドメイン**をバインドして `appId` / `appKey` をコピーします（[サブスクリプション](/ja/intro/enable-service) を参照）
+2. キーは**自社バックエンド**に保管し、エンドポイント（例: `POST /api/facebetter/auth`）を公開します
+3. バックエンドが `https://facebetter.pixpark.net/facebetter/v2/auth` へ署名付きリクエストを送り、**生のレスポンス本文**をページへ返します
+4. その文字列を `EngineConfig.licenseToken` に渡し、`init()` を呼び出します
+
+公式デモ（`demo/web/react`）も同じパターンです。フロントエンドは `src/fetchLicenseToken.js`、サーバープロキシは `api/facebetter/auth.js` です。
+
+<Warning>
+`appKey` をフロントエンドバンドルに入れないでください。Web はオフライン `.lic` ファイルに**対応していません**。オンライントークンは数分で期限切れになるため、エンジンを再作成する前に新しいトークンを取得してください。
+</Warning>
+
+### フロントエンド
+
+```javascript
+import { BeautyEffectEngine, EngineConfig } from 'facebetter';
+
+// 本文は素のトークン、または token フィールドを含む上流 JSON テキストのいずれか
+const licenseToken = await fetch('/api/facebetter/auth', {
+  method: 'POST',
+}).then((r) => {
+  if (!r.ok) throw new Error(`auth failed: ${r.status}`);
+  return r.text();
+});
+
+const engine = new BeautyEffectEngine(new EngineConfig({ licenseToken }));
+await engine.init();
+```
+
+### サーバープロキシ（Node の例） {#server-proxy}
+
+`FB_APP_ID` / `FB_APP_KEY` を環境変数に保存します。Express / Fastify / サーバーレス関数に次を組み込めます。
+
+```javascript
+import { createHmac, randomBytes } from 'node:crypto';
+
+const AUTH_URL = 'https://facebetter.pixpark.net/facebetter/v2/auth';
+
+app.post('/api/facebetter/auth', async (req, res) => {
+  const appId = process.env.FB_APP_ID;
+  const appKey = process.env.FB_APP_KEY;
+  if (!appId || !appKey) {
+    res.status(500).json({ error: 'FB_APP_ID / FB_APP_KEY not configured' });
+    return;
+  }
+
+  const nonce = randomBytes(16).toString('hex');
+  const timestamp = Math.floor(Date.now() / 1000);
+  const platform = 'web';
+  // Sign string: v2|{app_id}|{timestamp}|{nonce}|{platform}
+  const payload = `v2|${appId}|${timestamp}|${nonce}|${platform}`;
+  const hmac = createHmac('sha256', appKey).update(payload).digest('hex');
+
+  const upstream = await fetch(AUTH_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      app_id: appId,
+      hmac_signature: hmac,
+      timestamp,
+      nonce,
+      platform,
+      user_agent: req.headers['user-agent'] || '',
+    }),
+  });
+
+  // Forward as-is for EngineConfig.licenseToken
+  res.status(upstream.status).send(await upstream.text());
+});
+```
+
+他の言語でも同じ手順です。署名文字列を組み立て → HMAC-SHA256（hex）→ 上流へ POST → body をフロントエンドへ渡します。実行可能な参考実装: [GitHub Demo `api/facebetter/auth.js`](https://github.com/pixpark/facebetter-sdk/blob/main/demo/web/react/api/facebetter/auth.js)。
+
+### 上流リクエストのフィールド
+
+| フィールド | 説明 |
+|------|-------------|
+| `app_id` | ダッシュボードの AppID |
+| `hmac_signature` | `v2\|{app_id}\|{timestamp}\|{nonce}\|web` の HMAC-SHA256（hex エンコード） |
+| `timestamp` | Unix 秒 |
+| `nonce` | ランダム文字列（16 バイト以上の hex を推奨） |
+| `platform` | 常に `web` |
+| `user_agent` | 任意。取得できる場合はブラウザ UA を渡します |
+
+成功時、上流は JSON（`token` フィールドを含む）を返します。レスポンステキストをそのまま転送しても、`token` 文字列だけを取り出しても構いません。SDK はどちらも受け付けます。
+
+## オフラインライセンス（ネイティブ） {#offline-license}
+
+ダッシュボードでは、オフライン `.lic` のセルフサービスダウンロードを**提供していません**。オフラインライセンスが必要な場合は、営業または管理者へ連絡してください。
+
+- メール: [hello@facebetter.net](mailto:hello@facebetter.net)（件名の目安: `[Business Partnership] Offline license`）
+- その他の方法: [お問い合わせ](https://facebetter.net/ja/contact)
+
+ファイルを受け取ったら、**全文**を `licenseToken` / `license_token` に渡します。有効期間は現在のサブスクリプションに一致します。更新やプラン変更後は、新しいファイルを依頼してアプリ内のファイルを置き換えてください。
+
+### 注意事項
+
+- オフラインライセンスは、ダッシュボードで設定したアプリ識別子にバインドされます。不一致だと検証に失敗します。
+- 未期限切れ: 機能はサブスクリプションプランに従います。
+- 期限切れ: エンジンは初期化できますが、機能は **Free** プランにフォールバックします（透かし付き試用、キーポイントコールバックなし）。更新して新しいライセンスを依頼してください。
+- Web はオフラインライセンスを使えません。オンラインの v2 認証パスが必要です。
+
+## エンジンイベント
+
+ライセンスと初期化の結果は `onEngineEvent` / Flutter `engine.events` で購読します。
+
+| コード | 名前 | 意味 |
+| --- | --- | --- |
+| 0 | `LICENSE_VALIDATION_SUCCESS` | トークン / オンライン認証に成功 |
+| 1 | `LICENSE_VALIDATION_FAILED` | 認証失敗（メッセージを参照） |
+| 100 | `INITIALIZATION_COMPLETE` | エンジン準備完了 |
+| 101 | `INITIALIZATION_FAILED` | エンジン初期化失敗 |

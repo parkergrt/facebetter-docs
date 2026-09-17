@@ -1,0 +1,44 @@
+---
+title: "オプションリソースパック"
+description: "resource_3d.fbd などの追加機能パックをダウンロードし、AddResourcePack で登録します"
+---
+
+SDK には、2D 美顔、メイク、フィルター、2D ステッカー向けのコアランタイムパック `resource.fbd`（約 7 MB）が同梱されます。
+
+3D ステッカーには **オプション** パック `resource_3d.fbd`（約 9 MB）が必要です。これは iOS / Android / Web SDK には**含まれません**。統合時に自分でダウンロードし、`Set3DSticker` / `set3DSticker` の**前**に `AddResourcePack` / `addResourcePack` で登録してください。
+
+`resource_3d.fbd` は [GitHub Release](https://github.com/pixpark/facebetter-sdk/releases) からダウンロードできます（[ダウンロードページ](https://facebetter.net/ja/download) にもミラーがあります）。
+
+## 検索の仕組み
+
+エンジンはコアパックと、追加したすべてのパックを検索します。ファイルは**内部の相対パス**（例: `tddfa/models/mb05_120x120.mnn`）で識別されます。パック間で内部パスが重複しないようにし、機能ごとに独自のプレフィックス（`tddfa/…`、将来は `body/…` など）を付けてください。同じパスが複数のパックにある場合は、**最後の** `AddResourcePack` が優先されます。
+
+各 `.fbd` は別々の呼び出しで登録してください。パックファイルを連結しないでください。
+
+## デスクトップ（Windows / Linux / C++）
+
+`resource_3d.fbd` を `resource.fbd` と同じ場所に置きます。エンジンはその隣接ファイルを自動で読み込みます。`AddResourcePack` を明示的に呼ぶこともできます。
+
+```cpp
+engine->AddResourcePack("resource/resource_3d.fbd");
+engine->Set3DSticker("assets/stickers/3d/oculos.fbd");
+engine->Clear3DSticker();
+```
+
+## iOS / macOS / Android / Flutter / Web
+
+モバイルおよび Web SDK は `resource_3d.fbd` を**同梱しません**。**アプリ側**でファイルをコピーまたは取得し、`addResourcePack`（パスまたはバイト）を呼び出してください。
+
+```javascript
+const pack = new Uint8Array(
+  await (await fetch('/resource_3d.fbd')).arrayBuffer()
+);
+engine.addResourcePack(pack);
+engine.set3DSticker('/stickers/3d/oculos.fbd');
+```
+
+2D ステッカーはこれまでどおり `setSticker` のみを使います。`addResourcePack` は機能モデル用であり、ステッカー素材用ではありません。
+
+<Tip>
+追加パックごとに、エンジン作成後（Web では `init()` の後）に `addResourcePack` を 1 回呼び出してください。以降の 3D ステッカーは同じパックを再利用します。
+</Tip>

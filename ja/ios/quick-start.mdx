@@ -1,0 +1,79 @@
+---
+title: "クイックスタート"
+description: "Facebetter SDK 2.0 の iOS サンプルアプリを実行します"
+---
+
+<Note>
+このページは SDK **2.0.0** に対応します。認証: [認証とライセンス](/ja/intro/license)。メイク / リシェイプ列挙: [パラメータ列挙](/ja/intro/makeup)。
+</Note>
+
+## 環境要件
+
+- **iOS バージョン**: `iOS 12.0` 以上
+- **開発言語**: `Objective-C`
+- **アーキテクチャ**: `arm64`
+
+## サンプルソースの取得
+
+[GitHub リポジトリ](https://github.com/pixpark/facebetter-sdk) をクローンし、`demo/ios` ディレクトリに移動します。
+
+```bash
+# clone
+git clone https://github.com/pixpark/facebetter-sdk.git
+
+# Enter iOS Demo directory
+cd facebetter-sdk/demo/ios
+
+# Install dependencies
+pod install
+```
+
+<Warning>
+**Xcode 15+ のコンパイルエラー**
+
+**Xcode 15** 以降では、コンパイル時に `Sandbox: rsync.samba deny(1)` が出ることがあります。原因は Xcode のデフォルト **User Script Sandboxing** です。
+
+**対処:**
+1. Xcode で **Project** を選びます。
+2. **Build Settings** タブを開きます。
+3. `ENABLE_USER_SCRIPT_SANDBOXING` を検索します。
+4. 値を `Yes` から **`No`** に変更します。
+</Warning>
+
+## アプリ情報とキーの設定
+
+### アプリケーション Bundle ID のバインド
+
+[アプリ情報のバインド](/ja/intro/enable-service#アプリ情報のバインド) に従い、コンソールで iOS アプリの Bundle ID をバインドします。例: `com.example.app`。
+
+### 認証情報の取得
+
+[AppID と AppKey の取得](/ja/intro/enable-service#appid-と-appkey-の取得) に従い `appId` と `appKey` を取得します。`demo/ios/FBExampleObjc/CameraViewController.m` を開き、`FBEngineConfig` に認証情報を設定します。
+
+```objc
+FBEngineConfig *engineConfig = [[FBEngineConfig alloc] init];
+engineConfig.appId = @"your appId";
+engineConfig.appKey = @"your appKey";
+// Preferred: licenseToken (license token, {token} JSON, or .lic contents)
+// engineConfig.licenseToken = @"your license token";
+
+self.beautyEffectEngine = [FBBeautyEffectEngine createEngineWithConfig:engineConfig];
+```
+
+<Tip>
+`licenseToken` が空でない場合、SDK はそのトークンをローカルで検証し、`appId` / `appKey` で `/facebetter/v2/auth` を**呼び出しません**。[認証とライセンス](/ja/intro/license) を参照してください。
+</Tip>
+
+## プロジェクトの実行
+
+`demo/ios/FBExampleObjc.xcworkspace` を開きます。
+
+1. Xcode プロジェクトの署名が正しいことを確認します。
+
+<Frame>
+  <img src="/images/ios-1.png" alt="Xcode の署名" />
+</Frame>
+
+2. ビルドして実行します。
+
+実機を選び、ビルド実行ボタンをクリックします。

@@ -1,0 +1,209 @@
+---
+title: "サードパーティ連携"
+description: "Windows 上で Facebetter 美顔を TRTC、Agora、LiveKit などのサードパーティ動画パイプラインに接続します"
+---
+
+SDK **2.0.0**。デスクトップはモバイルと異なります。TRTC / Agora などは **Windows 上では多くが CPU バッファ（I420 / YUV）** であり、OpenGL の `textureId` はほとんど渡しません。Facebetter を相手のカスタム前処理コールバックに接続し、`ImageFrame::CreateWithI420`（または NV12）で `ProcessImage` を実行し、プレーンを相手のフレームへ書き戻します。
+
+[Linux](/ja/linux/third-party-integration) と同一の C++ API を共有します。基本的な使い方: [美顔の実装](/ja/windows/implement-beauty)。ルーム参加 / 配信はベンダーの公式ドキュメントに従ってください。
+
+```
+Third-party SDK (preprocess callback)
+  I420 / YUV planes
+       ↓
+BeautyEffectEngine (usually external_context = false)
+  CreateWithI420 → ProcessImage
+       ↓
+  Write back to dst buffer / in-place
+```
+
+## 共通の契約
+
+| 項目 | 要件 |
+| --- | --- |
+| エンジン | `BeautyEffectEngine::Create`。デスクトップでは `resource_path` を `resource.fbd` **ファイル**に設定する必要があります |
+| コンテキスト | バッファ経路では通常 `external_context = false`。相手の GL スレッドで `CreateWithTexture` を渡すときだけ `true` |
+| 形式 | PC 側は **I420** を優先（TRTC Buffer / Agora YUV420 に合わせます） |
+| フレームタイプ | `FrameType::Video` |
+| ライフサイクル | コールバック解除後に `engine.reset()`。エンジンはシングルトンではありません |
+
+### 共通: I420 を処理してプレーンへ書き戻す
+
+```cpp
+#include <facebetter/beauty_effect_engine.h>
+#include <facebetter/image_frame.h>
+#include <cstring>
+
+using namespace facebetter;
+
+static void CopyPlane(uint8_t* dst, int dst_stride,
+                      const uint8_t* src, int src_stride,
+                      int width, int height) {
+  for (int y = 0; y < height; ++y) {
+    std::memcpy(dst + y * dst_stride, src + y * src_stride, width);
+  }
+}
+
+/** 成功なら true。失敗時は相手のバッファを変更しない */
+static bool ProcessI420InPlace(BeautyEffectEngine* engine,
+                               uint8_t* y, int stride_y,
+                               uint8_t* u, int stride_u,
+                               uint8_t* v, int stride_v,
+                               int width, int height) {
+  if (!engine || !y || !u || !v || width <= 0 || height <= 0) {
+    return false;
+  }
+  auto input = ImageFrame::CreateWithI420(
+      width, height, y, stride_y, u, stride_u, v, stride_v);
+  if (!input) {
+    return false;
+  }
+  input->type = FrameType::Video;
+  auto output = engine->ProcessImage(input);
+  if (!output || !output->DataY()) {
+    return false;
+  }
+  CopyPlane(y, stride_y, output->DataY(), output->StrideY(), width, height);
+  CopyPlane(u, stride_u, output->DataU(), output->StrideU(), width / 2, height / 2);
+  CopyPlane(v, stride_v, output->DataV(), output->StrideV(), width / 2, height / 2);
+  return true;
+}
+```
+
+エンジン作成:
+
+```cpp
+EngineConfig cfg;
+cfg.app_id = "your_app_id";
+cfg.app_key = "your_app_key";
+cfg.resource_path = "resource/resource.fbd";
+cfg.external_context = false;
+auto engine = BeautyEffectEngine::Create(cfg);
+if (!engine) {
+  return;
+}
+engine->SetSmoothing(0.5f);
+```
+
+認証情報: [サブスクリプション](/ja/intro/enable-service)、[認証とライセンス](/ja/intro/license)。
+
+---
+
+## TRTC（Tencent Cloud）
+
+Windows / デスクトップ C++: **カスタム前処理は Buffer であり、Texture ではありません**。新しい SDK では `enableLocalVideoCustomProcess` + `setLocalVideoCustomProcessCallback` を使います（旧名 `setLocalVideoProcessCallback` は非推奨。統合しているバージョンに従ってください）。
+
+ピクセル形式は **I420**、バッファタイプは **Buffer** を選びます。`onProcessVideoFrame` で `srcFrame` を処理し、`dstFrame` に書き込みます（またはドキュメントどおり `dstFrame` をその場で変更します）。
+
+```cpp
+#include "ITRTCCloud.h"
+#include "TRTCTypeDef.h"
+
+class BeautyFrameCallback : public liteav::ITRTCVideoFrameCallback {
+ public:
+  explicit BeautyFrameCallback(std::shared_ptr<BeautyEffectEngine> engine)
+      : engine_(std::move(engine)) {}
+
+  int onProcessVideoFrame(liteav::TRTCVideoFrame* src,
+                          liteav::TRTCVideoFrame* dst) override {
+    if (!src || !dst || !engine_) {
+      return 0;
+    }
+    // フィールド名（data / yuv プレーン分割）は LiteAV ヘッダーにより差があります。現在の SDK を照合してください
+    ProcessI420InPlace(engine_.get(),
+                       /* y,u,v,strides,width,height を src から取り出す */);
+    // 処理後のプレーンを dst へコピー、または TRTC ドキュメントどおり dst->data / length を設定
+    return 0;
+  }
+
+ private:
+  std::shared_ptr<BeautyEffectEngine> engine_;
+};
+
+// 登録の例（API 名は TRTC C++ のバージョンに従う）
+// trtc->enableLocalVideoCustomProcess(true);
+// trtc->setLocalVideoCustomProcessCallback(callback);
+```
+
+<Note>
+Tencent Cloud のドキュメントでは、モバイルは Texture を使える一方、**PC は Buffer のみ**です。Windows では Android の `Texture_2D` 経路で接続しないでください。
+</Note>
+
+---
+
+## Agora
+
+フック: `IRtcEngine::registerVideoFrameObserver`（C++ Video SDK **4.x**）。Windows ではデフォルトで **YUV420 / I420** を取得できます。
+
+1. `getVideoFrameProcessMode` は `PROCESS_MODE_READ_WRITE` を返す
+2. `onCaptureVideoFrame` で `yBuffer` / `uBuffer` / `vBuffer` を `ProcessI420InPlace` に渡す
+3. `true` を返し、SDK がそのフレームを使い続けるようにする
+
+```cpp
+#include "IAgoraMediaEngine.h"
+#include "IAgoraRtcEngine.h"
+
+class BeautyObserver : public agora::media::IVideoFrameObserver {
+ public:
+  explicit BeautyObserver(std::shared_ptr<BeautyEffectEngine> engine)
+      : engine_(std::move(engine)) {}
+
+  bool onCaptureVideoFrame(agora::rtc::VIDEO_SOURCE_TYPE /*type*/,
+                           VideoFrame& frame) override {
+    if (!engine_ || !frame.yBuffer || !frame.uBuffer || !frame.vBuffer) {
+      return true;
+    }
+    ProcessI420InPlace(engine_.get(),
+                       frame.yBuffer, frame.yStride,
+                       frame.uBuffer, frame.uStride,
+                       frame.vBuffer, frame.vStride,
+                       frame.width, frame.height);
+    return true;
+  }
+
+  VIDEO_FRAME_PROCESS_MODE getVideoFrameProcessMode() override {
+    return PROCESS_MODE_READ_WRITE;
+  }
+
+  // getVideoFormatPreference / getObservedFramePosition は Agora ドキュメントに従って実装
+
+ private:
+  std::shared_ptr<BeautyEffectEngine> engine_;
+};
+
+// mediaEngine->registerVideoFrameObserver(observer);
+```
+
+`IRtcEngine` を破棄する前に observer を解除し、`engine.reset()` してください。
+
+---
+
+## LiveKit
+
+デスクトップ側の一般的なやり方は、**カスタム動画ソース**です。自分でキャプチャ / 処理したフレームを LiveKit（C++ / 自前ブリッジ）へ送ります。モバイルのような `VideoProcessor` テクスチャコールバックではありません。
+
+推奨パイプライン:
+
+1. カメラ / DXGI / V4L2 などからフレームを取得する
+2. `CreateWithI420` / `CreateWithRGBA` → `ProcessImage`
+3. 出力を LiveKit / WebRTC が受け取れるフレームに包み、`VideoSource` / `RTCVideoSource` へ入れる
+
+具体的なクラス名（`RtcVideoSource`、`VideoTrack` ファクトリなど）は LiveKit クライアントのバージョンで変わります。[LiveKit クライアントドキュメント](https://docs.livekit.io/) のカスタムトラック説明を参照してください。Facebetter が担当するのはステップ 2 のみです。
+
+---
+
+## トラブルシューティング
+
+| 現象 | 確認 |
+| --- | --- |
+| `Create` 失敗 | `resource_path` が `.fbd` **ファイル**を指しているか。認証は有効か |
+| 美顔が効かない | **ReadWrite** / カスタム前処理コールバック内で処理しているか。正しいプレーンへ書き戻しているか |
+| 画面が乱れる | `stride` を行ごとにコピーしているか。幅高さが偶数揃えか（I420） |
+| カクつき | 毎フレーム大きなバッファを確保していないか。`ProcessImage` を単一スレッドに直列化しているか |
+
+## 関連ドキュメント
+
+- [美顔の実装](/ja/windows/implement-beauty)
+- [Linux · サードパーティ連携](/ja/linux/third-party-integration)
+- [ベストプラクティス](/ja/windows/best-practices)
+- [API リファレンス](/ja/windows/api-reference)

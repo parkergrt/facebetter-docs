@@ -1,0 +1,188 @@
+---
+title: "Tratamento de erros"
+description: "Trate erros do Facebetter SDK 2.0 no Android"
+---
+
+Os setters de beleza retornam `int`. Compare com `ErrorCode`. A construção e `processImage` também podem lançar ou retornar `null`.
+
+## ErrorCode
+
+```java
+public final class ErrorCode {
+  public static final int SUCCESS = 0;
+  public static final int INVALID_ARGUMENT = -1;
+  public static final int NOT_INITIALIZED = -2;
+  public static final int LICENSE = -3;
+  public static final int UNSUPPORTED = -4;
+  public static final int IO = -5;
+  public static final int NO_SLOT = -6;
+  public static final int PROCESS = -7;
+  public static final int OUT_OF_MEMORY = -8;
+}
+```
+
+| Valor | Constante | Causa típica |
+| --- | --- | --- |
+| `0` | `SUCCESS` | Chamada bem-sucedida |
+| `-1` | `INVALID_ARGUMENT` | `null` / caminho vazio, `byte[]` vazio, callbacks `null` |
+| `-2` | `NOT_INITIALIZED` | Mecanismo não inicializado ou já liberado |
+| `-3` | `LICENSE` | Token / autenticação online recusada |
+| `-4` | `UNSUPPORTED` | Formato ou recurso indisponível |
+| `-5` | `IO` | `.fbd` ausente, imagem ilegível, caminho de arquivo de log |
+| `-6` | `NO_SLOT` | Limite de recursos atingido |
+| `-7` | `PROCESS` | Falha no processamento do quadro |
+| `-8` | `OUT_OF_MEMORY` | Sem memória |
+
+<Note>
+**`-1` é argumento inválido. `-2` é não inicializado.**
+</Note>
+
+```java
+int ret = engine.setSmoothing(0.5f);
+if (ret != ErrorCode.SUCCESS) {
+    Log.e(TAG, "setSmoothing failed: " + ret);
+}
+```
+
+## Construção
+
+`new BeautyEffectEngine(context, config)` lança `IllegalArgumentException` quando:
+
+- `context` ou `config` é `null`
+- `config.isValid()` é `false` (sem `licenseToken` e faltando `appId` / `appKey`)
+
+Ele **não** retorna `null`.
+
+```java
+BeautyEffectEngine.EngineConfig config = new BeautyEffectEngine.EngineConfig();
+config.appId = "your_app_id";
+config.appKey = "your_app_key";
+// config.licenseToken = "...";
+
+BeautyEffectEngine engine;
+try {
+    engine = new BeautyEffectEngine(this, config);
+} catch (IllegalArgumentException e) {
+    Log.e(TAG, "EngineConfig invalid", e);
+    return;
+}
+```
+
+A inicialização de licença e recursos ainda pode falhar de forma assíncrona. Inscreva-se nos eventos do mecanismo:
+
+```java
+EngineCallbacks callbacks = new EngineCallbacks();
+callbacks.onEngineEvent = (code, message) -> {
+    if (code == EngineEventCode.LICENSE_VALIDATION_FAILED
+        || code == EngineEventCode.INITIALIZATION_FAILED) {
+        Log.e(TAG, "engine event " + code + ": " + message);
+    }
+};
+engine.setCallbacks(callbacks);
+```
+
+| `EngineEventCode` | Valor |
+| --- | --- |
+| `LICENSE_VALIDATION_SUCCESS` | `0` |
+| `LICENSE_VALIDATION_FAILED` | `1` |
+| `INITIALIZATION_COMPLETE` | `100` |
+| `INITIALIZATION_FAILED` | `101` |
+
+Solução de problemas de autenticação: [Autenticação e licença](/pt-BR/intro/license). Ative o logging **antes** de construir — veja [Implementar beleza](/pt-BR/android/implement-beauty).
+
+## processImage
+
+```java
+if (input == null || !input.isValid()) {
+    Log.e(TAG, "Invalid input frame");
+    return null;
+}
+if (input.type == null) {
+    input.type = ImageFrame.FrameType.VIDEO;
+}
+
+ImageFrame output;
+try {
+    output = engine.processImage(input);
+} catch (IllegalArgumentException e) {
+    Log.e(TAG, "processImage rejected the frame", e);
+    return null;
+}
+if (output == null) {
+    Log.e(TAG, "processImage returned null (engine released or native failure)");
+    return null;
+}
+```
+
+- Entrada `null` ou `type` `null` → `IllegalArgumentException`
+- Mecanismo já com `release()` → `null` (sem exceção)
+- Sempre chame `release()` na entrada e na saída em um bloco `finally`
+
+```java
+ImageFrame output = null;
+try {
+    input.type = ImageFrame.FrameType.VIDEO;
+    output = engine.processImage(input);
+    return output;
+} finally {
+    if (input != null) {
+        input.release();
+    }
+}
+```
+
+Se você converter a saída (`convert`, `toBitmap`), libere também o quadro extra.
+
+## Filtros, adesivos, fundo virtual
+
+Caminho vazio ou `byte[]` vazio retorna `ErrorCode.INVALID_ARGUMENT`. Arquivos ausentes normalmente retornam `ErrorCode.IO`.
+
+```java
+int ret = engine.setFilter(fbdPath);
+if (ret == ErrorCode.INVALID_ARGUMENT) {
+    Log.e(TAG, "Filter path empty");
+} else if (ret == ErrorCode.IO) {
+    Log.e(TAG, "Cannot read .fbd: " + fbdPath);
+} else if (ret != ErrorCode.SUCCESS) {
+    Log.e(TAG, "setFilter: " + ret);
+}
+```
+
+Alterações de filtro / adesivo passam a valer no **próximo** quadro processado. Um setter bem-sucedido não prova que a textura foi enviada; observe os resultados posteriores de `processImage` e os logs do SDK.
+
+## Configuração de logging
+
+`setLogConfig` lança se `config` ou `level` for `null`. Crie os diretórios pai antes de ativar logs em arquivo.
+
+```java
+File logFile = new File(getFilesDir(), "facebetter.log");
+File parent = logFile.getParentFile();
+if (parent != null && !parent.exists() && !parent.mkdirs()) {
+    Log.e(TAG, "Cannot create log dir");
+    return;
+}
+BeautyEffectEngine.LogConfig logConfig = new BeautyEffectEngine.LogConfig();
+logConfig.consoleEnabled = true;
+logConfig.fileEnabled = true;
+logConfig.level = BeautyEffectEngine.LogLevel.DEBUG;
+logConfig.fileName = logFile.getAbsolutePath();
+BeautyEffectEngine.setLogConfig(logConfig);
+```
+
+## Sem memória
+
+`ErrorCode.OUT_OF_MEMORY` ou `OutOfMemoryError` geralmente significam que os quadros não foram liberados, a resolução está alta demais ou buffers heap/diretos se acumularam.
+
+- Use `ByteBuffer.allocateDirect` para câmera / pixels empacotados
+- Libere cada `ImageFrame` (incluindo resultados de `convert`)
+- Prefira `FrameType.VIDEO` para câmera ao vivo
+- Não construa um mecanismo novo a cada quadro
+
+## Estatísticas para quadros lentos
+
+```java
+EngineStats stats = engine.getStats();
+if (stats.avgProcessTimeMs > 33) {
+    Log.w(TAG, "Slow pipeline: " + stats.avgProcessTimeMs + " ms, fps=" + stats.fps);
+}
+```

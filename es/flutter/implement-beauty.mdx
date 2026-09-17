@@ -1,0 +1,195 @@
+---
+title: "Implementar belleza"
+description: "Integra Facebetter Flutter SDK 2.0"
+---
+
+<Note>
+SDK **2.0.0**. Clase: **`FBEngine`**. No es un singleton. Autenticación: [Autenticación y licencia](/es/intro/license). Enumeraciones: [Enumeraciones de parámetros](/es/intro/makeup).
+</Note>
+
+Flutter **solo configura parámetros**. Los fotogramas de vídeo en directo nunca entran en Dart. Los SDK RTC de terceros alimentan texturas en el hilo GL nativo; consulta [Integración con terceros](/es/flutter/third-party-integration).
+
+## Añadir el plugin
+
+```yaml
+dependencies:
+  facebetter_flutter: ^2.0.0
+```
+
+```dart
+import 'package:facebetter_flutter/facebetter_flutter.dart';
+```
+
+## Logging
+
+Llama **antes** de `FBEngine.create`:
+
+```dart
+FBEngine.setLogConfig(
+  console: true,
+  file: false,
+  level: FBLogLevel.info,
+  fileName: '',
+);
+```
+
+## Crear
+
+Proporciona `appId` + `appKey`, **o** `licenseToken` (cadena del token de licencia, JSON `{token}` o `.lic` nativo sin conexión). El token gana si ambos están configurados.
+
+```dart
+final engine = await FBEngine.create(FBEngineConfig(
+  appId: '...',
+  appKey: '...',
+  // licenseToken: '...',
+  enableLandmarks: false,
+  externalContext: true,
+  resourcePath: null,
+));
+```
+
+| Campo | Predeterminado | Notas |
+| --- | --- | --- |
+| `appId` / `appKey` | — | Autenticación en línea |
+| `licenseToken` | — | token / JSON `{token}` / contenido de `.lic` |
+| `enableLandmarks` | `false` | A nivel de motor; no se puede cambiar después. Déjalo en `false` salvo que leas landmarks |
+| `externalContext` | `true` | `true` para preprocess en directo de terceros; `false` para APIs de archivo de foto |
+| `resourcePath` | plugin | AAR Android `resource.fbd` / archivo del framework iOS |
+
+`FBEngine.version` lee la cadena de versión del SDK nativo.
+
+## Piel, remodelado, maquillaje
+
+Los setters de intensidad son **síncronos**: seguros en `Slider.onChanged`.
+
+Piel `[0.0, 1.0]`:
+
+```dart
+engine.setSmoothing(0.8);
+engine.setSmoothingStyle(FBSmoothingStyle.natural);
+engine.setWhitening(0.5);
+engine.setWhiteningStyle(FBWhiteningStyle.coldWhite);
+engine.setSharpening(0.3);
+engine.setRosiness(0.2);
+engine.setBeautySkinOnly(true);
+```
+
+Remodelado **`[-1.0, 1.0]`**:
+
+```dart
+engine.setReshape(FBReshape.faceThin, 0.3);
+engine.setReshape(FBReshape.eyeSize, 0.2);
+```
+
+Maquillaje (intensidad + estilo/color). Enumeraciones completas: [Enumeraciones de parámetros](/es/intro/makeup).
+
+```dart
+engine.setLipstick(0.4);
+engine.setLipstickColor(FBLipstickColor.rouge);
+engine.setBlush(0.3);
+engine.setBlushStyle(FBBlushStyle.sunKissed);
+engine.setBlushColor(FBBlushColor.coralPink);
+engine.setContour(0.4);
+engine.setContourStyle(FBContourStyle.natural);
+engine.setEyeShadow(0.35);
+engine.setEyeShadowStyle(FBEyeShadowStyle.soft);
+engine.setEyeShadowColor(FBEyeShadowColor.plum);
+engine.setEyeLiner(0.3);
+engine.setEyebrow(0.3);
+engine.setEyelash(0.3);
+engine.setPupil(0.4);
+```
+
+## Filtro, sticker, fondo virtual
+
+Ruta **o** bytes `Uint8List`, no ambos. Devuelven `Future` (decodificación de archivo + subida a GPU).
+
+```dart
+await engine.setFilter(path: '/path/to/filter.fbd');
+// await engine.setFilter(data: bytes);
+engine.setFilterIntensity(0.8);
+engine.clearFilter();
+
+await engine.setSticker(path: '/path/to/sticker.fbd');
+engine.clearSticker();
+
+await engine.addResourcePack(path: '/path/to/resource_3d.fbd');
+await engine.set3DSticker(path: '/path/to/oculos.fbd');
+engine.clear3DSticker();
+
+engine.setVirtualBackgroundBlur(0.6);
+await engine.setVirtualBackground(path: '/path/to/bg.jpg');
+engine.clearVirtualBackground();
+```
+
+Los stickers 3D necesitan el paquete opcional `resource_3d.fbd` (no está en el plugin). Consulta [Paquetes de recursos opcionales](/es/intro/resource-packs).
+
+Croma (síncrono), igual que nativo:
+
+```dart
+engine.setChromaKey(FBChromaKeyColor.green);
+engine.setChromaKeySimilarity(0.4);
+engine.setChromaKeySmoothness(0.2);
+engine.setChromaKeyDesaturation(0.3);
+engine.clearChromaKey();
+```
+
+El croma es la **máscara**; el relleno sigue siendo desenfoque o una imagen de fondo.
+
+## Eventos y estadísticas
+
+```dart
+engine.events.listen((FBEngineEvent e) {
+  switch (e.eventCode) {
+    case FBEngineEventCode.licenseValidationSuccess:
+    case FBEngineEventCode.engineInitializationComplete:
+      break;
+    case FBEngineEventCode.licenseValidationFailed:
+    case FBEngineEventCode.engineInitializationFailed:
+      debugPrint(e.message);
+  }
+});
+
+final FBStats s = engine.stats;
+// s.fps, s.avgProcessTimeMs, s.sessionTimeSeconds
+```
+
+## Imágenes estáticas
+
+Usa un motor **separado** con `externalContext: false`. **No** llames a estas APIs en un motor de preprocess en directo, y **no** proceses vídeo de reunión / push desde Dart.
+
+```dart
+final photoEngine = await FBEngine.create(const FBEngineConfig(
+  appId: '...',
+  appKey: '...',
+  externalContext: false,
+));
+
+await photoEngine.processFile(input: srcPath, output: dstPath, quality: 90);
+
+final FBBitmap bmp = await photoEngine.processImageBytes(jpegBytes);
+final FBBitmap fromFile = await photoEngine.processImageFile(srcPath);
+final ui.Image image = await photoEngine.processImageToUiImage(jpegBytes);
+
+photoEngine.dispose();
+```
+
+`FBBitmap.pixels` es RGBA8888 (`stride == width * 4`).
+
+## Errores
+
+Los setters y las tareas asíncronas lanzan `FBException` con códigos `0`, `-1` … `-8`. Consulta [Referencia de la API](/es/flutter/api-reference#fbexception).
+
+## Liberar
+
+Detén primero el preprocess personalizado del vendor y luego:
+
+```dart
+engine.dispose();
+```
+
+## Relacionado
+
+- [Integración con terceros](/es/flutter/third-party-integration)
+- [Referencia de la API](/es/flutter/api-reference)
+- [Inicio rápido](/es/flutter/quick-start)

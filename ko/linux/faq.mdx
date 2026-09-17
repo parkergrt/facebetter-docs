@@ -1,0 +1,77 @@
+---
+title: "FAQ"
+description: "Linux Facebetter SDK 2.0 연동 FAQ"
+---
+
+<Note>
+SDK **2.0.0**. Windows와 공유하는 C++ API입니다. [파라미터 열거형](/ko/intro/makeup) · [인증 및 라이선스](/ko/intro/license).
+</Note>
+
+## 연동
+
+### 엔진 `Create`가 `nullptr`을 반환함
+
+- `resource_path`는 **`resource.fbd` 파일**이어야 합니다
+- `license_token` **또는** 유효한 `app_id` + `app_key`를 설정하세요
+- `Create` 전에 `SetLogConfig`를 호출하세요
+- `libfacebetter.so`를 로드할 수 있는지 확인하세요(`ldd your_app`)
+
+### SDK는 어떻게 빌드하나요?
+
+```bash
+./scripts/build_linux.sh
+```
+
+`build/linux/release`에 설치됩니다. 또는 `build/` 디렉터리에서 CMake + Ninja를 사용하세요. 데스크톱 데모는 `demo/cpp`에 있습니다.
+
+### 헤더 / 링크 오류
+
+SDK `include/`를 include 경로에 추가하세요. `libfacebetter.so`를 링크하세요. 런타임에 `LD_LIBRARY_PATH` 또는 rpath를 설정하세요.
+
+### `SetRenderView`가 없음
+
+iOS / macOS 전용입니다. Linux에서는 `ProcessImage` 출력을 GL 텍스처에 blit하세요.
+
+## 효과
+
+### 뷰티가 약하거나 꺼진 것처럼 보임
+
+`SetBeautyTypeEnabled`는 없습니다. 강도 기본값은 `0`입니다. 리셰이프 / 메이크업에는 얼굴이 필요합니다. 카메라에는 `FrameType::Video`를 사용하세요.
+
+### 리셰이프가 반대로 보임
+
+범위는 `[-1.0, 1.0]`입니다. [파라미터 열거형](/ko/intro/makeup)을 참고하세요.
+
+### 필터 / 스티커가 동작하지 않음
+
+`SetFilter` / `SetSticker`에 `.fbd` 경로 또는 바이트를 전달하세요.
+
+### 가상 배경 / 크로마키
+
+`SetVirtualBackgroundBlur` / `SetVirtualBackground(path|bytes)` / `ClearVirtualBackground`. 크로마: `SetChromaKey` + similarity / smoothness / desaturation. `ClearChromaKey()`는 세그멘테이션을 복원합니다.
+
+## 런타임
+
+### `libfacebetter.so: cannot open shared object file`
+
+`LD_LIBRARY_PATH`, 바이너리 옆으로 복사, rpath, 또는 `ldconfig`.
+
+### 디스플레이 없음 / GLFW X11 오류
+
+그래픽 세션, `DISPLAY=:0`, 또는 Wayland. SSH에는 `ssh -X`가 필요합니다.
+
+### CMake가 OpenGL을 찾지 못함
+
+`libgl1-mesa-dev` / `mesa-libGL-devel`을 설치하고 다시 구성하세요.
+
+### 헤드리스 서버
+
+OSMesa 또는 EGL + `external_context = true`를 사용하세요. 여전히 `resource.fbd`와 유효한 라이선스가 필요합니다.
+
+## 인증
+
+`license_token`이 비어 있지 않으면 우선합니다(토큰 / `{token}` JSON / `.lic`). 그렇지 않으면 `app_id` + `app_key`로 온라인 v2입니다. 이벤트: `0` / `1` / `100` / `101`. [인증 및 라이선스](/ko/intro/license)를 참고하세요.
+
+## 버전
+
+문서화하고 배포하는 버전은 **2.0.0**입니다. GCC 7+ / Clang 5+, C++17, OpenGL 3.0+.

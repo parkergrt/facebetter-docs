@@ -1,0 +1,509 @@
+---
+title: "API リファレンス"
+description: "Facebetter SDK 2.0 の Android API リファレンス"
+---
+
+<Note>
+このページは SDK **2.0.0** に対応します。パッケージ: `net.pixpark.facebetter`。メイク、リシェイプ、美白、スムージングのプリセット: [パラメータ列挙](/ja/intro/makeup)。認証: [認証とライセンス](/ja/intro/license)。
+</Note>
+
+すべての setter メソッドは `int` を返します。`0`（`ErrorCode.SUCCESS`）は成功、負の値は [エラーコード](#errorcode) です。
+
+## ログ
+
+初期化ログを取得するため、エンジン構築の**前**に `BeautyEffectEngine.setLogConfig` を呼び出してください。
+
+### LogLevel
+
+```java
+public enum LogLevel {
+  TRACE(0, "TRACE"),
+  DEBUG(1, "DEBUG"),
+  INFO(2, "INFO"),
+  WARN(3, "WARN"),
+  ERROR(4, "ERROR"),
+  CRITICAL(5, "CRITICAL");
+}
+```
+
+| メソッド | 説明 |
+| --- | --- |
+| `int getLevel()` | 数値レベル（`0`–`5`） |
+| `String getName()` | 名前文字列 |
+| `boolean isEnabledFor(LogLevel other)` | このレベルが `other` 以上に深刻なら `true` |
+| `static LogLevel fromLevel(int level)` | 数値で検索。なければ `null` |
+| `static LogLevel fromName(String name)` | 大文字小文字を無視して検索。なければ `null` |
+
+### LogConfig
+
+入れ子クラス: `BeautyEffectEngine.LogConfig`。
+
+| フィールド | 型 | デフォルト | 説明 |
+| --- | --- | --- | --- |
+| `consoleEnabled` | `boolean` | `false` | logcat / stdout へ出力 |
+| `fileEnabled` | `boolean` | `false` | ファイルへ出力 |
+| `level` | `LogLevel` | `INFO` | 出力する最低レベル |
+| `fileName` | `String` | `""` | ログファイルパス。`fileEnabled` が `true` のときのみ使用 |
+
+```java
+public static class LogConfig {
+  public boolean consoleEnabled = false;
+  public boolean fileEnabled = false;
+  public LogLevel level = LogLevel.INFO;
+  public String fileName = "";
+
+  public LogConfig();
+  public LogConfig(boolean consoleEnabled, boolean fileEnabled, LogLevel level, String fileName);
+}
+```
+
+```java
+public static void setLogConfig(LogConfig config);
+```
+
+`config` または `config.level` が `null` の場合、`IllegalArgumentException` を投げます。
+
+## エンジン
+
+### EngineConfig
+
+入れ子クラス: `BeautyEffectEngine.EngineConfig`。
+
+| フィールド | 型 | デフォルト | 説明 |
+| --- | --- | --- | --- |
+| `appId` | `String` | — | ダッシュボードの App ID |
+| `appKey` | `String` | — | ダッシュボードの App Key |
+| `licenseToken` | `String` | — | ライセンストークン文字列、`{token}` JSON、またはオフライン `.lic` の内容 |
+| `externalContext` | `boolean` | `false` | `true` = 呼び出し側の OpenGL ES コンテキストを使用。`false` = SDK 所有のコンテキスト |
+
+**認証の優先順位:** `licenseToken` が空でない場合、SDK はそのトークンをローカルで検証します。それ以外は `appId` + `appKey` が必須で、SDK は `/facebetter/v2/auth` を呼び出します。詳細: [認証とライセンス](/ja/intro/license)。
+
+```java
+public static class EngineConfig {
+  public String appId;
+  public String appKey;
+  public String licenseToken;
+  public boolean externalContext = false;
+
+  public EngineConfig();
+  public EngineConfig(String appId, String appKey);
+  public boolean isValid();
+}
+```
+
+`isValid()` は、`licenseToken` が空でない場合、または `appId` と `appKey` の両方が空でない場合に `true` を返します。
+
+### BeautyEffectEngine
+
+メインエンジンです。1 回構築し、Activity / Fragment の破棄時に `release()` を呼び出します。
+
+```java
+public BeautyEffectEngine(Context context, EngineConfig config);
+public void release();
+```
+
+コンストラクタは、`context` または `config` が `null`、あるいは `config.isValid()` が `false` の場合に `IllegalArgumentException` を投げます。SDK はライセンスバインドに `context.getPackageName()` を使います。
+
+### FrameType
+
+`processImage` の**前**に `ImageFrame.type` を設定します。別の処理モード引数はありません。
+
+| 値 | 説明 |
+| --- | --- |
+| `IMAGE` | 単一写真 / 静止画。画質優先。 |
+| `VIDEO` | カメラ / ライブストリーム。遅延が低い。デフォルト。 |
+
+```java
+public enum FrameType {
+  IMAGE(0),
+  VIDEO(1);
+}
+```
+
+```java
+public ImageFrame processImage(ImageFrame inputFrame);
+```
+
+`inputFrame.type` を読みます。処理済みフレーム（入力と同じピクセルフォーマット）を返します。エンジンがすでに解放済みなら `null` です。`inputFrame` または `inputFrame.type` が `null` なら `IllegalArgumentException` を投げます。
+
+## 美顔
+
+強度範囲は特記がない限り `[0.0, 1.0]` です。`0` で効果をオフにします。
+
+```java
+public int setSmoothing(float value);
+public int setSmoothingStyle(SmoothingStyle style);
+public int setWhitening(float value);
+public int setWhiteningStyle(WhiteningStyle style);
+public int setSharpening(float value);
+public int setRosiness(float value);
+public int setBeautySkinOnly(boolean enabled);
+```
+
+| メソッド | 説明 |
+| --- | --- |
+| `setSmoothing` | 肌スムージング強度 |
+| `setSmoothingStyle` | スムージングの見た目（`NATURAL`、`TEXTURE`、`SMOOTH`） |
+| `setWhitening` | 美白強度 |
+| `setWhiteningStyle` | 美白 LUT（`COLD_WHITE`、`PINK_WHITE`、`WARM_WHITE`、`WHEAT`、`TAN`） |
+| `setSharpening` | シャープニング強度 |
+| `setRosiness` | 血色強度 |
+| `setBeautySkinOnly` | `true` = 検出された肌にのみ美肌を適用。`false` = フレーム全体 |
+
+スタイル列挙: [パラメータ列挙](/ja/intro/makeup)。
+
+## リシェイプ
+
+```java
+public int setReshape(Reshape param, float value);
+```
+
+強度範囲 **`[-1.0, 1.0]`**。`0` はオフ。正と負は逆方向です。
+
+```java
+public enum Reshape {
+  FACE_THIN(0), FACE_V_SHAPE(1), FACE_NARROW(2), FACE_SHORT(3),
+  CHEEKBONE(4), JAWBONE(5), CHIN(6), NOSE_SLIM(7),
+  EYE_SIZE(8), EYE_DISTANCE(9), FACE_SMALL(10), FOREHEAD(11),
+  NOSE_LONG(12), PHILTRUM(13), MOUTH_SIZE(14), MOUTH_POSITION(15),
+  MOUTH_SMILE(16), LIP_THICKNESS(17), EYE_ROUND(18), EYE_POSITION(19),
+  EYE_ANGLE(20), EYE_CORNER_OPEN(21), LOWER_EYELID(22),
+  BROW_POSITION(23), BROW_DISTANCE(24), BROW_THICKNESS(25);
+}
+```
+
+各値の正 / 負の意味: [パラメータ列挙](/ja/intro/makeup)。
+
+## メイク
+
+強度 `[0.0, 1.0]`。強度を設定してから、スタイル（マスク）および / または色（着色）を設定します。瞳孔とシェーディングは別の着色の仕方が異なります。[パラメータ列挙](/ja/intro/makeup) を参照してください。
+
+```java
+public int setLipstick(float value);
+public int setLipstickColor(LipstickColor color);
+
+public int setBlush(float value);
+public int setBlushStyle(BlushStyle style);
+public int setBlushColor(BlushColor color);
+
+public int setContour(float value);
+public int setContourStyle(ContourStyle style);
+
+public int setEyeShadow(float value);
+public int setEyeShadowStyle(EyeShadowStyle style);
+public int setEyeShadowColor(EyeShadowColor color);
+
+public int setEyeLiner(float value);
+public int setEyeLinerStyle(EyeLinerStyle style);
+public int setEyeLinerColor(EyeLinerColor color);
+
+public int setEyebrow(float value);
+public int setEyebrowStyle(EyebrowStyle style);
+public int setEyebrowColor(EyebrowColor color);
+
+public int setEyelash(float value);
+public int setEyelashStyle(EyelashStyle style);
+public int setEyelashColor(EyelashColor color);
+
+public int setPupil(float value);
+public int setPupilColor(PupilColor color);
+```
+
+プリセット名は `BeautyParams.*` にあります。完全な表: [パラメータ列挙](/ja/intro/makeup)。
+
+## バーチャル背景とクロマキー
+
+デフォルトのマスクはポートレートセグメンテーションです。クロマキーはマスクソースを置き換えます。塗りつぶしはぼかしまたは静止画のままです。
+
+```java
+public int setChromaKey(ChromaKeyColor color);
+public int clearChromaKey();
+public int setChromaKeySimilarity(float value);
+public int setChromaKeySmoothness(float value);
+public int setChromaKeyDesaturation(float value);
+
+public int setVirtualBackgroundBlur(float level);
+public int setVirtualBackground(String imagePath);
+public int setVirtualBackground(byte[] imageData);
+public int clearVirtualBackground();
+```
+
+| メソッド | 説明 |
+| --- | --- |
+| `setChromaKey` | マスクとしてクロマキーを使用（`GREEN`、`BLUE`、`RED`） |
+| `clearChromaKey` | ポートレートセグメンテーションマスクを復元。現在の塗りつぶしは**クリアしません** |
+| `setChromaKeySimilarity` | ピクセルがキー色にどれだけ近いか。`[0.0, 1.0]` |
+| `setChromaKeySmoothness` | エッジのフェザー。`[0.0, 1.0]` |
+| `setChromaKeyDesaturation` | 半透明エッジのスピル抑制。`[0.0, 1.0]` |
+| `setVirtualBackgroundBlur` | 背景ぼかし。`[0.0, 1.0]`。**`0` はバーチャル背景をクリア**します |
+| `setVirtualBackground(String)` | PNG/JPG ファイルで背景を置換。パスは空でないこと |
+| `setVirtualBackground(byte[])` | 同上。エンコード済み PNG/JPG バイトから |
+| `clearVirtualBackground` | ぼかしまたは画像の塗りつぶしをクリア |
+
+```java
+public enum ChromaKeyColor {
+  GREEN(0),
+  BLUE(1),
+  RED(2);
+}
+```
+
+空パス / 空の `byte[]` は `ErrorCode.INVALID_ARGUMENT` を返します。
+
+## フィルターとステッカー
+
+`.fbd` ファイルパスまたはファイルバイト（例: `assets` から）を渡します。リソースは次の処理フレームで有効になります。登録 / 登録解除 API はありません。
+
+```java
+public int setFilter(String fbdFilePath);
+public int setFilter(byte[] fbdData);
+public int clearFilter();
+public int setFilterIntensity(float intensity);
+
+public int setSticker(String fbdFilePath);
+public int setSticker(byte[] fbdData);
+public int clearSticker();
+public int addResourcePack(String fbdFilePath);
+public int addResourcePack(byte[] fbdData);
+public int set3DSticker(String resource);
+public int set3DSticker(byte[] fbdData);
+public int clear3DSticker();
+```
+
+| メソッド | 説明 |
+| --- | --- |
+| `setFilter` | `.fbd` パスまたはメモリ上のバイトから LUT フィルターを適用 |
+| `clearFilter` | 現在の LUT を削除 |
+| `setFilterIntensity` | ミックス `[0.0, 1.0]` |
+| `setSticker` | `.fbd` パスまたはバイトから 2D ステッカーを適用 |
+| `clearSticker` | 現在のステッカーを削除 |
+| `addResourcePack` | 追加の機能パックを登録（例: `set3DSticker` の前に `resource_3d.fbd`） |
+| `set3DSticker` | `.fbd` パスまたはバイトから 3D ステッカーを適用 |
+| `clear3DSticker` | 3D ステッカーを削除 |
+
+空パス / 空の `byte[]` は `ErrorCode.INVALID_ARGUMENT` を返します。
+
+## 統計とコールバック
+
+```java
+public EngineStats getStats();
+public int setCallbacks(EngineCallbacks callbacks);
+```
+
+`getStats()` はスナップショットを返します。エンジン未初期化時、フィールドは `0` です。`callbacks` が `null` なら `setCallbacks` は `ErrorCode.INVALID_ARGUMENT` を返します。
+
+### EngineStats
+
+```java
+public class EngineStats {
+  public double fps;
+  public double avgProcessTimeMs;
+  public double sessionTimeS;
+
+  public EngineStats();
+  public EngineStats(double fps, double avgProcessTimeMs, double sessionTimeS);
+}
+```
+
+| フィールド | 説明 |
+| --- | --- |
+| `fps` | 直近の処理 FPS |
+| `avgProcessTimeMs` | `processImage` の平均時間（ミリ秒） |
+| `sessionTimeS` | エンジン作成からの秒数 |
+
+### EngineCallbacks
+
+```java
+public class EngineCallbacks {
+  public OnFaceLandmarksCallback onFaceLandmarks;
+  public OnEngineEventCallback onEngineEvent;
+
+  public interface OnFaceLandmarksCallback {
+    void onFaceLandmarks(List<FaceDetectionResult> results);
+  }
+
+  public interface OnEngineEventCallback {
+    void onEngineEvent(int code, String message);
+  }
+}
+```
+
+そのコールバックをスキップするには、フィールドを `null` のままにします。
+
+### EngineEventCode
+
+```java
+public final class EngineEventCode {
+  public static final int LICENSE_VALIDATION_SUCCESS = 0;
+  public static final int LICENSE_VALIDATION_FAILED = 1;
+  public static final int INITIALIZATION_COMPLETE = 100;
+  public static final int INITIALIZATION_FAILED = 101;
+}
+```
+
+| コード | 意味 |
+| --- | --- |
+| `0` | ライセンス受理 |
+| `1` | ライセンス拒否。`message` に詳細 |
+| `100` | エンジンがフレーム処理可能 |
+| `101` | エンジン初期化失敗。`message` に詳細 |
+
+### FaceDetectionResult
+
+正規化座標は処理済みフレームに対する `[0, 1]` です。
+
+| フィールド | 型 | 説明 |
+| --- | --- | --- |
+| `rect` | `Rect` | 顔ボックス |
+| `keyPoints` | `List<Point2d>` | 111 ランドマーク |
+| `visibility` | `List<Float>` | 点ごとの可視性 `[0, 1]` |
+| `faceId` | `int` | トラッキング ID |
+| `score` | `float` | 検出信頼度 `[0, 1]` |
+| `pitch` / `roll` / `yaw` | `float` | 頭部姿勢（ラジアン）、範囲 `[-π, π]` |
+
+`Point2d` は `float x, y` を持ちます。`Rect` は `float x, y, width, height`（左上原点）です。
+
+## ErrorCode
+
+数値は全プラットフォームで同一です。
+
+```java
+public final class ErrorCode {
+  public static final int SUCCESS = 0;
+  public static final int INVALID_ARGUMENT = -1;
+  public static final int NOT_INITIALIZED = -2;
+  public static final int LICENSE = -3;
+  public static final int UNSUPPORTED = -4;
+  public static final int IO = -5;
+  public static final int NO_SLOT = -6;
+  public static final int PROCESS = -7;
+  public static final int OUT_OF_MEMORY = -8;
+}
+```
+
+| 値 | 定数 | 意味 |
+| --- | --- | --- |
+| `0` | `SUCCESS` | OK |
+| `-1` | `INVALID_ARGUMENT` | null、空、または範囲外の引数 |
+| `-2` | `NOT_INITIALIZED` | エンジン未初期化、またはすでに解放済み |
+| `-3` | `LICENSE` | ライセンス / 認証失敗 |
+| `-4` | `UNSUPPORTED` | 機能またはフォーマット非対応 |
+| `-5` | `IO` | ファイルまたはリソース I/O 失敗 |
+| `-6` | `NO_SLOT` | リソーススロット枯渇 |
+| `-7` | `PROCESS` | フレーム処理失敗 |
+| `-8` | `OUT_OF_MEMORY` | 割り当て失敗 |
+
+<Note>
+**`-1` は引数不正です。`-2` は未初期化です。**
+</Note>
+
+## ImageFrame
+
+ネイティブピクセルバッファをラップします。使い終わったら必ず `release()` を呼び出してください。
+
+### 作成
+
+```java
+public static ImageFrame createWithFile(String filePath);
+public static ImageFrame createWithRGBA(ByteBuffer data, int width, int height, int stride);
+public static ImageFrame createWithBGRA(ByteBuffer data, int width, int height, int stride);
+public static ImageFrame createWithRGB(ByteBuffer data, int width, int height, int stride);
+public static ImageFrame createWithBGR(ByteBuffer data, int width, int height, int stride);
+public static ImageFrame createWithI420(int width, int height,
+    ByteBuffer yBuffer, int strideY, ByteBuffer uBuffer, int strideU,
+    ByteBuffer vBuffer, int strideV);
+public static ImageFrame createWithNV12(int width, int height,
+    ByteBuffer yBuffer, int strideY, ByteBuffer uvBuffer, int strideUV);
+public static ImageFrame createWithNV21(int width, int height,
+    ByteBuffer yBuffer, int strideY, ByteBuffer vuBuffer, int strideVU);
+public static ImageFrame createWithAndroid420(int width, int height,
+    ByteBuffer yBuffer, int strideY, ByteBuffer uBuffer, int strideU,
+    ByteBuffer vBuffer, int strideV, int pixelStrideUV);
+public static ImageFrame createWithTexture(int texture, int width, int height, int stride);
+public static ImageFrame createWithBitmap(Bitmap bitmap);
+```
+
+| ファクトリ | 備考 |
+| --- | --- |
+| `createWithFile` | PNG / JPG パス |
+| `createWithAndroid420` | Camera2 `YUV_420_888` |
+| `createWithTexture` | **カレント** GL コンテキスト内の `GL_TEXTURE_2D`。`stride` は通常 `width * 4` |
+| `createWithBitmap` | `ARGB_8888` ピクセルを RGBA フレームへコピー |
+
+失敗時は `null` を返します（無効な bitmap、ネイティブ割り当て失敗など）。パックド / プレーナーファクトリでは `ByteBuffer.allocateDirect` を推奨します。
+
+### フィールドと操作
+
+```java
+public FrameType type = FrameType.VIDEO;
+
+public int rotate(Rotation rotation);
+public int mirror(String mode);
+public void setMirror(String mode);
+public ImageFrame convert(Format format);
+public int toFile(String path, int quality);
+public int toFile(String path);
+public Bitmap toBitmap();
+public boolean isValid();
+public void release();
+```
+
+| メソッド | 説明 |
+| --- | --- |
+| `rotate` | その場で回転。成功時は `0` |
+| `mirror` | 即時ミラー。`mode`: `"horizontal"`、`"vertical"`、`"both"`（大文字小文字無視） |
+| `setMirror` | **`processImage` 内部**で適用されるフラグ（余分な変換を避ける）。`""` / `null` でクリア |
+| `convert` | `format` の**新しい**フレームを返す。呼び出し側が `release()` する |
+| `toFile` | PNG/JPG を書き出す。品質 `1`–`100`。オーバーロードのデフォルトは `90` |
+| `toBitmap` | `ARGB_8888` の `Bitmap`（必要なら先に RGBA へ変換） |
+
+### アクセサ
+
+```java
+public int getWidth();
+public int getHeight();
+public int getStride();
+public int getSize();
+public ByteBuffer getData();
+public Format getFormat();
+public int getTexture();
+
+public ByteBuffer getDataY();
+public ByteBuffer getDataU();
+public ByteBuffer getDataV();
+public ByteBuffer getDataUV();
+public int getStrideY();
+public int getStrideU();
+public int getStrideV();
+public int getStrideUV();
+```
+
+フレームが GPU テクスチャにバインドされていない場合、`getTexture()` は `0` を返します。
+
+### Format
+
+```java
+public enum Format {
+  I420(0),     // YUV 4:2:0 planar Y, U, V
+  NV12(1),     // YUV 4:2:0 Y + UV
+  NV21(2),     // YUV 4:2:0 Y + VU (Android camera default)
+  BGRA(3),
+  RGBA(4),
+  BGR(5),
+  RGB(6),
+  Texture(7);
+}
+```
+
+### Rotation
+
+時計回り。
+
+```java
+public enum Rotation {
+  ROTATION_0(0),
+  ROTATION_90(1),
+  ROTATION_180(2),
+  ROTATION_270(3);
+}
+```

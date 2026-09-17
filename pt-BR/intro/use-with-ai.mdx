@@ -1,0 +1,62 @@
+---
+title: "Usar com IA"
+description: "Conecte a documentação Facebetter ao Cursor, Claude, ChatGPT e outras ferramentas de IA via MCP, llms.txt e páginas Markdown"
+---
+
+Esta documentação é publicada tanto para pessoas quanto para ferramentas de IA. Você pode conectar um agente de IDE ao site inteiro ou colar uma única página como Markdown.
+
+## MCP (recomendado)
+
+Aponte o Cursor, Claude, VS Code ou qualquer cliente MCP para:
+
+```text
+https://docs.facebetter.net/mcp
+```
+
+Depois de conectar, peça ao agente para usar o MCP da documentação Facebetter ao integrar o SDK. Ele pode pesquisar o site e ler as páginas como Markdown.
+
+### Um clique em qualquer página
+
+Em qualquer página da documentação, abra o menu no canto superior direito:
+
+- **Connect to Cursor** / **Connect to VS Code** — instala o servidor MCP
+- **Copy MCP server URL** — copia `https://docs.facebetter.net/mcp`
+- **Copy page** / **View as Markdown** — usa a página atual como contexto do chat
+
+## llms.txt e Markdown por página
+
+| Recurso | URL | Quando usar |
+|----------|-----|----------|
+| Índice da docs | [https://docs.facebetter.net/llms.txt](https://docs.facebetter.net/llms.txt) | A ferramenta consegue buscar um catálogo de páginas |
+| Texto completo | [https://docs.facebetter.net/llms-full.txt](https://docs.facebetter.net/llms-full.txt) | Você quer um único arquivo com a maior parte do conteúdo |
+| Página única | Adicione `.md` a qualquer URL | ChatGPT ou ferramentas sem MCP |
+
+Exemplo de página única:
+
+```text
+https://docs.facebetter.net/pt-BR/android/quick-start.md
+```
+
+As páginas em chinês ficam em `/zh/`, por exemplo:
+
+```text
+https://docs.facebetter.net/zh/android/quick-start.md
+```
+
+## Exemplos de prompt
+
+**Com MCP conectado**
+
+```text
+Use the Facebetter docs MCP. Help me integrate Facebetter SDK 2.0 into my Android app.
+Follow Quick Start, then Implement Beauty. Use only 2.0 APIs (setSmoothing, licenseToken, FrameType). Prefer current docs over prior knowledge.
+```
+
+**Sem MCP**
+
+```text
+Read https://docs.facebetter.net/llms.txt first, then open the Android Quick Start and Implement Beauty pages (use the .md links).
+Help me integrate Facebetter into my Android project. Prefer those pages over prior knowledge.
+```
+
+Substitua Android por iOS, Web, Flutter ou outra plataforma conforme necessário.

@@ -1,0 +1,218 @@
+---
+title: "更新履歴"
+description: "Facebetter SDK リリースノート"
+---
+
+このサイトは **SDK 2.0** をドキュメント化しています。
+
+## v2.0.0
+
+2026-09-09
+
+1. **認証**: ネイティブは `licenseToken` または `appId` + `appKey`。Web は `licenseToken` のみ — トークンは自社サーバーで取得し、ブラウザ JS に `appKey` を入れないでください
+2. **美顔**: `setSmoothing`、`setWhitening`、`setSharpening`、`setRosiness`、`setBeautySkinOnly`、およびスタイルプリセット
+3. **リシェイプ**: 26 パラメータ（`FaceThin` … `BrowThickness`）、強度 `[-1.0, 1.0]`
+4. **メイク**: 強度 + Style（形状）+ Color（着色）。[パラメータ列挙](/ja/intro/makeup) を参照してください
+5. **フィルター / ステッカー**: `setFilter` / `setSticker` に `.fbd` のパスまたはバイト。`clearFilter` / `clearSticker`
+6. **バーチャル背景**: ぼかし、画像置換、クロマキー
+7. **統計**: `getStats()` — FPS、平均処理時間、セッション時間
+8. **フレームタイプ**: `FrameType.Image` / `FrameType.Video`
+9. **エラーコード**: `0` 成功、`-1` 引数不正、`-2` 未初期化、`-3` ライセンス、`-4` 非対応、`-5` IO、`-6` スロットなし、`-7` 処理、`-8` メモリ不足
+10. **Flutter**: `FBEngine.create(FBEngineConfig)`。ライブ動画はネイティブの `FacebetterPlugin.processTexture` で処理します
+
+**イベント**（`onEngineEvent` / Flutter `events`）: `0` ライセンス成功、`1` ライセンス失敗、`100` 初期化完了、`101` 初期化失敗。
+
+## v1.5.1
+
+2026-08-03
+
+1. fix: `SetSkinOnlyBeauty` 有効時、解像度の異なる画像を処理するとメモリ範囲外アクセスが発生することがありました（Web では `memory access out of bounds`。ページの完全再読み込みでのみ回復）
+2. improvement: 推論パフォーマンス
+
+## v1.5.0
+
+2026-07-30
+
+1. feature: オフラインライセンス — ダッシュボードからダウンロードし、`licenseJson` で初期化（ネットワーク不要、全プラットフォーム）
+2. docs: オンライン / オフライン認証の [ライセンスと認証](/ja/intro/license) ガイドを追加
+
+## v1.4.7
+
+2026-07-29
+
+1. feature: リップとチークのスタイル選択 API
+2. improvement: プラン更新 / アップグレードが、次のオンライン認証ですぐに反映されます
+3. fix: Web `SetSkinOnlyBeauty` のクラッシュ
+4. fix: 画像処理中の稀なクラッシュと黒フレーム
+
+## v1.4.6
+
+2026-06-22
+
+1. improvement: 顔が速く動くときのトラッキングを安定化
+
+## v1.4.5
+
+2026-06-09
+
+1. platform: Android と iOS 向け Flutter SDK
+2. docs: Flutter ドキュメント
+3. fix: 外部テクスチャモードでステッカーが黒画面になることがありました
+
+## v1.4.4
+
+2026-06-02
+
+1. fix: 外部テクスチャモードでフィルターとステッカーが正しく適用されない
+2. fix: 外部テクスチャモードでの iOS RGBA テクスチャ出力
+
+## v1.4.3
+
+2026-05-04
+
+1. feature: リップとチークのメイク効果
+2. feature: 内蔵ステッカーの追加
+3. fix: ステッカー削除 API が一部のケースで効かない
+
+## v1.4.2
+
+2026-04-23
+
+1. fix: Web ライセンス検証のエッジケース
+
+## v1.4.1
+
+2026-04-12
+
+1. platform: Windows SDK に 32-bit と 64-bit のライブラリを同梱
+
+## v1.4.0
+
+2026-03-24
+
+1. feature: 肌セグメンテーション — 新しい `SetSkinOnlyBeauty` API で、美顔を肌領域のみに適用
+
+## v1.3.2
+
+2026-03-10
+
+1. improvement: 無料版は 10 分後に透かしを表示
+2. platform: Windows SDK と Linux SDK のサポートを追加
+
+## v1.3.1
+
+2026-03-03
+
+1. web: Web npm バージョンを 1.3.0 にアップグレード
+2. improvement: ミラーインターフェイスのドキュメントを追加
+3. deprecation: enable beauty type インターフェイスを非推奨化
+
+## v1.3.0
+
+2026-02-20
+
+1. improvement: 処理パフォーマンスを最適化
+2. platform: Android が Maven リポジトリ依存に対応
+3. platform: iOS と macOS Demo が CocoaPods インストールに対応
+4. feature: スタイルフィルターとステッカーをサポート
+5. docs: フィルターとステッカーの開発ドキュメントを更新
+
+## v1.2.5
+
+2026-01-15
+
+1. improvement: 認証とレポートロジックを最適化
+2. platform: Web の認証とレポートをサポート
+
+## v1.2.2
+
+2026-01-08
+
+1. feature: 無料版を月 5000 回までに制限
+2. feature: 課金方式の追加サポート
+
+## v1.2.1
+
+2025-12-20
+
+1. feature: 透かしフィルターを追加
+2. improvement: ネットワーク検証を非同期 + コールバック通知に変更
+3. price: 料金プラン調整、Ultra ティアを追加
+
+## v1.2.0
+
+2025-12-01
+
+1. platform: 全プラットフォーム対応（Android、iOS、macOS、Windows、Linux、Web）
+2. feature: バーチャル背景
+3. feature: スタイルフィルター
+4. feature: ステッカーエフェクト
+5. feature: オンライン認証のアップグレード
+6. improvement: キーポイントの安定性を最適化
+
+## v1.1.3
+
+2025-11-10
+
+1. feature: 無料版を月 5000 回までに制限
+2. feature: 課金方式の追加サポート
+
+## v1.1.2
+
+2025-10-28
+
+1. improvement: キーポイントの安定性を最適化
+2. fix: キーポイントのジッターを修正
+
+## v1.1.1
+
+2025-10-15
+
+1. feature: LUT フィルター
+2. feature: 顔キーポイントコールバック
+3. feature: グリーンスクリーン合成
+4. feature: アプリ ID のバインドをサポート
+5. feature: オンライン認証 v2
+6. feature: マルチプロジェクト対応
+
+## v1.1.0
+
+2025-09-20
+
+1. feature: 外部テクスチャ処理をサポート
+2. improvement: API の使いやすさを最適化
+
+## v1.0.6
+
+2025-09-05
+
+1. improvement: Android、iOS、macOS Demo を最適化
+2. fix: Android レイアウト表示の問題を修正
+3. platform: Android カメラ権限チェックを追加
+
+## v1.0.5
+
+2025-08-18
+
+1. improvement: 美顔パラメータ調整を最適化
+
+## v1.0.4
+
+2025-08-01
+
+1. improvement: 顔検出精度を最適化
+2. improvement: リソースファイルサイズを最適化
+
+## v1.0.3
+
+2025-07-15
+
+1. fix: 複数顔検出時にメイクが 1 顔にしか適用されない問題を修正
+
+## v1.0.2
+
+2025-07-01
+
+1. feature: バーチャル背景サポート
+2. web: Web の中国語および英語ドキュメント
+3. web: npm インストール対応

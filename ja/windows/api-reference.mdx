@@ -1,0 +1,401 @@
+---
+title: "API リファレンス"
+description: "Facebetter SDK 2.0 の Windows C++ API"
+---
+
+<Note>
+SDK **2.0.0**。名前空間は `facebetter`。ヘッダー: `facebetter/beauty_effect_engine.h`、`beauty_params.h`、`image_frame.h`、`type_defines.h`。スタイル / 色番号 / リシェイプ列挙: [パラメータ列挙](/ja/intro/makeup)。認証: [認証とライセンス](/ja/intro/license)。Linux は **同一の** C++ API を使用します。
+</Note>
+
+## ログ
+
+### `LogLevel`
+
+```cpp
+enum class LogLevel {
+  Trace = 0,
+  Debug,
+  Info,
+  Warn,
+  Error,
+  Critical
+};
+```
+
+### `LogConfig`
+
+| フィールド | デフォルト | 説明 |
+| --- | --- | --- |
+| `console_enabled` | `false` | stdout へ出力 |
+| `file_enabled` | `false` | ファイルへ書き込み |
+| `level` | `Info` | 最低レベル |
+| `file_name` | `""` | `file_enabled` が true のときのパス |
+
+```cpp
+struct LogConfig {
+  bool console_enabled = false;
+  bool file_enabled = false;
+  LogLevel level = LogLevel::Info;
+  std::string file_name = "";
+};
+```
+
+---
+
+## エンジン
+
+### `EngineConfig`
+
+| フィールド | 説明 |
+| --- | --- |
+| `app_id` | コンソールのアプリ ID（`app_key` と合わせてオンライン v2 認証） |
+| `app_key` | コンソールのアプリキー |
+| `resource_path` | **`resource.fbd` ファイルパス**（デスクトップでは必須） |
+| `license_token` | ライセンストークン、`{token}` JSON、またはオフライン `.lic` の内容 |
+| `external_context` | `false`: SDK が OpenGL コンテキストを管理。`true`: 呼び出し側の現在のコンテキストを使用 |
+
+**認証の優先順位:** `license_token` が空でなければそのトークンをローカル検証し、`app_id` + `app_key` ではネット接続しません。それ以外は `app_id` + `app_key` で `/facebetter/v2/auth` をリクエストします。
+
+```cpp
+struct EngineConfig {
+  std::string app_id;
+  std::string app_key;
+  std::string resource_path;
+  std::string license_token;
+  bool external_context = false;
+};
+```
+
+### `BeautyEffectEngine`
+
+コピー不可。`Create` で作成し、`shared_ptr` を解放すると破棄されます。
+
+#### `SetLogConfig`（静的）
+
+```cpp
+static int SetLogConfig(const LogConfig& config);
+```
+
+`Create` **の前**に呼び出してください。成功時は `0` を返します。
+
+#### `Create`（静的）
+
+```cpp
+static std::shared_ptr<BeautyEffectEngine> Create(const EngineConfig& config);
+```
+
+失敗時は `nullptr` を返します。
+
+```cpp
+EngineConfig cfg;
+cfg.app_id = "your_app_id";
+cfg.app_key = "your_app_key";
+cfg.resource_path = "resource/resource.fbd";
+auto engine = BeautyEffectEngine::Create(cfg);
+```
+
+---
+
+### 肌
+
+強度のデフォルト範囲は `[0.0, 1.0]`、`0` はオフです。成功時は `0` を返します。
+
+```cpp
+virtual int SetSmoothing(float intensity) = 0;
+virtual int SetSmoothingStyle(beauty_params::SmoothingStyle style) = 0;
+virtual int SetWhitening(float intensity) = 0;
+virtual int SetWhiteningStyle(beauty_params::WhiteningStyle style) = 0;
+virtual int SetSharpening(float intensity) = 0;
+virtual int SetRosiness(float intensity) = 0;
+virtual int SetBeautySkinOnly(bool enabled) = 0;
+```
+
+`SetBeautySkinOnly(true)` のとき、スムージング / 美白などは検出した肌にのみ作用します。スタイル列挙: [パラメータ列挙](/ja/intro/makeup)。
+
+### リシェイプ
+
+```cpp
+virtual int SetReshape(beauty_params::Reshape param, float intensity) = 0;
+```
+
+`intensity` は **`[-1.0, 1.0]`** です。`0` でオフ。正負は反対方向です。完全なリスト: [パラメータ列挙](/ja/intro/makeup)。
+
+```cpp
+engine->SetReshape(Reshape::FaceThin, 0.4f);
+```
+
+### メイク
+
+各効果には強度があり、Style（マスク）および / または Color（着色）があります。口紅は Color のみ、瞳は Color のみ、コントアは Style のみです。
+
+```cpp
+virtual int SetLipstick(float intensity) = 0;
+virtual int SetLipstickColor(beauty_params::LipstickColor color) = 0;
+
+virtual int SetBlush(float intensity) = 0;
+virtual int SetBlushStyle(beauty_params::BlushStyle style) = 0;
+virtual int SetBlushColor(beauty_params::BlushColor color) = 0;
+
+virtual int SetContour(float intensity) = 0;
+virtual int SetContourStyle(beauty_params::ContourStyle style) = 0;
+
+virtual int SetEyeShadow(float intensity) = 0;
+virtual int SetEyeShadowStyle(beauty_params::EyeShadowStyle style) = 0;
+virtual int SetEyeShadowColor(beauty_params::EyeShadowColor color) = 0;
+
+virtual int SetEyeLiner(float intensity) = 0;
+virtual int SetEyeLinerStyle(beauty_params::EyeLinerStyle style) = 0;
+virtual int SetEyeLinerColor(beauty_params::EyeLinerColor color) = 0;
+
+virtual int SetEyebrow(float intensity) = 0;
+virtual int SetEyebrowStyle(beauty_params::EyebrowStyle style) = 0;
+virtual int SetEyebrowColor(beauty_params::EyebrowColor color) = 0;
+
+virtual int SetEyelash(float intensity) = 0;
+virtual int SetEyelashStyle(beauty_params::EyelashStyle style) = 0;
+virtual int SetEyelashColor(beauty_params::EyelashColor color) = 0;
+
+virtual int SetPupil(float intensity) = 0;
+virtual int SetPupilColor(beauty_params::PupilColor color) = 0;
+```
+
+値: [パラメータ列挙](/ja/intro/makeup)。
+
+### クロマキー
+
+バーチャル背景のマスクとして使います。塗りつぶしは引き続き `SetVirtualBackgroundBlur` / `SetVirtualBackground` で制御します。塗りつぶしがないとき、キーアウト領域は透明です。`ClearChromaKey()` は人物セグメンテーションに戻します。
+
+```cpp
+virtual int SetChromaKey(beauty_params::ChromaKeyColor color) = 0;
+virtual int ClearChromaKey() = 0;
+virtual int SetChromaKeySimilarity(float value) = 0;   // [0, 1]
+virtual int SetChromaKeySmoothness(float value) = 0;   // [0, 1]
+virtual int SetChromaKeyDesaturation(float value) = 0; // [0, 1]
+```
+
+`ChromaKeyColor`: `Green = 0`、`Blue`、`Red`。
+
+### バーチャル背景
+
+```cpp
+virtual int SetVirtualBackgroundBlur(float level) = 0;  // [0, 1]；0 で塗りつぶしをクリア
+virtual int SetVirtualBackground(const std::string& image_path) = 0;
+virtual int SetVirtualBackground(const std::vector<uint8_t>& image_data) = 0;
+virtual int ClearVirtualBackground() = 0;
+```
+
+PNG / JPEG。パスは空にできません。バイトオーバーロードはエンコード済み画像データです。
+
+### フィルター（LUT `.fbd`）
+
+GPU LUT は次の `ProcessImage` で作成されます。登録 / ID インターフェースはありません。
+
+```cpp
+virtual int SetFilter(const std::string& fbd_file_path) = 0;
+virtual int SetFilter(const std::vector<uint8_t>& fbd_data) = 0;
+virtual int ClearFilter() = 0;
+virtual int SetFilterIntensity(float intensity) = 0;  // [0, 1]
+```
+
+### ステッカー（`.fbd`）
+
+```cpp
+virtual int SetSticker(const std::string& fbd_file_path) = 0;
+virtual int SetSticker(const std::vector<uint8_t>& fbd_data) = 0;
+virtual int ClearSticker() = 0;
+virtual int AddResourcePack(const std::string& fbd_file_path) = 0;
+virtual int AddResourcePack(const std::vector<uint8_t>& fbd_data) = 0;
+virtual int Set3DSticker(const std::string& resource) = 0;
+virtual int Set3DSticker(const std::vector<uint8_t>& fbd_data) = 0;
+virtual int Clear3DSticker() = 0;
+```
+
+3D ステッカーの前にオプションパックを読み込んでください。[オプションリソースパック](/ja/intro/resource-packs)。
+
+### 統計、コールバック、処理
+
+```cpp
+virtual EngineStats GetStats() const = 0;
+virtual int SetCallbacks(const EngineCallbacks& callbacks) = 0;
+virtual const std::shared_ptr<ImageFrame> ProcessImage(
+    const std::shared_ptr<ImageFrame> image_frame) = 0;
+```
+
+`image_frame->type` を `FrameType::Image` または `FrameType::Video`（デフォルト）に設定します。出力形式はできるだけ入力と一致します。失敗時は `nullptr` を返します。
+
+```cpp
+input->type = FrameType::Video;
+auto output = engine->ProcessImage(input);
+```
+
+---
+
+## `EngineStats`
+
+```cpp
+struct EngineStats {
+  double fps = 0.0;
+  double avg_process_time_ms = 0.0;
+  double session_time_s = 0.0;
+};
+```
+
+## コールバックとイベント
+
+```cpp
+enum class EngineEventCode {
+  LicenseValidationSuccess = 0,
+  LicenseValidationFailed = 1,
+  EngineInitializationComplete = 100,
+  EngineInitializationFailed = 101,
+};
+```
+
+| コード | 意味 |
+| --- | --- |
+| `0` | 認証成功 |
+| `1` | 認証失敗 |
+| `100` | 初期化完了 |
+| `101` | 初期化失敗 |
+
+```cpp
+struct EngineCallbacks {
+  std::function<void(const std::vector<FaceDetectionResult>& results)>
+      on_face_landmarks = nullptr;
+  std::function<void(int code, const std::string& message)>
+      on_engine_event = nullptr;
+};
+```
+
+`on_face_landmarks` は毎フレーム発火することがあります（顔がないときは空です）。
+
+---
+
+## 画像
+
+### `Format`
+
+```cpp
+enum class Format {
+  I420, NV12, NV21, BGRA, RGBA, BGR, RGB, Texture
+};
+```
+
+### `Rotation`
+
+```cpp
+enum class Rotation {
+  Rotation_0, Rotation_90, Rotation_180, Rotation_270  // 時計回り
+};
+```
+
+### `FrameType`
+
+```cpp
+enum class FrameType {
+  Image = 0,  // 静止画 / 写真
+  Video = 1   // 動画ストリーム（デフォルト）
+};
+```
+
+`ImageFrame::type` に設定します。
+
+### `ImageFrame`
+
+コピー不可、スレッドセーフではありません。
+
+**ファクトリメソッド**
+
+```cpp
+static std::shared_ptr<ImageFrame> CreateWithFile(const std::string& file_path);
+static std::shared_ptr<ImageFrame> Create(
+    const uint8_t* data, int width, int height, Format format);
+static std::shared_ptr<ImageFrame> CreateWithRGBA(
+    const uint8_t* data, int width, int height, int stride);
+static std::shared_ptr<ImageFrame> CreateWithBGRA(
+    const uint8_t* data, int width, int height, int stride,
+    bool copy_data = false);
+static std::shared_ptr<ImageFrame> CreateWithRGB(
+    const uint8_t* data, int width, int height, int stride);
+static std::shared_ptr<ImageFrame> CreateWithBGR(
+    const uint8_t* data, int width, int height, int stride);
+static std::shared_ptr<ImageFrame> CreateWithI420(
+    int width, int height,
+    const uint8_t* dataY, int strideY,
+    const uint8_t* dataU, int strideU,
+    const uint8_t* dataV, int strideV);
+static std::shared_ptr<ImageFrame> CreateWithNV12(
+    int width, int height,
+    const uint8_t* dataY, int strideY,
+    const uint8_t* dataUV, int strideUV);
+static std::shared_ptr<ImageFrame> CreateWithNV21(
+    int width, int height,
+    const uint8_t* dataY, int strideY,
+    const uint8_t* dataUV, int strideUV);
+static std::shared_ptr<ImageFrame> CreateWithTexture(
+    uint32_t texture, int width, int height, int stride);
+```
+
+複数プレーンの YUV は専用ファクトリを使い、汎用 `Create` は使わないでください。
+
+**操作**
+
+```cpp
+int Rotate(Rotation rotation);
+int Mirror(const std::string& mode);       // "horizontal" | "vertical" | "both"
+void SetMirror(const std::string& mode);   // ProcessImage 内で適用。"" でクリア
+std::shared_ptr<ImageFrame> Convert(Format format) const;
+int ToFile(const std::string& path, int quality = 90) const;
+```
+
+**アクセサ:** `Width()`、`Height()`、`Stride()`、`Size()`、`GetFormat()`、`Data()`、`DataY/U/V()`、`StrideY/U/V()`、`DataUV()`、`StrideUV()`、`Texture()`、`Buffer()`、`MirrorHorizontal()`、`MirrorVertical()`。
+
+公開フィールド: `FrameType type = FrameType::Video`。
+
+---
+
+## 検出の型
+
+```cpp
+struct Point2d { float x; float y; };  // 正規化 [0, 1]
+struct Rect { float x, y, width, height; };  // 正規化
+
+struct FaceDetectionResult {
+  Rect rect;
+  std::vector<Point2d> key_points;  // 111 点
+  std::vector<float> visibility;
+  int face_id = -1;
+  float score = 0.0f;
+  float pitch = 0.0f;  // 上負下正
+  float roll = 0.0f;
+  float yaw = 0.0f;
+};
+```
+
+---
+
+## エラーコード
+
+典型的な `int` 戻り値:
+
+| コード | 意味 |
+| --- | --- |
+| `0` | 成功 |
+| `-1` | 引数不正 |
+| `-2` | 未初期化 |
+| `-3` | 認証 |
+| `-4` | 非対応 |
+| `-5` | I/O |
+| `-6` | スロットなし |
+| `-7` | 処理失敗 |
+| `-8` | メモリ不足 |
+
+---
+
+## 注意事項
+
+- **スレッドセーフ:** `ProcessImage` と状態を変える呼び出しは同一スレッドへ直列化してください（`external_context` のときは GL スレッド）。
+- **ライフサイクル:** ファクトリメソッドは `std::shared_ptr` を返します。
+- **`Data()` ポインタは読み取り専用**です。書き込まないでください。
+- **`SetRenderView`** は iOS / macOS のみです。
+- **Windows バイナリ:** `facebetter.lib` をリンクし、実行時に `facebetter.dll` を読み込みます。

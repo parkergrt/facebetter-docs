@@ -1,0 +1,171 @@
+---
+title: "エラー処理"
+description: "iOS Facebetter SDK 2.0 のエラー処理"
+---
+
+<Note>
+このページは SDK **2.0.0** に対応します。認証: [認証とライセンス](/ja/intro/license)。
+</Note>
+
+## エラーコード（`FBErrorCode`）
+
+設定系 API は `int` を返し、`0` が成功です。`createEngineWithConfig:` と `processImage:` はオブジェクトを返し、失敗時は `nil` です。
+
+| 値 | 記号 | 意味 |
+| --- | --- | --- |
+| `0` | `FBErrorCode_Success` | 成功 |
+| `-1` | `FBErrorCode_InvalidArgument` | 引数不正（空の設定、空パス、範囲外など） |
+| `-2` | `FBErrorCode_NotInitialized` | エンジン未初期化 |
+| `-3` | `FBErrorCode_License` | 認証失敗 |
+| `-4` | `FBErrorCode_Unsupported` | 非対応のフォーマット、プラットフォーム、または機能 |
+| `-5` | `FBErrorCode_IO` | ファイル / リソースの読み書き失敗 |
+| `-6` | `FBErrorCode_NoSlot` | 利用可能なスロットなし（例: 顔が多すぎる） |
+| `-7` | `FBErrorCode_Process` | フレーム処理失敗 |
+| `-8` | `FBErrorCode_OutOfMemory` | メモリ不足 |
+
+```objc
+typedef NS_ENUM(NSInteger, FBErrorCode) {
+  FBErrorCode_Success = 0,
+  FBErrorCode_InvalidArgument = -1,
+  FBErrorCode_NotInitialized = -2,
+  FBErrorCode_License = -3,
+  FBErrorCode_Unsupported = -4,
+  FBErrorCode_IO = -5,
+  FBErrorCode_NoSlot = -6,
+  FBErrorCode_Process = -7,
+  FBErrorCode_OutOfMemory = -8,
+};
+```
+
+## 戻り値の確認
+
+```objc
+FBLogConfig *logConfig = [[FBLogConfig alloc] init];
+logConfig.consoleEnabled = YES;
+logConfig.level = FBLogLevel_Info;
+int logRet = [FBBeautyEffectEngine setLogConfig:logConfig];
+if (logRet != FBErrorCode_Success) {
+  NSLog(@"setLogConfig failed: %d", logRet);
+}
+
+FBEngineConfig *config = [[FBEngineConfig alloc] init];
+config.appId = @"your_app_id";
+config.appKey = @"your_app_key";
+self.engine = [FBBeautyEffectEngine createEngineWithConfig:config];
+if (self.engine == nil) {
+  NSLog(@"Failed to create engine (check license, Bundle ID, and logs)");
+  return;
+}
+
+int ret = [self.engine setSmoothing:0.5f];
+if (ret != FBErrorCode_Success) {
+  NSLog(@"setSmoothing failed: %d", ret);
+}
+```
+
+エラーコードの共通マッピング:
+
+```objc
+NSString *FBErrorMessage(int code) {
+  switch (code) {
+    case FBErrorCode_Success: return @"Success";
+    case FBErrorCode_InvalidArgument: return @"Invalid argument";
+    case FBErrorCode_NotInitialized: return @"Engine not initialized";
+    case FBErrorCode_License: return @"License failed";
+    case FBErrorCode_Unsupported: return @"Unsupported";
+    case FBErrorCode_IO: return @"I/O failed";
+    case FBErrorCode_NoSlot: return @"No slot";
+    case FBErrorCode_Process: return @"Process failed";
+    case FBErrorCode_OutOfMemory: return @"Out of memory";
+    default: return [NSString stringWithFormat:@"Unknown (%d)", code];
+  }
+}
+```
+
+## エンジンイベント
+
+`FBEngineCallbacks.onEngineEvent` は認証と初期化を非同期で報告します。エンジン作成直後にコールバックを設定してください。
+
+| コード | 記号 | 意味 |
+| --- | --- | --- |
+| `0` | `FBEngineEventCodeLicenseValidationSuccess` | 認証成功 |
+| `1` | `FBEngineEventCodeLicenseValidationFailed` | 認証失敗 |
+| `100` | `FBEngineEventCodeInitializationComplete` | 初期化完了 |
+| `101` | `FBEngineEventCodeInitializationFailed` | 初期化失敗 |
+
+```objc
+FBEngineCallbacks *callbacks = [[FBEngineCallbacks alloc] init];
+callbacks.onEngineEvent = ^(FBEngineEventCode code, NSString * _Nullable message) {
+  switch (code) {
+    case FBEngineEventCodeLicenseValidationFailed:
+      NSLog(@"License failed: %@", message);
+      break;
+    case FBEngineEventCodeInitializationFailed:
+      NSLog(@"Init failed: %@", message);
+      break;
+    default:
+      break;
+  }
+};
+[self.engine setCallbacks:callbacks];
+```
+
+<Tip>
+`createEngineWithConfig:` が `nil` 以外を返しても、認証が成功したことにはなりません。オンライン認証は後から失敗することがあります。イベント `1` / `101` を監視してください。
+</Tip>
+
+## 画像処理
+
+フレームを検証し、`type` を設定し、`nil` は処理失敗（`FBErrorCode_Process`）として扱います。
+
+```objc
+- (FBImageFrame *)processSafely:(FBImageFrame *)input {
+  if (input == nil || input.width <= 0 || input.height <= 0) {
+    NSLog(@"Invalid FBImageFrame");
+    return nil;
+  }
+  input.type = FBFrameTypeVideo;
+  FBImageFrame *output = [self.engine processImage:input];
+  if (output == nil) {
+    NSLog(@"processImage returned nil");
+  }
+  return output;
+}
+```
+
+保存には `toFile:`（`FBErrorCode` を返す）を使います。
+
+```objc
+int saved = [output toFile:path quality:90];
+if (saved != FBErrorCode_Success) {
+  NSLog(@"toFile failed: %d", saved);
+}
+```
+
+## ログ
+
+エンジン作成の**前**にログを開きます。ファイルへ書く場合は、先にディレクトリを作成してください。
+
+```objc
+NSString *logPath = [NSTemporaryDirectory() stringByAppendingPathComponent:@"facebetter.log"];
+NSString *logDir = [logPath stringByDeletingLastPathComponent];
+[[NSFileManager defaultManager] createDirectoryAtPath:logDir
+                          withIntermediateDirectories:YES
+                                           attributes:nil
+                                                error:nil];
+
+FBLogConfig *logConfig = [[FBLogConfig alloc] init];
+logConfig.consoleEnabled = YES;
+logConfig.fileEnabled = YES;
+logConfig.level = FBLogLevel_Debug;
+logConfig.fileName = logPath;
+[FBBeautyEffectEngine setLogConfig:logConfig];
+```
+
+## よくある原因
+
+- **`-1` 引数不正**: 空の `.fbd` パス、`NSData` が nil、強度が範囲外、設定が nil。
+- **`-2` 未初期化**: `createEngineWithConfig:` 失敗後はインスタンスが `nil` です。メッセージを送らないでください。
+- **`-3` 認証**: `appId` / `appKey` の誤り、未バインドの Bundle ID、トークン期限切れ、またはオンライン認証のネットワークなし。[認証とライセンス](/ja/intro/license) を参照してください。
+- **`-5` I/O**: フィルター / ステッカー / 背景ファイルが欠けている、またはサンドボックスから読めない。
+- **外部 GL**: `externalContext = YES` のときは、同じ OpenGL ES スレッドで作成と処理を行わないと、`processImage:` が `nil` を返すことがあります。

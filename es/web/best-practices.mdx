@@ -1,0 +1,90 @@
+---
+title: "Prácticas recomendadas"
+description: "Rendimiento y seguridad del SDK Web Facebetter 2.0"
+---
+
+<Note>
+SDK **2.0.0**. Autenticación: [Autenticación y licencia](/es/intro/license).
+</Note>
+
+## Autenticación en producción
+
+Guarda `app_id` / `app_key` en el servidor. Obtén un `licenseToken` de corta duración desde **tu** backend y pásalo al motor.
+
+```javascript
+const licenseToken = await fetch('/api/facebetter/auth', { method: 'POST' }).then((r) => r.text());
+const engine = new BeautyEffectEngine(new EngineConfig({ licenseToken }));
+```
+
+<Warning>
+Nunca pongas `appKey` en un bundle de frontend.
+</Warning>
+
+Vincula el dominio exacto de producción en la Consola. Web no puede usar `.lic` sin conexión.
+
+## Un motor por página
+
+Crea **un** `BeautyEffectEngine`, llama a `init()` una vez y reutilízalo durante la sesión. No construyas un motor nuevo en cada fotograma.
+
+```javascript
+useEffect(() => {
+  let engine;
+  (async () => {
+    engine = new BeautyEffectEngine(new EngineConfig({ licenseToken }));
+    await engine.init();
+    engineRef.current = engine;
+  })();
+  return () => {
+    engineRef.current?.destroy();
+    engineRef.current = null;
+  };
+}, []);
+```
+
+## Bucle de fotogramas
+
+- Impulsa el vídeo con `requestAnimationFrame`, no con un `while` ilimitado.
+- Usa `FrameType.Video` para cámara; `FrameType.Image` para estáticos.
+- Haz coincidir el tamaño del canvas con el `ImageData` procesado para evitar un escalado extra.
+- Omite fotogramas hasta que `video.readyState >= 2` y `videoWidth > 0`.
+- Prefiere `processImage` para cámara y canvas. `processTexture` no aplica espejo.
+
+```javascript
+const result = engine.processImage(
+  video,
+  video.videoWidth,
+  video.videoHeight,
+  FrameType.Video,
+  MirrorMode.Horizontal,
+);
+ctx.putImageData(result, 0, 0);
+```
+
+## Parámetros
+
+Empieza bajo en vista previa en tiempo real (`smoothing` ~ `0.2`–`0.5`). El remodelado es `[-1, 1]`; los valores pequeños se ven más naturales en cámara.
+
+No registres `onFaceLandmarks` salvo que la UI los necesite: fuerza detección por fotograma.
+
+`setBeautySkinOnly(true)` evita manchar fondos cuando el suavizado es alto.
+
+## Recursos
+
+- Aloja `.fbd` de filtro / sticker y jpg/png de fondo como archivos estáticos; pasa la URL a `setFilter` / `setSticker` / `setVirtualBackground`.
+- Los recursos de runtime los carga el SDK durante `init()`. No pongas un `resource.fbd` en la raíz del sitio para el motor.
+- Cambia filtro / sticker con la entrada del usuario, no en cada fotograma.
+
+## Memoria
+
+- Llama a `destroy()` al desmontar / `beforeunload`.
+- Reutiliza el canvas de visualización; no asignes un canvas nuevo por fotograma.
+
+## HTTPS y CORS
+
+El acceso a la cámara necesita HTTPS o localhost. Si los assets de filtro / sticker están en otro origin, envía cabeceras CORS.
+
+## Relacionado
+
+- [Manejo de errores](/es/web/error-handling)
+- [Preguntas frecuentes](/es/web/faq)
+- [Referencia de la API](/es/web/api-reference)

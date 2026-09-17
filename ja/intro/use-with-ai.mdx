@@ -1,0 +1,68 @@
+---
+title: "AI との連携"
+description: "MCP、llms.txt、Markdown ページを使って、Facebetter ドキュメントを Cursor、Claude、ChatGPT などの AI ツールに接続します"
+---
+
+このドキュメントは、人と AI ツールの両方向けに公開されています。IDE エージェントをサイト全体に接続することも、単一ページを Markdown として貼り付けることもできます。
+
+## MCP（推奨）
+
+Cursor、Claude、VS Code、または任意の MCP クライアントに次の URL を指定します。
+
+```text
+https://docs.facebetter.net/mcp
+```
+
+接続後、SDK を統合するときに Facebetter ドキュメント MCP を使うようエージェントに伝えてください。サイトを検索し、ページを Markdown として読めます。
+
+### 任意のページからワンクリック
+
+任意のドキュメントページで、右上のメニューを開きます。
+
+- **Connect to Cursor** / **Connect to VS Code** — MCP サーバーをインストールします
+- **Copy MCP server URL** — `https://docs.facebetter.net/mcp` をコピーします
+- **Copy page** / **View as Markdown** — 現在のページをチャットのコンテキストとして使います
+
+## llms.txt とページ単位の Markdown
+
+| リソース | URL | 用途 |
+|----------|-----|----------|
+| ドキュメント一覧 | [https://docs.facebetter.net/llms.txt](https://docs.facebetter.net/llms.txt) | ツールがページカタログを取得できる場合 |
+| 全文 | [https://docs.facebetter.net/llms-full.txt](https://docs.facebetter.net/llms-full.txt) | 大部分の本文を 1 ファイルで欲しい場合 |
+| 単一ページ | 任意の URL に `.md` を付ける | MCP のない ChatGPT などのツール |
+
+単一ページの例:
+
+```text
+https://docs.facebetter.net/ja/android/quick-start.md
+```
+
+中国語ページは `/zh/` 配下です。例:
+
+```text
+https://docs.facebetter.net/zh/android/quick-start.md
+```
+
+英語ページはルートパスにあります。例:
+
+```text
+https://docs.facebetter.net/android/quick-start.md
+```
+
+## プロンプト例
+
+**MCP 接続済み**
+
+```text
+Facebetter ドキュメント MCP を使って、Android アプリに Facebetter SDK 2.0 を統合してください。
+まず「クイックスタート」、次に「美顔の実装」に従ってください。2.0 API のみを使ってください（setSmoothing、licenseToken、FrameType）。以前の知識より、現在のドキュメントを優先してください。
+```
+
+**MCP なし**
+
+```text
+先に https://docs.facebetter.net/llms.txt を読み、次に Android の「クイックスタート」と「美顔の実装」を開いてください（.md リンクを使用）。
+Android プロジェクトへの Facebetter 統合を手伝ってください。これらのページを以前の知識より優先してください。
+```
+
+必要に応じて Android を iOS、Web、Flutter、その他のプラットフォームに置き換えてください。

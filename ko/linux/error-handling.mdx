@@ -1,0 +1,156 @@
+---
+title: "오류 처리"
+description: "Facebetter SDK 2.0 오류 코드와 Linux 문제 해결"
+---
+
+<Note>
+SDK **2.0.0**. 인증: [인증 및 라이선스](/ko/intro/license).
+</Note>
+
+## 반환 값
+
+| 코드 | 의미 |
+| --- | --- |
+| `0` | 성공 |
+| `-1` | 잘못된 인자 |
+| `-2` | 미초기화 |
+| `-3` | 라이선스 |
+| `-4` | 미지원 |
+| `-5` | I/O |
+| `-6` | 슬롯 없음 |
+| `-7` | 처리 실패 |
+| `-8` | 메모리 부족 |
+
+`Create()`는 실패 시 `nullptr`을 반환합니다. `ProcessImage`도 `nullptr`을 반환할 수 있습니다.
+
+```cpp
+int ret = engine->SetSmoothing(0.5f);
+if (ret != 0) {
+    std::cerr << "SetSmoothing failed: " << ret << std::endl;
+}
+```
+
+## 엔진 이벤트
+
+| 코드 | 의미 |
+| --- | --- |
+| `0` | 라이선스 성공 |
+| `1` | 라이선스 실패 |
+| `100` | 초기화 완료 |
+| `101` | 초기화 실패 |
+
+```cpp
+EngineCallbacks cbs;
+cbs.on_engine_event = [](int code, const std::string& message) {
+    if (code == 1 || code == 101) {
+        std::cerr << "engine event " << code << ": " << message << std::endl;
+    }
+};
+engine->SetCallbacks(cbs);
+```
+
+---
+
+## 일반적인 실패
+
+### 1. `Create`가 `nullptr`을 반환함
+
+- `resource_path`가 **`resource.fbd` 파일**이 아님
+- 유효하지 않은 `license_token` 또는 `app_id` + `app_key`
+- 온라인 인증이 `/facebetter/v2/auth`에 도달할 수 없음
+- `libfacebetter.so` 버전 불일치
+
+```cpp
+LogConfig log_cfg;
+log_cfg.console_enabled = true;
+log_cfg.level = LogLevel::Debug;
+BeautyEffectEngine::SetLogConfig(log_cfg);
+
+cfg.resource_path =
+    (std::filesystem::current_path() / "resource" / "resource.fbd").string();
+auto engine = BeautyEffectEngine::Create(cfg);
+```
+
+---
+
+### 2. `libfacebetter.so`를 찾을 수 없음
+
+```
+error while loading shared libraries: libfacebetter.so: cannot open shared object file
+```
+
+```bash
+LD_LIBRARY_PATH=/path/to/sdk/lib ./your_app
+cp /path/to/sdk/lib/libfacebetter.so ./
+echo "/path/to/sdk/lib" | sudo tee /etc/ld.so.conf.d/facebetter.conf
+sudo ldconfig
+```
+
+링크 시 `RPATH`를 설정할 수도 있습니다(`-Wl,-rpath,/path/to/sdk/lib`).
+
+---
+
+### 3. `ProcessImage`가 `nullptr`을 반환함
+
+```cpp
+auto input = ImageFrame::CreateWithFile("input.jpg");
+if (!input || !input->Data()) return;
+input->type = FrameType::Image;
+auto output = engine->ProcessImage(input);
+if (!output || !output->Data()) {
+    std::cerr << "ProcessImage failed." << std::endl;
+}
+```
+
+---
+
+### 4. 효과가 변하지 않아 보임
+
+2.0에는 `SetBeautyTypeEnabled`가 없습니다. 강도를 `> 0`으로 설정하세요. 리셰이프 / 메이크업에는 얼굴이 필요합니다.
+
+```cpp
+engine->SetSmoothing(0.5f);
+engine->SetReshape(Reshape::FaceThin, 0.3f);
+input->type = FrameType::Video;
+```
+
+---
+
+### 5. GLFW가 디스플레이를 열 수 없음
+
+```
+GLFW: X11: Display variable not set
+```
+
+```bash
+echo $DISPLAY
+export DISPLAY=:0
+export WAYLAND_DISPLAY=wayland-0
+```
+
+SSH에는 X11 포워딩(`ssh -X`) 또는 로컬 compositor가 필요합니다.
+
+---
+
+### 6. OpenGL 초기화 실패
+
+```bash
+# Ubuntu / Debian
+sudo apt install libgl1-mesa-dev libglu1-mesa-dev mesa-utils
+glxinfo | grep "OpenGL version"
+```
+
+OpenGL 3.0+가 필요합니다. 헤드리스 서버는 OSMesa(`libosmesa6-dev`)를 사용하고, 오프스크린 컨텍스트에 `external_context`를 설정할 수 있습니다.
+
+---
+
+## 디버그 로그
+
+```cpp
+LogConfig log_cfg;
+log_cfg.console_enabled = true;
+log_cfg.file_enabled = true;
+log_cfg.level = LogLevel::Debug;
+log_cfg.file_name = "facebetter.log";
+BeautyEffectEngine::SetLogConfig(log_cfg);
+```

@@ -1,0 +1,42 @@
+---
+title: "Suscripción"
+description: "Activa el servicio de suscripción del SDK de Facebetter y obtén AppID y AppKey para empezar a usar las funciones de belleza"
+---
+
+## Registro / inicio de sesión
+
+Abre el [sitio de Facebetter](https://facebetter.net/es) y luego [Inicia sesión](https://facebetter.net/es/sign-in) o [Crea una cuenta](https://facebetter.net/es/sign-up). Se admite correo/contraseña e inicio de sesión social (Google, GitHub).
+
+Tras iniciar sesión llegas a la [Consola](https://facebetter.net/es/dashboard). Crea un proyecto; cada proyecto tiene su propio plan, credenciales y vinculaciones de plataforma. Los proyectos nuevos empiezan en el plan **Free** (la mayoría de los efectos disponibles; la salida siempre lleva marca de agua). Detalles de los planes: [Planes y funciones](./pricing).
+
+## Vincular información de la aplicación {#bind-application-information}
+
+Abre **Credentials** del proyecto. El SDK comprueba que la app en ejecución coincida con los identificadores vinculados en la Consola: rellena cada plataforma que vayas a publicar y guarda:
+
+- **iOS / macOS**: Bundle ID (p. ej. `com.example.app`)
+- **Android**: nombre del paquete de la aplicación (p. ej. `com.example.app`)
+- **Windows**: nombre de la aplicación o del ejecutable
+- **Linux**: nombre de la aplicación o del paquete
+- **Web**: dominio de la aplicación (p. ej. `example.com`)
+- **Flutter**: vincula **tanto** el Bundle ID de iOS como el nombre de paquete de Android
+
+La autenticación falla si faltan vinculaciones o no coinciden. En herramientas de línea de comandos sin Bundle ID, vincula el nombre del proceso como se indica en la Consola.
+
+## Suscribirse a un plan
+
+Actualiza el plan desde **Overview** o **Billing** del proyecto:
+
+1. Abre **Adjust plan** (o una acción de actualización en Overview).
+2. Elige **Monthly** o **Yearly** (el anual tiene un descuento de aproximadamente el 20 %).
+3. Elige **Basic / Pro / Pro+** (u otro nivel de pago). Consulta [Planes y funciones](./pricing).
+4. Completa el pago. Se admiten tarjeta y otros métodos habituales. La consola en chino también ofrece Alipay como prepago único (mensual o anual, sin renovación automática).
+
+En **Billing** puedes revisar renovaciones o caducidad, facturas y cancelar la renovación automática de las suscripciones con tarjeta. El prepago con Alipay hay que volver a comprarlo antes de que caduque.
+
+## Obtener AppID y AppKey {#get-appid-and-appkey}
+
+En la página **Credentials** del proyecto, copia **App ID** y **App Key**.
+
+Las apps nativas pueden autenticarse con `appId` + `appKey`, o con un `licenseToken` (cadena del token de licencia, JSON `{token}` o el contenido de un archivo `.lic` sin conexión). En Web no debes incrustar `appKey` en el JavaScript del frontend. Detalles: [Autenticación y licencia](./license).
+
+Para rotar el App Key, usa **Reset key** en la misma página. La clave anterior deja de funcionar de inmediato: actualiza primero tus apps.

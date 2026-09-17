@@ -1,0 +1,165 @@
+---
+title: "API リファレンス"
+description: "Facebetter Flutter SDK 2.0 API"
+---
+
+<Note>
+このページは SDK **2.0.0** に対応します。クラス名: **`FBEngine`**。メイク / リシェイプ列挙: [パラメータ列挙](/ja/intro/makeup)。認証: [認証とライセンス](/ja/intro/license)。
+</Note>
+
+```yaml
+dependencies:
+  facebetter_flutter: ^2.0.0
+```
+
+```dart
+import 'package:facebetter_flutter/facebetter_flutter.dart';
+```
+
+## FBEngineConfig
+
+```dart
+const FBEngineConfig({
+  String? appId,
+  String? appKey,
+  String? licenseToken,
+  bool enableLandmarks = false,
+  bool externalContext = true,
+  String? resourcePath,
+});
+```
+
+作成時に `appId` + `appKey`、または `licenseToken` を渡します。`licenseToken` が空でない場合はトークン経路になり、`appId` / `appKey` でネットワークを呼びません。
+
+## FBEngine
+
+```dart
+static Future<FBEngine> create(FBEngineConfig config)
+static String get version
+static void setLogConfig({
+  bool console = true,
+  bool file = false,
+  FBLogLevel level = FBLogLevel.info,
+  String fileName = '',
+})
+void dispose()
+```
+
+`FBEngine.create` でインスタンスを作成します。プロセス単位のシングルトンではありません。
+
+美顔 / リシェイプ / メイク / クロマキー / ぼかし / `clear*` / `setFilterIntensity` は**同期**です。フィルター、ステッカー、背景**画像**、静止画 API は **`Future`** を返します。
+
+### 肌
+
+`setSmoothing`、`setSmoothingStyle(FBSmoothingStyle)`、`setWhitening`、`setWhiteningStyle(FBWhiteningStyle)`、`setSharpening`、`setRosiness`、`setBeautySkinOnly(bool)` — 強度 `[0, 1]`。
+
+### リシェイプ
+
+`setReshape(FBReshape param, double intensity)` — **`[-1.0, 1.0]`**。Dart 名: `FBReshape.faceThin`、`faceVShape`、… `browThickness`。表は [パラメータ列挙](/ja/intro/makeup)。
+
+### メイク
+
+| 強度 | スタイル / 色 |
+| --- | --- |
+| `setLipstick` | `setLipstickColor(FBLipstickColor)` |
+| `setBlush` | `setBlushStyle`、`setBlushColor` |
+| `setContour` | `setContourStyle` |
+| `setEyeShadow` | `setEyeShadowStyle`、`setEyeShadowColor` |
+| `setEyeLiner` | `setEyeLinerStyle`、`setEyeLinerColor` |
+| `setEyebrow` | `setEyebrowStyle`、`setEyebrowColor` |
+| `setEyelash` | `setEyelashStyle`、`setEyelashColor` |
+| `setPupil` | `setPupilColor` |
+
+### フィルター / ステッカー / バーチャル背景 / クロマキー
+
+```dart
+Future<void> setFilter({String? path, Uint8List? data})
+void clearFilter()
+void setFilterIntensity(double intensity) // [0, 1]
+
+Future<void> setSticker({String? path, Uint8List? data})
+void clearSticker()
+
+Future<void> addResourcePack({String? path, Uint8List? data})
+Future<void> set3DSticker({String? path, Uint8List? data})
+void clear3DSticker()
+
+void setVirtualBackgroundBlur(double level) // [0, 1]；0 はオフ
+Future<void> setVirtualBackground({String? path, Uint8List? data})
+void clearVirtualBackground()
+
+void setChromaKey(FBChromaKeyColor color)
+void clearChromaKey()
+void setChromaKeySimilarity(double value)
+void setChromaKeySmoothness(double value)
+void setChromaKeyDesaturation(double value)
+```
+
+`path` と `data` は排他で、どちらか一方だけ必須です。3D ステッカー: [オプションリソースパック](/ja/intro/resource-packs)。
+
+### 静止画
+
+`externalContext: false` が必要です。それ以外は `StateError` を投げます。**リアルタイム前処理動画には使わないでください。**
+
+```dart
+Future<void> processFile({required String input, required String output, int quality = 90})
+Future<FBBitmap> processImageBytes(Uint8List encoded)
+Future<FBBitmap> processImageFile(String path)
+Future<ui.Image> processImageToUiImage(Uint8List encoded)
+```
+
+### 可観測性
+
+```dart
+Stream<FBEngineEvent> get events
+FBStats get stats
+```
+
+`FBStats`: `fps`、`avgProcessTimeMs`、`sessionTimeSeconds`。
+
+`FBEngineEvent`: `code`、`message`、`eventCode` → `FBEngineEventCode`:
+
+| 値 | Dart |
+| --- | --- |
+| `0` | `licenseValidationSuccess` |
+| `1` | `licenseValidationFailed` |
+| `100` | `engineInitializationComplete` |
+| `101` | `engineInitializationFailed` |
+
+## エラーコード
+
+ネイティブが `< 0` を返すと `FBException` を投げます。
+
+| `code` | 意味 |
+| --- | --- |
+| `0` | 成功（投げない） |
+| `-1` | 引数不正 |
+| `-2` | 未初期化 / 解放済み |
+| `-3` | ライセンス無効 |
+| `-4` | 非対応 |
+| `-5` | I/O |
+| `-6` | スロット満杯（バックプレッシャー） |
+| `-7` | 処理失敗 |
+| `-8` | メモリ不足 |
+
+```dart
+} on FBException catch (e) {
+  debugPrint('${e.operation} ${e.code} ${e.reason}');
+}
+```
+
+## その他の型
+
+- `FBBitmap` — `width`、`height`、`stride`、`pixels`（RGBA8888 コピー）
+- `FBLogLevel` — `trace` … `critical`
+- `FBMirror` — `none`、`horizontal`、`vertical`、`both`（ライブテクスチャ経路では通常使わない）
+- `FBFace` / `FBFaceList` / `FBRect` — `enableLandmarks: true` 時のキーポイントビュー（`kLandmarkCount` = 111）
+
+## ネイティブテクスチャ（Dart を経由しない）
+
+`externalContext: true` で `create` したあと、**相手 SDK の GL スレッド**上で:
+
+- iOS: `[FacebetterPlugin processTexture:width:height:]`
+- Android: `FacebetterPlugin.processTexture(textureId, width, height)`
+
+失敗時は `0` を返します。完全な断片は [サードパーティ連携](/ja/flutter/third-party-integration) を参照してください。

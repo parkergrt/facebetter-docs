@@ -1,0 +1,509 @@
+---
+title: "API 레퍼런스"
+description: "Facebetter SDK 2.0 Android API 레퍼런스"
+---
+
+<Note>
+이 페이지는 SDK **2.0.0**에 해당합니다. 패키지: `net.pixpark.facebetter`. 메이크업, 리셰이프, 화이트닝, 스무딩 프리셋: [파라미터 열거형](/ko/intro/makeup). 인증: [인증 및 라이선스](/ko/intro/license).
+</Note>
+
+모든 setter 메서드는 `int`를 반환합니다. `0`(`ErrorCode.SUCCESS`)은 성공이고, 음수는 [오류 코드](#errorcode)입니다.
+
+## 로깅
+
+초기화 로그를 남기려면 엔진을 생성하기 **전에** `BeautyEffectEngine.setLogConfig`를 호출하세요.
+
+### LogLevel
+
+```java
+public enum LogLevel {
+  TRACE(0, "TRACE"),
+  DEBUG(1, "DEBUG"),
+  INFO(2, "INFO"),
+  WARN(3, "WARN"),
+  ERROR(4, "ERROR"),
+  CRITICAL(5, "CRITICAL");
+}
+```
+
+| 메서드 | 설명 |
+| --- | --- |
+| `int getLevel()` | 숫자 레벨(`0`–`5`) |
+| `String getName()` | 이름 문자열 |
+| `boolean isEnabledFor(LogLevel other)` | 이 레벨이 `other` 이상이면 `true` |
+| `static LogLevel fromLevel(int level)` | 숫자 값으로 조회, 없으면 `null` |
+| `static LogLevel fromName(String name)` | 대소문자 무시 조회, 없으면 `null` |
+
+### LogConfig
+
+중첩 클래스: `BeautyEffectEngine.LogConfig`.
+
+| 필드 | 타입 | 기본값 | 설명 |
+| --- | --- | --- | --- |
+| `consoleEnabled` | `boolean` | `false` | logcat / stdout에 기록 |
+| `fileEnabled` | `boolean` | `false` | 파일에 기록 |
+| `level` | `LogLevel` | `INFO` | 내보낼 최소 레벨 |
+| `fileName` | `String` | `""` | 로그 파일 경로; `fileEnabled`가 `true`일 때만 사용 |
+
+```java
+public static class LogConfig {
+  public boolean consoleEnabled = false;
+  public boolean fileEnabled = false;
+  public LogLevel level = LogLevel.INFO;
+  public String fileName = "";
+
+  public LogConfig();
+  public LogConfig(boolean consoleEnabled, boolean fileEnabled, LogLevel level, String fileName);
+}
+```
+
+```java
+public static void setLogConfig(LogConfig config);
+```
+
+`config` 또는 `config.level`이 `null`이면 `IllegalArgumentException`을 던집니다.
+
+## 엔진
+
+### EngineConfig
+
+중첩 클래스: `BeautyEffectEngine.EngineConfig`.
+
+| 필드 | 타입 | 기본값 | 설명 |
+| --- | --- | --- | --- |
+| `appId` | `String` | — | Dashboard App ID |
+| `appKey` | `String` | — | Dashboard App Key |
+| `licenseToken` | `String` | — | 라이선스 토큰 문자열, `{token}` JSON, 또는 오프라인 `.lic` 내용 |
+| `externalContext` | `boolean` | `false` | `true` = 호출 측 OpenGL ES 컨텍스트; `false` = SDK가 소유한 컨텍스트 |
+
+**인증 우선순위:** `licenseToken`이 비어 있지 않으면 SDK가 해당 토큰을 로컬에서 검증합니다. 그렇지 않으면 `appId` + `appKey`가 필요하고 SDK가 `/facebetter/v2/auth`를 호출합니다. 세부 사항: [인증 및 라이선스](/ko/intro/license).
+
+```java
+public static class EngineConfig {
+  public String appId;
+  public String appKey;
+  public String licenseToken;
+  public boolean externalContext = false;
+
+  public EngineConfig();
+  public EngineConfig(String appId, String appKey);
+  public boolean isValid();
+}
+```
+
+`isValid()`는 `licenseToken`이 비어 있지 않거나, `appId`와 `appKey`가 모두 비어 있지 않으면 `true`를 반환합니다.
+
+### BeautyEffectEngine
+
+메인 엔진입니다. 한 번 생성하고 Activity / Fragment가 파괴되면 `release()`를 호출하세요.
+
+```java
+public BeautyEffectEngine(Context context, EngineConfig config);
+public void release();
+```
+
+`context` 또는 `config`가 `null`이거나 `config.isValid()`가 `false`이면 생성자가 `IllegalArgumentException`을 던집니다. SDK는 라이선스 바인딩에 `context.getPackageName()`을 읽습니다.
+
+### FrameType
+
+`processImage` **전에** `ImageFrame.type`에 설정합니다. 별도의 처리 모드 인자는 없습니다.
+
+| 값 | 설명 |
+| --- | --- |
+| `IMAGE` | 단일 사진 / 정지. 더 높은 품질. |
+| `VIDEO` | 카메라 / 라이브 스트림. 더 낮은 지연. 기본값. |
+
+```java
+public enum FrameType {
+  IMAGE(0),
+  VIDEO(1);
+}
+```
+
+```java
+public ImageFrame processImage(ImageFrame inputFrame);
+```
+
+`inputFrame.type`을 읽습니다. 처리된 프레임(입력과 같은 픽셀 형식)을 반환하거나, 엔진이 이미 해제되었으면 `null`을 반환합니다. `inputFrame` 또는 `inputFrame.type`이 `null`이면 `IllegalArgumentException`을 던집니다.
+
+## 뷰티
+
+강도 범위는 별도 표기가 없으면 `[0.0, 1.0]`입니다. `0`은 효과를 끕니다.
+
+```java
+public int setSmoothing(float value);
+public int setSmoothingStyle(SmoothingStyle style);
+public int setWhitening(float value);
+public int setWhiteningStyle(WhiteningStyle style);
+public int setSharpening(float value);
+public int setRosiness(float value);
+public int setBeautySkinOnly(boolean enabled);
+```
+
+| 메서드 | 설명 |
+| --- | --- |
+| `setSmoothing` | 피부 스무딩 강도 |
+| `setSmoothingStyle` | 스무딩 룩(`NATURAL`, `TEXTURE`, `SMOOTH`) |
+| `setWhitening` | 화이트닝 강도 |
+| `setWhiteningStyle` | 화이트닝 LUT(`COLD_WHITE`, `PINK_WHITE`, `WARM_WHITE`, `WHEAT`, `TAN`) |
+| `setSharpening` | 샤프닝 강도 |
+| `setRosiness` | 로지 톤 강도 |
+| `setBeautySkinOnly` | `true` = 감지된 피부에만 피부 뷰티; `false` = 전체 프레임 |
+
+스타일 열거형: [파라미터 열거형](/ko/intro/makeup).
+
+## 리셰이프
+
+```java
+public int setReshape(Reshape param, float value);
+```
+
+강도 범위 **`[-1.0, 1.0]`**. `0`은 꺼짐입니다. 양수와 음수는 반대 방향입니다.
+
+```java
+public enum Reshape {
+  FACE_THIN(0), FACE_V_SHAPE(1), FACE_NARROW(2), FACE_SHORT(3),
+  CHEEKBONE(4), JAWBONE(5), CHIN(6), NOSE_SLIM(7),
+  EYE_SIZE(8), EYE_DISTANCE(9), FACE_SMALL(10), FOREHEAD(11),
+  NOSE_LONG(12), PHILTRUM(13), MOUTH_SIZE(14), MOUTH_POSITION(15),
+  MOUTH_SMILE(16), LIP_THICKNESS(17), EYE_ROUND(18), EYE_POSITION(19),
+  EYE_ANGLE(20), EYE_CORNER_OPEN(21), LOWER_EYELID(22),
+  BROW_POSITION(23), BROW_DISTANCE(24), BROW_THICKNESS(25);
+}
+```
+
+각 값의 양/음 의미: [파라미터 열거형](/ko/intro/makeup).
+
+## 메이크업
+
+강도 `[0.0, 1.0]`. 강도를 설정한 뒤 스타일(마스크) 및/또는 색상(틴트)을 설정합니다. 동공과 컨투어는 같은 방식의 별도 틴트를 받지 않습니다. [파라미터 열거형](/ko/intro/makeup)을 참고하세요.
+
+```java
+public int setLipstick(float value);
+public int setLipstickColor(LipstickColor color);
+
+public int setBlush(float value);
+public int setBlushStyle(BlushStyle style);
+public int setBlushColor(BlushColor color);
+
+public int setContour(float value);
+public int setContourStyle(ContourStyle style);
+
+public int setEyeShadow(float value);
+public int setEyeShadowStyle(EyeShadowStyle style);
+public int setEyeShadowColor(EyeShadowColor color);
+
+public int setEyeLiner(float value);
+public int setEyeLinerStyle(EyeLinerStyle style);
+public int setEyeLinerColor(EyeLinerColor color);
+
+public int setEyebrow(float value);
+public int setEyebrowStyle(EyebrowStyle style);
+public int setEyebrowColor(EyebrowColor color);
+
+public int setEyelash(float value);
+public int setEyelashStyle(EyelashStyle style);
+public int setEyelashColor(EyelashColor color);
+
+public int setPupil(float value);
+public int setPupilColor(PupilColor color);
+```
+
+프리셋 이름은 `BeautyParams.*`에 있습니다. 전체 표: [파라미터 열거형](/ko/intro/makeup).
+
+## 가상 배경과 크로마키
+
+인물 세그멘테이션이 기본 마스크입니다. 크로마키는 마스크 소스를 바꿉니다. 채우기는 여전히 블러 또는 정지 이미지입니다.
+
+```java
+public int setChromaKey(ChromaKeyColor color);
+public int clearChromaKey();
+public int setChromaKeySimilarity(float value);
+public int setChromaKeySmoothness(float value);
+public int setChromaKeyDesaturation(float value);
+
+public int setVirtualBackgroundBlur(float level);
+public int setVirtualBackground(String imagePath);
+public int setVirtualBackground(byte[] imageData);
+public int clearVirtualBackground();
+```
+
+| 메서드 | 설명 |
+| --- | --- |
+| `setChromaKey` | 크로마키를 마스크로 사용(`GREEN`, `BLUE`, `RED`) |
+| `clearChromaKey` | 인물 세그멘테이션 마스크를 복원; 현재 채우기는 **지우지 않음** |
+| `setChromaKeySimilarity` | 픽셀이 키 색에 얼마나 가까워야 하는지. `[0.0, 1.0]` |
+| `setChromaKeySmoothness` | 가장자리 페더. `[0.0, 1.0]` |
+| `setChromaKeyDesaturation` | 반투명 가장자리의 스필 억제. `[0.0, 1.0]` |
+| `setVirtualBackgroundBlur` | 배경 블러. `[0.0, 1.0]`. **`0`은 가상 배경을 지움** |
+| `setVirtualBackground(String)` | PNG/JPG 파일로 배경 교체. 경로는 비어 있으면 안 됨 |
+| `setVirtualBackground(byte[])` | 동일, 인코딩된 PNG/JPG 바이트에서 |
+| `clearVirtualBackground` | 블러 또는 이미지 채우기를 지움 |
+
+```java
+public enum ChromaKeyColor {
+  GREEN(0),
+  BLUE(1),
+  RED(2);
+}
+```
+
+빈 경로 / 빈 `byte[]`는 `ErrorCode.INVALID_ARGUMENT`를 반환합니다.
+
+## 필터와 스티커
+
+`.fbd` 파일 경로 또는 파일 바이트(예: `assets`)를 전달합니다. 리소스는 다음 처리 프레임에서 적용됩니다. 등록 / 해제 API는 없습니다.
+
+```java
+public int setFilter(String fbdFilePath);
+public int setFilter(byte[] fbdData);
+public int clearFilter();
+public int setFilterIntensity(float intensity);
+
+public int setSticker(String fbdFilePath);
+public int setSticker(byte[] fbdData);
+public int clearSticker();
+public int addResourcePack(String fbdFilePath);
+public int addResourcePack(byte[] fbdData);
+public int set3DSticker(String resource);
+public int set3DSticker(byte[] fbdData);
+public int clear3DSticker();
+```
+
+| 메서드 | 설명 |
+| --- | --- |
+| `setFilter` | `.fbd` 경로 또는 메모리 바이트에서 LUT 필터 적용 |
+| `clearFilter` | 현재 LUT 제거 |
+| `setFilterIntensity` | 믹스 `[0.0, 1.0]` |
+| `setSticker` | `.fbd` 경로 또는 바이트에서 2D 스티커 적용 |
+| `clearSticker` | 현재 스티커 제거 |
+| `addResourcePack` | 추가 기능 팩 등록(예: `set3DSticker` 전 `resource_3d.fbd`) |
+| `set3DSticker` | `.fbd` 경로 또는 바이트에서 3D 스티커 적용 |
+| `clear3DSticker` | 3D 스티커 제거 |
+
+빈 경로 / 빈 `byte[]`는 `ErrorCode.INVALID_ARGUMENT`를 반환합니다.
+
+## 통계와 콜백
+
+```java
+public EngineStats getStats();
+public int setCallbacks(EngineCallbacks callbacks);
+```
+
+`getStats()`는 스냅샷을 반환합니다. 엔진이 초기화되지 않았으면 필드는 `0`입니다. `callbacks`가 `null`이면 `setCallbacks`는 `ErrorCode.INVALID_ARGUMENT`를 반환합니다.
+
+### EngineStats
+
+```java
+public class EngineStats {
+  public double fps;
+  public double avgProcessTimeMs;
+  public double sessionTimeS;
+
+  public EngineStats();
+  public EngineStats(double fps, double avgProcessTimeMs, double sessionTimeS);
+}
+```
+
+| 필드 | 설명 |
+| --- | --- |
+| `fps` | 최근 처리 FPS |
+| `avgProcessTimeMs` | 평균 `processImage` 시간(밀리초) |
+| `sessionTimeS` | 엔진 생성 이후 초 |
+
+### EngineCallbacks
+
+```java
+public class EngineCallbacks {
+  public OnFaceLandmarksCallback onFaceLandmarks;
+  public OnEngineEventCallback onEngineEvent;
+
+  public interface OnFaceLandmarksCallback {
+    void onFaceLandmarks(List<FaceDetectionResult> results);
+  }
+
+  public interface OnEngineEventCallback {
+    void onEngineEvent(int code, String message);
+  }
+}
+```
+
+해당 콜백을 건너뛰려면 필드를 `null`로 두세요.
+
+### EngineEventCode
+
+```java
+public final class EngineEventCode {
+  public static final int LICENSE_VALIDATION_SUCCESS = 0;
+  public static final int LICENSE_VALIDATION_FAILED = 1;
+  public static final int INITIALIZATION_COMPLETE = 100;
+  public static final int INITIALIZATION_FAILED = 101;
+}
+```
+
+| 코드 | 의미 |
+| --- | --- |
+| `0` | 라이선스 수락 |
+| `1` | 라이선스 거부; `message`에 세부 사항 |
+| `100` | 엔진이 프레임을 처리할 준비 완료 |
+| `101` | 엔진 초기화 실패; `message`에 세부 사항 |
+
+### FaceDetectionResult
+
+정규화 좌표는 처리된 프레임 기준 `[0, 1]`입니다.
+
+| 필드 | 타입 | 설명 |
+| --- | --- | --- |
+| `rect` | `Rect` | 얼굴 박스 |
+| `keyPoints` | `List<Point2d>` | 111개 랜드마크 |
+| `visibility` | `List<Float>` | 포인트별 가시성 `[0, 1]` |
+| `faceId` | `int` | 트래킹 id |
+| `score` | `float` | 검출 신뢰도 `[0, 1]` |
+| `pitch` / `roll` / `yaw` | `float` | 머리 자세(라디안), 범위 `[-π, π]` |
+
+`Point2d`는 `float x, y`를 가집니다. `Rect`는 `float x, y, width, height`(왼쪽 위 원점)입니다.
+
+## ErrorCode {#errorcode}
+
+숫자 값은 모든 플랫폼에서 같습니다.
+
+```java
+public final class ErrorCode {
+  public static final int SUCCESS = 0;
+  public static final int INVALID_ARGUMENT = -1;
+  public static final int NOT_INITIALIZED = -2;
+  public static final int LICENSE = -3;
+  public static final int UNSUPPORTED = -4;
+  public static final int IO = -5;
+  public static final int NO_SLOT = -6;
+  public static final int PROCESS = -7;
+  public static final int OUT_OF_MEMORY = -8;
+}
+```
+
+| 값 | 상수 | 의미 |
+| --- | --- | --- |
+| `0` | `SUCCESS` | 성공 |
+| `-1` | `INVALID_ARGUMENT` | null, 빈 값, 또는 범위를 벗어난 인자 |
+| `-2` | `NOT_INITIALIZED` | 엔진이 초기화되지 않았거나 이미 해제됨 |
+| `-3` | `LICENSE` | 라이선스 / 인증 실패 |
+| `-4` | `UNSUPPORTED` | 기능 또는 형식 미지원 |
+| `-5` | `IO` | 파일 또는 리소스 I/O 실패 |
+| `-6` | `NO_SLOT` | 리소스 슬롯 소진 |
+| `-7` | `PROCESS` | 프레임 처리 실패 |
+| `-8` | `OUT_OF_MEMORY` | 할당 실패 |
+
+<Note>
+**`-1`은 잘못된 인자입니다. `-2`는 초기화되지 않음입니다.**
+</Note>
+
+## ImageFrame
+
+네이티브 픽셀 버퍼를 감쌉니다. 끝나면 항상 `release()`를 호출하세요.
+
+### 생성
+
+```java
+public static ImageFrame createWithFile(String filePath);
+public static ImageFrame createWithRGBA(ByteBuffer data, int width, int height, int stride);
+public static ImageFrame createWithBGRA(ByteBuffer data, int width, int height, int stride);
+public static ImageFrame createWithRGB(ByteBuffer data, int width, int height, int stride);
+public static ImageFrame createWithBGR(ByteBuffer data, int width, int height, int stride);
+public static ImageFrame createWithI420(int width, int height,
+    ByteBuffer yBuffer, int strideY, ByteBuffer uBuffer, int strideU,
+    ByteBuffer vBuffer, int strideV);
+public static ImageFrame createWithNV12(int width, int height,
+    ByteBuffer yBuffer, int strideY, ByteBuffer uvBuffer, int strideUV);
+public static ImageFrame createWithNV21(int width, int height,
+    ByteBuffer yBuffer, int strideY, ByteBuffer vuBuffer, int strideVU);
+public static ImageFrame createWithAndroid420(int width, int height,
+    ByteBuffer yBuffer, int strideY, ByteBuffer uBuffer, int strideU,
+    ByteBuffer vBuffer, int strideV, int pixelStrideUV);
+public static ImageFrame createWithTexture(int texture, int width, int height, int stride);
+public static ImageFrame createWithBitmap(Bitmap bitmap);
+```
+
+| 팩토리 | 참고 |
+| --- | --- |
+| `createWithFile` | PNG / JPG 경로 |
+| `createWithAndroid420` | Camera2 `YUV_420_888` |
+| `createWithTexture` | **현재** GL 컨텍스트의 `GL_TEXTURE_2D`; `stride`는 보통 `width * 4` |
+| `createWithBitmap` | `ARGB_8888` 픽셀을 RGBA 프레임으로 복사 |
+
+실패 시 `null`을 반환합니다(잘못된 비트맵, 네이티브 할당 실패 등). packed / planar 팩토리에는 `ByteBuffer.allocateDirect`를 권장합니다.
+
+### 필드와 작업
+
+```java
+public FrameType type = FrameType.VIDEO;
+
+public int rotate(Rotation rotation);
+public int mirror(String mode);
+public void setMirror(String mode);
+public ImageFrame convert(Format format);
+public int toFile(String path, int quality);
+public int toFile(String path);
+public Bitmap toBitmap();
+public boolean isValid();
+public void release();
+```
+
+| 메서드 | 설명 |
+| --- | --- |
+| `rotate` | 제자리 회전. 성공 시 `0` 반환 |
+| `mirror` | 즉시 미러. `mode`: `"horizontal"`, `"vertical"`, `"both"`(대소문자 무시) |
+| `setMirror` | **`processImage` 안에서** 적용되는 플래그(추가 변환을 피함). `""` / `null`은 지움 |
+| `convert` | `format`의 **새** 프레임을 반환; 호출자가 `release()`해야 함 |
+| `toFile` | PNG/JPG 기록. Quality `1`–`100`; 오버로드 기본값은 `90` |
+| `toBitmap` | `ARGB_8888` `Bitmap`(필요하면 먼저 RGBA로 변환) |
+
+### 접근자
+
+```java
+public int getWidth();
+public int getHeight();
+public int getStride();
+public int getSize();
+public ByteBuffer getData();
+public Format getFormat();
+public int getTexture();
+
+public ByteBuffer getDataY();
+public ByteBuffer getDataU();
+public ByteBuffer getDataV();
+public ByteBuffer getDataUV();
+public int getStrideY();
+public int getStrideU();
+public int getStrideV();
+public int getStrideUV();
+```
+
+프레임이 GPU 텍스처에 바인딩되지 않았으면 `getTexture()`는 `0`을 반환합니다.
+
+### Format
+
+```java
+public enum Format {
+  I420(0),     // YUV 4:2:0 planar Y, U, V
+  NV12(1),     // YUV 4:2:0 Y + UV
+  NV21(2),     // YUV 4:2:0 Y + VU (Android camera default)
+  BGRA(3),
+  RGBA(4),
+  BGR(5),
+  RGB(6),
+  Texture(7);
+}
+```
+
+### Rotation
+
+시계 방향.
+
+```java
+public enum Rotation {
+  ROTATION_0(0),
+  ROTATION_90(1),
+  ROTATION_180(2),
+  ROTATION_270(3);
+}
+```

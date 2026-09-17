@@ -1,0 +1,90 @@
+---
+title: "권장 사항"
+description: "Facebetter Web SDK 2.0 성능과 보안"
+---
+
+<Note>
+SDK **2.0.0**. 인증: [인증 및 라이선스](/ko/intro/license).
+</Note>
+
+## 프로덕션 인증
+
+`app_id` / `app_key`는 서버에 두세요. **백엔드**에서 수명이 짧은 `licenseToken`을 받은 뒤 엔진에 전달합니다.
+
+```javascript
+const licenseToken = await fetch('/api/facebetter/auth', { method: 'POST' }).then((r) => r.text());
+const engine = new BeautyEffectEngine(new EngineConfig({ licenseToken }));
+```
+
+<Warning>
+프론트엔드 번들에 `appKey`를 넣지 마세요.
+</Warning>
+
+대시보드에 정확한 프로덕션 도메인을 바인딩하세요. Web은 오프라인 `.lic`를 사용할 수 없습니다.
+
+## 페이지당 엔진 하나
+
+**하나의** `BeautyEffectEngine`을 만들고, `init()`을 한 번 호출하고, 세션 동안 재사용하세요. 매 프레임 새 엔진을 만들지 마세요.
+
+```javascript
+useEffect(() => {
+  let engine;
+  (async () => {
+    engine = new BeautyEffectEngine(new EngineConfig({ licenseToken }));
+    await engine.init();
+    engineRef.current = engine;
+  })();
+  return () => {
+    engineRef.current?.destroy();
+    engineRef.current = null;
+  };
+}, []);
+```
+
+## 프레임 루프
+
+- 제한 없는 `while`이 아니라 `requestAnimationFrame`으로 비디오를 구동하세요.
+- 카메라에는 `FrameType.Video`, 정지에는 `FrameType.Image`를 사용하세요.
+- 추가 스케일을 피하려면 캔버스 크기를 처리된 `ImageData`에 맞추세요.
+- `video.readyState >= 2`이고 `videoWidth > 0`일 때까지 프레임을 건너뛰세요.
+- 카메라와 캔버스에는 `processImage`를 권장합니다. `processTexture`는 미러를 적용하지 않습니다.
+
+```javascript
+const result = engine.processImage(
+  video,
+  video.videoWidth,
+  video.videoHeight,
+  FrameType.Video,
+  MirrorMode.Horizontal,
+);
+ctx.putImageData(result, 0, 0);
+```
+
+## 파라미터
+
+실시간 미리보기에서는 낮게 시작하세요(`smoothing` 약 `0.2`–`0.5`). 리셰이프는 `[-1, 1]`이며, 작은 값이 카메라에서 더 자연스럽습니다.
+
+UI가 필요하지 않으면 `onFaceLandmarks`를 등록하지 마세요. 프레임마다 검출이 강제됩니다.
+
+스무딩이 높을 때 `setBeautySkinOnly(true)`는 배경이 번지는 것을 막습니다.
+
+## 리소스
+
+- 필터 / 스티커 `.fbd`와 배경 jpg/png를 정적 파일로 호스팅하고 URL을 `setFilter` / `setSticker` / `setVirtualBackground`에 전달하세요.
+- 런타임 리소스는 `init()` 동안 SDK가 로드합니다. 엔진을 위해 사이트 루트에 `resource.fbd`를 두지 마세요.
+- 매 프레임이 아니라 사용자 입력에서 필터 / 스티커를 바꾸세요.
+
+## 메모리
+
+- unmount / `beforeunload`에서 `destroy()`를 호출하세요.
+- 표시용 캔버스를 재사용하고, 프레임마다 새 캔버스를 할당하지 마세요.
+
+## HTTPS와 CORS
+
+카메라 접근에는 HTTPS 또는 localhost가 필요합니다. 필터 / 스티커 에셋이 다른 origin에 있으면 CORS 헤더를 보내세요.
+
+## 관련 문서
+
+- [오류 처리](/ko/web/error-handling)
+- [FAQ](/ko/web/faq)
+- [API 레퍼런스](/ko/web/api-reference)

@@ -1,0 +1,218 @@
+---
+title: "Notas de versão"
+description: "Notas de versão do SDK Facebetter"
+---
+
+Este site documenta o **SDK 2.0**.
+
+## v2.0.0
+
+2026-09-09
+
+1. **Auth**: nativo usa `licenseToken` ou `appId` + `appKey`. Web usa apenas `licenseToken` — busque o token no seu servidor; nunca coloque `appKey` no JS do navegador
+2. **Beleza**: `setSmoothing`, `setWhitening`, `setSharpening`, `setRosiness`, `setBeautySkinOnly`, além de predefinições de estilo
+3. **Remodelagem**: 26 parâmetros (`FaceThin` … `BrowThickness`), intensidade `[-1.0, 1.0]`
+4. **Maquiagem**: intensidade + Style (formato) + Color (tintura). Veja [Enums de parâmetros](/pt-BR/intro/makeup)
+5. **Filtro / adesivo**: `setFilter` / `setSticker` com caminho ou bytes `.fbd`; `clearFilter` / `clearSticker`
+6. **Fundo virtual**: desfoque, substituição por imagem, chroma key
+7. **Estatísticas**: `getStats()` — FPS, tempo médio de processamento, duração da sessão
+8. **Tipo de quadro**: `FrameType.Image` / `FrameType.Video`
+9. **Códigos de erro**: `0` sucesso, `-1` argumento inválido, `-2` não inicializado, `-3` licença, `-4` não suportado, `-5` IO, `-6` sem slot, `-7` processamento, `-8` OOM
+10. **Flutter**: `FBEngine.create(FBEngineConfig)`. Vídeo ao vivo é processado nativamente via `FacebetterPlugin.processTexture`
+
+**Eventos** (`onEngineEvent` / Flutter `events`): `0` licença OK, `1` falha de licença, `100` init concluído, `101` init falhou.
+
+## v1.5.1
+
+2026-08-03
+
+1. correção: com `SetSkinOnlyBeauty` ativado, processar imagens de resoluções variadas podia causar acesso à memória fora dos limites (na Web: `memory access out of bounds`; só um reload completo da página recuperava)
+2. melhoria: desempenho de inferência
+
+## v1.5.0
+
+2026-07-30
+
+1. recurso: licença offline — baixar no Console e inicializar com `licenseJson` (sem rede; todas as plataformas)
+2. docs: adicionar o guia [Autenticação e licença](/pt-BR/intro/license) para autenticação online e offline
+
+## v1.4.7
+
+2026-07-29
+
+1. recurso: APIs de seleção de estilo de batom e blush
+2. melhoria: renovações / upgrades de plano passam a valer imediatamente na próxima autenticação online
+3. correção: crash de `SetSkinOnlyBeauty` na Web
+4. correção: crashes raros e quadros pretos durante o processamento de imagem
+
+## v1.4.6
+
+2026-06-22
+
+1. melhoria: rastreamento facial mais estável quando o rosto se move rapidamente
+
+## v1.4.5
+
+2026-06-09
+
+1. plataforma: SDK Flutter para Android e iOS
+2. docs: documentação Flutter
+3. correção: adesivos podiam mostrar tela preta no modo de textura externa
+
+## v1.4.4
+
+2026-06-02
+
+1. correção: filtros e adesivos não aplicados corretamente no modo de textura externa
+2. correção: saída de textura RGBA no iOS no modo de textura externa
+
+## v1.4.3
+
+2026-05-04
+
+1. recurso: efeitos de maquiagem de batom e blush
+2. recurso: adesivos nativos adicionais
+3. correção: API de remover adesivo não surtia efeito em alguns casos
+
+## v1.4.2
+
+2026-04-23
+
+1. correção: casos extremos de validação de licença na Web
+
+## v1.4.1
+
+2026-04-12
+
+1. plataforma: SDK Windows inclui bibliotecas de 32 bits e 64 bits
+
+## v1.4.0
+
+2026-03-24
+
+1. recurso: segmentação de pele — nova API `SetSkinOnlyBeauty` para aplicar beleza apenas nas áreas de pele
+
+## v1.3.2
+
+2026-03-10
+
+1. melhoria: a versão gratuita exibe marca d'água após 10 minutos
+2. plataforma: adicionado suporte aos SDKs Windows e Linux
+
+## v1.3.1
+
+2026-03-03
+
+1. web: versão npm da web atualizada para 1.3.0
+2. melhoria: documentação da interface de espelhamento adicionada
+3. descontinuação: interface de habilitar tipo de beleza descontinuada
+
+## v1.3.0
+
+2026-02-20
+
+1. melhoria: desempenho de processamento otimizado
+2. plataforma: Android passa a suportar dependência via repositório Maven
+3. plataforma: demos iOS e macOS passam a suportar instalação via CocoaPods
+4. recurso: suporte a filtros de estilo e adesivos
+5. docs: documentação de desenvolvimento de filtros e adesivos atualizada
+
+## v1.2.5
+
+2026-01-15
+
+1. melhoria: lógica de autenticação e relatório otimizada
+2. plataforma: suporte a autenticação e relatório no SDK Web
+
+## v1.2.2
+
+2026-01-08
+
+1. recurso: versão gratuita limitada a 5000 chamadas por mês
+2. recurso: suporte a faturamento avulso
+
+## v1.2.1
+
+2025-12-20
+
+1. recurso: filtro de marca d'água adicionado
+2. melhoria: verificação de rede alterada para assíncrona + notificação por callback
+3. preço: ajuste do plano de preços, adicionado o nível Ultra
+
+## v1.2.0
+
+2025-12-01
+
+1. plataforma: suporte completo a todas as plataformas (Android, iOS, macOS, Windows, Linux, Web)
+2. recurso: fundo virtual
+3. recurso: filtros de estilo
+4. recurso: efeitos de adesivo
+5. recurso: upgrade da autenticação online
+6. melhoria: estabilidade dos pontos-chave otimizada
+
+## v1.1.3
+
+2025-11-10
+
+1. recurso: versão gratuita limitada a 5000 chamadas por mês
+2. recurso: suporte a faturamento avulso
+
+## v1.1.2
+
+2025-10-28
+
+1. melhoria: estabilidade dos pontos-chave otimizada
+2. correção: jitter dos pontos-chave corrigido
+
+## v1.1.1
+
+2025-10-15
+
+1. recurso: filtro LUT
+2. recurso: callback de pontos-chave do rosto
+3. recurso: recorte de tela verde
+4. recurso: suporte a vincular app ID
+5. recurso: autenticação online v2
+6. recurso: suporte a vários projetos
+
+## v1.1.0
+
+2025-09-20
+
+1. recurso: suporte a processamento de textura externa
+2. melhoria: usabilidade da API otimizada
+
+## v1.0.6
+
+2025-09-05
+
+1. melhoria: demos Android, iOS e macOS otimizados
+2. correção: problema de exibição de layout no Android
+3. plataforma: verificação de permissão de câmera no Android adicionada
+
+## v1.0.5
+
+2025-08-18
+
+1. melhoria: ajuste de parâmetros de beleza otimizado
+
+## v1.0.4
+
+2025-08-01
+
+1. melhoria: precisão da detecção facial otimizada
+2. melhoria: tamanho do arquivo de recursos otimizado
+
+## v1.0.3
+
+2025-07-15
+
+1. correção: maquiagem aplicada em apenas um rosto quando vários rostos eram detectados
+
+## v1.0.2
+
+2025-07-01
+
+1. recurso: suporte a fundo virtual
+2. web: documentação Web em chinês e inglês
+3. web: suporte a instalação via npm

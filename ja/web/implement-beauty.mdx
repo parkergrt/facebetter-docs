@@ -1,0 +1,270 @@
+---
+title: "美顔の実装"
+description: "Facebetter Web SDK 2.0 を統合します"
+---
+
+<Note>
+SDK **2.0.0**。認証: [認証とライセンス](/ja/intro/license)。列挙の値: [パラメータ列挙](/ja/intro/makeup)。
+</Note>
+
+## インストール
+
+```bash
+npm install facebetter
+```
+
+```javascript
+import {
+  BeautyEffectEngine,
+  EngineConfig,
+  FrameType,
+  MirrorMode,
+  Reshape,
+  SmoothingStyle,
+  WhiteningStyle,
+  LipstickColor,
+  ChromaKeyColor,
+  EngineEventCode,
+  FacebetterError,
+} from 'facebetter';
+```
+
+## エンジンの作成
+
+Web の `EngineConfig` には次のフィールド**だけ**があり、設定オブジェクトに `appId` / `appKey` はありません。
+
+| フィールド | 用途 |
+| --- | --- |
+| `licenseToken` | ライセンストークン、または `{token}` JSON。**必須。** `init()` の前に取得します。 |
+
+エンジンのランタイムファイルは `init()` 時に SDK が読み込みます。サイトルートに `resource.fbd` を置く必要はありません。任意のダウンロード進捗: `init({ onProgress })`。エンジンはトークンを取得しません。Web はオフライン `.lic` に**対応していません**。
+
+```javascript
+const licenseToken = await fetch('/api/facebetter/auth', { method: 'POST' }).then((r) => r.text());
+const engine = new BeautyEffectEngine(new EngineConfig({ licenseToken }));
+
+await engine.setLogConfig({
+  consoleEnabled: true,
+  fileEnabled: false,
+  level: 2, // TRACE=0 … CRITICAL=5
+});
+
+await engine.init();
+```
+
+<Warning>
+読み込み / 認証ログを見るには、`init()` の**前**に `setLogConfig` を呼び出してください。ブラウザはファイルログに対応していません（`fileEnabled` は無視されます）。
+</Warning>
+
+```javascript
+try {
+  await engine.init();
+} catch (error) {
+  if (error instanceof FacebetterError) {
+    console.error(error.code, error.message);
+  }
+  throw error;
+}
+```
+
+## 美肌
+
+強度範囲 **`[0.0, 1.0]`**。`0` はオフです。
+
+```javascript
+engine.setSmoothing(0.8);
+engine.setSmoothingStyle(SmoothingStyle.Natural);
+engine.setWhitening(0.5);
+engine.setWhiteningStyle(WhiteningStyle.ColdWhite);
+engine.setSharpening(0.3);
+engine.setRosiness(0.2);
+engine.setBeautySkinOnly(true);
+```
+
+<Tip>
+`setBeautySkinOnly(true)` のあと、スムージング / 美白 / シャープニング / 血色は検出された肌にのみ適用され、衣服と背景は影響を受けません。
+</Tip>
+
+スタイル列挙: [パラメータ列挙](/ja/intro/makeup)。
+
+## リシェイプ
+
+```javascript
+engine.setReshape(Reshape.FaceThin, 0.3);
+engine.setReshape(Reshape.EyeSize, 0.2);
+```
+
+範囲は **`[-1.0, 1.0]`** です。`0` はオフです。正負は逆方向です（例: `FaceThin` は瘦顔 / 頬をふっくら）。完全な一覧: [パラメータ列挙](/ja/intro/makeup)。
+
+## メイク
+
+強度、形状、色を分けて設定します。強度 `[0.0, 1.0]`。プリセット: [パラメータ列挙](/ja/intro/makeup)。
+
+```javascript
+engine.setLipstick(0.4);
+engine.setLipstickColor(LipstickColor.Rouge);
+
+engine.setBlush(0.3);
+engine.setBlushStyle(/* BlushStyle.SunKissed */);
+engine.setBlushColor(/* BlushColor.CoralPink */);
+
+engine.setContour(0.4);
+engine.setContourStyle(/* ContourStyle.Natural */);
+
+engine.setEyeShadow(0.35);
+engine.setEyeShadowStyle(/* EyeShadowStyle.Soft */);
+engine.setEyeShadowColor(/* EyeShadowColor.Plum */);
+
+engine.setEyeLiner(0.3);
+engine.setEyeLinerStyle(/* ... */);
+engine.setEyeLinerColor(/* ... */);
+
+engine.setEyebrow(0.3);
+engine.setEyebrowStyle(/* ... */);
+engine.setEyebrowColor(/* ... */);
+
+engine.setEyelash(0.3);
+engine.setEyelashStyle(/* ... */);
+engine.setEyelashColor(/* ... */);
+
+engine.setPupil(0.4);
+engine.setPupilColor(/* PupilColor.Hazel */);
+```
+
+## フィルターとステッカー
+
+`.fbd` の URL またはメモリ上の `Uint8Array` を setter に直接渡します。
+
+```javascript
+engine.setFilter('/assets/filters/portrait/natural/natural.fbd');
+engine.setFilterIntensity(0.8);
+engine.clearFilter();
+
+engine.setSticker('/stickers/face/fox.fbd');
+engine.clearSticker();
+```
+
+3D ステッカーにはオプションパック `resource_3d.fbd` が必要です（Web SDK には含まれません）。[オプションリソースパック](/ja/intro/resource-packs) を参照してください。`init()` のあとバイトで登録します。
+
+```javascript
+const pack = new Uint8Array(
+  await (await fetch('/resource_3d.fbd')).arrayBuffer()
+);
+engine.addResourcePack(pack);
+engine.set3DSticker('/stickers/3d/oculos.fbd');
+engine.clear3DSticker();
+```
+
+```javascript
+const bytes = new Uint8Array(await (await fetch('/filters/chuxin.fbd')).arrayBuffer());
+engine.setFilter(bytes);
+```
+
+## バーチャル背景とクロマキー
+
+```javascript
+engine.setVirtualBackgroundBlur(0.6);          // [0, 1]; 0 turns blur off
+engine.setVirtualBackground('/background.jpg'); // path or Uint8Array (png/jpg)
+engine.clearVirtualBackground();
+
+engine.setChromaKey(ChromaKeyColor.Green);
+engine.setChromaKeySimilarity(0.4);
+engine.setChromaKeySmoothness(0.2);
+engine.setChromaKeyDesaturation(0.3);
+engine.clearChromaKey();
+```
+
+<Tip>
+クロマキーは**マスク**だけを差し替えます。塗りつぶしは引き続き `setVirtualBackgroundBlur` または `setVirtualBackground` が制御します。ぼかしと背景画像は排他です。
+</Tip>
+
+## コールバック
+
+```javascript
+engine.setCallbacks({
+  onEngineEvent: (code, message) => {
+    if (code === EngineEventCode.LicenseValidationSuccess) {
+      console.log('license ok');
+    } else if (code === EngineEventCode.LicenseValidationFailed) {
+      console.error('license failed', message);
+    } else if (code === EngineEventCode.InitializationComplete) {
+      console.log('engine ready');
+    } else if (code === EngineEventCode.InitializationFailed) {
+      console.error('init failed', message);
+    }
+  },
+  onFaceLandmarks: (faces) => {
+    // faces[].rect, key_points, visibility, face_id, score, pitch, roll, yaw
+  },
+  maxFaces: 10,
+});
+```
+
+| コード | 名前 |
+| --- | --- |
+| `0` | `EngineEventCode.LicenseValidationSuccess` |
+| `1` | `EngineEventCode.LicenseValidationFailed` |
+| `100` | `EngineEventCode.InitializationComplete` |
+| `101` | `EngineEventCode.InitializationFailed` |
+
+キーポイントが不要なら `onFaceLandmarks` を渡さないでください。渡すと毎フレーム顔検出が走ります。
+
+## 画面の処理
+
+`processImage` を優先します。同期で `ImageData` を返します。
+
+```javascript
+const canvas = document.querySelector('canvas');
+const ctx = canvas.getContext('2d');
+const video = document.querySelector('video');
+
+function loop() {
+  if (engine.initialized && video.readyState >= 2) {
+    const result = engine.processImage(
+      video,
+      video.videoWidth,
+      video.videoHeight,
+      FrameType.Video,
+      MirrorMode.Horizontal, // front camera
+    );
+    if (result) {
+      if (canvas.width !== result.width) canvas.width = result.width;
+      if (canvas.height !== result.height) canvas.height = result.height;
+      ctx.putImageData(result, 0, 0);
+    }
+  }
+  requestAnimationFrame(loop);
+}
+loop();
+```
+
+`input` は `ImageData`、`HTMLImageElement`、`HTMLCanvasElement`、`HTMLVideoElement`、または `Uint8ClampedArray`（この場合は `width` / `height` が必須）です。
+
+- `FrameType.Video` — カメラ / ライブ（時間方向の平滑化あり）
+- `FrameType.Image` — 静止画
+
+`processTexture(textureHandle, width, height, stride, frameType, mirrorMode)` はカスタム GPU テクスチャ入力向けです。**この経路はミラーを適用しません。** 通常の Web アプリでは `processImage` を使ってください。
+
+## パフォーマンス統計
+
+```javascript
+const { fps, avgProcessTimeMs, sessionTimeS } = engine.getStats();
+```
+
+## 破棄
+
+```javascript
+engine.destroy();
+```
+
+ページのアンロード、または React/Vue コンポーネント破棄時に必ず呼び出してください。
+
+TRTC / Agora / LiveKit への接続: [サードパーティ連携](/ja/web/third-party-integration)。
+
+## 関連ドキュメント
+
+- [サードパーティ連携](/ja/web/third-party-integration)
+- [エラー処理](/ja/web/error-handling)
+- [ベストプラクティス](/ja/web/best-practices)
+- [API リファレンス](/ja/web/api-reference)
+- [よくある質問](/ja/web/faq)

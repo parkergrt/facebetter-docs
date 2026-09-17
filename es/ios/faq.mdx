@@ -1,0 +1,159 @@
+---
+title: "Preguntas frecuentes"
+description: "Preguntas habituales del SDK Facebetter 2.0 para iOS"
+---
+
+<Note>
+Esta página corresponde al SDK **2.0.0**. Autenticación: [Autenticación y licencia](/es/intro/license). Enumeraciones: [Enumeraciones de parámetros](/es/intro/makeup).
+</Note>
+
+## Integración
+
+### La creación del motor devuelve `nil`
+
+- Confirma que está configurado `licenseToken` **o** `appId` + `appKey`. El token gana si ambos están presentes.
+- Vincula el **Bundle ID** de la app en la consola.
+- La autenticación en línea necesita red hacia `/facebetter/v2/auth`.
+- Activa logs **antes** de `createEngineWithConfig:` y observa los eventos `1` (licencia fallida) y `101` (init fallido).
+- CocoaPods: `pod 'Facebetter', '2.0.0'`. Abre el `.xcworkspace`, no el `.xcodeproj`.
+
+### Faltan headers o clases
+
+- Importa `#import <Facebetter/FBBeautyEffectEngine.h>`.
+- Para un `.framework` manual, configura **Embed & Sign**.
+- Clean Build Folder y recompila.
+- Si los scripts de CocoaPods fallan en Xcode 15+, pon `ENABLE_USER_SCRIPT_SANDBOXING` en **No**.
+
+### Errores de enlace en runtime / dyld
+
+- La arquitectura debe ser **arm64**.
+- Deployment target **iOS 12.0+**.
+- Confirma que `Facebetter.framework` está en Embed Frameworks.
+
+## Autenticación
+
+### `licenseToken` frente a `appId` / `appKey`
+
+Si `licenseToken` no está vacío, el SDK verifica ese token / JSON `{token}` / `.lic` en local y **no** envía `appId` / `appKey`. En caso contrario usa autenticación en línea. Detalles: [Autenticación y licencia](/es/intro/license).
+
+### Evento `1` o `101`
+
+Falló la licencia o la inicialización. Revisa Bundle ID, plan, caducidad del token y logs. Que la creación devuelva un objeto no nulo no basta: escucha `onEngineEvent`.
+
+## Belleza
+
+### El efecto es demasiado débil o demasiado fuerte
+
+- Piel / maquillaje / filtro: `[0.0, 1.0]`.
+- Remodelado: **`[-1.0, 1.0]`** con `setReshape:intensity:` (`0` desactiva).
+- Intensidad `0` desactiva ese efecto.
+- Solo piel: `setBeautySkinOnly:`.
+
+### Valores de enumeración de maquillaje / remodelado
+
+No copies tablas en comentarios del código: usa [Enumeraciones de parámetros](/es/intro/makeup). Los nombres de Objective-C son como `FBReshape_FaceThin`, `FBLipstickColor_Rouge`.
+
+## Filtros, stickers, fondo virtual
+
+### El filtro o el sticker no hace nada
+
+Pasa la ruta o los bytes `.fbd`:
+
+```objc
+[engine setFilter:fbdPath];
+[engine setFilterIntensity:0.8f];
+[engine clearFilter];
+
+[engine setSticker:fbdPath];
+[engine clearSticker];
+```
+
+Las texturas se crean en el siguiente `processImage:` (hilo GL). Una ruta vacía / datos nil devuelve `FBErrorCode_InvalidArgument`. Un archivo que falta devuelve `FBErrorCode_IO`.
+
+### Fondo virtual
+
+```objc
+[engine setVirtualBackgroundBlur:0.6f];           // 0 clears blur
+[engine setVirtualBackground:imagePath];          // png/jpg
+[engine setVirtualBackgroundWithData:imageData];
+[engine clearVirtualBackground];
+```
+
+El croma es la **máscara**; el relleno sigue siendo desenfoque o imagen:
+
+```objc
+[engine setChromaKey:FBChromaKeyColor_Green];
+[engine setChromaKeySimilarity:0.4f];
+[engine clearChromaKey];  // back to portrait segmentation; fill stays
+```
+
+## Procesamiento
+
+### `processImage:` devuelve `nil`
+
+- El motor es `nil` o falló el init (`-2` / evento `101`).
+- Fotograma no válido (tamaño cero, formato no admitido).
+- `externalContext = YES` pero el hilo actual no tiene contexto GL.
+- Trátalo como fallo de proceso (`FBErrorCode_Process`).
+
+### Tipo de fotograma
+
+Configura `imageFrame.type` a `FBFrameTypeImage` (`0`) o `FBFrameTypeVideo` (`1`). No pases un argumento de modo de proceso.
+
+### Conversión de formato
+
+Usa `convert:` y los accesores del fotograma:
+
+```objc
+FBImageFrame *rgba = [frame convert:FBImageFormatRGBA];
+const uint8_t *data = [rgba data];
+```
+
+YUV: `dataY` / `dataU` / `dataV` / `dataUV` y el `stride*` correspondiente.
+
+### UIImage
+
+```objc
+FBImageFrame *frame = [FBImageFrame createWithUIImage:image];
+frame.type = FBFrameTypeImage;
+FBImageFrame *out = [engine processImage:frame];
+```
+
+### Vista previa de cámara
+
+1. Lee `CVPixelBuffer` de `AVCaptureVideoDataOutput`.
+2. Construye `FBImageFrame` con `createWithNV12:...` o `createWithBGRA:...`.
+3. Configura `type = FBFrameTypeVideo`, opcionalmente `setMirror:@"horizontal"`.
+4. `processImage:` y luego muestra `[output data]` o `[output texture]`.
+
+## Rendimiento y memoria
+
+- Usa `FBFrameTypeVideo` para directo; baja la resolución si `getStats.avgProcessTimeMs` es alto.
+- Un motor, cola serial; no proceses en el hilo principal.
+- Libera fotogramas con ARC (`frame = nil`). Reutiliza buffers de captura.
+- Evita `setFilter:` / `setSticker:` en cada fotograma.
+
+## Logging
+
+```objc
+FBLogConfig *logConfig = [[FBLogConfig alloc] init];
+logConfig.consoleEnabled = YES;
+logConfig.fileEnabled = YES;
+logConfig.level = FBLogLevel_Debug;
+logConfig.fileName = logPath;
+[FBBeautyEffectEngine setLogConfig:logConfig];  // before createEngineWithConfig:
+```
+
+Códigos de retorno: `0` correcto, `-1` argumento no válido, `-2` no inicializado. Lista completa: [Manejo de errores](/es/ios/error-handling).
+
+## Versión
+
+- **iOS 12.0+**, **arm64**.
+- CocoaPods: `pod 'Facebetter', '2.0.0'`.
+- Tras actualizar: `pod install`, Clean Build Folder, vuelve a probar autenticación y `processImage:`.
+
+## Hilos
+
+- Motor predeterminado: cola serial para todos los `processImage:` y setters que tocan recursos GL.
+- `externalContext = YES`: crea + procesa en el hilo GL.
+- Actualiza la UI solo en la cola principal.

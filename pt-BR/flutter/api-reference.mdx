@@ -1,0 +1,165 @@
+---
+title: "Referência da API"
+description: "API do Facebetter Flutter SDK 2.0"
+---
+
+<Note>
+Esta página corresponde ao SDK **2.0.0**. Classe: **`FBEngine`**. Enums de maquiagem / remodelagem: [Enums de parâmetros](/pt-BR/intro/makeup). Autenticação: [Autenticação e licença](/pt-BR/intro/license).
+</Note>
+
+```yaml
+dependencies:
+  facebetter_flutter: ^2.0.0
+```
+
+```dart
+import 'package:facebetter_flutter/facebetter_flutter.dart';
+```
+
+## FBEngineConfig
+
+```dart
+const FBEngineConfig({
+  String? appId,
+  String? appKey,
+  String? licenseToken,
+  bool enableLandmarks = false,
+  bool externalContext = true,
+  String? resourcePath,
+});
+```
+
+Crie com `appId` + `appKey`, ou `licenseToken`. Se `licenseToken` não estiver vazio, ele é usado e o `appId` / `appKey` online é ignorado.
+
+## FBEngine
+
+```dart
+static Future<FBEngine> create(FBEngineConfig config)
+static String get version
+static void setLogConfig({
+  bool console = true,
+  bool file = false,
+  FBLogLevel level = FBLogLevel.info,
+  String fileName = '',
+})
+void dispose()
+```
+
+Crie uma instância com `FBEngine.create`. Não é um singleton de processo.
+
+Beleza / remodelagem / maquiagem / chroma / desfoque / `clear*` / `setFilterIntensity` são **síncronos**. Filtro, adesivo, **imagem** de fundo e APIs de foto retornam **`Future`**.
+
+### Pele
+
+`setSmoothing`, `setSmoothingStyle(FBSmoothingStyle)`, `setWhitening`, `setWhiteningStyle(FBWhiteningStyle)`, `setSharpening`, `setRosiness`, `setBeautySkinOnly(bool)` — intensidade `[0, 1]`.
+
+### Remodelagem
+
+`setReshape(FBReshape param, double intensity)` — **`[-1.0, 1.0]`**. Nomes Dart: `FBReshape.faceThin`, `faceVShape`, … `browThickness`. Tabelas: [Enums de parâmetros](/pt-BR/intro/makeup).
+
+### Maquiagem
+
+| Intensidade | Estilo / cor |
+| --- | --- |
+| `setLipstick` | `setLipstickColor(FBLipstickColor)` |
+| `setBlush` | `setBlushStyle`, `setBlushColor` |
+| `setContour` | `setContourStyle` |
+| `setEyeShadow` | `setEyeShadowStyle`, `setEyeShadowColor` |
+| `setEyeLiner` | `setEyeLinerStyle`, `setEyeLinerColor` |
+| `setEyebrow` | `setEyebrowStyle`, `setEyebrowColor` |
+| `setEyelash` | `setEyelashStyle`, `setEyelashColor` |
+| `setPupil` | `setPupilColor` |
+
+### Filtro / adesivo / fundo virtual / chroma
+
+```dart
+Future<void> setFilter({String? path, Uint8List? data})
+void clearFilter()
+void setFilterIntensity(double intensity) // [0, 1]
+
+Future<void> setSticker({String? path, Uint8List? data})
+void clearSticker()
+
+Future<void> addResourcePack({String? path, Uint8List? data})
+Future<void> set3DSticker({String? path, Uint8List? data})
+void clear3DSticker()
+
+void setVirtualBackgroundBlur(double level) // [0, 1]; 0 clears
+Future<void> setVirtualBackground({String? path, Uint8List? data})
+void clearVirtualBackground()
+
+void setChromaKey(FBChromaKeyColor color)
+void clearChromaKey()
+void setChromaKeySimilarity(double value)
+void setChromaKeySmoothness(double value)
+void setChromaKeyDesaturation(double value)
+```
+
+`path` e `data` são mutuamente exclusivos; exatamente um é obrigatório. Para adesivos 3D, veja [Pacotes de recursos opcionais](/pt-BR/intro/resource-packs).
+
+### Foto
+
+Exige `externalContext: false`. Lança `StateError` caso contrário. **Não use para vídeo de pré-processamento ao vivo.**
+
+```dart
+Future<void> processFile({required String input, required String output, int quality = 90})
+Future<FBBitmap> processImageBytes(Uint8List encoded)
+Future<FBBitmap> processImageFile(String path)
+Future<ui.Image> processImageToUiImage(Uint8List encoded)
+```
+
+### Observabilidade
+
+```dart
+Stream<FBEngineEvent> get events
+FBStats get stats
+```
+
+`FBStats`: `fps`, `avgProcessTimeMs`, `sessionTimeSeconds`.
+
+`FBEngineEvent`: `code`, `message`, `eventCode` → `FBEngineEventCode`:
+
+| Valor | Dart |
+| --- | --- |
+| `0` | `licenseValidationSuccess` |
+| `1` | `licenseValidationFailed` |
+| `100` | `engineInitializationComplete` |
+| `101` | `engineInitializationFailed` |
+
+## FBException
+
+Lançada quando uma chamada nativa retorna `< 0`.
+
+| `code` | Significado |
+| --- | --- |
+| `0` | Sucesso (não lançado) |
+| `-1` | Argumento inválido |
+| `-2` | Não inicializado / disposed |
+| `-3` | Licença |
+| `-4` | Não suportado |
+| `-5` | I/O |
+| `-6` | Sem slot (back-pressure) |
+| `-7` | Falha no processamento |
+| `-8` | Sem memória |
+
+```dart
+} on FBException catch (e) {
+  debugPrint('${e.operation} ${e.code} ${e.reason}');
+}
+```
+
+## Outros tipos
+
+- `FBBitmap` — `width`, `height`, `stride`, `pixels` (cópia RGBA8888)
+- `FBLogLevel` — `trace` … `critical`
+- `FBMirror` — `none`, `horizontal`, `vertical`, `both` (geralmente não usado no caminho de textura ao vivo)
+- `FBFace` / `FBFaceList` / `FBRect` — views de landmarks (`kLandmarkCount` = 111) quando `enableLandmarks: true`
+
+## Textura nativa (não Dart)
+
+Depois de `create` com `externalContext: true`, chame no **thread GL do SDK do fornecedor**:
+
+- iOS: `[FacebetterPlugin processTexture:width:height:]`
+- Android: `FacebetterPlugin.processTexture(textureId, width, height)`
+
+Retorna `0` em caso de falha. Snippets completos: [Integração com terceiros](/pt-BR/flutter/third-party-integration).

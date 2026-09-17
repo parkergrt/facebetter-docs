@@ -1,0 +1,218 @@
+---
+title: "변경 로그"
+description: "Facebetter SDK 릴리스 노트"
+---
+
+이 사이트는 **SDK 2.0**을 문서화합니다.
+
+## v2.0.0
+
+2026-09-09
+
+1. **인증**: 네이티브는 `licenseToken` 또는 `appId` + `appKey`를 사용합니다. Web은 `licenseToken`만 사용합니다. 토큰은 서버에서 받고, 브라우저 JS에 `appKey`를 넣지 마세요
+2. **뷰티**: `setSmoothing`, `setWhitening`, `setSharpening`, `setRosiness`, `setBeautySkinOnly`와 스타일 프리셋
+3. **리셰이프**: 26개 파라미터(`FaceThin` … `BrowThickness`), 강도 `[-1.0, 1.0]`
+4. **메이크업**: 강도 + Style(형태) + Color(틴트). [파라미터 열거형](./makeup)을 참고하세요
+5. **필터 / 스티커**: `setFilter` / `setSticker`에 `.fbd` 경로 또는 바이트; `clearFilter` / `clearSticker`
+6. **가상 배경**: 블러, 이미지 교체, 크로마키
+7. **통계**: `getStats()` — FPS, 평균 처리 시간, 세션 길이
+8. **프레임 유형**: `FrameType.Image` / `FrameType.Video`
+9. **오류 코드**: `0` 성공, `-1` 잘못된 인자, `-2` 미초기화, `-3` 라이선스, `-4` 미지원, `-5` IO, `-6` 슬롯 없음, `-7` 처리, `-8` 메모리 부족
+10. **Flutter**: `FBEngine.create(FBEngineConfig)`. 실시간 영상은 네이티브 `FacebetterPlugin.processTexture`로 처리합니다
+
+**이벤트** (`onEngineEvent` / Flutter `events`): `0` 라이선스 성공, `1` 라이선스 실패, `100` 초기화 완료, `101` 초기화 실패.
+
+## v1.5.1
+
+2026-08-03
+
+1. fix: `SetSkinOnlyBeauty`가 켜진 상태에서 해상도가 다른 이미지를 처리하면 메모리 범위 초과가 발생할 수 있음(Web에서는 `memory access out of bounds`; 전체 페이지 새로고침으로만 복구)
+2. improvement: 추론 성능
+
+## v1.5.0
+
+2026-07-30
+
+1. feature: 오프라인 라이선스 — 대시보드에서 다운로드하고 `licenseJson`으로 초기화(네트워크 불필요, 모든 플랫폼)
+2. docs: 온라인·오프라인 인증용 [라이선스 및 인증](./license) 가이드 추가
+
+## v1.4.7
+
+2026-07-29
+
+1. feature: 립스틱 및 블러셔 스타일 선택 API
+2. improvement: 요금제 갱신 / 업그레이드가 다음 온라인 인증에서 즉시 반영
+3. fix: Web `SetSkinOnlyBeauty` 크래시
+4. fix: 이미지 처리 중 드문 크래시와 블랙 프레임
+
+## v1.4.6
+
+2026-06-22
+
+1. improvement: 얼굴이 빠르게 움직일 때 트래킹이 더 안정적
+
+## v1.4.5
+
+2026-06-09
+
+1. platform: Android 및 iOS용 Flutter SDK
+2. docs: Flutter 문서
+3. fix: 외부 텍스처 모드에서 스티커가 블랙 스크린을 표시할 수 있음
+
+## v1.4.4
+
+2026-06-02
+
+1. fix: 외부 텍스처 모드에서 필터와 스티커가 올바르게 적용되지 않음
+2. fix: 외부 텍스처 모드의 iOS RGBA 텍스처 출력
+
+## v1.4.3
+
+2026-05-04
+
+1. feature: 립스틱 및 블러셔 메이크업 효과
+2. feature: 추가 내장 스티커
+3. fix: 일부 경우 스티커 제거 API가 반영되지 않음
+
+## v1.4.2
+
+2026-04-23
+
+1. fix: Web 라이선스 검증 엣지 케이스
+
+## v1.4.1
+
+2026-04-12
+
+1. platform: Windows SDK에 32비트와 64비트 라이브러리 모두 포함
+
+## v1.4.0
+
+2026-03-24
+
+1. feature: 피부 세그멘테이션 — 피부 영역에만 뷰티를 적용하는 `SetSkinOnlyBeauty` API 추가
+
+## v1.3.2
+
+2026-03-10
+
+1. improvement: 무료 버전은 10분 후 워터마크 표시
+2. platform: Windows SDK 및 Linux SDK 지원 추가
+
+## v1.3.1
+
+2026-03-03
+
+1. web: web npm 버전을 1.3.0으로 업그레이드
+2. improvement: 미러 인터페이스 문서 추가
+3. deprecation: enable beauty type 인터페이스 폐기
+
+## v1.3.0
+
+2026-02-20
+
+1. improvement: 처리 성능 최적화
+2. platform: Android Maven 저장소 의존성 지원
+3. platform: iOS 및 macOS Demo CocoaPods 설치 지원
+4. feature: 스타일 필터와 스티커 지원
+5. docs: 필터 및 스티커 개발 문서 업데이트
+
+## v1.2.5
+
+2026-01-15
+
+1. improvement: 인증 및 리포팅 로직 최적화
+2. platform: Web 인증 및 리포팅 지원
+
+## v1.2.2
+
+2026-01-08
+
+1. feature: 무료 버전 월 최대 5000회 호출
+2. feature: 사용량 기반 과금 지원
+
+## v1.2.1
+
+2025-12-20
+
+1. feature: 워터마크 필터 추가
+2. improvement: 네트워크 검증을 비동기 + 콜백 알림으로 변경
+3. price: 가격 플랜 조정, Ultra 등급 추가
+
+## v1.2.0
+
+2025-12-01
+
+1. platform: 전체 플랫폼 지원(Android, iOS, macOS, Windows, Linux, Web)
+2. feature: 가상 배경
+3. feature: 스타일 필터
+4. feature: 스티커 효과
+5. feature: 온라인 인증 업그레이드
+6. improvement: 키포인트 안정성 최적화
+
+## v1.1.3
+
+2025-11-10
+
+1. feature: 무료 버전 월 최대 5000회 호출
+2. feature: 사용량 기반 과금
+
+## v1.1.2
+
+2025-10-28
+
+1. improvement: 키포인트 안정성 최적화
+2. fix: 키포인트 떨림 문제 수정
+
+## v1.1.1
+
+2025-10-15
+
+1. feature: LUT 필터
+2. feature: 얼굴 키포인트 콜백
+3. feature: 그린스크린 매팅
+4. feature: 앱 ID 바인딩 지원
+5. feature: 온라인 인증 v2
+6. feature: 멀티 프로젝트 지원
+
+## v1.1.0
+
+2025-09-20
+
+1. feature: 외부 텍스처 처리 지원
+2. improvement: API 사용성 최적화
+
+## v1.0.6
+
+2025-09-05
+
+1. improvement: Android, iOS, macOS Demo 최적화
+2. fix: Android 레이아웃 표시 문제 수정
+3. platform: Android 카메라 권한 확인 추가
+
+## v1.0.5
+
+2025-08-18
+
+1. improvement: 뷰티 파라미터 조절 최적화
+
+## v1.0.4
+
+2025-08-01
+
+1. improvement: 얼굴 검출 정확도 최적화
+2. improvement: 리소스 파일 크기 최적화
+
+## v1.0.3
+
+2025-07-15
+
+1. fix: 여러 얼굴이 감지될 때 메이크업이 한 얼굴에만 적용되던 문제 수정
+
+## v1.0.2
+
+2025-07-01
+
+1. feature: 가상 배경 지원
+2. web: Web 중·영문 문서
+3. web: npm 설치 지원

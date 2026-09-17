@@ -1,0 +1,134 @@
+---
+title: "Preguntas frecuentes"
+description: "Preguntas habituales del SDK Facebetter 2.0 para macOS"
+---
+
+<Note>
+Esta página corresponde al SDK **2.0.0**. Autenticación: [Autenticación y licencia](/es/intro/license). Enumeraciones: [Enumeraciones de parámetros](/es/intro/makeup).
+</Note>
+
+## Integración
+
+### La creación del motor devuelve `nil`
+
+- Confirma que está configurado `licenseToken` **o** `appId` + `appKey`. El token gana si ambos están presentes.
+- Vincula el **Bundle ID** de Mac (herramientas CLI: nombre del proceso).
+- La autenticación en línea necesita **Outgoing Connections** en el App Sandbox y una ruta a `/facebetter/v2/auth`.
+- Activa logs **antes** de `createEngineWithConfig:` y observa los eventos `1` / `101`.
+- CocoaPods: `pod 'Facebetter', '2.0.0'`. Abre el `.xcworkspace`.
+
+### Faltan headers o clases
+
+- Importa `#import <Facebetter/FBBeautyEffectEngine.h>`.
+- `.framework` manual: **Embed & Sign**.
+- Sandbox de CocoaPods en Xcode 15+: pon `ENABLE_USER_SCRIPT_SANDBOXING` en **No**.
+
+### Errores de enlace en runtime / dyld
+
+- Arquitecturas: **x86_64** y **arm64**.
+- Deployment target **macOS 10.15+**.
+
+## Autenticación
+
+### `licenseToken` frente a `appId` / `appKey`
+
+Si `licenseToken` no está vacío, el SDK verifica ese token / JSON `{token}` / `.lic` en local. En caso contrario usa autenticación en línea. Detalles: [Autenticación y licencia](/es/intro/license).
+
+### Evento `1` o `101`
+
+Falló la licencia o la inicialización. Revisa Bundle ID, red del sandbox, caducidad del token y logs.
+
+## Belleza
+
+### El efecto es demasiado débil o demasiado fuerte
+
+- Piel / maquillaje / filtro: `[0.0, 1.0]`.
+- Remodelado: **`[-1.0, 1.0]`** con `setReshape:intensity:`.
+- Intensidad `0` desactiva ese efecto.
+- Solo piel: `setBeautySkinOnly:`.
+
+Nombres de estilos: [Enumeraciones de parámetros](/es/intro/makeup).
+
+## Filtros, stickers, fondo virtual
+
+Pasa la ruta o los bytes `.fbd`. Las apps en sandbox deben poder leer esa ruta.
+
+```objc
+[engine setFilter:fbdPath];
+[engine setFilterIntensity:0.8f];
+[engine clearFilter];
+[engine setSticker:fbdPath];
+[engine clearSticker];
+```
+
+Fondo virtual:
+
+```objc
+[engine setVirtualBackgroundBlur:0.6f];
+[engine setVirtualBackground:imagePath];
+[engine setVirtualBackgroundWithData:imageData];
+[engine clearVirtualBackground];
+[engine setChromaKey:FBChromaKeyColor_Green];
+[engine clearChromaKey];
+```
+
+## Procesamiento
+
+### `processImage:` devuelve `nil`
+
+Fotograma no válido, init fallido, o `externalContext = YES` sin un contexto GL actual.
+
+### Tipo de fotograma
+
+Configura `imageFrame.type` a `FBFrameTypeImage` (`0`) o `FBFrameTypeVideo` (`1`). Sin argumento de modo de proceso.
+
+### Conversión de formato
+
+Usa `convert:`:
+
+```objc
+FBImageFrame *rgba = [frame convert:FBImageFormatRGBA];
+const uint8_t *data = [rgba data];
+```
+
+### NSImage
+
+```objc
+FBImageFrame *frame = [FBImageFrame createWithNSImage:nsImage];
+frame.type = FBFrameTypeImage;
+FBImageFrame *out = [engine processImage:frame];
+```
+
+### Cámara
+
+1. `AVCaptureVideoDataOutput` → `CVPixelBuffer`.
+2. `createWithNV12:...` o `createWithBGRA:...`.
+3. `type = FBFrameTypeVideo`, opcionalmente `setMirror:@"horizontal"`.
+4. Muestra `[output data]` o `[output texture]` en una vista AppKit / OpenGL.
+
+## Rendimiento
+
+- `FBFrameTypeVideo` para directo; observa `getStats`.
+- Un motor, cola serial.
+- Pausa la captura cuando la ventana esté minimizada.
+
+## Logging
+
+```objc
+[FBBeautyEffectEngine setLogConfig:logConfig];  // before createEngineWithConfig:
+```
+
+Escribe logs dentro del contenedor del sandbox. Códigos de retorno: [Manejo de errores](/es/macos/error-handling).
+
+## Versión
+
+- **macOS 10.15+**, **x86_64** + **arm64**.
+- CocoaPods: `pod 'Facebetter', '2.0.0'`.
+- Universal Binary: confirma que el xcframework contiene ambos slices (`lipo -info`).
+
+## Sandbox y App Store
+
+- Red saliente para autenticación en línea.
+- `NSCameraUsageDescription` para la cámara.
+- Bookmarks con ámbito de seguridad para archivos seleccionados por el usuario.
+- No uses APIs privadas; mantén el motor fuera del hilo principal para vídeo en directo.

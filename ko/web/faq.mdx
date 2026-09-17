@@ -1,0 +1,101 @@
+---
+title: "FAQ"
+description: "Facebetter Web SDK 2.0 FAQ"
+---
+
+<Note>
+SDK **2.0.0**. 인증: [인증 및 라이선스](/ko/intro/license). 열거형: [파라미터 열거형](/ko/intro/makeup).
+</Note>
+
+## 연동
+
+### 엔진 생성 / `init()` 실패
+
+- `EngineConfig`에는 비어 있지 않은 `licenseToken`이 있어야 합니다. Web 설정에는 `appId` / `appKey` 필드가 없습니다.
+- 프로덕션: 서버가 인증 API 본문(`{success, token}` 또는 오류 JSON)을 반환해야 합니다. [인증 및 라이선스](/ko/intro/license)를 참고하세요.
+- 페이지가 SDK 런타임 파일을 다운로드할 수 있는지 확인하세요(번들러 / CDN). [오류 처리](/ko/web/error-handling)를 참고하세요.
+- 페이지가 HTTPS 또는 localhost인지 확인하세요.
+- `FacebetterError.code`를 확인하세요([오류 처리](/ko/web/error-handling)).
+
+### AppID / AppKey는 어떻게 전달하나요?
+
+전달하지 않습니다. `EngineConfig`에 넣지 마세요. 서버에 보관하고 토큰을 받은 뒤 `licenseToken`을 전달하세요.
+
+### 브라우저에서 오프라인 `.lic`를 사용할 수 있나요?
+
+아니요. Web은 온라인 v2 경로를 완료해야 합니다.
+
+### 패키지는 어떻게 업데이트하나요?
+
+```bash
+npm install facebetter@2.0.0
+```
+
+## 효과
+
+### 뷰티가 약하거나 너무 강함
+
+강도는 `[0.0, 1.0]`입니다. 리셰이프는 `[-1.0, 1.0]`입니다(`0` = 꺼짐). 정지 이미지에는 `FrameType.Image`를 시도하세요. 스타일 열거형: [파라미터 열거형](/ko/intro/makeup).
+
+### 필터 / 스티커가 동작하지 않음
+
+`.fbd` **경로 또는 바이트**를 `setFilter` / `setSticker`에 직접 전달하세요. 빈 문자열은 예외를 던집니다. 끄려면 `clearFilter()` / `clearSticker()`를 호출하세요.
+
+### 가상 배경이 비어 있음
+
+options 객체가 아니라 `setVirtualBackgroundBlur(level)` 또는 `setVirtualBackground(path|Uint8Array)`를 호출하세요. 블러 `0`은 효과를 지웁니다. 그린스크린에서 `setChromaKey`는 마스크만 설정하므로, 블러 또는 이미지도 설정해야 합니다.
+
+### 출력이 검정색
+
+비디오에 아직 프레임이 없을 수 있습니다(`videoWidth === 0`). Canvas 컨텍스트가 없을 수 있습니다. `engine.initialized` 이후에만 `processImage`를 호출하세요.
+
+## 성능
+
+### 미리보기가 느림
+
+`FrameType.Video`를 사용하고, 캡처 해상도를 제한하며(예: 720p), 랜드마크 콜백을 피하고, 루프를 `requestAnimationFrame`에서 실행하세요. `engine.getStats().avgProcessTimeMs`를 확인하세요.
+
+### SPA에서 메모리가 증가함
+
+페이지를 떠날 때 `engine.destroy()`를 호출하세요. 라우트 변경 시 엔진이 누수되지 않게 하세요.
+
+## 호환성
+
+지원: Chrome 57+, Firefox 52+, Safari 11+, Edge 16+. 모바일에서는 캡처 해상도와 효과 강도를 낮추세요.
+
+## React 예제
+
+```jsx
+import { useEffect, useRef } from 'react';
+import { BeautyEffectEngine, EngineConfig } from 'facebetter';
+
+function BeautyPreview() {
+  const engineRef = useRef(null);
+
+  useEffect(() => {
+    let engine;
+    (async () => {
+      const licenseToken = await fetch('/api/facebetter/auth', { method: 'POST' }).then((r) => r.text());
+      engine = new BeautyEffectEngine(new EngineConfig({ licenseToken }));
+      engineRef.current = engine;
+      await engine.init();
+    })().catch(console.error);
+    return () => {
+      engine?.destroy();
+      engineRef.current = null;
+    };
+  }, []);
+
+  return <canvas />;
+}
+```
+
+전체 샘플: SDK 저장소의 `demo/web/react`.
+
+## 관련 문서
+
+- [빠른 시작](/ko/web/quick-start)
+- [뷰티 효과 적용](/ko/web/implement-beauty)
+- [오류 처리](/ko/web/error-handling)
+- [권장 사항](/ko/web/best-practices)
+- [API 레퍼런스](/ko/web/api-reference)

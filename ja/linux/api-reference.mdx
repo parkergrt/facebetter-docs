@@ -1,0 +1,222 @@
+---
+title: "API リファレンス"
+description: "Facebetter SDK 2.0 の Linux C++ API"
+---
+
+<Note>
+SDK **2.0.0**。名前空間は `facebetter`。[Windows](/ja/windows/api-reference) と同一の公開 C++ API です。ヘッダー: `facebetter/*.h`。列挙: [パラメータ列挙](/ja/intro/makeup)。認証: [認証とライセンス](/ja/intro/license)。
+</Note>
+
+## Linux の注意点
+
+- `libfacebetter.so` を配布します。`LD_LIBRARY_PATH`、rpath、または `ldconfig` を設定してください。
+- SDK のビルドは `./scripts/build_linux.sh`（成果物は `build/linux/release`）、または CMake です。
+- `resource_path` は **`resource.fbd` ファイル**である必要があります。
+- `SetRenderView` はありません。
+- `external_context = true` は呼び出しスレッドの現在の GL コンテキスト（GLFW / EGL / OSMesa）を使用します。
+
+```cmake
+target_include_directories(app PRIVATE /path/to/sdk/include)
+target_link_libraries(app PRIVATE /path/to/sdk/lib/libfacebetter.so GL)
+```
+
+---
+
+## ログ
+
+```cpp
+enum class LogLevel { Trace = 0, Debug, Info, Warn, Error, Critical };
+
+struct LogConfig {
+  bool console_enabled = false;
+  bool file_enabled = false;
+  LogLevel level = LogLevel::Info;
+  std::string file_name = "";
+};
+
+static int BeautyEffectEngine::SetLogConfig(const LogConfig& config);
+```
+
+`Create` **の前**に `SetLogConfig` を呼び出してください。
+
+---
+
+## エンジン
+
+### `EngineConfig`
+
+| フィールド | 説明 |
+| --- | --- |
+| `app_id` / `app_key` | ネイティブのオンライン v2 認証 |
+| `resource_path` | `resource.fbd` ファイルパス（ディレクトリではありません） |
+| `license_token` | トークン / `{token}` JSON / `.lic` — 空でなければ優先 |
+| `external_context` | `false`: SDK が OpenGL を管理。`true`: 呼び出し側のコンテキスト |
+
+```cpp
+struct EngineConfig {
+  std::string app_id;
+  std::string app_key;
+  std::string resource_path;
+  std::string license_token;
+  bool external_context = false;
+};
+
+static std::shared_ptr<BeautyEffectEngine> BeautyEffectEngine::Create(
+    const EngineConfig& config);
+```
+
+---
+
+### 肌
+
+```cpp
+int SetSmoothing(float intensity);          // [0, 1]
+int SetSmoothingStyle(SmoothingStyle style);
+int SetWhitening(float intensity);
+int SetWhiteningStyle(WhiteningStyle style);
+int SetSharpening(float intensity);
+int SetRosiness(float intensity);
+int SetBeautySkinOnly(bool enabled);
+```
+
+### リシェイプ
+
+```cpp
+int SetReshape(Reshape param, float intensity);  // [-1, 1]
+```
+
+完全な `Reshape` リスト: [パラメータ列挙](/ja/intro/makeup)。
+
+### メイク
+
+```cpp
+int SetLipstick(float);        int SetLipstickColor(LipstickColor);
+int SetBlush(float);           int SetBlushStyle(BlushStyle); int SetBlushColor(BlushColor);
+int SetContour(float);         int SetContourStyle(ContourStyle);
+int SetEyeShadow(float);       int SetEyeShadowStyle(...); int SetEyeShadowColor(...);
+int SetEyeLiner(float);        int SetEyeLinerStyle(...);  int SetEyeLinerColor(...);
+int SetEyebrow(float);         int SetEyebrowStyle(...);   int SetEyebrowColor(...);
+int SetEyelash(float);         int SetEyelashStyle(...);   int SetEyelashColor(...);
+int SetPupil(float);           int SetPupilColor(PupilColor);
+```
+
+口紅は Color のみ、瞳は Color のみ、コントアは Style のみです。値: [パラメータ列挙](/ja/intro/makeup)。
+
+### クロマキーとバーチャル背景
+
+```cpp
+int SetChromaKey(ChromaKeyColor color);  // Green, Blue, Red
+int ClearChromaKey();
+int SetChromaKeySimilarity(float);
+int SetChromaKeySmoothness(float);
+int SetChromaKeyDesaturation(float);
+
+int SetVirtualBackgroundBlur(float level);  // [0, 1]；0 で塗りつぶしをクリア
+int SetVirtualBackground(const std::string& image_path);
+int SetVirtualBackground(const std::vector<uint8_t>& image_data);
+int ClearVirtualBackground();
+```
+
+### フィルターとステッカー
+
+パスまたはエンコード済み `.fbd` バイトです。登録 / ID インターフェースはありません。次の `ProcessImage` の後に反映されます。
+
+```cpp
+int SetFilter(const std::string& fbd_file_path);
+int SetFilter(const std::vector<uint8_t>& fbd_data);
+int ClearFilter();
+int SetFilterIntensity(float intensity);
+
+int SetSticker(const std::string& fbd_file_path);
+int SetSticker(const std::vector<uint8_t>& fbd_data);
+int ClearSticker();
+int AddResourcePack(const std::string& fbd_file_path);
+int AddResourcePack(const std::vector<uint8_t>& fbd_data);
+int Set3DSticker(const std::string& resource);
+int Set3DSticker(const std::vector<uint8_t>& fbd_data);
+int Clear3DSticker();
+```
+
+3D ステッカーの前にオプションパックを読み込んでください。[オプションリソースパック](/ja/intro/resource-packs)。
+
+### 統計、コールバック、処理
+
+```cpp
+EngineStats GetStats() const;
+int SetCallbacks(const EngineCallbacks& callbacks);
+const std::shared_ptr<ImageFrame> ProcessImage(
+    const std::shared_ptr<ImageFrame> image_frame);
+```
+
+`frame->type` を `FrameType::Image` または `FrameType::Video` に設定します。
+
+```cpp
+struct EngineStats {
+  double fps = 0.0;
+  double avg_process_time_ms = 0.0;
+  double session_time_s = 0.0;
+};
+```
+
+---
+
+## イベント
+
+| コード | 意味 |
+| --- | --- |
+| `0` | 認証成功 |
+| `1` | 認証失敗 |
+| `100` | 初期化完了 |
+| `101` | 初期化失敗 |
+
+```cpp
+struct EngineCallbacks {
+  std::function<void(const std::vector<FaceDetectionResult>&)> on_face_landmarks;
+  std::function<void(int code, const std::string& message)> on_engine_event;
+};
+```
+
+---
+
+## 画像
+
+```cpp
+enum class Format { I420, NV12, NV21, BGRA, RGBA, BGR, RGB, Texture };
+enum class Rotation { Rotation_0, Rotation_90, Rotation_180, Rotation_270 };
+enum class FrameType { Image = 0, Video = 1 };
+```
+
+**ファクトリ:** `CreateWithFile`、`Create`、`CreateWithRGBA/BGRA/RGB/BGR`、`CreateWithI420/NV12/NV21`、`CreateWithTexture`。
+
+**操作:** `Rotate`、`Mirror("horizontal"|"vertical"|"both")`、`SetMirror`、`Convert`、`ToFile`。
+
+**アクセサ:** `Width/Height/Stride/Size/GetFormat/Data`、YUV プレーン、`Texture()`、`Buffer()`。フィールド: `FrameType type`。
+
+```cpp
+struct FaceDetectionResult {
+  Rect rect;
+  std::vector<Point2d> key_points;  // 111
+  std::vector<float> visibility;
+  int face_id = -1;
+  float score = 0.0f;
+  float pitch, roll, yaw;
+};
+```
+
+---
+
+## エラーコード
+
+| コード | 意味 |
+| --- | --- |
+| `0` | 成功 |
+| `-1` | 引数不正 |
+| `-2` | 未初期化 |
+| `-3` | 認証 |
+| `-4` | 非対応 |
+| `-5` | I/O |
+| `-6` | スロットなし |
+| `-7` | 処理失敗 |
+| `-8` | メモリ不足 |
+
+`ProcessImage` は同一スレッドへ直列化してください。`Data()` のピクセルポインタは読み取り専用です。

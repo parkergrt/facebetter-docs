@@ -1,0 +1,464 @@
+---
+title: "Implementar beleza"
+description: "Integre o Facebetter SDK 2.0 no Android"
+---
+
+## Adicionar o SDK
+
+### Método A: Maven (recomendado)
+
+Nos repositórios do `build.gradle` / `settings.gradle` do projeto:
+
+```groovy
+repositories {
+    mavenCentral()
+}
+```
+
+`build.gradle` do módulo:
+
+```groovy
+dependencies {
+    implementation 'net.pixpark:facebetter:2.0.0'
+}
+```
+
+**Version Catalog** (`gradle/libs.versions.toml`):
+
+```toml
+[versions]
+facebetter = "2.0.0"
+
+[libraries]
+facebetter = { group = "net.pixpark", name = "facebetter", version.ref = "facebetter" }
+```
+
+```groovy
+dependencies {
+    implementation libs.facebetter
+}
+```
+
+### Método B: AAR local
+
+Baixe o SDK em [Downloads](https://facebetter.net/pt-BR/download), copie `facebetter.aar` para `libs/` e, em seguida:
+
+```groovy
+dependencies {
+    implementation files('libs/facebetter.aar')
+    implementation libs.appcompat
+    implementation libs.material
+}
+```
+
+### Permissões
+
+`AndroidManifest.xml`:
+
+```xml
+<!-- Required for online auth (appId + appKey → /facebetter/v2/auth) -->
+<uses-permission android:name="android.permission.INTERNET" />
+<uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+
+<!-- Optional: only if you write SDK logs outside app storage -->
+<uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+<uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+
+<!-- Optional: camera preview / live beauty -->
+<uses-permission android:name="android.permission.CAMERA" />
+```
+
+| Permissão | Quando |
+| --- | --- |
+| Rede | Obrigatória para `appId` + `appKey` online. `licenseToken` offline não precisa da rede para validação |
+| Armazenamento | Somente se `LogConfig.fileEnabled` gravar fora do diretório do app |
+| Câmera | Somente se você capturar quadros ao vivo |
+
+Solicite `CAMERA` em runtime na API 23+.
+
+## Imports
+
+```java
+import net.pixpark.facebetter.BeautyEffectEngine;
+import net.pixpark.facebetter.BeautyParams.*;
+import net.pixpark.facebetter.EngineCallbacks;
+import net.pixpark.facebetter.EngineEventCode;
+import net.pixpark.facebetter.EngineStats;
+import net.pixpark.facebetter.ErrorCode;
+import net.pixpark.facebetter.ImageFrame;
+```
+
+## Logs
+
+O logging vem desligado por padrão. Ative-o **antes** de `new BeautyEffectEngine(...)`.
+
+<Warning>
+Chame `setLogConfig` antes de construir o mecanismo, ou você perderá os logs de inicialização.
+</Warning>
+
+```java
+BeautyEffectEngine.LogConfig logConfig = new BeautyEffectEngine.LogConfig();
+logConfig.consoleEnabled = true;
+logConfig.fileEnabled = true;
+logConfig.level = BeautyEffectEngine.LogLevel.INFO;
+logConfig.fileName = getFilesDir() + "/facebetter.log";
+BeautyEffectEngine.setLogConfig(logConfig);
+```
+
+## Criar o mecanismo
+
+Credenciais: [Assinatura](/pt-BR/intro/enable-service#get-appid-and-appkey). Detalhes de autenticação: [Autenticação e licença](/pt-BR/intro/license).
+
+Se `licenseToken` não estiver vazio, ele é usado (token de licença / JSON `{token}` / `.lic` offline). Caso contrário, `appId` + `appKey` chamam `/facebetter/v2/auth`.
+
+```java
+BeautyEffectEngine.EngineConfig config = new BeautyEffectEngine.EngineConfig();
+config.appId = "your appId";
+config.appKey = "your appKey";
+// config.licenseToken = "/* license token, {token} JSON, or .lic contents */";
+// config.externalContext = false;
+
+BeautyEffectEngine engine;
+try {
+    engine = new BeautyEffectEngine(this, config);
+} catch (IllegalArgumentException e) {
+    Log.e(TAG, "Invalid EngineConfig", e);
+    return;
+}
+```
+
+O construtor não retorna `null`; ele lança se `config` for inválido. Observe `EngineEventCode.INITIALIZATION_COMPLETE` / `INITIALIZATION_FAILED` nos callbacks para o init assíncrono.
+
+## Beleza
+
+Intensidade `[0.0, 1.0]`. `0` desativa o efeito. Verifique `ErrorCode.SUCCESS` (`0`).
+
+```java
+engine.setSmoothing(0.5f);
+engine.setSmoothingStyle(SmoothingStyle.NATURAL);
+engine.setWhitening(0.3f);
+engine.setWhiteningStyle(WhiteningStyle.COLD_WHITE);
+engine.setSharpening(0.2f);
+engine.setRosiness(0.15f);
+engine.setBeautySkinOnly(true);
+```
+
+<Tip>
+Com `setBeautySkinOnly(true)`, suavização / clareamento / nitidez / tom rosado se aplicam apenas na pele detectada. Roupas e fundo permanecem inalterados.
+</Tip>
+
+Estilos: [Enums de parâmetros](/pt-BR/intro/makeup).
+
+## Remodelagem
+
+Faixa **`[-1.0, 1.0]`**. `0` desliga.
+
+```java
+engine.setReshape(Reshape.FACE_THIN, 0.4f);
+engine.setReshape(Reshape.EYE_SIZE, 0.3f);
+engine.setReshape(Reshape.CHIN, -0.2f);
+```
+
+Todos os 26 parâmetros (`FACE_THIN` … `BROW_THICKNESS`) e direções positiva / negativa: [Enums de parâmetros](/pt-BR/intro/makeup).
+
+## Maquiagem
+
+Defina a intensidade e, em seguida, o estilo e/ou a cor.
+
+```java
+engine.setLipstick(0.6f);
+engine.setLipstickColor(LipstickColor.ROUGE);
+
+engine.setBlush(0.4f);
+engine.setBlushStyle(BlushStyle.SUN_KISSED);
+engine.setBlushColor(BlushColor.CORAL_PINK);
+
+engine.setContour(0.35f);
+engine.setContourStyle(ContourStyle.NATURAL);
+
+engine.setEyeShadow(0.45f);
+engine.setEyeShadowStyle(EyeShadowStyle.SOFT);
+engine.setEyeShadowColor(EyeShadowColor.PLUM);
+
+engine.setEyeLiner(0.4f);
+engine.setEyeLinerStyle(EyeLinerStyle.CLASSIC);
+
+engine.setEyebrow(0.35f);
+engine.setEyebrowStyle(EyebrowStyle.NATURAL);
+
+engine.setEyelash(0.4f);
+engine.setEyelashStyle(EyelashStyle.CLASSIC);
+
+engine.setPupil(0.3f);
+engine.setPupilColor(PupilColor.HAZEL);
+```
+
+Listas completas de predefinições: [Enums de parâmetros](/pt-BR/intro/makeup).
+
+## Fundo virtual e chroma key
+
+Desfoque (`0` limpa), imagem estática ou máscara de chroma key + preenchimento.
+
+```java
+engine.setVirtualBackgroundBlur(0.6f);
+
+int ret = engine.setVirtualBackground("/sdcard/bg.jpg");
+if (ret != ErrorCode.SUCCESS) {
+    Log.e(TAG, "setVirtualBackground failed: " + ret);
+}
+
+byte[] png = loadAssetBytes("backgrounds/office.png");
+engine.setVirtualBackground(png);
+
+engine.setChromaKey(ChromaKeyColor.GREEN);
+engine.setChromaKeySimilarity(0.4f);
+engine.setChromaKeySmoothness(0.3f);
+engine.setChromaKeyDesaturation(0.2f);
+
+engine.clearChromaKey();
+engine.clearVirtualBackground();
+```
+
+`clearChromaKey()` restaura a segmentação de retrato e **não** remove o preenchimento atual de desfoque/imagem.
+
+## Filtros e adesivos
+
+Carregue um `.fbd` a partir de um caminho de arquivo ou `assets`. Não há passo de registro.
+
+```java
+engine.setFilter(getFilesDir() + "/filters/vivid.fbd");
+engine.setFilterIntensity(0.8f);
+
+byte[] lut = loadAssetBytes("filters/vivid.fbd");
+engine.setFilter(lut);
+
+engine.clearFilter();
+
+engine.setSticker(getFilesDir() + "/stickers/cherry.fbd");
+byte[] sticker = loadAssetBytes("stickers/cherry.fbd");
+engine.setSticker(sticker);
+engine.clearSticker();
+```
+
+Adesivos 3D precisam do pacote opcional `resource_3d.fbd` (não está no AAR). Veja [Pacotes de recursos opcionais](/pt-BR/intro/resource-packs). Registre-o a partir dos assets do seu app e, em seguida, aplique um `.fbd` de adesivo 3D:
+
+```java
+engine.addResourcePack(loadAssetBytes("resource_3d.fbd"));
+engine.set3DSticker(loadAssetBytes("stickers/3d/oculos.fbd"));
+engine.clear3DSticker();
+```
+
+Alterações de filtro / adesivo passam a valer no próximo `processImage`.
+
+```java
+private byte[] loadAssetBytes(String path) throws IOException {
+    try (InputStream in = getAssets().open(path);
+         ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+        byte[] buf = new byte[4096];
+        int n;
+        while ((n = in.read(buf)) >= 0) {
+            out.write(buf, 0, n);
+        }
+        return out.toByteArray();
+    }
+}
+```
+
+## Callbacks e estatísticas
+
+```java
+EngineCallbacks callbacks = new EngineCallbacks();
+callbacks.onEngineEvent = (code, message) -> {
+    switch (code) {
+        case EngineEventCode.LICENSE_VALIDATION_SUCCESS:
+            Log.d(TAG, "License OK");
+            break;
+        case EngineEventCode.LICENSE_VALIDATION_FAILED:
+            Log.e(TAG, "License failed: " + message);
+            break;
+        case EngineEventCode.INITIALIZATION_COMPLETE:
+            Log.d(TAG, "Engine ready");
+            break;
+        case EngineEventCode.INITIALIZATION_FAILED:
+            Log.e(TAG, "Init failed: " + message);
+            break;
+        default:
+            break;
+    }
+};
+callbacks.onFaceLandmarks = results -> {
+    Log.d(TAG, "faces=" + results.size());
+};
+engine.setCallbacks(callbacks);
+
+EngineStats stats = engine.getStats();
+Log.d(TAG, "fps=" + stats.fps + " avgMs=" + stats.avgProcessTimeMs
+    + " sessionS=" + stats.sessionTimeS);
+```
+
+## Processar quadros
+
+<Warning>
+Chame `ImageFrame.release()` em cada quadro que você criar (e na saída de `processImage`). Pular isso vaza memória nativa.
+</Warning>
+
+Defina `ImageFrame.type` como `FrameType.IMAGE` (still) ou `FrameType.VIDEO` (câmera / ao vivo). `processImage` recebe **apenas** o quadro — sem argumento extra de modo.
+
+```java
+ByteBuffer data = ByteBuffer.allocateDirect(width * height * 4);
+ImageFrame input = ImageFrame.createWithRGBA(data, width, height, width * 4);
+input.type = ImageFrame.FrameType.VIDEO;
+ImageFrame output = engine.processImage(input);
+```
+
+A partir de um arquivo ou `Bitmap`:
+
+```java
+ImageFrame input = ImageFrame.createWithFile("/sdcard/photo.jpg");
+input.type = ImageFrame.FrameType.IMAGE;
+ImageFrame output = engine.processImage(input);
+Bitmap preview = output.toBitmap();
+```
+
+Rotacione / espelhe antes do processamento se o sensor da câmera estiver rotacionado:
+
+```java
+input.rotate(ImageFrame.Rotation.ROTATION_90);
+input.mirror("horizontal");
+```
+
+<Tip>
+O mecanismo mantém os formatos de pixel de entrada e saída alinhados (NV21 in → NV21 out, RGBA in → RGBA out).
+</Tip>
+
+Leia os pixels com `getData()` / acessores planares, ou converta:
+
+```java
+ImageFrame rgba = output.convert(ImageFrame.Format.RGBA);
+ByteBuffer pixels = rgba.getData();
+int w = rgba.getWidth();
+int h = rgba.getHeight();
+int stride = rgba.getStride();
+rgba.release();
+
+ImageFrame i420 = output.convert(ImageFrame.Format.I420);
+ByteBuffer y = i420.getDataY();
+ByteBuffer u = i420.getDataU();
+ByteBuffer v = i420.getDataV();
+i420.release();
+```
+
+## Pipeline da câmera
+
+Caminho típico Camera2 `YUV_420_888` → mecanismo → exibição:
+
+```java
+Image.Plane[] planes = image.getPlanes();
+ImageFrame input = ImageFrame.createWithAndroid420(
+    image.getWidth(), image.getHeight(),
+    planes[0].getBuffer(), planes[0].getRowStride(),
+    planes[1].getBuffer(), planes[1].getRowStride(),
+    planes[2].getBuffer(), planes[2].getRowStride(),
+    planes[1].getPixelStride());
+if (input == null) {
+    image.close();
+    return;
+}
+if (isFrontCamera) {
+    input.rotate(ImageFrame.Rotation.ROTATION_270);
+    input.mirror("horizontal");
+} else {
+    input.rotate(ImageFrame.Rotation.ROTATION_90);
+}
+input.type = ImageFrame.FrameType.VIDEO;
+ImageFrame output = engine.processImage(input);
+image.close();
+```
+
+## Textura externa (OpenGL ES)
+
+<Warning>
+Crie o mecanismo no thread GL com `externalContext = true`. As texturas de entrada e saída precisam compartilhar esse contexto.
+</Warning>
+
+Use isto quando você já renderiza com OpenGL ES e quer evitar idas e voltas na CPU.
+
+```java
+BeautyEffectEngine.EngineConfig config = new BeautyEffectEngine.EngineConfig();
+config.appId = "your appId";
+config.appKey = "your appKey";
+config.externalContext = true;
+BeautyEffectEngine engine = new BeautyEffectEngine(context, config);
+engine.setSmoothing(0.5f);
+```
+
+```java
+int stride = srcWidth * 4;
+ImageFrame input = ImageFrame.createWithTexture(srcTextureId, srcWidth, srcHeight, stride);
+if (input == null) {
+    return;
+}
+input.type = ImageFrame.FrameType.VIDEO;
+ImageFrame output = engine.processImage(input);
+if (output == null) {
+    input.release();
+    return;
+}
+int dstTextureId = output.getTexture();
+int dstWidth = output.getWidth();
+int dstHeight = output.getHeight();
+output.release();
+input.release();
+```
+
+Estado de sampler recomendado para a entrada `GL_TEXTURE_2D`:
+
+```java
+GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_MIN_FILTER, GLES20.GL_LINEAR);
+GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_MAG_FILTER, GLES20.GL_LINEAR);
+GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_WRAP_S, GLES20.GL_CLAMP_TO_EDGE);
+GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_WRAP_T, GLES20.GL_CLAMP_TO_EDGE);
+```
+
+Observações:
+
+- Textura de entrada: `GL_TEXTURE_2D`, tipicamente RGBA; `stride` costuma ser `width * 4`
+- Crie o mecanismo de forma lazy no primeiro callback GL para que o contexto esteja atual
+- A textura de saída é do SDK; não chame `glDeleteTextures` nela. Libere o `ImageFrame`
+- Se o contexto GL for perdido, chame `release()` no mecanismo e crie-o de novo no novo contexto
+- Use `FrameType.VIDEO` para pipelines GL ao vivo
+- Para TRTC / Agora / LiveKit e SDKs semelhantes: [Integração com terceiros](/pt-BR/android/third-party-integration)
+
+## Ciclo de vida
+
+<Warning>
+Chame `engine.release()` em `onDestroy` / `onDetach`. Mecanismos não liberados vazam memória GPU e nativa.
+</Warning>
+
+```java
+@Override
+protected void onDestroy() {
+    super.onDestroy();
+    if (mBeautyEngine != null) {
+        mBeautyEngine.release();
+        mBeautyEngine = null;
+    }
+}
+```
+
+```java
+if (input != null) {
+    input.release();
+}
+if (output != null) {
+    output.release();
+}
+```
+
+## Relacionado
+
+- [Integração com terceiros](/pt-BR/android/third-party-integration)
+- [Práticas recomendadas](/pt-BR/android/best-practices)
+- [Tratamento de erros](/pt-BR/android/error-handling)
+- [Perguntas frequentes](/pt-BR/android/faq)
+- [Referência da API](/pt-BR/android/api-reference)

@@ -1,0 +1,270 @@
+---
+title: "뷰티 효과 적용"
+description: "Facebetter Web SDK 2.0을 연동합니다"
+---
+
+<Note>
+SDK **2.0.0**. 인증: [인증 및 라이선스](/ko/intro/license). 열거형 값: [파라미터 열거형](/ko/intro/makeup).
+</Note>
+
+## 설치
+
+```bash
+npm install facebetter
+```
+
+```javascript
+import {
+  BeautyEffectEngine,
+  EngineConfig,
+  FrameType,
+  MirrorMode,
+  Reshape,
+  SmoothingStyle,
+  WhiteningStyle,
+  LipstickColor,
+  ChromaKeyColor,
+  EngineEventCode,
+  FacebetterError,
+} from 'facebetter';
+```
+
+## 엔진 만들기
+
+Web의 `EngineConfig`에는 **이 필드만** 있습니다. 설정 객체에 `appId` / `appKey`는 없습니다.
+
+| 필드 | 용도 |
+| --- | --- |
+| `licenseToken` | 라이선스 토큰 문자열, 또는 `{token}` JSON. **필수.** `init()` 전에 받으세요. |
+
+SDK는 `init()` 동안 런타임 파일을 로드합니다. 엔진을 위해 사이트 루트에 `resource.fbd`를 두지 마세요. 선택적 다운로드 진행률: `init({ onProgress })`. 엔진은 토큰을 fetch하지 않습니다. Web은 오프라인 `.lic`를 지원하지 **않습니다**.
+
+```javascript
+const licenseToken = await fetch('/api/facebetter/auth', { method: 'POST' }).then((r) => r.text());
+const engine = new BeautyEffectEngine(new EngineConfig({ licenseToken }));
+
+await engine.setLogConfig({
+  consoleEnabled: true,
+  fileEnabled: false,
+  level: 2, // TRACE=0 … CRITICAL=5
+});
+
+await engine.init();
+```
+
+<Warning>
+로드 / 인증 로그를 보려면 `init()` 전에 `setLogConfig`를 호출하세요. 브라우저에서는 파일 로깅을 지원하지 않습니다(`fileEnabled`는 무시됨).
+</Warning>
+
+```javascript
+try {
+  await engine.init();
+} catch (error) {
+  if (error instanceof FacebetterError) {
+    console.error(error.code, error.message);
+  }
+  throw error;
+}
+```
+
+## 피부 뷰티
+
+강도 범위 **`[0.0, 1.0]`**. `0`이면 효과가 꺼집니다.
+
+```javascript
+engine.setSmoothing(0.8);
+engine.setSmoothingStyle(SmoothingStyle.Natural);
+engine.setWhitening(0.5);
+engine.setWhiteningStyle(WhiteningStyle.ColdWhite);
+engine.setSharpening(0.3);
+engine.setRosiness(0.2);
+engine.setBeautySkinOnly(true);
+```
+
+<Tip>
+`setBeautySkinOnly(true)`는 스무딩 / 미백 / 샤프닝 / 혈색을 감지된 피부에만 제한합니다. 옷과 배경은 그대로입니다.
+</Tip>
+
+스타일 열거형: [파라미터 열거형](/ko/intro/makeup).
+
+## 페이스 리셰이프
+
+```javascript
+engine.setReshape(Reshape.FaceThin, 0.3);
+engine.setReshape(Reshape.EyeSize, 0.2);
+```
+
+범위는 **`[-1.0, 1.0]`**입니다. `0`은 꺼짐입니다. 양수와 음수는 반대 방향입니다(예: `FaceThin`: 슬림 / 볼 볼륨). 전체 목록: [파라미터 열거형](/ko/intro/makeup).
+
+## 메이크업
+
+강도, 형태, 색상은 별도 setter입니다. 강도는 `[0.0, 1.0]`입니다. 프리셋: [파라미터 열거형](/ko/intro/makeup).
+
+```javascript
+engine.setLipstick(0.4);
+engine.setLipstickColor(LipstickColor.Rouge);
+
+engine.setBlush(0.3);
+engine.setBlushStyle(/* BlushStyle.SunKissed */);
+engine.setBlushColor(/* BlushColor.CoralPink */);
+
+engine.setContour(0.4);
+engine.setContourStyle(/* ContourStyle.Natural */);
+
+engine.setEyeShadow(0.35);
+engine.setEyeShadowStyle(/* EyeShadowStyle.Soft */);
+engine.setEyeShadowColor(/* EyeShadowColor.Plum */);
+
+engine.setEyeLiner(0.3);
+engine.setEyeLinerStyle(/* ... */);
+engine.setEyeLinerColor(/* ... */);
+
+engine.setEyebrow(0.3);
+engine.setEyebrowStyle(/* ... */);
+engine.setEyebrowColor(/* ... */);
+
+engine.setEyelash(0.3);
+engine.setEyelashStyle(/* ... */);
+engine.setEyelashColor(/* ... */);
+
+engine.setPupil(0.4);
+engine.setPupilColor(/* PupilColor.Hazel */);
+```
+
+## 필터와 스티커
+
+`.fbd` URL 또는 메모리의 `Uint8Array`를 setter에 직접 전달하세요.
+
+```javascript
+engine.setFilter('/assets/filters/portrait/natural/natural.fbd');
+engine.setFilterIntensity(0.8);
+engine.clearFilter();
+
+engine.setSticker('/stickers/face/fox.fbd');
+engine.clearSticker();
+```
+
+3D 스티커에는 선택 팩 `resource_3d.fbd`가 필요합니다(Web SDK에 없음). [선택 리소스 팩](/ko/intro/resource-packs)을 참고하세요. `init()` 이후 바이트를 가져와 등록하세요.
+
+```javascript
+const pack = new Uint8Array(
+  await (await fetch('/resource_3d.fbd')).arrayBuffer()
+);
+engine.addResourcePack(pack);
+engine.set3DSticker('/stickers/3d/oculos.fbd');
+engine.clear3DSticker();
+```
+
+```javascript
+const bytes = new Uint8Array(await (await fetch('/filters/chuxin.fbd')).arrayBuffer());
+engine.setFilter(bytes);
+```
+
+## 가상 배경과 크로마키
+
+```javascript
+engine.setVirtualBackgroundBlur(0.6);          // [0, 1]; 0 clears blur
+engine.setVirtualBackground('/background.jpg'); // path or Uint8Array (png/jpg)
+engine.clearVirtualBackground();
+
+engine.setChromaKey(ChromaKeyColor.Green);
+engine.setChromaKeySimilarity(0.4);
+engine.setChromaKeySmoothness(0.2);
+engine.setChromaKeyDesaturation(0.3);
+engine.clearChromaKey();
+```
+
+<Tip>
+크로마키는 **마스크**만 바꿉니다. 채우기는 여전히 `setVirtualBackgroundBlur` 또는 `setVirtualBackground`입니다. 블러와 이미지 교체는 상호 배타적입니다.
+</Tip>
+
+## 콜백
+
+```javascript
+engine.setCallbacks({
+  onEngineEvent: (code, message) => {
+    if (code === EngineEventCode.LicenseValidationSuccess) {
+      console.log('license ok');
+    } else if (code === EngineEventCode.LicenseValidationFailed) {
+      console.error('license failed', message);
+    } else if (code === EngineEventCode.InitializationComplete) {
+      console.log('engine ready');
+    } else if (code === EngineEventCode.InitializationFailed) {
+      console.error('init failed', message);
+    }
+  },
+  onFaceLandmarks: (faces) => {
+    // faces[].rect, key_points, visibility, face_id, score, pitch, roll, yaw
+  },
+  maxFaces: 10,
+});
+```
+
+| 코드 | 이름 |
+| --- | --- |
+| `0` | `EngineEventCode.LicenseValidationSuccess` |
+| `1` | `EngineEventCode.LicenseValidationFailed` |
+| `100` | `EngineEventCode.InitializationComplete` |
+| `101` | `EngineEventCode.InitializationFailed` |
+
+랜드마크가 필요하지 않으면 `onFaceLandmarks`를 생략하세요. 켜면 매 프레임 얼굴 검출이 실행됩니다.
+
+## 프레임 처리
+
+`processImage`를 권장합니다. `ImageData`를 동기로 반환합니다.
+
+```javascript
+const canvas = document.querySelector('canvas');
+const ctx = canvas.getContext('2d');
+const video = document.querySelector('video');
+
+function loop() {
+  if (engine.initialized && video.readyState >= 2) {
+    const result = engine.processImage(
+      video,
+      video.videoWidth,
+      video.videoHeight,
+      FrameType.Video,
+      MirrorMode.Horizontal, // front camera
+    );
+    if (result) {
+      if (canvas.width !== result.width) canvas.width = result.width;
+      if (canvas.height !== result.height) canvas.height = result.height;
+      ctx.putImageData(result, 0, 0);
+    }
+  }
+  requestAnimationFrame(loop);
+}
+loop();
+```
+
+`input`은 `ImageData`, `HTMLImageElement`, `HTMLCanvasElement`, `HTMLVideoElement`, 또는 `Uint8ClampedArray`(이때 `width` / `height` 필요)일 수 있습니다.
+
+- `FrameType.Video` — 라이브 카메라 / 스트리밍(시간적 스무딩)
+- `FrameType.Image` — 정지 사진
+
+`processTexture(textureHandle, width, height, stride, frameType, mirrorMode)`는 커스텀 GPU 텍스처 입력용입니다. **이 경로에서는 미러가 적용되지 않습니다.** 일반적인 웹 앱은 `processImage`를 사용해야 합니다.
+
+## 통계
+
+```javascript
+const { fps, avgProcessTimeMs, sessionTimeS } = engine.getStats();
+```
+
+## 파괴
+
+```javascript
+engine.destroy();
+```
+
+페이지 언로드 또는 React/Vue 컴포넌트 unmount 시 호출하세요.
+
+TRTC / Agora / LiveKit: [서드파티 연동](/ko/web/third-party-integration).
+
+## 관련 문서
+
+- [서드파티 연동](/ko/web/third-party-integration)
+- [오류 처리](/ko/web/error-handling)
+- [권장 사항](/ko/web/best-practices)
+- [API 레퍼런스](/ko/web/api-reference)
+- [FAQ](/ko/web/faq)

@@ -1,0 +1,143 @@
+---
+title: "Práticas recomendadas"
+description: "Desempenho e arquitetura do Facebetter SDK 2.0 no iOS"
+---
+
+<Note>
+Esta página corresponde ao SDK **2.0.0**. Enums de maquiagem / remodelagem: [Enums de parâmetros](/pt-BR/intro/makeup).
+</Note>
+
+## Escolher o tipo de quadro certo
+
+Defina `FBImageFrame.type` **antes** de `processImage:`. Não há argumento de modo de processamento no mecanismo.
+
+- **`FBFrameTypeVideo` (`1`)**: prévia da câmera, ao vivo, chamadas — menor latência.
+- **`FBFrameTypeImage` (`0`)**: fotos estáticas — qualidade mais alta.
+
+```objc
+input.type = FBFrameTypeVideo;
+FBImageFrame *output = [engine processImage:input];
+```
+
+## Faixas de parâmetros
+
+- Intensidade de pele / maquiagem / filtro: `[0.0, 1.0]`. `0` desliga esse efeito.
+- Remodelagem (`setReshape:intensity:`): **`[-1.0, 1.0]`**. `0` desliga. Positivo e negativo são direções opostas.
+
+Comece baixo no vídeo ao vivo. Significados completos dos enums: [Enums de parâmetros](/pt-BR/intro/makeup).
+
+```objc
+[engine setSmoothing:0.25f];
+[engine setSmoothingStyle:FBSmoothingStyle_Natural];
+[engine setWhitening:0.15f];
+[engine setReshape:FBReshape_FaceThin intensity:0.12f];
+[engine setBeautySkinOnly:YES];
+```
+
+## Um mecanismo, uma fila serial
+
+`createEngineWithConfig:` retorna uma **instância**, não um singleton de processo. Mantenha um mecanismo por sessão e chame-o a partir de uma fila **serial** (ou do thread GL quando `externalContext = YES`).
+
+```objc
+@interface BeautyEngineManager : NSObject
+@property (nonatomic, strong, readonly) FBBeautyEffectEngine *engine;
+@property (nonatomic, strong, readonly) dispatch_queue_t queue;
++ (instancetype)sharedManager;
+@end
+
+@implementation BeautyEngineManager
+
++ (instancetype)sharedManager {
+  static BeautyEngineManager *instance;
+  static dispatch_once_t onceToken;
+  dispatch_once(&onceToken, ^{
+    instance = [[BeautyEngineManager alloc] init];
+  });
+  return instance;
+}
+
+- (instancetype)init {
+  self = [super init];
+  if (self) {
+    _queue = dispatch_queue_create("com.facebetter.process", DISPATCH_QUEUE_SERIAL);
+    FBEngineConfig *config = [[FBEngineConfig alloc] init];
+    config.appId = @"your_app_id";
+    config.appKey = @"your_app_key";
+    _engine = [FBBeautyEffectEngine createEngineWithConfig:config];
+  }
+  return self;
+}
+
+- (void)process:(FBImageFrame *)input completion:(void (^)(FBImageFrame * _Nullable))completion {
+  dispatch_async(self.queue, ^{
+    input.type = FBFrameTypeVideo;
+    FBImageFrame *output = [self.engine processImage:input];
+    dispatch_async(dispatch_get_main_queue(), ^{
+      completion(output);
+    });
+  });
+}
+
+@end
+```
+
+Não processe quadros no thread principal, exceto stills minúsculos. Não compartilhe um mecanismo entre filas concorrentes.
+
+## Memória
+
+- Prefira ARC. Solte as referências de `FBImageFrame` quando o quadro terminar.
+- Reutilize buffers de pixel da câmera; evite alocar um buffer RGBA novo a cada quadro se o formato de captura já for NV12 / BGRA.
+- Filtros e adesivos carregam no próximo `processImage:` (thread GL). Não recarregue o mesmo `.fbd` a cada quadro — chame `setFilter:` / `setSticker:` uma vez e, em seguida, `setFilterIntensity:` conforme necessário.
+- Use `clearFilter`, `clearSticker`, `clearVirtualBackground` e `clearChromaKey` em vez de criar um segundo mecanismo.
+
+## OpenGL ES externo
+
+Quando o app já possui um contexto GL:
+
+1. Defina `config.externalContext = YES`.
+2. Crie o mecanismo **nesse thread GL**.
+3. Encapsule a textura com `createWithTexture:width:height:stride:`.
+4. Leia a saída com `[output texture]`.
+
+A textura de entrada, o mecanismo e a textura de saída precisam permanecer no mesmo contexto.
+
+## Monitorar com `getStats`
+
+Prefira `FBEngineStats` a um timer caseiro:
+
+```objc
+FBEngineStats *stats = [engine getStats];
+NSLog(@"fps=%.1f avg=%.2fms session=%.1fs",
+      stats.fps, stats.avgProcessTimeMs, stats.sessionTimeS);
+```
+
+Mire `avgProcessTimeMs` abaixo de ~33 ms a 30 fps. Se subir, reduza a resolução, mude para `FBFrameTypeVideo` ou desligue maquiagem / adesivos não usados.
+
+## Ciclo de vida
+
+Mantenha o mecanismo como propriedade strong no view controller (ou em um objeto de sessão). Atribua nil em `dealloc` quando a sessão terminar. Pause a captura em `viewWillDisappear` / `applicationDidEnterBackground` para parar de chamar `processImage:` — você não precisa de uma API especial de “pause”.
+
+```objc
+- (void)viewWillDisappear:(BOOL)animated {
+  [super viewWillDisappear:animated];
+  [self.captureSession stopRunning];
+}
+
+- (void)dealloc {
+  self.beautyEffectEngine = nil;
+}
+```
+
+Use `__weak` nos blocos de `FBEngineCallbacks` para evitar ciclos de retenção.
+
+## Captura no iOS
+
+- A prévia da câmera costuma ser `kCVPixelFormatType_420YpCbCr8BiPlanarFullRange` (NV12) ou BGRA. Crie `FBImageFrame` com `createWithNV12:...` ou `createWithBGRA:...` em vez de converter para RGBA na CPU.
+- Câmera frontal: `setMirror:@"horizontal"` no quadro (ou `mirror:` se precisar inverter os pixels antes do mecanismo).
+- Permissão de câmera: `NSCameraUsageDescription` no `Info.plist`. Biblioteca de fotos: `NSPhotoLibraryUsageDescription` se você escolher stills.
+
+## Testes
+
+- Vincule o Bundle ID do app de teste e use um `appId` / `appKey` ou `licenseToken` reais. Strings dummy falham com eventos de licença `1` / `101`.
+- Cubra os caminhos still (`FBFrameTypeImage` + `createWithUIImage:`) e ao vivo (`FBFrameTypeVideo`).
+- Afirme que os códigos de retorno dos setters são `FBErrorCode_Success`.

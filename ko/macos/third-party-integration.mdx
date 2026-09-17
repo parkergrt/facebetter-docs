@@ -1,0 +1,264 @@
+---
+title: "서드파티 연동"
+description: "TRTC, Agora, LiveKit 및 기타 macOS 비디오 파이프라인에 Facebetter 뷰티를 연결합니다"
+---
+
+SDK **2.0.0**. 서드파티 SDK의 **커스텀 비디오 전처리** 콜백에 Facebetter를 겁니다. 해당 SDK의 **OpenGL 스레드**(또는 픽셀 버퍼 콜백)에서 프레임을 처리한 뒤 결과를 반환합니다.
+
+[iOS · 서드파티 연동](/ko/ios/third-party-integration)과 동일한 Objective-C API를 공유합니다. 차이는 주로 런타임(OpenGL, App Sandbox, 프로세스 이름 바인딩)입니다. 전체 텍스처 규칙: [뷰티 효과 적용 · 외부 텍스처](/ko/macos/implement-beauty#external-texture).
+
+```
+Third-party SDK
+  textureId or CVPixelBuffer
+       ↓
+FBBeautyEffectEngine
+  createWithTexture / createWithNV12|BGRA → processImage:
+       ↓
+  output texture or pixels → write back to vendor frame
+```
+
+## 공통 계약
+
+| 항목 | 요구 사항 |
+| --- | --- |
+| 텍스처 경로 | `externalContext = YES`, **벤더 GL 콜백 스레드**에서 지연 `createEngineWithConfig:` |
+| 입력 텍스처 | `GL_TEXTURE_2D`(RGBA); `stride`는 보통 `width * 4` |
+| 픽셀 버퍼 경로 | `createWithNV12:` / `createWithBGRA:` 등; 보통 **`externalContext = NO`** |
+| 프레임 유형 | `FBFrameTypeVideo` |
+| 출력 | 출력에 `glDeleteTextures`를 호출하지 마세요. 엔진 strong 참조를 유지하고 세션이 끝나면 nil |
+| 샌드박스 | 온라인 인증은 **Outgoing Connections** 필요; 오프라인은 `licenseToken` / `.lic` |
+
+TRTC 커스텀 전처리는 보통 **OpenGL 텍스처**를 사용합니다. Agora / LiveKit는 **`CVPixelBuffer`**를 더 자주 제공합니다. 한 엔진에서 두 모드를 섞지 마세요.
+
+### 공유: 텍스처 처리
+
+```objc
+#import <Facebetter/Facebetter.h>
+
+static GLuint FBProcessTexture(FBBeautyEffectEngine *engine,
+                               GLuint srcTextureId,
+                               int width,
+                               int height) {
+  if (!engine || srcTextureId == 0 || width <= 0 || height <= 0) {
+    return srcTextureId;
+  }
+  FBImageFrame *input = [FBImageFrame createWithTexture:srcTextureId
+                                                  width:width
+                                                 height:height
+                                                 stride:width * 4];
+  if (!input) {
+    return srcTextureId;
+  }
+  input.type = FBFrameTypeVideo;
+  FBImageFrame *output = [engine processImage:input];
+  if (!output) {
+    return srcTextureId;
+  }
+  GLuint dst = [output texture];
+  return dst != 0 ? dst : srcTextureId;
+}
+```
+
+```objc
+FBEngineConfig *config = [[FBEngineConfig alloc] init];
+config.appId = @"your appId";
+config.appKey = @"your appKey";
+config.externalContext = YES;
+self.beautyEngine = [FBBeautyEffectEngine createEngineWithConfig:config];
+[self.beautyEngine setSmoothing:0.5f];
+```
+
+### 공유: CVPixelBuffer 처리 (NV12 스케치)
+
+```objc
+static FBImageFrame *FBFrameFromNV12PixelBuffer(CVPixelBufferRef pb) {
+  OSType fmt = pb ? CVPixelBufferGetPixelFormatType(pb) : 0;
+  if (!pb || (fmt != kCVPixelFormatType_420YpCbCr8BiPlanarFullRange
+              && fmt != kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange)) {
+    return nil;
+  }
+  CVPixelBufferLockBaseAddress(pb, kCVPixelBufferLock_ReadOnly);
+  int width = (int)CVPixelBufferGetWidth(pb);
+  int height = (int)CVPixelBufferGetHeight(pb);
+  uint8_t *y = (uint8_t *)CVPixelBufferGetBaseAddressOfPlane(pb, 0);
+  uint8_t *uv = (uint8_t *)CVPixelBufferGetBaseAddressOfPlane(pb, 1);
+  int strideY = (int)CVPixelBufferGetBytesPerRowOfPlane(pb, 0);
+  int strideUV = (int)CVPixelBufferGetBytesPerRowOfPlane(pb, 1);
+  FBImageFrame *frame = [FBImageFrame createWithNV12:width
+                                              height:height
+                                               dataY:y
+                                             strideY:strideY
+                                              dataUV:uv
+                                            strideUV:strideUV];
+  CVPixelBufferUnlockBaseAddress(pb, kCVPixelBufferLock_ReadOnly);
+  return frame;
+}
+```
+
+픽셀 버퍼 경로에는 `externalContext = NO`를 사용하세요. 자격 증명: [구독](/ko/intro/enable-service), [인증 및 라이선스](/ko/intro/license). Bundle ID가 없는 CLI 도구는 Dashboard에서 **프로세스 이름**을 바인딩하세요.
+
+---
+
+## TRTC (Tencent)
+
+훅: `setLocalVideoProcessDelegete:pixelFormat:bufferType:`(공식 철자 **Delegete**). **`TRTCVideoPixelFormat_Texture_2D`** + **`TRTCVideoBufferType_Texture`**.
+
+```objc
+#import <TXLiteAVSDK_TRTC/TRTCCloud.h>
+#import <Facebetter/Facebetter.h>
+
+@interface BeautyProcessDelegate : NSObject <TRTCVideoFrameDelegate>
+@property (nonatomic, strong) FBBeautyEffectEngine *beautyEngine;
+@end
+
+@implementation BeautyProcessDelegate
+
+- (void)onGLContextCreated {
+  FBEngineConfig *config = [[FBEngineConfig alloc] init];
+  config.appId = @"your appId";
+  config.appKey = @"your appKey";
+  config.externalContext = YES;
+  self.beautyEngine = [FBBeautyEffectEngine createEngineWithConfig:config];
+  [self.beautyEngine setSmoothing:0.5f];
+}
+
+- (uint32_t)onProcessVideoFrame:(TRTCVideoFrame *)srcFrame
+                       dstFrame:(TRTCVideoFrame *)dstFrame {
+  GLuint out = FBProcessTexture(self.beautyEngine,
+                                srcFrame.textureId,
+                                srcFrame.width,
+                                srcFrame.height);
+  dstFrame.textureId = out;
+  return 0;
+}
+
+- (void)onGLContextDestory {
+  self.beautyEngine = nil;
+}
+
+@end
+
+BeautyProcessDelegate *delegate = [[BeautyProcessDelegate alloc] init];
+[[TRTCCloud sharedInstance] setLocalVideoProcessDelegete:delegate
+                                             pixelFormat:TRTCVideoPixelFormat_Texture_2D
+                                              bufferType:TRTCVideoBufferType_Texture];
+```
+
+델리게이트를 지우거나 방을 나간 뒤 엔진을 nil로 둡니다. 최신 세부 사항은 Tencent TRTC 서드파티 뷰티 문서를 참고하세요.
+
+---
+
+## Agora
+
+훅: `AgoraRtcEngineKit.setVideoFrameDelegate:`(Video SDK **4.x**). macOS의 캡처 프레임도 보통 **`CVPixelBuffer`**입니다.
+
+```objc
+#import <AgoraRtcKit/AgoraRtcKit.h>
+
+@interface BeautyFrameDelegate : NSObject <AgoraVideoFrameDelegate>
+@property (nonatomic, strong) FBBeautyEffectEngine *beautyEngine;
+@end
+
+@implementation BeautyFrameDelegate
+
+- (AgoraVideoFrameProcessMode)getVideoFrameProcessMode {
+  return AgoraVideoFrameProcessModeReadWrite;
+}
+
+- (BOOL)onCapture:(AgoraOutputVideoFrame *)videoFrame
+       sourceType:(AgoraVideoSourceType)sourceType {
+  CVPixelBufferRef pb = videoFrame.pixelBuffer; // or textureBuf — check your headers
+  if (!pb) {
+    return YES;
+  }
+
+  if (!self.beautyEngine) {
+    FBEngineConfig *config = [[FBEngineConfig alloc] init];
+    config.appId = @"your appId";
+    config.appKey = @"your appKey";
+    config.externalContext = NO;
+    self.beautyEngine = [FBBeautyEffectEngine createEngineWithConfig:config];
+  }
+
+  FBImageFrame *input = FBFrameFromNV12PixelBuffer(pb);
+  if (!input) {
+    return YES;
+  }
+  input.type = FBFrameTypeVideo;
+  FBImageFrame *output = [self.beautyEngine processImage:input];
+  if (!output) {
+    return YES;
+  }
+
+  // Write output back into videoFrame’s CVPixelBuffer (details vary by Agora version)
+  return YES;
+}
+
+@end
+
+[agoraKit setVideoFrameDelegate:delegate];
+```
+
+<Warning>
+처리된 `CVPixelBuffer`를 Agora 프레임에 다시 쓰는 방식은 메이저 버전마다 다릅니다. Facebetter는 입력과 같은 형식으로 출력을 유지합니다. `AgoraOutputVideoFrame`에 주입하는 방법은 Agora 문서를 따르세요.
+</Warning>
+
+해제 전에 `setVideoFrameDelegate:nil`을 호출하고 `beautyEngine`을 nil로 둡니다.
+
+---
+
+## LiveKit
+
+Swift `VideoProcessor`를 구현하고 `process(frame:)`에서 `CVPixelBuffer`를 처리한 뒤, 카메라 트랙을 만들 때 `processor:`를 전달합니다(macOS에서도 지원).
+
+```swift
+import LiveKit
+import Facebetter
+
+final class FacebetterVideoProcessor: VideoProcessor {
+  private var beautyEngine: FBBeautyEffectEngine?
+
+  func process(frame: VideoFrame) -> VideoFrame? {
+    guard let pb = frame.buffer as CVPixelBuffer? else {
+      return frame
+    }
+
+    if beautyEngine == nil {
+      let config = FBEngineConfig()
+      config.appId = "your appId"
+      config.appKey = "your appKey"
+      config.externalContext = false
+      beautyEngine = FBBeautyEffectEngine.createEngine(with: config)
+      beautyEngine?.setSmoothing(0.5)
+    }
+
+    // FBFrameFromNV12PixelBuffer → processImage: → wrap as LiveKit VideoFrame
+    return frame
+  }
+}
+
+let processor = FacebetterVideoProcessor()
+let track = LocalVideoTrack.createCameraTrack(processor: processor)
+try await room.localParticipant.publish(track: track)
+```
+
+공식 샘플은 `BackgroundBlurVideoProcessor`(macOS 12+)를 참고하세요. 화면 공유 트랙도 같은 processor 패턴을 사용할 수 있습니다(API는 LiveKit Swift 버전에 따름).
+
+---
+
+## 문제 해결
+
+| 증상 | 확인 |
+| --- | --- |
+| 검은 화면 / 영상 없음 | 벤더 **GL 스레드**에서 엔진 생성; 샌드박스가 온라인 인증을 막지 않는지 |
+| 뷰티 없음 | `externalContext`가 경로와 일치하는지; 형식이 NV12/BGRA인지 |
+| 간헐적 크래시 | `onGLContextDestory`에서 엔진을 nil로 두었는지 |
+| 왜곡 | Width / height / rotation / `BytesPerRow` stride |
+
+## 관련 문서
+
+- [뷰티 효과 적용](/ko/macos/implement-beauty)
+- [권장 사항](/ko/macos/best-practices)
+- [오류 처리](/ko/macos/error-handling)
+- [API 레퍼런스](/ko/macos/api-reference)
+- [iOS · 서드파티 연동](/ko/ios/third-party-integration)

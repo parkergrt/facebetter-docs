@@ -1,0 +1,286 @@
+---
+title: "Integración con terceros"
+description: "Conecta la belleza Facebetter a TRTC, Agora, LiveKit y otros pipelines de vídeo en iOS"
+---
+
+SDK **2.0.0**. Engancha Facebetter en el callback de **preprocess de vídeo personalizado** de un SDK de terceros: procesa fotogramas en el **hilo OpenGL ES** de ese SDK (o en el callback de pixel-buffer) y luego devuelve el resultado.
+
+Reglas completas de textura: [Implementar belleza · Textura externa](/es/ios/implement-beauty#external-texture). Unirse a la sala, publicar y los permisos pertenecen a la documentación del vendor: esta página solo cubre el enganche de Facebetter.
+
+```
+Third-party SDK
+  textureId or CVPixelBuffer
+       ↓
+FBBeautyEffectEngine
+  createWithTexture / createWithNV12|BGRA → processImage:
+       ↓
+  output texture or pixels → write back to vendor frame
+```
+
+## Contrato compartido
+
+| Elemento | Requisito |
+| --- | --- |
+| Camino de textura | `externalContext = YES`, `createEngineWithConfig:` diferido en el **hilo de callback GL del vendor** |
+| Textura de entrada | `GL_TEXTURE_2D` (RGBA); `stride` suele ser `width * 4` |
+| Camino de pixel-buffer | Usa `createWithNV12:` / `createWithBGRA:` etc.; normalmente **`externalContext = NO`** para que Facebetter posea GL |
+| Tipo de fotograma | `FBFrameTypeVideo` |
+| Salida | El SDK posee las texturas de salida: no hagas `glDeleteTextures`. Mantén una ref strong del motor; ponla a `nil` al terminar la sesión |
+| Ciclo de vida | Cuando el vendor destruye el contexto GL, pon el motor a nil y recréalo en el nuevo contexto |
+
+En plataformas Apple, el preprocess personalizado de TRTC suele usar **texturas OpenGL**; Agora / LiveKit entregan más a menudo **`CVPixelBuffer`**. Ambos funcionan: no mezcles ambos modos en una misma instancia del motor.
+
+### Compartido: procesar textura
+
+```objc
+#import <Facebetter/Facebetter.h>
+
+static GLuint FBProcessTexture(FBBeautyEffectEngine *engine,
+                               GLuint srcTextureId,
+                               int width,
+                               int height) {
+  if (!engine || srcTextureId == 0 || width <= 0 || height <= 0) {
+    return srcTextureId;
+  }
+  FBImageFrame *input = [FBImageFrame createWithTexture:srcTextureId
+                                                  width:width
+                                                 height:height
+                                                 stride:width * 4];
+  if (!input) {
+    return srcTextureId;
+  }
+  input.type = FBFrameTypeVideo;
+  FBImageFrame *output = [engine processImage:input];
+  if (!output) {
+    return srcTextureId;
+  }
+  GLuint dst = [output texture];
+  return dst != 0 ? dst : srcTextureId;
+}
+```
+
+Crea el motor (hilo GL):
+
+```objc
+FBEngineConfig *config = [[FBEngineConfig alloc] init];
+config.appId = @"your appId";
+config.appKey = @"your appKey";
+// or config.licenseToken = @"...";
+config.externalContext = YES;
+self.beautyEngine = [FBBeautyEffectEngine createEngineWithConfig:config];
+[self.beautyEngine setSmoothing:0.5f];
+```
+
+### Compartido: procesar CVPixelBuffer (esquema NV12)
+
+Los callbacks de Agora / LiveKit suelen usar NV12. Toma punteros de plano y stride del `CVPixelBuffer`; cómo escribes de vuelta en el fotograma del vendor varía según la versión del SDK.
+
+```objc
+static FBImageFrame *FBFrameFromNV12PixelBuffer(CVPixelBufferRef pb) {
+  OSType fmt = pb ? CVPixelBufferGetPixelFormatType(pb) : 0;
+  if (!pb || (fmt != kCVPixelFormatType_420YpCbCr8BiPlanarFullRange
+              && fmt != kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange)) {
+    return nil;
+  }
+  CVPixelBufferLockBaseAddress(pb, kCVPixelBufferLock_ReadOnly);
+  int width = (int)CVPixelBufferGetWidth(pb);
+  int height = (int)CVPixelBufferGetHeight(pb);
+  uint8_t *y = (uint8_t *)CVPixelBufferGetBaseAddressOfPlane(pb, 0);
+  uint8_t *uv = (uint8_t *)CVPixelBufferGetBaseAddressOfPlane(pb, 1);
+  int strideY = (int)CVPixelBufferGetBytesPerRowOfPlane(pb, 0);
+  int strideUV = (int)CVPixelBufferGetBytesPerRowOfPlane(pb, 1);
+  FBImageFrame *frame = [FBImageFrame createWithNV12:width
+                                              height:height
+                                               dataY:y
+                                             strideY:strideY
+                                              dataUV:uv
+                                            strideUV:strideUV];
+  CVPixelBufferUnlockBaseAddress(pb, kCVPixelBufferLock_ReadOnly);
+  return frame;
+}
+```
+
+Para el camino de pixel-buffer, crea el motor con `externalContext = NO`. Credenciales: [Suscripción](/es/intro/enable-service), [Autenticación y licencia](/es/intro/license).
+
+---
+
+## TRTC (Tencent)
+
+Enganche: `setLocalVideoProcessDelegete:pixelFormat:bufferType:` (ortografía oficial **Delegete**). Usa **`TRTCVideoPixelFormat_Texture_2D`** y **`TRTCVideoBufferType_Texture`**.
+
+Implementa `TRTCVideoFrameDelegate`: crea el motor en `onGLContextCreated`; configura `dstFrame.textureId` en `onProcessVideoFrame:dstFrame:`; pon el motor a nil en `onGLContextDestory`.
+
+```objc
+#import <TXLiteAVSDK_TRTC/TRTCCloud.h>
+#import <Facebetter/Facebetter.h>
+
+@interface BeautyProcessDelegate : NSObject <TRTCVideoFrameDelegate>
+@property (nonatomic, strong) FBBeautyEffectEngine *beautyEngine;
+@end
+
+@implementation BeautyProcessDelegate
+
+- (void)onGLContextCreated {
+  FBEngineConfig *config = [[FBEngineConfig alloc] init];
+  config.appId = @"your appId";
+  config.appKey = @"your appKey";
+  config.externalContext = YES;
+  self.beautyEngine = [FBBeautyEffectEngine createEngineWithConfig:config];
+  [self.beautyEngine setSmoothing:0.5f];
+}
+
+- (uint32_t)onProcessVideoFrame:(TRTCVideoFrame *)srcFrame
+                       dstFrame:(TRTCVideoFrame *)dstFrame {
+  GLuint out = FBProcessTexture(self.beautyEngine,
+                                srcFrame.textureId,
+                                srcFrame.width,
+                                srcFrame.height);
+  dstFrame.textureId = out;
+  return 0;
+}
+
+- (void)onGLContextDestory {
+  self.beautyEngine = nil;
+}
+
+@end
+
+// Register
+BeautyProcessDelegate *delegate = [[BeautyProcessDelegate alloc] init];
+[[TRTCCloud sharedInstance] setLocalVideoProcessDelegete:delegate
+                                             pixelFormat:TRTCVideoPixelFormat_Texture_2D
+                                              bufferType:TRTCVideoBufferType_Texture];
+```
+
+Pon el motor a nil tras limpiar el delegate o salir de la sala. Consulta la guía de belleza de terceros de TRTC de Tencent para los detalles actuales.
+
+Para Flutter, usa [Flutter · Integración con terceros](/es/flutter/third-party-integration) (`FacebetterPlugin.processTexture`).
+
+---
+
+## Agora
+
+Enganche: `AgoraRtcEngineKit.setVideoFrameDelegate:` (Video SDK **4.x**). En iOS, los fotogramas capturados suelen ser **`CVPixelBuffer`** (`textureBuf` / formato `12`), no un id `GL_TEXTURE_2D` al estilo de Android.
+
+Debes:
+
+1. Devuelve **ReadWrite** desde `getVideoFrameProcessMode`
+2. Toma el `CVPixelBuffer` en `onCapture:sourceType:` (o el antiguo `onCaptureVideoFrame`)
+3. Aliméntalo con `createWithNV12:` / `createWithBGRA:` y luego **escribe** el resultado de vuelta en `AgoraOutputVideoFrame`
+
+```objc
+#import <AgoraRtcKit/AgoraRtcKit.h>
+
+@interface BeautyFrameDelegate : NSObject <AgoraVideoFrameDelegate>
+@property (nonatomic, strong) FBBeautyEffectEngine *beautyEngine;
+@end
+
+@implementation BeautyFrameDelegate
+
+- (AgoraVideoFrameProcessMode)getVideoFrameProcessMode {
+  return AgoraVideoFrameProcessModeReadWrite;
+}
+
+- (BOOL)onCapture:(AgoraOutputVideoFrame *)videoFrame
+       sourceType:(AgoraVideoSourceType)sourceType {
+  CVPixelBufferRef pb = videoFrame.pixelBuffer; // some versions use textureBuf — check your headers
+  if (!pb) {
+    return YES;
+  }
+
+  if (!self.beautyEngine) {
+    FBEngineConfig *config = [[FBEngineConfig alloc] init];
+    config.appId = @"your appId";
+    config.appKey = @"your appKey";
+    config.externalContext = NO; // pixel-buffer path
+    self.beautyEngine = [FBBeautyEffectEngine createEngineWithConfig:config];
+  }
+
+  FBImageFrame *input = FBFrameFromNV12PixelBuffer(pb);
+  if (!input) {
+    return YES; // not NV12: use BGRA factory methods or convert first
+  }
+  input.type = FBFrameTypeVideo;
+  FBImageFrame *output = [self.beautyEngine processImage:input];
+  if (!output) {
+    return YES;
+  }
+
+  // Copy output NV12/BGRA planes back into videoFrame’s CVPixelBuffer,
+  // or replace pixelBuffer / textureBuf per Agora docs. Details vary by version.
+  return YES;
+}
+
+@end
+
+[agoraKit setVideoFrameDelegate:delegate];
+```
+
+<Warning>
+Cómo escribes un `CVPixelBuffer` procesado de vuelta en el fotograma de Agora varía entre versiones mayores. Facebetter mantiene la salida de `processImage:` en el mismo formato que la entrada; inyectarla en `AgoraOutputVideoFrame` debe seguir el [procesamiento de vídeo en bruto de Agora](https://docs.agora.io/en/video-calling/develop/product-workflow).
+</Warning>
+
+Llama a `setVideoFrameDelegate:nil` y pon `beautyEngine` a nil antes de desmontar el motor.
+
+---
+
+## LiveKit
+
+Enganche: implementa el `VideoProcessor` de Swift, transforma en `process(frame:)` y devuelve el fotograma nuevo (o `nil` para descartarlo). Pasa `processor:` al crear el track de cámara, o configura `track.processor` más tarde.
+
+```swift
+import LiveKit
+import Facebetter // module name as packaged
+
+final class FacebetterVideoProcessor: VideoProcessor {
+  private var beautyEngine: FBBeautyEffectEngine?
+
+  func process(frame: VideoFrame) -> VideoFrame? {
+    // Pull CVPixelBuffer from the LiveKit VideoFrame (property may be
+    // buffer / pixelBuffer / rtcFrame — check your LiveKit Swift headers)
+    guard let pb = frame.buffer as CVPixelBuffer? else {
+      return frame
+    }
+
+    if beautyEngine == nil {
+      let config = FBEngineConfig()
+      config.appId = "your appId"
+      config.appKey = "your appKey"
+      config.externalContext = false
+      beautyEngine = FBBeautyEffectEngine.createEngine(with: config)
+      beautyEngine?.setSmoothing(0.5)
+    }
+
+    // ObjC helper: FBFrameFromNV12PixelBuffer → processImage:
+    // then wrap the output as a LiveKit VideoFrame and return it.
+    // See LiveKit “Video Processors” for frame wrapping.
+    return frame
+  }
+}
+
+let processor = FacebetterVideoProcessor()
+let track = LocalVideoTrack.createCameraTrack(processor: processor)
+// or: track.processor = processor
+try await room.localParticipant.publish(track: track)
+```
+
+Los procesadores de ejemplo oficiales (por ejemplo desenfoque de fondo) se entregan como `BackgroundBlurVideoProcessor`. Los capturadores personalizados pueden ejecutar Facebetter antes de que los fotogramas entren en el encoder.
+
+---
+
+## Solución de problemas
+
+| Síntoma | Comprueba |
+| --- | --- |
+| Negro / sin vídeo | Camino de textura: motor en el **hilo GL** del vendor. Camino de píxel: lock/unlock `CVPixelBuffer` |
+| Sin belleza | `externalContext` coincide con el camino (YES para textura / normalmente NO para píxeles); el formato es NV12/BGRA/`GL_TEXTURE_2D` |
+| Crash intermitente | Motor a nil en `onGLContextDestory`; nunca elimines las texturas de salida |
+| Distorsión | Ancho / alto / rotación / espejo coinciden con el fotograma del vendor; los stride usan `BytesPerRow` |
+
+## Relacionado
+
+- [Implementar belleza](/es/ios/implement-beauty)
+- [Prácticas recomendadas](/es/ios/best-practices)
+- [Manejo de errores](/es/ios/error-handling)
+- [Referencia de la API](/es/ios/api-reference)
+- [macOS · Integración con terceros](/es/macos/third-party-integration)

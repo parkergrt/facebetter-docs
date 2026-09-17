@@ -1,0 +1,195 @@
+---
+title: "美顔の実装"
+description: "Facebetter Flutter SDK 2.0 を統合します"
+---
+
+<Note>
+SDK **2.0.0**。クラス名: **`FBEngine`**。シングルトンはありません。認証: [認証とライセンス](/ja/intro/license)。列挙: [パラメータ列挙](/ja/intro/makeup)。
+</Note>
+
+Flutter は**美顔パラメータだけを設定**します。リアルタイム動画フレームは Dart に入りません。サードパーティ RTC はネイティブ GL スレッドでテクスチャを渡します。[サードパーティ連携](/ja/flutter/third-party-integration) を参照してください。
+
+## プラグインの追加
+
+```yaml
+dependencies:
+  facebetter_flutter: ^2.0.0
+```
+
+```dart
+import 'package:facebetter_flutter/facebetter_flutter.dart';
+```
+
+## ログ
+
+`FBEngine.create` の**前**に呼び出す必要があります。
+
+```dart
+FBEngine.setLogConfig(
+  console: true,
+  file: false,
+  level: FBLogLevel.info,
+  fileName: '',
+);
+```
+
+## 作成
+
+`appId` + `appKey`、**または** `licenseToken`（ライセンストークン、`{token}` JSON、またはネイティブオフライン `.lic`）を渡します。両方ある場合はトークンが優先されます。
+
+```dart
+final engine = await FBEngine.create(FBEngineConfig(
+  appId: '...',
+  appKey: '...',
+  // licenseToken: '...',
+  enableLandmarks: false,
+  externalContext: true,
+  resourcePath: null,
+));
+```
+
+| フィールド | デフォルト | 説明 |
+| --- | --- | --- |
+| `appId` / `appKey` | — | オンライン認証 |
+| `licenseToken` | — | トークン / `{token}` JSON / `.lic` 全文 |
+| `enableLandmarks` | `false` | エンジンレベルのスイッチ。作成後は変更できません。キーポイントを読まない場合は `false` のまま |
+| `externalContext` | `true` | サードパーティのライブ前処理は `true`。静止画ファイル API は `false` |
+| `resourcePath` | プラグイン自動 | Android AAR 内の `resource.fbd` / iOS framework 内のファイル |
+
+`FBEngine.version` はネイティブ SDK のバージョン文字列を読みます。
+
+## 肌、リシェイプ、メイク
+
+強度 setter は**同期**なので、`Slider.onChanged` に直接書けます。
+
+肌 `[0.0, 1.0]`:
+
+```dart
+engine.setSmoothing(0.8);
+engine.setSmoothingStyle(FBSmoothingStyle.natural);
+engine.setWhitening(0.5);
+engine.setWhiteningStyle(FBWhiteningStyle.coldWhite);
+engine.setSharpening(0.3);
+engine.setRosiness(0.2);
+engine.setBeautySkinOnly(true);
+```
+
+リシェイプ **`[-1.0, 1.0]`**:
+
+```dart
+engine.setReshape(FBReshape.faceThin, 0.3);
+engine.setReshape(FBReshape.eyeSize, 0.2);
+```
+
+メイク（強度 + スタイル/色）。完全な列挙: [パラメータ列挙](/ja/intro/makeup)。
+
+```dart
+engine.setLipstick(0.4);
+engine.setLipstickColor(FBLipstickColor.rouge);
+engine.setBlush(0.3);
+engine.setBlushStyle(FBBlushStyle.sunKissed);
+engine.setBlushColor(FBBlushColor.coralPink);
+engine.setContour(0.4);
+engine.setContourStyle(FBContourStyle.natural);
+engine.setEyeShadow(0.35);
+engine.setEyeShadowStyle(FBEyeShadowStyle.soft);
+engine.setEyeShadowColor(FBEyeShadowColor.plum);
+engine.setEyeLiner(0.3);
+engine.setEyebrow(0.3);
+engine.setEyelash(0.3);
+engine.setPupil(0.4);
+```
+
+## フィルター、ステッカー、バーチャル背景
+
+パス **または** `Uint8List` バイトを渡し、同時には渡せません。これらの API は `Future` を返します（ファイル読み取り + GPU アップロード）。
+
+```dart
+await engine.setFilter(path: '/path/to/filter.fbd');
+// await engine.setFilter(data: bytes);
+engine.setFilterIntensity(0.8);
+engine.clearFilter();
+
+await engine.setSticker(path: '/path/to/sticker.fbd');
+engine.clearSticker();
+
+await engine.addResourcePack(path: '/path/to/resource_3d.fbd');
+await engine.set3DSticker(path: '/path/to/oculos.fbd');
+engine.clear3DSticker();
+
+engine.setVirtualBackgroundBlur(0.6);
+await engine.setVirtualBackground(path: '/path/to/bg.jpg');
+engine.clearVirtualBackground();
+```
+
+3D ステッカーにはオプションパック `resource_3d.fbd` が必要です（プラグインには含まれません）。[オプションリソースパック](/ja/intro/resource-packs) を参照してください。
+
+クロマキー（同期）。ネイティブと同じです。
+
+```dart
+engine.setChromaKey(FBChromaKeyColor.green);
+engine.setChromaKeySimilarity(0.4);
+engine.setChromaKeySmoothness(0.2);
+engine.setChromaKeyDesaturation(0.3);
+engine.clearChromaKey();
+```
+
+クロマキーは**マスク**のみを提供します。塗りつぶしはぼかしまたは背景画像のままです。
+
+## イベントと統計
+
+```dart
+engine.events.listen((FBEngineEvent e) {
+  switch (e.eventCode) {
+    case FBEngineEventCode.licenseValidationSuccess:
+    case FBEngineEventCode.engineInitializationComplete:
+      break;
+    case FBEngineEventCode.licenseValidationFailed:
+    case FBEngineEventCode.engineInitializationFailed:
+      debugPrint(e.message);
+  }
+});
+
+final FBStats s = engine.stats;
+// s.fps, s.avgProcessTimeMs, s.sessionTimeSeconds
+```
+
+## 静止画
+
+**別の**エンジンを使い、`externalContext: false` にします。ライブ前処理エンジンでこれらの API を呼ばないでください。Dart から会議 / 配信動画をフレームごとに処理しないでください。
+
+```dart
+final photoEngine = await FBEngine.create(const FBEngineConfig(
+  appId: '...',
+  appKey: '...',
+  externalContext: false,
+));
+
+await photoEngine.processFile(input: srcPath, output: dstPath, quality: 90);
+
+final FBBitmap bmp = await photoEngine.processImageBytes(jpegBytes);
+final FBBitmap fromFile = await photoEngine.processImageFile(srcPath);
+final ui.Image image = await photoEngine.processImageToUiImage(jpegBytes);
+
+photoEngine.dispose();
+```
+
+`FBBitmap.pixels` は RGBA8888 です（`stride == width * 4`）。
+
+## エラー
+
+setter と非同期タスクの失敗は `FBException` を投げます。エラーコードは `0`、`-1` … `-8` です。[API リファレンス](/ja/flutter/api-reference#エラーコード) を参照してください。
+
+## 解放
+
+相手のカスタム前処理を止めてから:
+
+```dart
+engine.dispose();
+```
+
+## 関連ドキュメント
+
+- [サードパーティ連携](/ja/flutter/third-party-integration)
+- [API リファレンス](/ja/flutter/api-reference)
+- [クイックスタート](/ja/flutter/quick-start)

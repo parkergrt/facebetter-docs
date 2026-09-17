@@ -1,0 +1,77 @@
+---
+title: "Perguntas frequentes"
+description: "FAQ de integração do Facebetter SDK 2.0 no Windows"
+---
+
+<Note>
+SDK **2.0.0**. API C++ compartilhada com o Linux. [Enums de parâmetros](/pt-BR/intro/makeup) · [Autenticação e licença](/pt-BR/intro/license).
+</Note>
+
+## Integração
+
+### `Create` do mecanismo retorna `nullptr`
+
+- `resource_path` precisa ser o **arquivo `resource.fbd`** (não um diretório)
+- Defina `license_token` **ou** `app_id` + `app_key` válidos
+- Ative `SetLogConfig` antes de `Create`
+- Confirme que `facebetter.dll` corresponde à biblioteca de importação
+
+### Header não encontrado / erros de link
+
+Inclua `facebetter/` a partir do diretório `include` do SDK. Vincule `facebetter.lib` e envie `facebetter.dll` ao lado do executável.
+
+### `SetRenderView` está ausente
+
+Essa API existe apenas no iOS / macOS. No Windows, envie a saída de `ProcessImage` para a sua própria textura GL / interop D3D.
+
+## Efeitos
+
+### A beleza parece fraca ou desligada
+
+As intensidades começam em `0` (desligado). Não há `SetBeautyTypeEnabled`. Remodelagem / maquiagem precisam de um rosto. Tente `FrameType::Video` para quadros da câmera.
+
+### A remodelagem parece invertida
+
+A faixa é `[-1.0, 1.0]`. Positivo e negativo são direções opostas (veja [Enums de parâmetros](/pt-BR/intro/makeup)).
+
+### O filtro / adesivo não faz nada
+
+Passe um **caminho** ou bytes `.fbd` para `SetFilter` / `SetSticker`. Eles passam a valer no próximo `ProcessImage`.
+
+### Fundo virtual / chroma key
+
+Use `SetVirtualBackgroundBlur`, `SetVirtualBackground(path|bytes)`, `ClearVirtualBackground`. Chroma key: `SetChromaKey(ChromaKeyColor::Green)` e, em seguida, similarity / smoothness / desaturation. `ClearChromaKey()` restaura a segmentação de retrato.
+
+## Desempenho
+
+### A prévia está lenta
+
+Reduza a resolução, use `FrameType::Video`, diminua adesivos / fundo virtual e verifique `GetStats().avg_process_time_ms`. Evite recriar `ImageFrame` a partir de arquivos a cada quadro — alimente buffers da câmera.
+
+### Memória alta
+
+Reutilize buffers de pixel. Solte `shared_ptr<ImageFrame>` quando não estiver em uso. Não crie um mecanismo novo a cada quadro.
+
+### Remote Desktop / VM sem prévia de beleza
+
+O OpenGL de hardware pode estar indisponível. Teste em uma máquina com driver GPU real.
+
+## Autenticação
+
+### `license_token` vs `app_id` + `app_key`
+
+Se `license_token` não estiver vazio, ele prevalece (token / JSON `{token}` / `.lic`). Caso contrário, a autenticação online v2 nativa usa `app_id` + `app_key`. Veja [Autenticação e licença](/pt-BR/intro/license).
+
+### Evento `1` ou `101`
+
+Licença falhou ou init falhou. Leia o `message` do callback e os logs de Debug.
+
+## Versão
+
+### Qual versão devo documentar / enviar?
+
+**2.0.0**.
+
+### Quais versões do Windows / compiladores?
+
+Windows 10+, MSVC 2019+ (C++17), x64. Ninja + CMake 3.16+ é o caminho documentado do demo.

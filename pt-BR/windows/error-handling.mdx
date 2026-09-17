@@ -1,0 +1,167 @@
+---
+title: "Tratamento de erros"
+description: "Códigos de erro do Facebetter SDK 2.0 e solução de problemas no Windows"
+---
+
+<Note>
+SDK **2.0.0**. Detalhes de autenticação: [Autenticação e licença](/pt-BR/intro/license).
+</Note>
+
+## Valores de retorno
+
+A maioria dos setters retorna `int`:
+
+| Código | Significado |
+| --- | --- |
+| `0` | Sucesso |
+| `-1` | Argumento inválido |
+| `-2` | Não inicializado |
+| `-3` | Licença |
+| `-4` | Não suportado |
+| `-5` | I/O |
+| `-6` | Sem slot |
+| `-7` | Falha no processamento |
+| `-8` | Sem memória |
+
+`BeautyEffectEngine::Create()` retorna `std::shared_ptr`; a falha é `nullptr`. `ProcessImage` pode retornar `nullptr` em caso de falha.
+
+```cpp
+int ret = engine->SetSmoothing(0.5f);
+if (ret != 0) {
+    std::cerr << "SetSmoothing failed: " << ret << std::endl;
+}
+```
+
+## Eventos do mecanismo
+
+Registre `on_engine_event` após `Create`. Códigos:
+
+| Código | Significado |
+| --- | --- |
+| `0` | Licença OK |
+| `1` | Falha de licença |
+| `100` | Init concluído |
+| `101` | Falha de init |
+
+A string `message` tem detalhes extras nas falhas.
+
+```cpp
+EngineCallbacks cbs;
+cbs.on_engine_event = [](int code, const std::string& message) {
+    if (code == 1 || code == 101) {
+        std::cerr << "engine event " << code << ": " << message << std::endl;
+    }
+};
+engine->SetCallbacks(cbs);
+```
+
+---
+
+## Falhas comuns
+
+### 1. `Create` retorna `nullptr`
+
+Causas típicas:
+
+- `resource_path` é um diretório, está ausente ou não é o **arquivo** `resource.fbd`
+- `app_id` + `app_key` inválidos / inativos, ou `license_token` ruim
+- `facebetter.dll` ausente ou incompatível com `facebetter.lib`
+- A autenticação online não alcança `/facebetter/v2/auth`
+
+Ative os logs **antes** de `Create`:
+
+```cpp
+LogConfig log_cfg;
+log_cfg.console_enabled = true;
+log_cfg.level = LogLevel::Debug;
+BeautyEffectEngine::SetLogConfig(log_cfg);
+
+EngineConfig cfg;
+cfg.app_id = "your_app_id";
+cfg.app_key = "your_app_key";
+cfg.resource_path =
+    (std::filesystem::current_path() / "resource" / "resource.fbd").string();
+
+auto engine = BeautyEffectEngine::Create(cfg);
+if (!engine) {
+    std::cerr << "Create failed — check logs, resource.fbd, and license." << std::endl;
+    return -1;
+}
+```
+
+---
+
+### 2. `facebetter.dll` não encontrado
+
+O Windows mostra um diálogo se a DLL não estiver no loader path.
+
+```bat
+dir build\facebetter.dll
+copy sdk\lib\facebetter.dll build\
+```
+
+Ou reconstrua para o CMake copiá-la para ao lado do executável.
+
+---
+
+### 3. `ProcessImage` retorna `nullptr`
+
+Verifique o quadro de entrada, o ponteiro do mecanismo e os logs (`-7` processamento / `-8` OOM nos setters).
+
+```cpp
+auto input = ImageFrame::CreateWithFile("input.jpg");
+if (!input || !input->Data()) {
+    std::cerr << "Failed to load input." << std::endl;
+    return;
+}
+input->type = FrameType::Image;
+auto output = engine->ProcessImage(input);
+if (!output || !output->Data()) {
+    std::cerr << "ProcessImage failed." << std::endl;
+}
+```
+
+---
+
+### 4. Os efeitos parecem inalterados
+
+O 2.0 **não** usa `SetBeautyTypeEnabled`. Os efeitos ficam desligados na intensidade `0`. Remodelagem / maquiagem também precisam de um rosto detectado.
+
+```cpp
+engine->SetSmoothing(0.5f);
+engine->SetReshape(Reshape::FaceThin, 0.3f);
+engine->SetLipstick(0.5f);
+input->type = FrameType::Video;
+```
+
+---
+
+### 5. OpenGL / display
+
+GLFW ou `gladLoadGLLoader` podem falhar em drivers desatualizados, VMs ou Remote Desktop sem GPU.
+
+```cpp
+if (!glfwInit()) {
+    std::cerr << "GLFW init failed." << std::endl;
+    return 1;
+}
+glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
+```
+
+Se o seu app já é dono do contexto GL, defina `EngineConfig::external_context = true` e chame `ProcessImage` nesse thread.
+
+---
+
+## Logs de debug
+
+```cpp
+LogConfig log_cfg;
+log_cfg.console_enabled = true;
+log_cfg.file_enabled = true;
+log_cfg.level = LogLevel::Debug;
+log_cfg.file_name = "facebetter.log";
+BeautyEffectEngine::SetLogConfig(log_cfg);
+```
+
+O arquivo é gravado em relação ao diretório de trabalho atual, a menos que você passe um `file_name` absoluto.

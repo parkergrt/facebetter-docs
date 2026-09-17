@@ -1,0 +1,159 @@
+---
+title: "FAQ"
+description: "iOS Facebetter SDK 2.0 자주 묻는 질문"
+---
+
+<Note>
+이 페이지는 SDK **2.0.0**에 해당합니다. 인증: [인증 및 라이선스](/ko/intro/license). 열거형: [파라미터 열거형](/ko/intro/makeup).
+</Note>
+
+## 연동
+
+### 엔진 생성이 `nil`을 반환함
+
+- `licenseToken` **또는** `appId` + `appKey`가 설정되어 있는지 확인하세요. 둘 다 있으면 토큰이 우선합니다.
+- 대시보드에서 앱 **Bundle ID**를 바인딩하세요.
+- 온라인 인증은 `/facebetter/v2/auth`에 대한 네트워크가 필요합니다.
+- `createEngineWithConfig:` **전에** 로그를 켜고 이벤트 `1`(라이선스 실패)과 `101`(초기화 실패)을 확인하세요.
+- CocoaPods: `pod 'Facebetter', '2.0.0'`. `.xcodeproj`가 아니라 `.xcworkspace`를 여세요.
+
+### 헤더 또는 클래스가 없음
+
+- `#import <Facebetter/FBBeautyEffectEngine.h>`를 임포트하세요.
+- 수동 `.framework`이면 **Embed & Sign**을 설정하세요.
+- Clean Build Folder 후 재빌드하세요.
+- Xcode 15+에서 CocoaPods 스크립트가 실패하면 `ENABLE_USER_SCRIPT_SANDBOXING`을 **No**로 설정하세요.
+
+### 런타임 링크 / dyld 오류
+
+- 아키텍처는 **arm64**여야 합니다.
+- 배포 타깃 **iOS 12.0+**.
+- `Facebetter.framework`가 Embed Frameworks에 있는지 확인하세요.
+
+## 인증
+
+### `licenseToken` vs `appId` / `appKey`
+
+`licenseToken`이 비어 있지 않으면 SDK는 해당 토큰 / `{token}` JSON / `.lic`를 로컬에서 검증하며 `appId` / `appKey`를 보내지 **않습니다**. 그렇지 않으면 온라인 인증을 사용합니다. 자세한 내용: [인증 및 라이선스](/ko/intro/license).
+
+### 이벤트 `1` 또는 `101`
+
+라이선스 또는 초기화가 실패했습니다. Bundle ID, 요금제, 토큰 만료, 로그를 확인하세요. 생성이 nil이 아닌 객체를 반환하는 것만으로는 부족합니다. `onEngineEvent`를 수신하세요.
+
+## 뷰티
+
+### 효과가 너무 약하거나 너무 강함
+
+- 피부 / 메이크업 / 필터: `[0.0, 1.0]`.
+- 리셰이프: `setReshape:intensity:`로 **`[-1.0, 1.0]`** (`0`은 꺼짐).
+- 강도 `0`은 해당 효과를 끕니다.
+- 피부만: `setBeautySkinOnly:`.
+
+### 메이크업 / 리셰이프 열거형 값
+
+앱 코드 주석에 표를 복사하지 마세요. [파라미터 열거형](/ko/intro/makeup)을 사용하세요. Objective-C 이름은 `FBReshape_FaceThin`, `FBLipstickColor_Rouge` 형태입니다.
+
+## 필터, 스티커, 가상 배경
+
+### 필터 또는 스티커가 동작하지 않음
+
+`.fbd` 경로 또는 바이트를 전달하세요.
+
+```objc
+[engine setFilter:fbdPath];
+[engine setFilterIntensity:0.8f];
+[engine clearFilter];
+
+[engine setSticker:fbdPath];
+[engine clearSticker];
+```
+
+텍스처는 다음 `processImage:`(GL 스레드)에서 생성됩니다. 빈 경로 / nil 데이터는 `FBErrorCode_InvalidArgument`를 반환합니다. 파일이 없으면 `FBErrorCode_IO`를 반환합니다.
+
+### 가상 배경
+
+```objc
+[engine setVirtualBackgroundBlur:0.6f];           // 0 clears blur
+[engine setVirtualBackground:imagePath];          // png/jpg
+[engine setVirtualBackgroundWithData:imageData];
+[engine clearVirtualBackground];
+```
+
+크로마키는 **마스크**입니다. 채우기는 여전히 블러 또는 이미지입니다.
+
+```objc
+[engine setChromaKey:FBChromaKeyColor_Green];
+[engine setChromaKeySimilarity:0.4f];
+[engine clearChromaKey];  // back to portrait segmentation; fill stays
+```
+
+## 처리
+
+### `processImage:`가 `nil`을 반환함
+
+- 엔진이 `nil`이거나 초기화가 실패했습니다(`-2` / 이벤트 `101`).
+- 잘못된 프레임(크기 0, 미지원 형식).
+- `externalContext = YES`이지만 현재 스레드에 GL 컨텍스트가 없습니다.
+- 처리 실패(`FBErrorCode_Process`)로 다루세요.
+
+### 프레임 유형
+
+`imageFrame.type`을 `FBFrameTypeImage`(`0`) 또는 `FBFrameTypeVideo`(`1`)로 설정하세요. 처리 모드 인자를 전달하지 마세요.
+
+### 형식 변환
+
+`convert:`와 프레임 접근자를 사용하세요.
+
+```objc
+FBImageFrame *rgba = [frame convert:FBImageFormatRGBA];
+const uint8_t *data = [rgba data];
+```
+
+YUV: `dataY` / `dataU` / `dataV` / `dataUV`와 대응하는 `stride*`.
+
+### UIImage
+
+```objc
+FBImageFrame *frame = [FBImageFrame createWithUIImage:image];
+frame.type = FBFrameTypeImage;
+FBImageFrame *out = [engine processImage:frame];
+```
+
+### 카메라 미리보기
+
+1. `AVCaptureVideoDataOutput`에서 `CVPixelBuffer`를 읽습니다.
+2. `createWithNV12:...` 또는 `createWithBGRA:...`로 `FBImageFrame`을 만듭니다.
+3. `type = FBFrameTypeVideo`를 설정하고, 선택적으로 `setMirror:@"horizontal"`을 호출합니다.
+4. `processImage:` 후 `[output data]` 또는 `[output texture]`를 표시합니다.
+
+## 성능과 메모리
+
+- 라이브에는 `FBFrameTypeVideo`를 사용하세요. `getStats.avgProcessTimeMs`가 높으면 해상도를 낮추세요.
+- 엔진은 하나, 직렬 큐를 사용하고 메인 스레드에서 처리하지 마세요.
+- ARC로 프레임을 해제하세요(`frame = nil`). 캡처 버퍼를 재사용하세요.
+- 매 프레임마다 `setFilter:` / `setSticker:`를 호출하지 마세요.
+
+## 로깅
+
+```objc
+FBLogConfig *logConfig = [[FBLogConfig alloc] init];
+logConfig.consoleEnabled = YES;
+logConfig.fileEnabled = YES;
+logConfig.level = FBLogLevel_Debug;
+logConfig.fileName = logPath;
+[FBBeautyEffectEngine setLogConfig:logConfig];  // before createEngineWithConfig:
+```
+
+반환 코드: `0` 성공, `-1` 잘못된 인자, `-2` 미초기화. 전체 목록: [오류 처리](/ko/ios/error-handling).
+
+## 버전
+
+- **iOS 12.0+**, **arm64**.
+- CocoaPods: `pod 'Facebetter', '2.0.0'`.
+- 업그레이드 후: `pod install`, Clean Build Folder, 인증과 `processImage:`를 다시 테스트하세요.
+
+## 스레딩
+
+- 기본 엔진: 모든 `processImage:`와 GL 리소스를 건드리는 setter는 직렬 큐입니다.
+- `externalContext = YES`: GL 스레드에서 생성 + 처리합니다.
+- UI는 메인 큐에서만 업데이트하세요.

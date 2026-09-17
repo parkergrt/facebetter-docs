@@ -1,0 +1,134 @@
+---
+title: "Perguntas frequentes"
+description: "Perguntas comuns do Facebetter SDK 2.0 no macOS"
+---
+
+<Note>
+Esta página corresponde ao SDK **2.0.0**. Autenticação: [Autenticação e licença](/pt-BR/intro/license). Enums: [Enums de parâmetros](/pt-BR/intro/makeup).
+</Note>
+
+## Integração
+
+### A criação do mecanismo retorna `nil`
+
+- Confirme se `licenseToken` **ou** `appId` + `appKey` está definido. O token prevalece se os dois estiverem presentes.
+- Vincule o **Bundle ID** do Mac (ferramentas CLI: nome do processo).
+- A autenticação online precisa de **Outgoing Connections** no App Sandbox e de um caminho até `/facebetter/v2/auth`.
+- Ative os logs **antes** de `createEngineWithConfig:` e observe os eventos `1` / `101`.
+- CocoaPods: `pod 'Facebetter', '2.0.0'`. Abra o `.xcworkspace`.
+
+### Headers ou classes ausentes
+
+- Importe `#import <Facebetter/FBBeautyEffectEngine.h>`.
+- `.framework` manual: **Embed & Sign**.
+- Sandbox do CocoaPods no Xcode 15+: defina `ENABLE_USER_SCRIPT_SANDBOXING` como **No**.
+
+### Erros de link / dyld em runtime
+
+- Arquiteturas: **x86_64** e **arm64**.
+- Deployment target **macOS 10.15+**.
+
+## Autenticação
+
+### `licenseToken` vs `appId` / `appKey`
+
+Se `licenseToken` não estiver vazio, o SDK verifica esse token / JSON `{token}` / `.lic` localmente. Caso contrário, usa autenticação online. Detalhes: [Autenticação e licença](/pt-BR/intro/license).
+
+### Evento `1` ou `101`
+
+Licença ou init falhou. Verifique Bundle ID, rede do sandbox, expiração do token e logs.
+
+## Beleza
+
+### O efeito está fraco ou forte demais
+
+- Pele / maquiagem / filtro: `[0.0, 1.0]`.
+- Remodelagem: **`[-1.0, 1.0]`** via `setReshape:intensity:`.
+- Intensidade `0` desativa esse efeito.
+- Somente pele: `setBeautySkinOnly:`.
+
+Nomes das predefinições: [Enums de parâmetros](/pt-BR/intro/makeup).
+
+## Filtros, adesivos, fundo virtual
+
+Passe o caminho ou os bytes `.fbd`. Apps no sandbox precisam conseguir ler esse caminho.
+
+```objc
+[engine setFilter:fbdPath];
+[engine setFilterIntensity:0.8f];
+[engine clearFilter];
+[engine setSticker:fbdPath];
+[engine clearSticker];
+```
+
+Fundo virtual:
+
+```objc
+[engine setVirtualBackgroundBlur:0.6f];
+[engine setVirtualBackground:imagePath];
+[engine setVirtualBackgroundWithData:imageData];
+[engine clearVirtualBackground];
+[engine setChromaKey:FBChromaKeyColor_Green];
+[engine clearChromaKey];
+```
+
+## Processamento
+
+### `processImage:` retorna `nil`
+
+Quadro inválido, init falho, ou `externalContext = YES` sem um contexto GL atual.
+
+### Tipo de quadro
+
+Defina `imageFrame.type` como `FBFrameTypeImage` (`0`) ou `FBFrameTypeVideo` (`1`). Sem argumento de modo de processamento.
+
+### Conversão de formato
+
+Use `convert:`:
+
+```objc
+FBImageFrame *rgba = [frame convert:FBImageFormatRGBA];
+const uint8_t *data = [rgba data];
+```
+
+### NSImage
+
+```objc
+FBImageFrame *frame = [FBImageFrame createWithNSImage:nsImage];
+frame.type = FBFrameTypeImage;
+FBImageFrame *out = [engine processImage:frame];
+```
+
+### Câmera
+
+1. `AVCaptureVideoDataOutput` → `CVPixelBuffer`.
+2. `createWithNV12:...` ou `createWithBGRA:...`.
+3. `type = FBFrameTypeVideo`, opcionalmente `setMirror:@"horizontal"`.
+4. Exiba `[output data]` ou `[output texture]` em uma view AppKit / OpenGL.
+
+## Desempenho
+
+- `FBFrameTypeVideo` ao vivo; observe `getStats`.
+- Um mecanismo, fila serial.
+- Pause a captura quando a janela for miniaturizada.
+
+## Logs
+
+```objc
+[FBBeautyEffectEngine setLogConfig:logConfig];  // before createEngineWithConfig:
+```
+
+Grave logs dentro do container do sandbox. Códigos de retorno: [Tratamento de erros](/pt-BR/macos/error-handling).
+
+## Versão
+
+- **macOS 10.15+**, **x86_64** + **arm64**.
+- CocoaPods: `pod 'Facebetter', '2.0.0'`.
+- Universal Binary: confirme que o xcframework contém os dois slices (`lipo -info`).
+
+## Sandbox e App Store
+
+- Rede de saída para autenticação online.
+- `NSCameraUsageDescription` para a câmera.
+- Security-scoped bookmarks para arquivos escolhidos pelo usuário.
+- Não use APIs privadas; mantenha o mecanismo fora do thread principal para vídeo ao vivo.

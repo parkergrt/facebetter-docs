@@ -1,0 +1,261 @@
+---
+title: "뷰티 효과 적용"
+description: "Windows에서 C++ API로 Facebetter SDK 2.0을 연동합니다"
+---
+
+<Note>
+SDK **2.0.0**. 헤더는 `facebetter/*.h`에 있습니다. 메이크업 / 리셰이프 / 스타일 열거형: [파라미터 열거형](/ko/intro/makeup). 인증: [인증 및 라이선스](/ko/intro/license).
+</Note>
+
+Windows에서 Facebetter는 C++ 라이브러리입니다(`facebetter.lib` + `facebetter.dll`). 이 가이드는 [C++ 데스크톱 데모](https://github.com/pixpark/facebetter-sdk)(`demo/cpp`)를 따릅니다.
+
+## 헤더 포함
+
+```cpp
+#include <facebetter/beauty_effect_engine.h>
+#include <facebetter/beauty_params.h>
+#include <facebetter/image_frame.h>
+#include <facebetter/type_defines.h>
+
+using namespace facebetter;
+using namespace facebetter::beauty_params;
+```
+
+## 연동 흐름
+
+```
+SetLogConfig → Create(EngineConfig) → set effects → ProcessImage → render
+```
+
+타입 활성화 단계는 없습니다. 강도를 `0`보다 크게 설정하면 해당 효과가 켜집니다.
+
+---
+
+## 1. 로그 설정 (선택)
+
+초기화 로그를 캡처하려면 `Create` **전에** 호출하세요.
+
+```cpp
+LogConfig log_cfg;
+log_cfg.console_enabled = true;
+log_cfg.file_enabled = false;
+log_cfg.level = LogLevel::Info;
+BeautyEffectEngine::SetLogConfig(log_cfg);
+```
+
+레벨(낮음 → 높음): `Trace` / `Debug` / `Info` / `Warn` / `Error` / `Critical`.
+
+---
+
+## 2. 엔진 만들기
+
+데스크톱은 `resource_path`를 `resource.fbd` **파일**로 설정해야 **합니다**.
+
+**인증 우선순위:** `license_token`이 비어 있지 않으면 SDK는 해당 토큰(라이선스 토큰 문자열, `{token}` JSON, 또는 오프라인 `.lic`)을 검증하며 `app_id` / `app_key`로 네트워크를 호출하지 않습니다. 그렇지 않으면 `app_id` + `app_key`로 `/facebetter/v2/auth`를 사용합니다.
+
+```cpp
+EngineConfig cfg;
+cfg.app_id = "your_app_id";
+cfg.app_key = "your_app_key";
+cfg.resource_path = "resource/resource.fbd";  // path to the .fbd file
+cfg.external_context = false;                 // SDK-managed OpenGL context
+
+// Optional: token takes priority when non-empty
+// cfg.license_token = "/* license token, {token} JSON, or .lic contents */";
+
+std::shared_ptr<BeautyEffectEngine> engine = BeautyEffectEngine::Create(cfg);
+if (!engine) {
+    // Check resource_path, license_token / app_id+app_key, and logs
+    return -1;
+}
+```
+
+<Warning>
+`resource_path`는 폴더가 아니라 `resource.fbd` 파일이어야 합니다. 상대 경로는 프로세스 작업 디렉터리에서 해석됩니다. 프로덕션에서는 절대 경로를 권장합니다.
+</Warning>
+
+---
+
+## 3. 뷰티 파라미터 설정
+
+피부 / 메이크업 강도는 `[0.0, 1.0]`입니다. `0`은 꺼짐입니다. 리셰이프는 **`[-1.0, 1.0]`**입니다. 전체 열거형 목록: [파라미터 열거형](/ko/intro/makeup).
+
+### 피부
+
+```cpp
+engine->SetSmoothing(0.5f);
+engine->SetSmoothingStyle(SmoothingStyle::Natural);
+engine->SetWhitening(0.3f);
+engine->SetWhiteningStyle(WhiteningStyle::ColdWhite);
+engine->SetSharpening(0.2f);
+engine->SetRosiness(0.2f);
+engine->SetBeautySkinOnly(true);  // beauty only on detected skin
+```
+
+### 페이스 리셰이프
+
+```cpp
+engine->SetReshape(Reshape::FaceThin, 0.4f);
+engine->SetReshape(Reshape::EyeSize, 0.3f);
+engine->SetReshape(Reshape::Chin, -0.2f);  // negative = opposite direction
+```
+
+### 메이크업
+
+강도, 형태, 색상은 별도 setter입니다. 립스틱은 색상만, 렌즈는 색상만, 컨투어는 스타일만입니다.
+
+```cpp
+engine->SetLipstick(0.6f);
+engine->SetLipstickColor(LipstickColor::Rouge);
+
+engine->SetBlush(0.4f);
+engine->SetBlushStyle(BlushStyle::SunKissed);
+engine->SetBlushColor(BlushColor::CoralPink);
+
+engine->SetContour(0.5f);
+engine->SetContourStyle(ContourStyle::Natural);
+
+engine->SetEyeShadow(0.4f);
+engine->SetEyeShadowStyle(EyeShadowStyle::Soft);
+engine->SetEyeShadowColor(EyeShadowColor::Plum);
+```
+
+아이라이너, 눈썹, 속눈썹, 렌즈도 같은 패턴입니다(`SetEyeLiner` / `SetEyebrow` / `SetEyelash` / `SetPupil`과 해당하는 Style / Color).
+
+---
+
+## 4. 필터, 스티커, 가상 배경
+
+**파일 경로** 또는 **인코딩된 바이트**를 전달하세요.
+
+```cpp
+engine->SetFilter("assets/filters/natural.fbd");
+engine->SetFilterIntensity(0.8f);
+engine->ClearFilter();
+
+engine->SetSticker("assets/stickers/face/black_glass.fbd");
+engine->ClearSticker();
+
+engine->AddResourcePack("resource/resource_3d.fbd");  // or place it next to resource.fbd
+engine->Set3DSticker("assets/stickers/3d/oculos.fbd");
+engine->Clear3DSticker();
+
+engine->SetVirtualBackgroundBlur(0.6f);           // [0, 1]; 0 clears fill
+engine->SetVirtualBackground("assets/background.jpg");
+engine->ClearVirtualBackground();
+
+engine->SetChromaKey(ChromaKeyColor::Green);
+engine->SetChromaKeySimilarity(0.4f);
+engine->SetChromaKeySmoothness(0.1f);
+engine->SetChromaKeyDesaturation(0.2f);
+engine->ClearChromaKey();  // back to portrait segmentation
+```
+
+LUT / 스티커 텍스처는 다음 `ProcessImage` 호출(활성 GL 스레드)에서 생성됩니다. 3D 스티커는 [선택 리소스 팩](/ko/intro/resource-packs)을 참고하세요.
+
+---
+
+## 5. 콜백과 통계
+
+```cpp
+EngineCallbacks cbs;
+cbs.on_engine_event = [](int code, const std::string& message) {
+    // 0 license OK, 1 license failed, 100 init complete, 101 init failed
+    printf("[event] %d %s\n", code, message.c_str());
+};
+cbs.on_face_landmarks = [](const std::vector<FaceDetectionResult>& faces) {
+    printf("faces=%zu\n", faces.size());
+};
+engine->SetCallbacks(cbs);
+
+EngineStats stats = engine->GetStats();
+printf("fps=%.1f avg=%.2fms session=%.1fs\n",
+       stats.fps, stats.avg_process_time_ms, stats.session_time_s);
+```
+
+---
+
+## 6. 프레임 처리
+
+`ImageFrame::type`을 `FrameType::Video`(실시간, 기본값) 또는 `FrameType::Image`(단일 사진)로 설정하세요.
+
+```cpp
+auto input = ImageFrame::CreateWithRGBA(rgba_data, width, height, stride);
+input->type = FrameType::Video;
+
+auto output = engine->ProcessImage(input);
+if (output && output->Data()) {
+    const uint8_t* p = output->Data();
+    int w = output->Width();
+    int h = output->Height();
+}
+```
+
+**파일 (사진 모드):**
+
+```cpp
+auto input = ImageFrame::CreateWithFile("input.jpg");
+input->type = FrameType::Image;
+auto output = engine->ProcessImage(input);
+output->ToFile("output.jpg", 95);
+```
+
+<Tip>
+엔진은 가능하면 출력 형식을 입력과 맞춥니다(RGBA 입력 → RGBA 출력, I420 입력 → I420 출력). 다른 레이아웃이 필요하면 `Convert(Format::BGRA)`를 사용하세요.
+</Tip>
+
+### OpenGL에 업로드 (미리보기)
+
+```cpp
+GLuint tex = 0;
+glGenTextures(1, &tex);
+glBindTexture(GL_TEXTURE_2D, tex);
+glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA,
+             output->Width(), output->Height(),
+             0, GL_RGBA, GL_UNSIGNED_BYTE, output->Data());
+```
+
+`facebetter.dll`을 실행 파일 옆에 두세요(데모 CMake가 빌드 후 복사합니다).
+
+---
+
+## 7. 최소 루프
+
+```cpp
+LogConfig log_cfg;
+log_cfg.console_enabled = true;
+log_cfg.level = LogLevel::Info;
+BeautyEffectEngine::SetLogConfig(log_cfg);
+
+EngineConfig cfg;
+cfg.app_id = "your_app_id";
+cfg.app_key = "your_app_key";
+cfg.resource_path = "resource/resource.fbd";
+auto engine = BeautyEffectEngine::Create(cfg);
+if (!engine) return -1;
+
+engine->SetSmoothing(0.5f);
+engine->SetReshape(Reshape::FaceThin, 0.3f);
+engine->SetLipstick(0.5f);
+engine->SetLipstickColor(LipstickColor::Rouge);
+
+auto input = ImageFrame::CreateWithRGBA(rgba, width, height, stride);
+input->type = FrameType::Video;
+auto output = engine->ProcessImage(input);
+```
+
+끝나면 `shared_ptr`를 버리세요(`engine.reset()`). `BeautyEffectEngine`은 싱글톤이 **아닙니다**.
+
+TRTC / Agora / LiveKit: [서드파티 연동](/ko/windows/third-party-integration).
+
+## 관련 문서
+
+<CardGroup cols={2}>
+  <Card title="서드파티 연동" href="/ko/windows/third-party-integration">TRTC / Agora / LiveKit</Card>
+  <Card title="API 레퍼런스" href="/ko/windows/api-reference">모든 C++ 메서드와 유형</Card>
+  <Card title="오류 처리" href="/ko/windows/error-handling">반환 코드와 Windows DLL 문제</Card>
+  <Card title="권장 사항" href="/ko/windows/best-practices">성능과 스레딩</Card>
+</CardGroup>

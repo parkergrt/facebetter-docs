@@ -1,0 +1,62 @@
+---
+title: "AI와 함께 사용"
+description: "MCP, llms.txt, Markdown 페이지로 Facebetter 문서를 Cursor, Claude, ChatGPT 등 AI 도구에 연결합니다"
+---
+
+이 문서는 사람과 AI 도구 모두를 위해 게시됩니다. IDE 에이전트를 사이트 전체에 연결하거나, 단일 페이지를 Markdown으로 붙여 넣을 수 있습니다.
+
+## MCP (권장)
+
+Cursor, Claude, VS Code 또는 다른 MCP 클라이언트에 다음을 지정하세요.
+
+```text
+https://docs.facebetter.net/mcp
+```
+
+연결한 뒤 SDK를 연동할 때 Facebetter docs MCP를 사용하도록 에이전트에 요청하세요. 사이트를 검색하고 페이지를 Markdown으로 읽을 수 있습니다.
+
+### 모든 페이지에서 한 번에 연결
+
+문서 페이지의 오른쪽 위 메뉴를 엽니다.
+
+- **Connect to Cursor** / **Connect to VS Code** — MCP 서버를 설치합니다
+- **Copy MCP server URL** — `https://docs.facebetter.net/mcp`를 복사합니다
+- **Copy page** / **View as Markdown** — 현재 페이지를 대화 컨텍스트로 사용합니다
+
+## llms.txt와 페이지별 Markdown
+
+| 리소스 | URL | 사용 시점 |
+|----------|-----|----------|
+| 문서 색인 | [https://docs.facebetter.net/llms.txt](https://docs.facebetter.net/llms.txt) | 도구가 페이지 목록을 가져올 수 있을 때 |
+| 전체 텍스트 | [https://docs.facebetter.net/llms-full.txt](https://docs.facebetter.net/llms-full.txt) | 대부분의 내용을 한 파일로 원할 때 |
+| 단일 페이지 | 임의 URL에 `.md`를 붙입니다 | MCP가 없는 ChatGPT 또는 도구 |
+
+단일 페이지 예시:
+
+```text
+https://docs.facebetter.net/ko/android/quick-start.md
+```
+
+중국어 페이지는 `/zh/` 아래에 있습니다. 예:
+
+```text
+https://docs.facebetter.net/zh/android/quick-start.md
+```
+
+## 프롬프트 예시
+
+**MCP가 연결된 경우**
+
+```text
+Use the Facebetter docs MCP. Help me integrate Facebetter SDK 2.0 into my Android app.
+Follow Quick Start, then Implement Beauty. Use only 2.0 APIs (setSmoothing, licenseToken, FrameType). Prefer current docs over prior knowledge.
+```
+
+**MCP가 없는 경우**
+
+```text
+Read https://docs.facebetter.net/llms.txt first, then open the Android Quick Start and Implement Beauty pages (use the .md links).
+Help me integrate Facebetter into my Android project. Prefer those pages over prior knowledge.
+```
+
+필요에 따라 Android를 iOS, Web, Flutter 또는 다른 플랫폼으로 바꾸세요.

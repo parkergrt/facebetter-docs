@@ -1,0 +1,222 @@
+---
+title: "Referencia de la API"
+description: "API C++ de Facebetter SDK 2.0 para Linux"
+---
+
+<Note>
+SDK **2.0.0**. Namespace `facebetter`. Misma API C++ pública que [Windows](/es/windows/api-reference). Headers: `facebetter/*.h`. Enumeraciones: [Enumeraciones de parámetros](/es/intro/makeup). Autenticación: [Autenticación y licencia](/es/intro/license).
+</Note>
+
+## Notas de Linux
+
+- Distribuye `libfacebetter.so`. Configura `LD_LIBRARY_PATH`, rpath o `ldconfig`.
+- Compila el SDK con `./scripts/build_linux.sh` (salida `build/linux/release`) o CMake.
+- `resource_path` debe ser el **archivo `resource.fbd`**.
+- `SetRenderView` no está disponible.
+- `external_context = true` usa el contexto GL actual del hilo llamador (GLFW / EGL / OSMesa).
+
+```cmake
+target_include_directories(app PRIVATE /path/to/sdk/include)
+target_link_libraries(app PRIVATE /path/to/sdk/lib/libfacebetter.so GL)
+```
+
+---
+
+## Logging
+
+```cpp
+enum class LogLevel { Trace = 0, Debug, Info, Warn, Error, Critical };
+
+struct LogConfig {
+  bool console_enabled = false;
+  bool file_enabled = false;
+  LogLevel level = LogLevel::Info;
+  std::string file_name = "";
+};
+
+static int BeautyEffectEngine::SetLogConfig(const LogConfig& config);
+```
+
+Llama a `SetLogConfig` **antes** de `Create`.
+
+---
+
+## Motor
+
+### `EngineConfig`
+
+| Campo | Descripción |
+| --- | --- |
+| `app_id` / `app_key` | Autenticación nativa v2 en línea |
+| `resource_path` | Ruta a `resource.fbd` (archivo, no directorio) |
+| `license_token` | token / JSON `{token}` / `.lic` — si no está vacío, tiene prioridad |
+| `external_context` | `false`: OpenGL gestionado por el SDK; `true`: contexto del llamador |
+
+```cpp
+struct EngineConfig {
+  std::string app_id;
+  std::string app_key;
+  std::string resource_path;
+  std::string license_token;
+  bool external_context = false;
+};
+
+static std::shared_ptr<BeautyEffectEngine> BeautyEffectEngine::Create(
+    const EngineConfig& config);
+```
+
+---
+
+### Piel
+
+```cpp
+int SetSmoothing(float intensity);          // [0, 1]
+int SetSmoothingStyle(SmoothingStyle style);
+int SetWhitening(float intensity);
+int SetWhiteningStyle(WhiteningStyle style);
+int SetSharpening(float intensity);
+int SetRosiness(float intensity);
+int SetBeautySkinOnly(bool enabled);
+```
+
+### Remodelado
+
+```cpp
+int SetReshape(Reshape param, float intensity);  // [-1, 1]
+```
+
+Lista completa de `Reshape`: [Enumeraciones de parámetros](/es/intro/makeup).
+
+### Maquillaje
+
+```cpp
+int SetLipstick(float);        int SetLipstickColor(LipstickColor);
+int SetBlush(float);           int SetBlushStyle(BlushStyle); int SetBlushColor(BlushColor);
+int SetContour(float);         int SetContourStyle(ContourStyle);
+int SetEyeShadow(float);       int SetEyeShadowStyle(...); int SetEyeShadowColor(...);
+int SetEyeLiner(float);        int SetEyeLinerStyle(...);  int SetEyeLinerColor(...);
+int SetEyebrow(float);         int SetEyebrowStyle(...);   int SetEyebrowColor(...);
+int SetEyelash(float);         int SetEyelashStyle(...);   int SetEyelashColor(...);
+int SetPupil(float);           int SetPupilColor(PupilColor);
+```
+
+El labial es solo Color; la pupila es solo Color; el contorno es solo Style. Valores: [Enumeraciones de parámetros](/es/intro/makeup).
+
+### Croma y fondo virtual
+
+```cpp
+int SetChromaKey(ChromaKeyColor color);  // Green, Blue, Red
+int ClearChromaKey();
+int SetChromaKeySimilarity(float);
+int SetChromaKeySmoothness(float);
+int SetChromaKeyDesaturation(float);
+
+int SetVirtualBackgroundBlur(float level);  // [0, 1]; 0 clears fill
+int SetVirtualBackground(const std::string& image_path);
+int SetVirtualBackground(const std::vector<uint8_t>& image_data);
+int ClearVirtualBackground();
+```
+
+### Filtro y sticker
+
+Ruta o bytes `.fbd` codificados. No hay API de registro / ID. Entra en vigor en el siguiente `ProcessImage`.
+
+```cpp
+int SetFilter(const std::string& fbd_file_path);
+int SetFilter(const std::vector<uint8_t>& fbd_data);
+int ClearFilter();
+int SetFilterIntensity(float intensity);
+
+int SetSticker(const std::string& fbd_file_path);
+int SetSticker(const std::vector<uint8_t>& fbd_data);
+int ClearSticker();
+int AddResourcePack(const std::string& fbd_file_path);
+int AddResourcePack(const std::vector<uint8_t>& fbd_data);
+int Set3DSticker(const std::string& resource);
+int Set3DSticker(const std::vector<uint8_t>& fbd_data);
+int Clear3DSticker();
+```
+
+Carga primero el paquete 3D opcional. Consulta [Paquetes de recursos opcionales](/es/intro/resource-packs).
+
+### Estadísticas, callbacks, proceso
+
+```cpp
+EngineStats GetStats() const;
+int SetCallbacks(const EngineCallbacks& callbacks);
+const std::shared_ptr<ImageFrame> ProcessImage(
+    const std::shared_ptr<ImageFrame> image_frame);
+```
+
+Configura `frame->type` a `FrameType::Image` o `FrameType::Video`.
+
+```cpp
+struct EngineStats {
+  double fps = 0.0;
+  double avg_process_time_ms = 0.0;
+  double session_time_s = 0.0;
+};
+```
+
+---
+
+## Eventos
+
+| Código | Significado |
+| --- | --- |
+| `0` | Licencia correcta |
+| `1` | Licencia fallida |
+| `100` | Init completo |
+| `101` | Init fallido |
+
+```cpp
+struct EngineCallbacks {
+  std::function<void(const std::vector<FaceDetectionResult>&)> on_face_landmarks;
+  std::function<void(int code, const std::string& message)> on_engine_event;
+};
+```
+
+---
+
+## Imagen
+
+```cpp
+enum class Format { I420, NV12, NV21, BGRA, RGBA, BGR, RGB, Texture };
+enum class Rotation { Rotation_0, Rotation_90, Rotation_180, Rotation_270 };
+enum class FrameType { Image = 0, Video = 1 };
+```
+
+**Factories:** `CreateWithFile`, `Create`, `CreateWithRGBA/BGRA/RGB/BGR`, `CreateWithI420/NV12/NV21`, `CreateWithTexture`.
+
+**Ops:** `Rotate`, `Mirror("horizontal"|"vertical"|"both")`, `SetMirror`, `Convert`, `ToFile`.
+
+**Accesores:** `Width/Height/Stride/Size/GetFormat/Data`, planos YUV, `Texture()`, `Buffer()`. Campo: `FrameType type`.
+
+```cpp
+struct FaceDetectionResult {
+  Rect rect;
+  std::vector<Point2d> key_points;  // 111
+  std::vector<float> visibility;
+  int face_id = -1;
+  float score = 0.0f;
+  float pitch, roll, yaw;
+};
+```
+
+---
+
+## Códigos de error
+
+| Código | Significado |
+| --- | --- |
+| `0` | OK |
+| `-1` | Argumento no válido |
+| `-2` | No inicializado |
+| `-3` | Licencia |
+| `-4` | No admitido |
+| `-5` | E/S |
+| `-6` | Sin slot |
+| `-7` | Proceso |
+| `-8` | Memoria insuficiente |
+
+Serializa `ProcessImage` en un solo hilo. Los punteros de píxel `Data()` son de solo lectura.

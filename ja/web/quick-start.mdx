@@ -1,0 +1,89 @@
+---
+title: "クイックスタート"
+description: "Facebetter Web SDK 2.0 のサンプルを実行します"
+---
+
+<Note>
+このページは SDK **2.0.0** に対応します。認証: [認証とライセンス](/ja/intro/license)。メイク / リシェイプ列挙: [パラメータ列挙](/ja/intro/makeup)。
+</Note>
+
+## 要件
+
+- **ブラウザ**: Chrome 57+、Firefox 52+、Safari 11+、Edge 16+
+- **言語**: JavaScript（ES6+）または TypeScript
+- **コンテキスト**: HTTPS または `localhost`（カメラに必要）
+
+## SDK のインストール
+
+```bash
+npm install facebetter
+```
+
+```javascript
+import {
+  BeautyEffectEngine,
+  EngineConfig,
+  FrameType,
+  MirrorMode,
+  Reshape,
+} from 'facebetter';
+```
+
+## サンプルの取得
+
+[GitHub リポジトリ](https://github.com/pixpark/facebetter-sdk) をクローンし、`demo/web/react` を開きます。
+
+```bash
+git clone https://github.com/pixpark/facebetter-sdk.git
+cd demo/web/react
+```
+
+デモは Vite + React アプリです。開発中は `file:` 経由でリポジトリ内 SDK に依存します。
+
+## ドメインのバインドと認証情報
+
+1. ダッシュボードで Web **ドメイン**（例: `example.com`）をバインドします。[サブスクリプション](/ja/intro/enable-service) を参照してください。
+2. ダッシュボードから `appId` / `appKey` をコピーします。**`EngineConfig` に入れないでください。** Web では**サーバー**側に置きます。
+
+Web にオフライン `.lic` は**ありません**。詳細: [認証とライセンス](/ja/intro/license)。
+
+## デモの設定
+
+デモは**ページにキーを置きません**。ページは `/api/facebetter/auth` のプロキシを呼び（`src/fetchLicenseToken.js`）、レスポンスをエンジンに渡します。本番プロキシは `api/facebetter/auth.js` にあります。ローカルの `vite` では、そのパスはデプロイ済みデモプロキシへ転送されます。
+
+```javascript
+const licenseToken = await fetch('/api/facebetter/auth', { method: 'POST' }).then((r) => r.text());
+const engine = new BeautyEffectEngine(new EngineConfig({ licenseToken }));
+await engine.init();
+```
+
+本番では、同じプロキシを**自社サーバー**に実装してください。手順と Node の例: [認証とライセンス](/ja/intro/license)。
+
+SDK は `init()` 中にランタイムファイルを読み込みます。`resource.fbd` を `public/` にコピーする必要は**ありません**。任意: `init({ onProgress })` はダウンロードパーセントを報告します。3D ステッカーには追加パック `resource_3d.fbd` が必要です。[オプションリソースパック](/ja/intro/resource-packs) を参照してください。
+
+## 実行
+
+```bash
+npm install
+npm run dev
+```
+
+Vite が表示する URL を開きます（通常は `http://localhost:5175`）。
+
+## 確認
+
+1. DevTools（F12）を開き、コンソールを確認します。
+2. 求められたらカメラを許可します。
+3. 美顔スライダーを動かすと、プレビューにスムージング / リシェイプが見えるはずです。
+
+## 本番の最小初期化
+
+```javascript
+import { BeautyEffectEngine, EngineConfig } from 'facebetter';
+
+const licenseToken = await fetch('/api/facebetter/auth', { method: 'POST' }).then((r) => r.text());
+const engine = new BeautyEffectEngine(new EngineConfig({ licenseToken }));
+await engine.init();
+```
+
+サーバーが `app_id` / `app_key` を保持し、トークンを返します。サーバーコードの例は [認証とライセンス](/ja/intro/license) にあります。

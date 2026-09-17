@@ -1,0 +1,270 @@
+---
+title: "Implementar belleza"
+description: "Integra Facebetter Web SDK 2.0"
+---
+
+<Note>
+SDK **2.0.0**. Autenticación: [Autenticación y licencia](/es/intro/license). Valores de enumeración: [Enumeraciones de parámetros](/es/intro/makeup).
+</Note>
+
+## Instalar
+
+```bash
+npm install facebetter
+```
+
+```javascript
+import {
+  BeautyEffectEngine,
+  EngineConfig,
+  FrameType,
+  MirrorMode,
+  Reshape,
+  SmoothingStyle,
+  WhiteningStyle,
+  LipstickColor,
+  ChromaKeyColor,
+  EngineEventCode,
+  FacebetterError,
+} from 'facebetter';
+```
+
+## Crear el motor
+
+`EngineConfig` en Web tiene **solo** estos campos. No hay `appId` / `appKey` en el objeto de config.
+
+| Campo | Propósito |
+| --- | --- |
+| `licenseToken` | Cadena del token de licencia, o JSON `{token}`. **Obligatorio.** Obténlo antes de `init()`. |
+
+El SDK carga los archivos de runtime durante `init()`. No alojas un `resource.fbd` en la raíz del sitio para el motor. Progreso de descarga opcional: `init({ onProgress })`. El motor no obtiene tokens. Web **no** admite `.lic` sin conexión.
+
+```javascript
+const licenseToken = await fetch('/api/facebetter/auth', { method: 'POST' }).then((r) => r.text());
+const engine = new BeautyEffectEngine(new EngineConfig({ licenseToken }));
+
+await engine.setLogConfig({
+  consoleEnabled: true,
+  fileEnabled: false,
+  level: 2, // TRACE=0 … CRITICAL=5
+});
+
+await engine.init();
+```
+
+<Warning>
+Llama a `setLogConfig` antes de `init()` si quieres ver logs de carga / autenticación. El logging a archivo no se admite en el navegador (`fileEnabled` se ignora).
+</Warning>
+
+```javascript
+try {
+  await engine.init();
+} catch (error) {
+  if (error instanceof FacebetterError) {
+    console.error(error.code, error.message);
+  }
+  throw error;
+}
+```
+
+## Belleza de piel
+
+Rango de intensidad **`[0.0, 1.0]`**. `0` desactiva el efecto.
+
+```javascript
+engine.setSmoothing(0.8);
+engine.setSmoothingStyle(SmoothingStyle.Natural);
+engine.setWhitening(0.5);
+engine.setWhiteningStyle(WhiteningStyle.ColdWhite);
+engine.setSharpening(0.3);
+engine.setRosiness(0.2);
+engine.setBeautySkinOnly(true);
+```
+
+<Tip>
+`setBeautySkinOnly(true)` limita suavizado / blanqueamiento / nitidez / rubor a la piel detectada. Ropa y fondo no cambian.
+</Tip>
+
+Enumeraciones de estilo: [Enumeraciones de parámetros](/es/intro/makeup).
+
+## Remodelado facial
+
+```javascript
+engine.setReshape(Reshape.FaceThin, 0.3);
+engine.setReshape(Reshape.EyeSize, 0.2);
+```
+
+El rango es **`[-1.0, 1.0]`**. `0` desactiva. Positivo y negativo son direcciones opuestas (por ejemplo `FaceThin`: adelgazar / mejillas más llenas). Lista completa: [Enumeraciones de parámetros](/es/intro/makeup).
+
+## Maquillaje
+
+Intensidad, forma y color son setters separados. La intensidad es `[0.0, 1.0]`. Estilos: [Enumeraciones de parámetros](/es/intro/makeup).
+
+```javascript
+engine.setLipstick(0.4);
+engine.setLipstickColor(LipstickColor.Rouge);
+
+engine.setBlush(0.3);
+engine.setBlushStyle(/* BlushStyle.SunKissed */);
+engine.setBlushColor(/* BlushColor.CoralPink */);
+
+engine.setContour(0.4);
+engine.setContourStyle(/* ContourStyle.Natural */);
+
+engine.setEyeShadow(0.35);
+engine.setEyeShadowStyle(/* EyeShadowStyle.Soft */);
+engine.setEyeShadowColor(/* EyeShadowColor.Plum */);
+
+engine.setEyeLiner(0.3);
+engine.setEyeLinerStyle(/* ... */);
+engine.setEyeLinerColor(/* ... */);
+
+engine.setEyebrow(0.3);
+engine.setEyebrowStyle(/* ... */);
+engine.setEyebrowColor(/* ... */);
+
+engine.setEyelash(0.3);
+engine.setEyelashStyle(/* ... */);
+engine.setEyelashColor(/* ... */);
+
+engine.setPupil(0.4);
+engine.setPupilColor(/* PupilColor.Hazel */);
+```
+
+## Filtros y stickers
+
+Pasa una URL `.fbd` o un `Uint8Array` en memoria directamente al setter.
+
+```javascript
+engine.setFilter('/assets/filters/portrait/natural/natural.fbd');
+engine.setFilterIntensity(0.8);
+engine.clearFilter();
+
+engine.setSticker('/stickers/face/fox.fbd');
+engine.clearSticker();
+```
+
+Los stickers 3D necesitan el paquete opcional `resource_3d.fbd` (no está en el SDK Web). Consulta [Paquetes de recursos opcionales](/es/intro/resource-packs). Obtén los bytes y regístralos después de `init()`:
+
+```javascript
+const pack = new Uint8Array(
+  await (await fetch('/resource_3d.fbd')).arrayBuffer()
+);
+engine.addResourcePack(pack);
+engine.set3DSticker('/stickers/3d/oculos.fbd');
+engine.clear3DSticker();
+```
+
+```javascript
+const bytes = new Uint8Array(await (await fetch('/filters/chuxin.fbd')).arrayBuffer());
+engine.setFilter(bytes);
+```
+
+## Fondo virtual y croma
+
+```javascript
+engine.setVirtualBackgroundBlur(0.6);          // [0, 1]; 0 clears blur
+engine.setVirtualBackground('/background.jpg'); // path or Uint8Array (png/jpg)
+engine.clearVirtualBackground();
+
+engine.setChromaKey(ChromaKeyColor.Green);
+engine.setChromaKeySimilarity(0.4);
+engine.setChromaKeySmoothness(0.2);
+engine.setChromaKeyDesaturation(0.3);
+engine.clearChromaKey();
+```
+
+<Tip>
+El croma solo sustituye la **máscara**. El relleno sigue siendo `setVirtualBackgroundBlur` o `setVirtualBackground`. Desenfoque y sustitución de imagen son mutuamente excluyentes.
+</Tip>
+
+## Callbacks
+
+```javascript
+engine.setCallbacks({
+  onEngineEvent: (code, message) => {
+    if (code === EngineEventCode.LicenseValidationSuccess) {
+      console.log('license ok');
+    } else if (code === EngineEventCode.LicenseValidationFailed) {
+      console.error('license failed', message);
+    } else if (code === EngineEventCode.InitializationComplete) {
+      console.log('engine ready');
+    } else if (code === EngineEventCode.InitializationFailed) {
+      console.error('init failed', message);
+    }
+  },
+  onFaceLandmarks: (faces) => {
+    // faces[].rect, key_points, visibility, face_id, score, pitch, roll, yaw
+  },
+  maxFaces: 10,
+});
+```
+
+| Código | Nombre |
+| --- | --- |
+| `0` | `EngineEventCode.LicenseValidationSuccess` |
+| `1` | `EngineEventCode.LicenseValidationFailed` |
+| `100` | `EngineEventCode.InitializationComplete` |
+| `101` | `EngineEventCode.InitializationFailed` |
+
+Omite `onFaceLandmarks` salvo que necesites landmarks. Activarlo ejecuta detección facial en cada fotograma.
+
+## Procesar fotogramas
+
+Prefiere `processImage`. Devuelve `ImageData` de forma síncrona.
+
+```javascript
+const canvas = document.querySelector('canvas');
+const ctx = canvas.getContext('2d');
+const video = document.querySelector('video');
+
+function loop() {
+  if (engine.initialized && video.readyState >= 2) {
+    const result = engine.processImage(
+      video,
+      video.videoWidth,
+      video.videoHeight,
+      FrameType.Video,
+      MirrorMode.Horizontal, // front camera
+    );
+    if (result) {
+      if (canvas.width !== result.width) canvas.width = result.width;
+      if (canvas.height !== result.height) canvas.height = result.height;
+      ctx.putImageData(result, 0, 0);
+    }
+  }
+  requestAnimationFrame(loop);
+}
+loop();
+```
+
+`input` puede ser `ImageData`, `HTMLImageElement`, `HTMLCanvasElement`, `HTMLVideoElement` o `Uint8ClampedArray` (entonces hacen falta `width` / `height`).
+
+- `FrameType.Video` — cámara en directo / streaming (suavizado temporal)
+- `FrameType.Image` — fotos estáticas
+
+`processTexture(textureHandle, width, height, stride, frameType, mirrorMode)` es para entrada de textura GPU personalizada. **En este camino no se aplica espejo.** Las apps web típicas deben usar `processImage`.
+
+## Estadísticas
+
+```javascript
+const { fps, avgProcessTimeMs, sessionTimeS } = engine.getStats();
+```
+
+## Destruir
+
+```javascript
+engine.destroy();
+```
+
+Llama a esto al descargar la página o cuando un componente React/Vue se desmonte.
+
+Para TRTC / Agora / LiveKit: [Integración con terceros](/es/web/third-party-integration).
+
+## Relacionado
+
+- [Integración con terceros](/es/web/third-party-integration)
+- [Manejo de errores](/es/web/error-handling)
+- [Prácticas recomendadas](/es/web/best-practices)
+- [Referencia de la API](/es/web/api-reference)
+- [Preguntas frecuentes](/es/web/faq)

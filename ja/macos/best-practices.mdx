@@ -1,0 +1,142 @@
+---
+title: "ベストプラクティス"
+description: "macOS Facebetter SDK 2.0 のパフォーマンスとアーキテクチャ"
+---
+
+<Note>
+このページは SDK **2.0.0** に対応します。メイク / リシェイプ列挙: [パラメータ列挙](/ja/intro/makeup)。
+</Note>
+
+## 正しいフレームタイプを選ぶ
+
+`processImage:` の**前**に `FBImageFrame.type` を設定します。エンジンメソッドに独立した処理モード引数はありません。
+
+- **`FBFrameTypeVideo`（`1`）**: カメラプレビュー、ライブ配信、通話。遅延が低い。
+- **`FBFrameTypeImage`（`0`）**: 静止画 / `NSImage`。効果が高い。
+
+```objc
+input.type = FBFrameTypeVideo;
+FBImageFrame *output = [engine processImage:input];
+```
+
+## パラメータ範囲
+
+- 美肌 / メイク / フィルター強度: `[0.0, 1.0]`。`0` はその項目をオフにします。
+- リシェイプ（`setReshape:intensity:`）: **`[-1.0, 1.0]`**。`0` はオフ。正負は逆方向です。
+
+ライブプレビューは小さめの値から始めてください。列挙の意味は [パラメータ列挙](/ja/intro/makeup) を参照してください。
+
+```objc
+[engine setSmoothing:0.25f];
+[engine setSmoothingStyle:FBSmoothingStyle_Natural];
+[engine setWhitening:0.15f];
+[engine setReshape:FBReshape_FaceThin intensity:0.12f];
+[engine setBeautySkinOnly:YES];
+```
+
+## 1 つのエンジン、1 つのシリアルキュー
+
+`createEngineWithConfig:` が返すのは**インスタンス**であり、プロセス単位のシングルトンではありません。セッションごとにエンジンを 1 つ保持し、**シリアルキュー**上で呼び出します（`externalContext = YES` の場合は GL スレッド）。
+
+```objc
+@interface BeautyEngineManager : NSObject
+@property (nonatomic, strong, readonly) FBBeautyEffectEngine *engine;
+@property (nonatomic, strong, readonly) dispatch_queue_t queue;
++ (instancetype)sharedManager;
+@end
+
+@implementation BeautyEngineManager
+
++ (instancetype)sharedManager {
+  static BeautyEngineManager *instance;
+  static dispatch_once_t onceToken;
+  dispatch_once(&onceToken, ^{
+    instance = [[BeautyEngineManager alloc] init];
+  });
+  return instance;
+}
+
+- (instancetype)init {
+  self = [super init];
+  if (self) {
+    _queue = dispatch_queue_create("com.facebetter.process", DISPATCH_QUEUE_SERIAL);
+    FBEngineConfig *config = [[FBEngineConfig alloc] init];
+    config.appId = @"your_app_id";
+    config.appKey = @"your_app_key";
+    _engine = [FBBeautyEffectEngine createEngineWithConfig:config];
+  }
+  return self;
+}
+
+- (void)process:(FBImageFrame *)input completion:(void (^)(FBImageFrame * _Nullable))completion {
+  dispatch_async(self.queue, ^{
+    input.type = FBFrameTypeVideo;
+    FBImageFrame *output = [self.engine processImage:input];
+    dispatch_async(dispatch_get_main_queue(), ^{
+      completion(output);
+    });
+  });
+}
+
+@end
+```
+
+ごく小さい静止画以外は、メインスレッドで処理しないでください。複数の並行キューから同じエンジンに同時アクセスしないでください。
+
+## メモリ
+
+- ARC を使い、使い終わった `FBImageFrame` は `nil` にします。
+- カメラがすでに NV12 / BGRA の場合、毎フレーム RGBA へ変換しないでください。
+- `setFilter:` / `setSticker:` は 1 回で十分です。テクスチャは次の `processImage:` で読み込まれます。
+- `clearFilter`、`clearSticker`、`clearVirtualBackground`、`clearChromaKey` を使い、別エンジンを作らないでください。
+
+## 外部 OpenGL
+
+AppKit ビューがすでに GL コンテキストを持っている場合:
+
+1. `config.externalContext = YES` を設定します。
+2. **その GL スレッド**でエンジンを作成します。
+3. `createWithTexture:width:height:stride:` でテクスチャをラップします。
+4. 出力は `[output texture]` を使います。
+
+## `getStats` で監視
+
+```objc
+FBEngineStats *stats = [engine getStats];
+NSLog(@"fps=%.1f avg=%.2fms session=%.1fs",
+      stats.fps, stats.avgProcessTimeMs, stats.sessionTimeS);
+```
+
+30 fps では `avgProcessTimeMs` は約 33 ms 未満が望ましいです。デスクトップ GPU はより高い解像度を扱えます。UI がカクつく場合は効果を減らしてください。
+
+## ライフサイクル（AppKit）
+
+エンジンは `NSViewController`（またはセッションオブジェクト）に置きます。`viewWillDisappear` でキャプチャを止めます。ウィンドウ最小化時は一時停止します。`dealloc` / `applicationWillTerminate` でエンジンを `nil` にします。
+
+```objc
+- (void)viewWillDisappear {
+  [super viewWillDisappear];
+  [self.captureSession stopRunning];
+}
+
+- (void)dealloc {
+  self.beautyEffectEngine = nil;
+}
+```
+
+`FBEngineCallbacks` の block では `__weak` を使います。
+
+## macOS のキャプチャと表示
+
+- `createWithNV12:...`、`createWithBGRA:...`、または `createWithNSImage:` でフレームを作ります。
+- フロント / 自撮りプレビュー: `setMirror:@"horizontal"`。
+- Retina: ポイントサイズではなくピクセルサイズで処理します（`backingScaleFactor`）。
+- カメラ: `NSCameraUsageDescription`。サンドボックスアプリのオンライン認証には **Outgoing Connections** が必要です。
+- ユーザーが選んだ `.fbd` / 背景画像: security-scoped URL を使います。
+
+## テスト
+
+- Mac アプリの Bundle ID をバインドします（CLI ツールはプロセス名）。
+- 実際の `appId` / `appKey` または `licenseToken` を使います。
+- `FBFrameTypeImage` + `createWithNSImage:` と `FBFrameTypeVideo` の両方をカバーします。
+- setter が `FBErrorCode_Success` を返すことをアサートします。Universal Binary は Intel と Apple Silicon の両方でテストしてください。

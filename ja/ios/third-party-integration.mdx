@@ -1,0 +1,286 @@
+---
+title: "サードパーティ連携"
+description: "iOS 上で Facebetter 美顔を TRTC、Agora、LiveKit などのサードパーティ動画パイプラインに接続します"
+---
+
+SDK **2.0.0**。Facebetter をサードパーティ SDK の**カスタム動画前処理**コールバックに接続します。相手が提供する **OpenGL ES スレッド**（またはピクセルバッファコールバック）上でフレームを処理し、相手へ返します。
+
+テクスチャの完全な契約: [美顔の実装 · 外部テクスチャ](/ja/ios/implement-beauty#外部テクスチャ)。ルーム参加、配信、権限はベンダーの公式ドキュメントに従います。このページは Facebetter の配線のみです。
+
+```
+Third-party SDK
+  textureId or CVPixelBuffer
+       ↓
+FBBeautyEffectEngine
+  createWithTexture / createWithNV12|BGRA → processImage:
+       ↓
+  output texture or pixels → write back to vendor frame
+```
+
+## 共通の契約
+
+| 項目 | 要件 |
+| --- | --- |
+| テクスチャ経路 | `externalContext = YES`。**相手の GL コールバックスレッド**で遅延 `createEngineWithConfig:` |
+| 入力テクスチャ | `GL_TEXTURE_2D`（RGBA）。`stride` は通常 `width * 4` |
+| ピクセルバッファ経路 | `createWithNV12:` / `createWithBGRA:` などを使用。この場合は通常 **`externalContext = NO`** で、Facebetter が GL を管理 |
+| フレームタイプ | `FBFrameTypeVideo` |
+| 出力 | 出力テクスチャは SDK が所有。`glDeleteTextures` しない。エンジンは strong 参照。セッション終了時は `nil` |
+| ライフサイクル | 相手が GL コンテキストを破棄したら、先にエンジンを `nil` にし、新しいコンテキストで再作成 |
+
+Apple プラットフォームでは、TRTC カスタム前処理は **OpenGL テクスチャ**が一般的です。Agora / LiveKit は **`CVPixelBuffer`** がより一般的です。どちらも使えますが、同じエンジンで 2 つのモードを混在させないでください。
+
+### 共通: テクスチャ処理
+
+```objc
+#import <Facebetter/Facebetter.h>
+
+static GLuint FBProcessTexture(FBBeautyEffectEngine *engine,
+                               GLuint srcTextureId,
+                               int width,
+                               int height) {
+  if (!engine || srcTextureId == 0 || width <= 0 || height <= 0) {
+    return srcTextureId;
+  }
+  FBImageFrame *input = [FBImageFrame createWithTexture:srcTextureId
+                                                  width:width
+                                                 height:height
+                                                 stride:width * 4];
+  if (!input) {
+    return srcTextureId;
+  }
+  input.type = FBFrameTypeVideo;
+  FBImageFrame *output = [engine processImage:input];
+  if (!output) {
+    return srcTextureId;
+  }
+  GLuint dst = [output texture];
+  return dst != 0 ? dst : srcTextureId;
+}
+```
+
+エンジン作成（GL スレッド）:
+
+```objc
+FBEngineConfig *config = [[FBEngineConfig alloc] init];
+config.appId = @"your appId";
+config.appKey = @"your appKey";
+// or config.licenseToken = @"...";
+config.externalContext = YES;
+self.beautyEngine = [FBBeautyEffectEngine createEngineWithConfig:config];
+[self.beautyEngine setSmoothing:0.5f];
+```
+
+### 共通: CVPixelBuffer の処理（NV12 の例）
+
+Agora / LiveKit コールバックでは NV12 が一般的です。プレーンポインタと stride は `CVPixelBuffer` から取得します。相手フレームへの書き戻しはベンダーバージョンで変わります。
+
+```objc
+static FBImageFrame *FBFrameFromNV12PixelBuffer(CVPixelBufferRef pb) {
+  OSType fmt = pb ? CVPixelBufferGetPixelFormatType(pb) : 0;
+  if (!pb || (fmt != kCVPixelFormatType_420YpCbCr8BiPlanarFullRange
+              && fmt != kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange)) {
+    return nil;
+  }
+  CVPixelBufferLockBaseAddress(pb, kCVPixelBufferLock_ReadOnly);
+  int width = (int)CVPixelBufferGetWidth(pb);
+  int height = (int)CVPixelBufferGetHeight(pb);
+  uint8_t *y = (uint8_t *)CVPixelBufferGetBaseAddressOfPlane(pb, 0);
+  uint8_t *uv = (uint8_t *)CVPixelBufferGetBaseAddressOfPlane(pb, 1);
+  int strideY = (int)CVPixelBufferGetBytesPerRowOfPlane(pb, 0);
+  int strideUV = (int)CVPixelBufferGetBytesPerRowOfPlane(pb, 1);
+  FBImageFrame *frame = [FBImageFrame createWithNV12:width
+                                              height:height
+                                               dataY:y
+                                             strideY:strideY
+                                              dataUV:uv
+                                            strideUV:strideUV];
+  CVPixelBufferUnlockBaseAddress(pb, kCVPixelBufferLock_ReadOnly);
+  return frame;
+}
+```
+
+ピクセルバッファ経路では、エンジン作成時に `externalContext = NO` を設定します。認証情報: [サブスクリプション](/ja/intro/enable-service)、[認証とライセンス](/ja/intro/license)。
+
+---
+
+## TRTC（Tencent Cloud）
+
+フック API: `setLocalVideoProcessDelegete:pixelFormat:bufferType:`（公式の綴りは **Delegete**）。ピクセルフォーマット **`TRTCVideoPixelFormat_Texture_2D`**、バッファタイプ **`TRTCVideoBufferType_Texture`**。
+
+`TRTCVideoFrameDelegate` を実装します。`onGLContextCreated` でエンジンを作成し、`onProcessVideoFrame:dstFrame:` で `dstFrame.textureId` を書き戻し、`onGLContextDestory` でエンジンを `nil` にします。
+
+```objc
+#import <TXLiteAVSDK_TRTC/TRTCCloud.h>
+#import <Facebetter/Facebetter.h>
+
+@interface BeautyProcessDelegate : NSObject <TRTCVideoFrameDelegate>
+@property (nonatomic, strong) FBBeautyEffectEngine *beautyEngine;
+@end
+
+@implementation BeautyProcessDelegate
+
+- (void)onGLContextCreated {
+  FBEngineConfig *config = [[FBEngineConfig alloc] init];
+  config.appId = @"your appId";
+  config.appKey = @"your appKey";
+  config.externalContext = YES;
+  self.beautyEngine = [FBBeautyEffectEngine createEngineWithConfig:config];
+  [self.beautyEngine setSmoothing:0.5f];
+}
+
+- (uint32_t)onProcessVideoFrame:(TRTCVideoFrame *)srcFrame
+                       dstFrame:(TRTCVideoFrame *)dstFrame {
+  GLuint out = FBProcessTexture(self.beautyEngine,
+                                srcFrame.textureId,
+                                srcFrame.width,
+                                srcFrame.height);
+  dstFrame.textureId = out;
+  return 0;
+}
+
+- (void)onGLContextDestory {
+  self.beautyEngine = nil;
+}
+
+@end
+
+// register
+BeautyProcessDelegate *delegate = [[BeautyProcessDelegate alloc] init];
+[[TRTCCloud sharedInstance] setLocalVideoProcessDelegete:delegate
+                                             pixelFormat:TRTCVideoPixelFormat_Texture_2D
+                                              bufferType:TRTCVideoBufferType_Texture];
+```
+
+デリゲート解除または退室後にエンジンを解放します。詳細は Tencent Cloud の [TRTC サードパーティ美顔](https://cloud.tencent.com/document/product/647/32270)。
+
+Flutter では [Flutter · サードパーティ連携](/ja/flutter/third-party-integration)（`FacebetterPlugin.processTexture`）を使います。
+
+---
+
+## Agora
+
+フック API: `AgoraRtcEngineKit.setVideoFrameDelegate:`（Video SDK **4.x**）。iOS のキャプチャフレームは多くが **`CVPixelBuffer`**（`textureBuf` / format `12`）で、Android のような `GL_TEXTURE_2D` id ではありません。
+
+必要なこと:
+
+1. `getVideoFrameProcessMode` が **ReadWrite** を返す
+2. `onCapture:sourceType:`（または旧名 `onCaptureVideoFrame`）で `CVPixelBuffer` を取り出す
+3. `createWithNV12:` / `createWithBGRA:` などで Facebetter に渡し、結果を `AgoraOutputVideoFrame` に**書き戻す**
+
+```objc
+#import <AgoraRtcKit/AgoraRtcKit.h>
+
+@interface BeautyFrameDelegate : NSObject <AgoraVideoFrameDelegate>
+@property (nonatomic, strong) FBBeautyEffectEngine *beautyEngine;
+@end
+
+@implementation BeautyFrameDelegate
+
+- (AgoraVideoFrameProcessMode)getVideoFrameProcessMode {
+  return AgoraVideoFrameProcessModeReadWrite;
+}
+
+- (BOOL)onCapture:(AgoraOutputVideoFrame *)videoFrame
+       sourceType:(AgoraVideoSourceType)sourceType {
+  CVPixelBufferRef pb = videoFrame.pixelBuffer; // some versions use textureBuf; follow your headers
+  if (!pb) {
+    return YES;
+  }
+
+  if (!self.beautyEngine) {
+    FBEngineConfig *config = [[FBEngineConfig alloc] init];
+    config.appId = @"your appId";
+    config.appKey = @"your appKey";
+    config.externalContext = NO; // pixel-buffer path
+    self.beautyEngine = [FBBeautyEffectEngine createEngineWithConfig:config];
+  }
+
+  FBImageFrame *input = FBFrameFromNV12PixelBuffer(pb);
+  if (!input) {
+    return YES; // not NV12: use BGRA factory or convert first
+  }
+  input.type = FBFrameTypeVideo;
+  FBImageFrame *output = [self.beautyEngine processImage:input];
+  if (!output) {
+    return YES;
+  }
+
+  // Write output NV12/BGRA planes back into videoFrame's CVPixelBuffer,
+  // or replace pixelBuffer / textureBuf per Agora docs. Details vary by SDK version.
+  return YES;
+}
+
+@end
+
+[agoraKit setVideoFrameDelegate:delegate];
+```
+
+<Warning>
+Agora iOS 側で `CVPixelBuffer` を書き戻す方法はメジャーバージョンで変わります。Facebetter は `processImage:` の出力が入力と同じフォーマットであることを保証します。`AgoraOutputVideoFrame` への差し込みは [Agora の生動画処理](https://docs.agora.io/en/video-calling/develop/product-workflow) に従ってください。
+</Warning>
+
+エンジン破棄前に `setVideoFrameDelegate:nil` し、`beautyEngine` を `nil` にします。
+
+---
+
+## LiveKit
+
+フック: Swift `VideoProcessor` を実装し、`process(frame:)` で処理して新しいフレームを返します（または `nil` でドロップ）。カメラトラック作成時に `processor:` を渡すか、あとから `track.processor` を設定します。
+
+```swift
+import LiveKit
+import Facebetter // per your module name
+
+final class FacebetterVideoProcessor: VideoProcessor {
+  private var beautyEngine: FBBeautyEffectEngine?
+
+  func process(frame: VideoFrame) -> VideoFrame? {
+    // Take CVPixelBuffer from LiveKit VideoFrame (property name may be
+    // buffer / pixelBuffer / rtcFrame per SDK version; check LiveKit Swift headers)
+    guard let pb = frame.buffer as CVPixelBuffer? else {
+      return frame
+    }
+
+    if beautyEngine == nil {
+      let config = FBEngineConfig()
+      config.appId = "your appId"
+      config.appKey = "your appKey"
+      config.externalContext = false
+      beautyEngine = FBBeautyEffectEngine.createEngine(with: config)
+      beautyEngine?.setSmoothing(0.5)
+    }
+
+    // ObjC helper: FBFrameFromNV12PixelBuffer → processImage:
+    // then wrap output as a LiveKit VideoFrame and return
+    // wrapping steps: LiveKit "Video Processors" docs
+    return frame
+  }
+}
+
+let processor = FacebetterVideoProcessor()
+let track = LocalVideoTrack.createCameraTrack(processor: processor)
+// or: track.processor = processor
+try await room.localParticipant.publish(track: track)
+```
+
+公式サンプルプロセッサ（背景ぼかしなど）は LiveKit Swift の `BackgroundBlurVideoProcessor` を参照してください。自作 capturer でも、エンコーダへ送る前に Facebetter を実行できます。
+
+---
+
+## トラブルシューティング
+
+| 症状 | 確認 |
+| --- | --- |
+| 黒画面 / 映像なし | テクスチャ経路が相手の **GL スレッド**でエンジンを作成しているか。ピクセル経路で `CVPixelBuffer` の lock/unlock をしているか |
+| 美顔が効かない | `externalContext` が経路と一致しているか（テクスチャ YES / ピクセルは多く NO）。フォーマットが NV12/BGRA/`GL_TEXTURE_2D` か |
+| 断続的なクラッシュ | `onGLContextDestory` で `nil` にしたか。出力テクスチャを誤削除していないか |
+| 歪み / 引き伸ばし | 幅高さ、回転、ミラーが相手フレームと一致しているか。stride に `BytesPerRow` を使っているか |
+
+## 関連ドキュメント
+
+- [美顔の実装](/ja/ios/implement-beauty)
+- [ベストプラクティス](/ja/ios/best-practices)
+- [エラー処理](/ja/ios/error-handling)
+- [API リファレンス](/ja/ios/api-reference)
+- [macOS · サードパーティ連携](/ja/macos/third-party-integration)

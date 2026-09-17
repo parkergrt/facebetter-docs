@@ -1,0 +1,87 @@
+---
+title: "권장 사항"
+description: "Windows에서 Facebetter 2.0의 성능과 연동 가이드"
+---
+
+<Note>
+SDK **2.0.0**. C++ API는 Linux와 공유합니다. 열거형: [파라미터 열거형](/ko/intro/makeup).
+</Note>
+
+## `resource_path`를 `resource.fbd`로 지정
+
+데스크톱 엔진은 `fopen`으로 팩을 엽니다. 폴더가 아니라 **파일**을 전달하세요.
+
+```cpp
+cfg.resource_path = "C:/app/assets/resource.fbd";
+```
+
+`resource.fbd`를 앱 옆(또는 assets 디렉터리)에 두고 시작 시 절대 경로를 해석하세요.
+
+## 엔진 하나, 직렬 `ProcessImage`
+
+`BeautyEffectEngine`은 `Create`로 만들며 싱글톤이 **아닙니다**. 세션 동안 인스턴스 하나를 유지하세요. `ImageFrame`과 엔진은 스레드 안전하지 않습니다. `ProcessImage`를 단일 워커에서 직렬화하세요(`external_context = true`이면 GL 스레드).
+
+```cpp
+// good: one engine, one processing thread
+std::shared_ptr<BeautyEffectEngine> engine = BeautyEffectEngine::Create(cfg);
+```
+
+카메라 세션이 끝나면 `shared_ptr`를 버리세요. 매 프레임 엔진을 다시 만드는 것은 비용이 큽니다(라이선스 + 초기화).
+
+## 프레임의 `FrameType`
+
+`ProcessImage` 전에 `frame->type`을 설정하세요.
+| 값 | 용도 |
+| --- | --- |
+| `FrameType::Video` (기본값) | 카메라, 캡처, 라이브 미리보기 |
+| `FrameType::Image` | 단일 사진 / 내보내기 |
+
+## 강도
+
+실시간에서는 낮게 시작하세요. 리셰이프는 **`[-1.0, 1.0]`**이고, 다른 강도는 `[0.0, 1.0]`입니다.
+
+```cpp
+engine->SetSmoothing(0.25f);
+engine->SetWhitening(0.15f);
+engine->SetReshape(Reshape::FaceThin, 0.15f);
+engine->SetBeautySkinOnly(true);
+```
+
+`SetBeautySkinOnly(true)`를 켜면 스무딩 / 미백이 피부에만 적용됩니다.
+
+## 필터와 스티커
+
+`.fbd` 경로 또는 바이트를 전달하세요. 변경은 다음 `ProcessImage`에서 적용됩니다. 매 프레임 필터/스티커를 바꾸지 마세요.
+
+```cpp
+engine->SetFilter(filter_path);
+engine->SetFilterIntensity(0.7f);
+```
+
+## `GetStats`로 모니터링
+
+```cpp
+EngineStats s = engine->GetStats();
+if (s.avg_process_time_ms > 33.0) {
+    // drop resolution, lower intensities, or skip stickers
+}
+```
+
+`avg_process_time_ms`가 프레임 예산보다 낮도록 하세요(30 fps에서 약 33 ms). 미리보기는 720p를 권장하고, 정지 내보내기에는 `FrameType::Image`를 사용하세요.
+
+## OpenGL 컨텍스트
+
+| `external_context` | 시점 |
+| --- | --- |
+| `false` (기본값) | SDK가 OpenGL을 관리 |
+| `true` | 이미 현재 GL 컨텍스트가 있음. 해당 스레드에서 `ProcessImage` 호출 |
+
+`facebetter.dll`을 `.exe` 옆(또는 `PATH`)에 두세요. 빌드 시 `facebetter.lib`를 링크하세요.
+
+## 유휴 시 일시 중지
+
+창이 최소화되거나 카메라가 멈추면 `ProcessImage`를 건너뛰고, 세션이 끝나면 선택적으로 `engine.reset()`을 호출하세요. 입력을 막는 UI 스레드에서 처리하지 마세요.
+
+## 인증
+
+오프라인 / 잠긴 네트워크에는 `license_token`을 권장합니다. 그렇지 않으면 `app_id` + `app_key` 온라인 v2. 공개 저장소에 프로덕션 키를 하드코딩하지 말고 config에서 로드하세요. [인증 및 라이선스](/ko/intro/license)를 참고하세요.

@@ -1,0 +1,166 @@
+---
+title: "Integración con terceros"
+description: "Conecta la belleza Facebetter a TRTC, Agora, LiveKit y otros pipelines en tiempo real del navegador"
+---
+
+SDK **2.0.0**. El SDK Web **no** tiene un “callback unificado de preprocess de textura GL” al estilo nativo. Usa este pipeline:
+
+**Captura → `processImage` → dibujar en canvas → `captureStream` / tomar un `MediaStreamTrack` → pasarlo al SDK de terceros (`replaceTrack` o un track de vídeo personalizado).**
+
+La autenticación usa solo `licenseToken`. Obténlo desde tu servidor antes de `init()`. **Nunca** incrustes `appKey` en el JS del frontend. Consulta [Autenticación y licencia](/es/intro/license) e [Implementar belleza](/es/web/implement-beauty).
+
+```
+getUserMedia / vendor preview track
+       ↓
+HTMLVideoElement
+       ↓
+BeautyEffectEngine.processImage(...)
+       ↓
+canvas + putImageData
+       ↓
+canvas.captureStream() → MediaStreamTrack
+       ↓
+TRTC / Agora / LiveKit publish or replaceTrack
+```
+
+## Pipeline recomendado (independiente del vendor)
+
+```javascript
+import {
+  BeautyEffectEngine,
+  EngineConfig,
+  FrameType,
+  MirrorMode,
+} from 'facebetter';
+
+const engine = new BeautyEffectEngine(new EngineConfig({
+  licenseToken: await fetch('/api/facebetter/auth', { method: 'POST' }).then((r) => r.text()),
+}));
+await engine.setLogConfig({ consoleEnabled: true, level: 2 });
+await engine.init();
+
+const video = document.createElement('video');
+video.playsInline = true;
+video.muted = true;
+video.srcObject = await navigator.mediaDevices.getUserMedia({
+  video: { width: 1280, height: 720 },
+  audio: false,
+});
+await video.play();
+
+const canvas = document.createElement('canvas');
+const ctx = canvas.getContext('2d');
+
+function loop() {
+  if (engine.initialized && video.readyState >= 2 && video.videoWidth > 0) {
+    const result = engine.processImage(
+      video,
+      video.videoWidth,
+      video.videoHeight,
+      FrameType.Video,
+      MirrorMode.Horizontal, // front camera as needed
+    );
+    if (result) {
+      if (canvas.width !== result.width) canvas.width = result.width;
+      if (canvas.height !== result.height) canvas.height = result.height;
+      ctx.putImageData(result, 0, 0);
+    }
+  }
+  requestAnimationFrame(loop);
+}
+loop();
+
+// Beauty video track — pass to any RTC / meeting SDK
+const beautyStream = canvas.captureStream(30);
+const beautyTrack = beautyStream.getVideoTracks()[0];
+```
+
+<Tip>
+Prefiere `processImage`. `processTexture` es para handles de textura GPU existentes y **no aplica espejo**. Para vista previa / publicación en directo, usa el pipeline de canvas de arriba.
+</Tip>
+
+Al descargar la página: `beautyTrack.stop()`, cancela `requestAnimationFrame` y `engine.destroy()`.
+
+---
+
+## Enganchar SDK de terceros
+
+Las APIs Web de los vendors cambian entre versiones. Abajo solo se indica cómo **alimentar `beautyTrack`**; join, tokens y selección de dispositivo se quedan en su documentación.
+
+### TRTC (Tencent Web)
+
+Dos patrones habituales (revisa tu versión de `trtc-js-sdk` / TUI):
+
+1. **Crear el stream local a partir del track de belleza** (fuente de vídeo personalizada / pasar un `MediaStreamTrack`)  
+2. **Crear primero un stream de cámara y luego `replaceTrack(beautyTrack)`**
+
+```javascript
+// Sketch: replace the video track on a local stream
+// const localStream = TRTC.createStream({ ... });
+// await localStream.initialize();
+// await localStream.replaceTrack(beautyTrack);
+// await client.publish(localStream);
+```
+
+No asumas que existe un `onProcessVideoFrame(textureId)` al estilo nativo en Web.
+
+### Agora Web
+
+Usa un **track de vídeo personalizado** o `replaceTrack` en un track existente:
+
+```javascript
+import AgoraRTC from 'agora-rtc-sdk-ng';
+
+// A: custom video track from MediaStreamTrack (API name per agora-rtc-sdk-ng)
+const customVideoTrack = AgoraRTC.createCustomVideoTrack({
+  mediaStreamTrack: beautyTrack,
+});
+await client.publish([customVideoTrack /*, microphoneTrack */]);
+
+// B: already have a camera track
+// await cameraTrack.replaceTrack(beautyTrack);
+```
+
+### LiveKit Web
+
+Pasa el track procesado a la factory de track de vídeo local de LiveKit, o reemplaza en un track publicado:
+
+```javascript
+import { Room, LocalVideoTrack, createLocalVideoTrack } from 'livekit-client';
+
+// Sketch: create from MediaStreamTrack and publish (factory name per livekit-client)
+const track = LocalVideoTrack.createFromMediaStreamTrack(beautyTrack);
+await room.localParticipant.publishTrack(track);
+
+// Or on an existing LocalVideoTrack:
+// await localVideoTrack.replaceTrack(beautyTrack);
+```
+
+---
+
+## Notas
+
+| Elemento | Detalle |
+| --- | --- |
+| Autenticación | Obtén `licenseToken` desde tu servidor |
+| Rendimiento | Reutiliza un canvas; limita el FPS de `captureStream`; no asignes un canvas nuevo en cada fotograma |
+| Audio | El ejemplo es solo vídeo; toma el micrófono de un `getUserMedia({ audio: true })` separado y publícalo |
+| Espejo | La vista previa puede usar `MirrorMode` en `processImage`; decide si la codificación debe coincidir |
+| Cambios del vendor | Las firmas de `replaceTrack` / `createCustomVideoTrack` cambian: sigue el SDK Web actual |
+
+## Solución de problemas
+
+| Síntoma | Comprueba |
+| --- | --- |
+| Fotograma negro | `video.videoWidth === 0`, olvidaste `await engine.init()`, tamaño del canvas no actualizado |
+| El remoto no tiene belleza | Publicaste **beautyTrack**, no el track crudo de cámara |
+| Fallo de autenticación | El proxy devuelve el cuerpo de autenticación tal cual; dominio vinculado en la Consola |
+| Entrecortado | Baja resolución / FPS; asegúrate de un solo bucle `processImage` |
+
+## Relacionado
+
+- [Implementar belleza](/es/web/implement-beauty)
+- [Prácticas recomendadas](/es/web/best-practices)
+- [Manejo de errores](/es/web/error-handling)
+- [Autenticación y licencia](/es/intro/license)
+- [Referencia de la API](/es/web/api-reference)

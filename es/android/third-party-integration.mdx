@@ -1,0 +1,271 @@
+---
+title: "Integración con terceros"
+description: "Conecta la belleza Facebetter a TRTC, Agora, LiveKit y otros pipelines de vídeo en Android"
+---
+
+SDK **2.0.0**. Engancha Facebetter en el callback de **preprocess de vídeo personalizado** de un SDK de terceros: en el **hilo OpenGL ES** de ese SDK, ejecuta `processImage` sobre una textura externa y luego devuelve la textura de salida.
+
+Reglas completas de textura: [Implementar belleza · Textura externa](/es/android/implement-beauty#external-texture-opengl-es). Unirse a la sala, publicar y los permisos pertenecen a la documentación del vendor: esta página solo cubre el enganche de Facebetter.
+
+```
+Third-party SDK (GL thread)
+  input textureId
+       ↓
+BeautyEffectEngine (externalContext = true)
+  ImageFrame.createWithTexture → processImage
+       ↓
+  output textureId → write back to vendor frame / callback
+```
+
+## Contrato compartido
+
+| Elemento | Requisito |
+| --- | --- |
+| Motor | `externalContext = true`, creación diferida en el **hilo de callback GL del vendor** |
+| Entrada | `GL_TEXTURE_2D` (RGBA); `stride` suele ser `width * 4` |
+| Tipo de fotograma | `ImageFrame.FrameType.VIDEO` |
+| Salida | El SDK posee la textura de salida: no hagas `glDeleteTextures`. Siempre `ImageFrame.release()` |
+| Ciclo de vida | Cuando el vendor destruye el contexto GL, `engine.release()` y recréalo en el nuevo contexto |
+
+Facebetter **no** acepta `GL_TEXTURE_EXTERNAL_OES` para `createWithTexture`. Si el vendor usa OES por defecto, cambia a **Texture2D / RGB** según su documentación, o haz blit a `GL_TEXTURE_2D` primero.
+
+### Función auxiliar compartida
+
+Reutiliza esto en cada callback GL del vendor (debe ejecutarse en el hilo GL):
+
+```java
+import net.pixpark.facebetter.BeautyEffectEngine;
+import net.pixpark.facebetter.ImageFrame;
+
+/** @return beauty output GL_TEXTURE_2D; on failure returns srcTextureId (or 0, your choice) */
+static int processTexture(BeautyEffectEngine engine, int srcTextureId, int width, int height) {
+    if (engine == null || srcTextureId == 0 || width <= 0 || height <= 0) {
+        return srcTextureId;
+    }
+    int stride = width * 4;
+    ImageFrame input = ImageFrame.createWithTexture(srcTextureId, width, height, stride);
+    if (input == null) {
+        return srcTextureId;
+    }
+    input.type = ImageFrame.FrameType.VIDEO;
+    ImageFrame output = engine.processImage(input);
+    if (output == null) {
+        input.release();
+        return srcTextureId;
+    }
+    int dst = output.getTexture();
+    output.release();
+    input.release();
+    return dst != 0 ? dst : srcTextureId;
+}
+```
+
+Crea el motor (también en el hilo GL):
+
+```java
+BeautyEffectEngine.EngineConfig config = new BeautyEffectEngine.EngineConfig();
+config.appId = "your appId";
+config.appKey = "your appKey";
+// or config.licenseToken = "...";
+config.externalContext = true;
+BeautyEffectEngine engine = new BeautyEffectEngine(context, config);
+engine.setSmoothing(0.5f);
+```
+
+Credenciales: [Suscripción](/es/intro/enable-service), [Autenticación y licencia](/es/intro/license).
+
+---
+
+## TRTC (Tencent)
+
+Enganche: `TRTCCloud.setLocalVideoProcessListener`. Usa formato de píxel **Texture_2D** y tipo de buffer **TEXTURE**.
+
+Crea Facebetter en `onGLContextCreated`, procesa en `onProcessVideoFrame` y configura `dstFrame.texture.textureId`; `release()` en `onGLContextDestory`.
+
+```java
+import com.tencent.trtc.TRTCCloud;
+import com.tencent.trtc.TRTCCloudDef;
+import com.tencent.trtc.TRTCCloudListener;
+
+trtcCloud.setLocalVideoProcessListener(
+    TRTCCloudDef.TRTC_VIDEO_PIXEL_FORMAT_Texture_2D,
+    TRTCCloudDef.TRTC_VIDEO_BUFFER_TYPE_TEXTURE,
+    new TRTCCloudListener.TRTCVideoFrameListener() {
+        @Override
+        public void onGLContextCreated() {
+            // TRTC has bound the GL context — lazy-create BeautyEffectEngine here
+            ensureEngine();
+        }
+
+        @Override
+        public int onProcessVideoFrame(
+                TRTCCloudDef.TRTCVideoFrame srcFrame,
+                TRTCCloudDef.TRTCVideoFrame dstFrame) {
+            int out = processTexture(
+                    beautyEngine,
+                    srcFrame.texture.textureId,
+                    srcFrame.width,
+                    srcFrame.height);
+            dstFrame.texture.textureId = out;
+            return 0;
+        }
+
+        @Override
+        public void onGLContextDestory() {
+            if (beautyEngine != null) {
+                beautyEngine.release();
+                beautyEngine = null;
+            }
+        }
+    });
+```
+
+Libera el motor tras quitar el listener o salir de la sala. Consulta la guía de belleza de terceros de Tencent para los detalles actuales de TRTC.
+
+Para Flutter, usa [Flutter · Integración con terceros](/es/flutter/third-party-integration) (`FacebetterPlugin.processTexture`, no esta API Java).
+
+---
+
+## Agora
+
+Enganche: `RtcEngine.registerVideoFrameObserver` (Video SDK **4.x**). Debes:
+
+1. Devuelve `PROCESS_MODE_READ_WRITE` desde `getVideoFrameProcessMode()`
+2. Prefiere un **TextureBuffer** de tipo **RGB (`GL_TEXTURE_2D`)**
+3. Ejecuta Facebetter en `onCaptureVideoFrame` (o la posición de observación que elijas) y luego **escribe** la textura procesada de vuelta en el `VideoFrame`
+
+```java
+import io.agora.rtc2.RtcEngine;
+import io.agora.rtc2.video.IVideoFrameObserver;
+import io.agora.base.VideoFrame;
+
+engine.registerVideoFrameObserver(new IVideoFrameObserver() {
+    @Override
+    public boolean onCaptureVideoFrame(int sourceType, VideoFrame videoFrame) {
+        VideoFrame.Buffer buffer = videoFrame.getBuffer();
+        if (!(buffer instanceof VideoFrame.TextureBuffer)) {
+            return true; // non-texture: pass through or convert, per your app
+        }
+        VideoFrame.TextureBuffer tex = (VideoFrame.TextureBuffer) buffer;
+        if (tex.getType() != VideoFrame.TextureBuffer.Type.RGB) {
+            return true; // OES: convert to GL_TEXTURE_2D, or adjust format preference
+        }
+
+        ensureEngine(); // must use the current GL / EGL context
+        int outId = processTexture(
+                beautyEngine,
+                tex.getTextureId(),
+                tex.getWidth(),
+                tex.getHeight());
+
+        // Wrap outId as a TextureBuffer and write it back into videoFrame.
+        // Exact APIs (TextureBufferHelper / replaceBuffer, etc.) vary by Agora version —
+        // follow Agora’s raw video-frame docs, then return true.
+        return true;
+    }
+
+    @Override
+    public int getVideoFrameProcessMode() {
+        return IVideoFrameObserver.PROCESS_MODE_READ_WRITE;
+    }
+
+    @Override
+    public int getVideoFormatPreference() {
+        // Prefer a processable texture; use the constant from your Agora version
+        return IVideoFrameObserver.VIDEO_PIXEL_DEFAULT;
+    }
+
+    // Implement other callbacks as needed; POSITION_POST_CAPTURER is common
+});
+```
+
+<Warning>
+Cómo inyectas un `textureId` nuevo de vuelta en el `VideoFrame` de Agora depende de sus helpers de TextureBuffer y varía entre versiones mayores. Facebetter solo produce un `GL_TEXTURE_2D` nuevo; el paso de escritura debe seguir el [observador de fotogramas de Agora](https://docs.agora.io/en/video-calling/develop/product-workflow) / la referencia de la API.
+</Warning>
+
+Anula el registro del observer y `beautyEngine.release()` antes de destruir `RtcEngine`.
+
+---
+
+## LiveKit
+
+Enganche: pasa un `org.webrtc.VideoProcessor` (o un procesador de track equivalente) al crear el track de vídeo local. Procesa las texturas en `onFrameCaptured` y entrega el resultado con `sink.onFrame(...)`.
+
+```kotlin
+import io.livekit.android.room.track.LocalVideoTrackOptions
+import org.webrtc.VideoFrame
+import org.webrtc.VideoProcessor
+import org.webrtc.VideoSink
+
+class FacebetterVideoProcessor(
+    private val appContext: android.content.Context,
+) : VideoProcessor {
+    private var sink: VideoSink? = null
+    private var beautyEngine: BeautyEffectEngine? = null
+
+    override fun setSink(videoSink: VideoSink?) {
+        sink = videoSink
+    }
+
+    override fun onCapturerStarted(success: Boolean) {}
+
+    override fun onCapturerStopped() {
+        beautyEngine?.release()
+        beautyEngine = null
+    }
+
+    override fun onFrameCaptured(frame: VideoFrame) {
+        val buffer = frame.buffer
+        if (buffer !is VideoFrame.TextureBuffer ||
+            buffer.type != VideoFrame.TextureBuffer.Type.RGB
+        ) {
+            sink?.onFrame(frame)
+            return
+        }
+
+        ensureEngine() // LiveKit / WebRTC current EGL context
+        val outId = processTexture(
+            beautyEngine,
+            buffer.textureId,
+            buffer.width,
+            buffer.height,
+        )
+
+        // Build a new TextureBuffer / VideoFrame from outId, then:
+        // sink?.onFrame(processedFrame)
+        // processedFrame.release()
+        //
+        // TextureBuffer construction needs WebRTC Handler / YuvConverter, etc. —
+        // follow LiveKit Android SDK and WebRTC samples for the wrap.
+        sink?.onFrame(frame)
+    }
+}
+
+// Attach the processor when creating the track (API per your livekit-android version)
+val videoTrack = room.localParticipant.createVideoTrack(
+    options = LocalVideoTrackOptions(),
+    videoProcessor = FacebetterVideoProcessor(context),
+)
+videoTrack.startCapture()
+room.localParticipant.publishVideoTrack(videoTrack)
+```
+
+También puedes implementar un `VideoCapturer` personalizado, ejecutar `processTexture` tras la captura y luego llamar a `capturerObserver.onFrameCaptured`. Los procesadores oficiales (por ejemplo fondo virtual) están en el módulo `livekit-android-track-processors` de LiveKit.
+
+---
+
+## Solución de problemas
+
+| Síntoma | Comprueba |
+| --- | --- |
+| Negro / sin vídeo | Motor creado y `processImage` en el **hilo GL** del vendor; no descartes por error fotogramas fallidos |
+| Sin belleza | `externalContext == true`; la entrada es `GL_TEXTURE_2D` |
+| Crash intermitente | `release()` al destruir GL / detener el capturador; nunca `glDeleteTextures` en la salida |
+| Distorsión | Ancho / alto / rotación / espejo coinciden con el fotograma del vendor; OES no convertido a 2D |
+
+## Relacionado
+
+- [Implementar belleza](/es/android/implement-beauty)
+- [Prácticas recomendadas](/es/android/best-practices)
+- [Manejo de errores](/es/android/error-handling)
+- [Referencia de la API](/es/android/api-reference)

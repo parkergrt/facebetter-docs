@@ -1,0 +1,85 @@
+---
+title: "빠른 시작"
+description: "Facebetter Flutter SDK 2.0 예제를 실행합니다"
+---
+
+<Note>
+이 페이지는 SDK **2.0.0**에 해당합니다. 엔진 클래스는 **`FBEngine`**입니다(싱글톤이 아님). 인증: [인증 및 라이선스](/ko/intro/license). 열거형: [파라미터 열거형](/ko/intro/makeup).
+</Note>
+
+## 요구 사항
+
+- **Flutter** `>= 3.24` / **Dart** `>= 3.5`
+- **iOS** 12.0+
+- **Android** minSdk **24**
+- 네이티브 Facebetter SDK **2.0**(플러그인이 가져옴)
+
+## 설치
+
+```yaml
+dependencies:
+  facebetter_flutter: ^2.0.0
+```
+
+```bash
+flutter pub get
+cd ios && pod install && cd ..
+```
+
+## 예제 받기
+
+```bash
+git clone https://github.com/pixpark/facebetter-sdk.git
+cd facebetter-sdk/demo/flutter
+flutter create --org net.pixpark --project-name fbexample .
+```
+
+데모 폴더에는 앱 코드만 있습니다. `flutter create`가 `ios/`와 `android/`를 생성합니다.
+
+## 식별자와 키 바인딩
+
+대시보드에서 다음을 바인딩합니다.
+
+- **iOS**: Bundle ID (예: `net.pixpark.fbexample`)
+- **Android**: Application ID (예: `net.pixpark.fbexample`)
+
+`appId` / `appKey`를 복사하거나 `licenseToken`(서버가 발급한 단기 토큰, 또는 영업을 통해 받은 오프라인 `.lic`)을 전달하세요. [구독](/ko/intro/enable-service)과 [인증 및 라이선스](/ko/intro/license)를 참고하세요.
+
+## 엔진 만들기
+
+`lib/main.dart`를 수정합니다. 로깅은 `create` **전에** 실행해야 합니다.
+
+```dart
+import 'package:facebetter_flutter/facebetter_flutter.dart';
+
+FBEngine.setLogConfig(console: true, level: FBLogLevel.info);
+
+final engine = await FBEngine.create(FBEngineConfig(
+  appId: 'your_app_id',
+  appKey: 'your_app_key',
+  // or licenseToken: '...',
+  enableLandmarks: false,
+  externalContext: true, // default; required for third-party live preprocess
+  resourcePath: null,    // plugin locates resource.fbd
+));
+
+engine.setSmoothing(0.8);
+engine.dispose();
+```
+
+<Tip>
+`externalContext: true`(기본값)는 호출 측 GL 컨텍스트를 재사용합니다. 서드파티 실시간 전처리에 필요합니다. 정지 이미지 API에는 `externalContext: false`인 **두 번째** 엔진이 필요합니다. 한 인스턴스에서 두 모드를 섞지 마세요.
+</Tip>
+
+## 실행
+
+```bash
+flutter devices
+flutter run -d <device-id>
+```
+
+## 다음 단계
+
+- [뷰티 효과 적용](/ko/flutter/implement-beauty) — 전용 setter, 필터, 사진
+- [서드파티 연동](/ko/flutter/third-party-integration) — 네이티브 `FacebetterPlugin.processTexture`
+- [API 레퍼런스](/ko/flutter/api-reference)

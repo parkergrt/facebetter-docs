@@ -1,0 +1,126 @@
+---
+title: "クイックスタート"
+description: "Windows で Facebetter C++ デスクトップデモをビルドして実行します（GLFW + ImGui）"
+---
+
+<Note>
+このページは SDK **2.0.0** に対応します。Windows と Linux は `facebetter` 名前空間の同じ C++ API（`facebetter/*.h`）を共有します。
+</Note>
+
+このガイドでは、Windows 上で Facebetter C++ デスクトップデモをビルドします。デモは **GLFW + Dear ImGui + OpenGL 3** を使い、左側がライブプレビュー、右側が美顔コントロールです。
+
+## 要件
+
+| ツール | バージョン |
+| --- | --- |
+| Visual Studio / MSVC | 2019 以降（C++17） |
+| CMake | 3.16+ |
+| Ninja | 最近の任意バージョン（`winget install Ninja-build.Ninja`） |
+| Windows SDK | 10.0+ |
+
+<Tip>
+MinGW-w64 も動作しますが、MSVC を推奨します。
+</Tip>
+
+## ステップ 1: リポジトリをクローン
+
+```bash
+git clone https://github.com/pixpark/facebetter-sdk.git
+cd facebetter-sdk
+```
+
+## ステップ 2: SDK ファイルを配置
+
+Windows SDK パッケージを解凍し、`demo/cpp/sdk/` 配下に置きます。
+
+```
+demo/cpp/sdk/
+├── include/
+│   └── facebetter/
+│       ├── beauty_effect_engine.h
+│       ├── beauty_params.h
+│       ├── image_frame.h
+│       └── type_defines.h
+├── lib/
+│   ├── facebetter.lib      ← import library
+│   └── facebetter.dll      ← runtime DLL
+└── resource/
+    ├── resource.fbd        ← models and assets (required)
+    └── resource_3d.fbd     ← optional; 3D stickers. Place next to `resource.fbd` or call `AddResourcePack`
+```
+
+<Warning>
+デスクトップでは、`EngineConfig::resource_path` はディレクトリではなく **`resource.fbd` ファイル** を指す必要があります。例: `demo/cpp/sdk/resource/resource.fbd`。
+</Warning>
+
+<Tip>
+SDK パッケージは [ダウンロード](https://facebetter.net/ja/download) ページと [ダッシュボード](https://facebetter.net/ja/dashboard) にあります。
+</Tip>
+
+## ステップ 3: ライセンスを設定
+
+実行前に、デモで `app_id` / `app_key`（オンライン v2 認証）または `license_token` を設定します。`license_token` が空でない場合はそちらが優先されます（ライセンストークン文字列、`{token}` JSON、またはオフライン `.lic` の内容）。詳細: [認証とライセンス](/ja/intro/license)。
+
+## ステップ 4: ビルド
+
+**Developer Command Prompt for VS**（または MSVC 環境を読み込んだ PowerShell）を開きます。
+
+```bat
+cd demo\cpp
+cmake -B build -G "Ninja" -DCMAKE_BUILD_TYPE=Release
+cmake --build build
+```
+
+ビルド後、CMake は通常次を行います。
+
+- 実行ファイルの隣（`build/`）へ `facebetter.dll` をコピー
+- `resource/resource.fbd` を `build/resource/resource.fbd` へコピー
+- `demo.png` があれば `build/resource/demo.png` へコピー
+
+## ステップ 5: プレビュー画像を用意（任意）
+
+顔写真を `demo.png` という名前で `demo/cpp/` に置きます。
+
+```
+demo/cpp/demo.png
+```
+
+## ステップ 6: 実行
+
+```bat
+cd demo\cpp\build
+.\facebetter_demo.exe
+```
+
+ウィンドウの内容:
+
+- **左パネル** — ライブ美顔プレビュー
+- **右パネル** — Beauty Control Panel:
+  - **基本美顔**: スムージング / 美白 / 血色 / シャープニング
+  - **フェイスリシェイプ**: 26 のリシェイプパラメータ（範囲 `[-1.0, 1.0]`）
+  - **メイク**: リップ / チーク / アイシャドウ / アイライナー / アイブロウ / まつ毛 / 瞳孔 / シェーディング
+  - **フィルター / ステッカー / バーチャル背景**
+
+**Reset All** をクリックすると強度がゼロになります。
+
+## トラブルシューティング
+
+**Q: 起動時に "facebetter.dll was not found"**  
+A: `demo/cpp/sdk/lib/facebetter.dll` があることを確認し、`cmake --build build` を再実行して CMake が DLL を実行ファイルの隣へコピーするようにします。
+
+**Q: エンジン作成が `nullptr` を返す / ライセンス失敗**  
+A: `resource_path` を `resource.fbd` に向け、`license_token` または有効な `app_id` + `app_key` を設定します。[認証とライセンス](/ja/intro/license) を参照してください。
+
+**Q: CMake が Ninja を見つけられない**  
+A: `winget install Ninja-build.Ninja` を実行するか、`-G "Visual Studio 17 2022"` と `--config Release` を使います。
+
+## 次のステップ
+
+<CardGroup cols={2}>
+  <Card title="美顔の実装" href="/ja/windows/implement-beauty">
+    エンジンを作成し、効果を設定してフレームを処理します。
+  </Card>
+  <Card title="API リファレンス" href="/ja/windows/api-reference">
+    Windows と Linux の完全な C++ API。
+  </Card>
+</CardGroup>

@@ -1,0 +1,143 @@
+---
+title: "권장 사항"
+description: "iOS Facebetter SDK 2.0 성능과 아키텍처"
+---
+
+<Note>
+이 페이지는 SDK **2.0.0**에 해당합니다. 메이크업 / 리셰이프 열거형: [파라미터 열거형](/ko/intro/makeup).
+</Note>
+
+## 올바른 프레임 유형 선택
+
+`processImage:` **전에** `FBImageFrame.type`을 설정하세요. 엔진에 처리 모드 인자는 없습니다.
+
+- **`FBFrameTypeVideo` (`1`)**: 카메라 미리보기, 라이브, 통화 — 더 낮은 지연.
+- **`FBFrameTypeImage` (`0`)**: 정지 사진 — 더 높은 품질.
+
+```objc
+input.type = FBFrameTypeVideo;
+FBImageFrame *output = [engine processImage:input];
+```
+
+## 파라미터 범위
+
+- 피부 / 메이크업 / 필터 강도: `[0.0, 1.0]`. `0`이면 해당 효과가 꺼집니다.
+- 리셰이프 (`setReshape:intensity:`): **`[-1.0, 1.0]`**. `0`은 꺼짐. 양수와 음수는 반대 방향입니다.
+
+라이브 비디오에서는 낮게 시작하세요. 전체 열거형 의미: [파라미터 열거형](/ko/intro/makeup).
+
+```objc
+[engine setSmoothing:0.25f];
+[engine setSmoothingStyle:FBSmoothingStyle_Natural];
+[engine setWhitening:0.15f];
+[engine setReshape:FBReshape_FaceThin intensity:0.12f];
+[engine setBeautySkinOnly:YES];
+```
+
+## 엔진 하나, 직렬 큐 하나
+
+`createEngineWithConfig:`는 프로세스 전역 싱글톤이 아니라 **인스턴스**를 반환합니다. 세션당 엔진 하나를 유지하고 **직렬** 큐에서 호출하세요(`externalContext = YES`이면 GL 스레드).
+
+```objc
+@interface BeautyEngineManager : NSObject
+@property (nonatomic, strong, readonly) FBBeautyEffectEngine *engine;
+@property (nonatomic, strong, readonly) dispatch_queue_t queue;
++ (instancetype)sharedManager;
+@end
+
+@implementation BeautyEngineManager
+
++ (instancetype)sharedManager {
+  static BeautyEngineManager *instance;
+  static dispatch_once_t onceToken;
+  dispatch_once(&onceToken, ^{
+    instance = [[BeautyEngineManager alloc] init];
+  });
+  return instance;
+}
+
+- (instancetype)init {
+  self = [super init];
+  if (self) {
+    _queue = dispatch_queue_create("com.facebetter.process", DISPATCH_QUEUE_SERIAL);
+    FBEngineConfig *config = [[FBEngineConfig alloc] init];
+    config.appId = @"your_app_id";
+    config.appKey = @"your_app_key";
+    _engine = [FBBeautyEffectEngine createEngineWithConfig:config];
+  }
+  return self;
+}
+
+- (void)process:(FBImageFrame *)input completion:(void (^)(FBImageFrame * _Nullable))completion {
+  dispatch_async(self.queue, ^{
+    input.type = FBFrameTypeVideo;
+    FBImageFrame *output = [self.engine processImage:input];
+    dispatch_async(dispatch_get_main_queue(), ^{
+      completion(output);
+    });
+  });
+}
+
+@end
+```
+
+아주 작은 정지 이미지가 아니면 메인 스레드에서 프레임을 처리하지 마세요. 동시 큐에서 엔진 하나를 공유하지 마세요.
+
+## 메모리
+
+- ARC를 권장합니다. 프레임이 끝나면 `FBImageFrame` 참조를 버리세요.
+- 카메라 픽셀 버퍼를 재사용하세요. 캡처 형식이 이미 NV12 / BGRA이면 매 프레임 새 RGBA 버퍼를 할당하지 마세요.
+- 필터와 스티커는 다음 `processImage:`(GL 스레드)에서 로드됩니다. 같은 `.fbd`를 매 프레임 다시 로드하지 마세요. `setFilter:` / `setSticker:`를 한 번 호출한 뒤 필요하면 `setFilterIntensity:`를 사용하세요.
+- 두 번째 엔진을 만들지 말고 `clearFilter`, `clearSticker`, `clearVirtualBackground`, `clearChromaKey`를 사용하세요.
+
+## 외부 OpenGL ES
+
+앱이 이미 GL 컨텍스트를 소유할 때:
+
+1. `config.externalContext = YES`를 설정합니다.
+2. **해당 GL 스레드**에서 엔진을 만듭니다.
+3. `createWithTexture:width:height:stride:`로 텍스처를 감쌉니다.
+4. `[output texture]`로 출력을 읽습니다.
+
+입력 텍스처, 엔진, 출력 텍스처는 같은 컨텍스트에 있어야 합니다.
+
+## `getStats`로 모니터링
+
+직접 만든 타이머보다 `FBEngineStats`를 권장합니다.
+
+```objc
+FBEngineStats *stats = [engine getStats];
+NSLog(@"fps=%.1f avg=%.2fms session=%.1fs",
+      stats.fps, stats.avgProcessTimeMs, stats.sessionTimeS);
+```
+
+30 fps에서 `avgProcessTimeMs`가 약 33 ms 이하가 되도록 하세요. 올라가면 해상도를 낮추거나, `FBFrameTypeVideo`로 바꾸거나, 사용하지 않는 메이크업 / 스티커를 끄세요.
+
+## 라이프사이클
+
+엔진을 뷰 컨트롤러(또는 세션 객체)의 strong 프로퍼티로 유지하세요. 세션이 끝나면 `dealloc`에서 nil로 만드세요. `viewWillDisappear` / `applicationDidEnterBackground`에서 캡처를 일시 중지해 `processImage:` 호출을 멈추세요. 별도의 “pause” API는 필요 없습니다.
+
+```objc
+- (void)viewWillDisappear:(BOOL)animated {
+  [super viewWillDisappear:animated];
+  [self.captureSession stopRunning];
+}
+
+- (void)dealloc {
+  self.beautyEffectEngine = nil;
+}
+```
+
+retain cycle을 피하려면 `FBEngineCallbacks` 블록에서 `__weak`를 사용하세요.
+
+## iOS 캡처
+
+- 카메라 미리보기는 보통 `kCVPixelFormatType_420YpCbCr8BiPlanarFullRange`(NV12) 또는 BGRA입니다. CPU에서 RGBA로 변환하지 말고 `createWithNV12:...` 또는 `createWithBGRA:...`로 `FBImageFrame`을 만드세요.
+- 전면 카메라: 프레임에 `setMirror:@"horizontal"`(엔진 전에 픽셀을 뒤집어야 하면 `mirror:`).
+- 카메라 권한: `Info.plist`의 `NSCameraUsageDescription`. 정지를 고르면 `NSPhotoLibraryUsageDescription`.
+
+## 테스트
+
+- 테스트 앱의 Bundle ID를 바인딩하고 실제 `appId` / `appKey` 또는 `licenseToken`을 사용하세요. 더미 문자열은 라이선스 이벤트 `1` / `101`로 실패합니다.
+- 정지(`FBFrameTypeImage` + `createWithUIImage:`)와 라이브(`FBFrameTypeVideo`) 경로를 모두 커버하세요.
+- setter 반환 코드가 `FBErrorCode_Success`인지 단언하세요.

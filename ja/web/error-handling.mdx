@@ -1,0 +1,93 @@
+---
+title: "エラー処理"
+description: "Facebetter Web SDK 2.0 のエラー処理"
+---
+
+<Note>
+SDK **2.0.0**。認証失敗: [認証とライセンス](/ja/intro/license)。
+</Note>
+
+呼び出し失敗は `FacebetterError` を投げます。数値の `code` は下表です。読み込み / 認証失敗の一部は**文字列**の `code` を使います。
+
+```javascript
+import { BeautyEffectEngine, EngineConfig, FacebetterError } from 'facebetter';
+
+try {
+  const licenseToken = await fetch('/api/facebetter/auth', { method: 'POST' }).then((r) => r.text());
+  const engine = new BeautyEffectEngine(new EngineConfig({ licenseToken }));
+  await engine.init();
+  engine.setSmoothing(0.5);
+} catch (error) {
+  if (error instanceof FacebetterError) {
+    console.error(error.code, error.message);
+  } else {
+    console.error(error);
+  }
+}
+```
+
+## 数値エラーコード
+
+| コード | 意味 |
+| --- | --- |
+| `0` | 成功（`checkResult` は投げない） |
+| `-1` | 引数不正（null、空パス、範囲外の強度など） |
+| `-2` | エンジン未初期化、またはすでに破棄済み |
+| `-3` | ライセンス無効 |
+| `-4` | 非対応のプラットフォーム / フォーマット |
+| `-5` | I/O（リソース / フィルター / ステッカー / 背景ファイル） |
+| `-6` | スロット枯渇（バックプレッシャー。フレームを破棄） |
+| `-7` | 処理失敗 |
+| `-8` | メモリ不足 |
+
+## JavaScript 層のコード（文字列）
+
+`init()` / 読み込み / 認証段階で投げられます。
+
+| `error.code` | 場面 |
+| --- | --- |
+| `'TIMEOUT'` | `init()` がタイムアウト |
+| `'NETWORK_ERROR'` | ネットワーク / fetch 失敗 |
+| `'WASM_LOAD_ERROR'` | SDK の読み込み失敗（ネットワーク、CDN、または広告ブロッカー） |
+| `'LICENSE_ERROR'` | `licenseToken` がない、またはトークンが拒否された |
+| `'ENGINE_CREATE_FAILED'` | エンジン作成失敗 |
+| `'UNKNOWN_ERROR'` | 未分類の JS 例外が `FacebetterError` に包まれた |
+
+```javascript
+try {
+  await engine.init({ timeout: 30000 });
+} catch (error) {
+  if (!(error instanceof FacebetterError)) throw error;
+  if (error.code === 'LICENSE_ERROR' || error.code === -3) {
+    // token missing, expired, or domain not bound — see /ja/intro/license
+  } else if (error.code === 'WASM_LOAD_ERROR' || error.code === 'TIMEOUT') {
+    // network, CDN, or ad blocker
+  }
+}
+```
+
+## 初期化チェックリスト
+
+1. 設定が有効: 空でない `licenseToken`。
+2. SDK がランタイムファイルをダウンロードできる（UMD スクリプトと同じディレクトリのファイルなど）。
+3. ページが [セキュアコンテキスト](https://developer.mozilla.org/ja/docs/Web/Security/Secure_Contexts) である。
+4. 本番では、ダッシュボードのドメインがページ origin と一致する。
+5. 本番フロントエンド JS に `appKey` を**埋め込まない**。
+
+## パラメータと処理エラー
+
+美顔強度は `[0.0, 1.0]`、リシェイプは `[-1.0, 1.0]` である必要があります。範囲外はネイティブ呼び出しの前に `FacebetterError` を投げます。
+
+エンジン未初期化、バッファ割り当て失敗、またはネイティブ処理が非 0 を返すと、`processImage` は例外を投げます。呼び出し前に動画の `readyState` と、0 でない `videoWidth` / `videoHeight` を確認してください。
+
+フィルター / ステッカー / 背景の**パスは空にできません**。オフにするには `clearFilter()`、`clearSticker()`、`clearVirtualBackground()` を使います。
+
+## エンジンイベントと例外
+
+`init()` がすでに成功して返ったあとでも、認証 / 初期化結果は `onEngineEvent`（`EngineEventCode` の `0` / `1` / `100` / `101`）で届くことがあります。`init()` が投げなくても、`LicenseValidationFailed` と `InitializationFailed` を監視してください。
+
+## 関連ドキュメント
+
+- [美顔の実装](/ja/web/implement-beauty)
+- [よくある質問](/ja/web/faq)
+- [API リファレンス](/ja/web/api-reference)

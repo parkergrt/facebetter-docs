@@ -1,0 +1,178 @@
+---
+title: "API 레퍼런스"
+description: "Facebetter Web SDK 2.0 API"
+---
+
+<Note>
+이 페이지는 SDK **2.0.0**에 해당합니다. 메이크업 / 리셰이프 / 스타일 열거형: [파라미터 열거형](/ko/intro/makeup). 인증: [인증 및 라이선스](/ko/intro/license).
+</Note>
+
+패키지: **`facebetter`**. 일반적인 임포트:
+
+```javascript
+import {
+  BeautyEffectEngine,
+  EngineConfig,
+  FrameType,
+  MirrorMode,
+  Reshape,
+} from 'facebetter';
+```
+
+## EngineConfig
+
+```javascript
+new EngineConfig({
+  licenseToken,      // string — required. License token string, or `{token}` JSON
+})
+```
+
+Web은 이 객체에서 `appId` / `appKey`를 받지 **않습니다**. Web은 오프라인 `.lic`를 지원하지 **않습니다**.
+
+`licenseToken`이 비어 있지 않은 문자열이면 `isValid()`가 true입니다.
+
+`init()` **전에** **서버**에서 토큰을 받으세요. [인증 및 라이선스](/ko/intro/license)를 참고하세요.
+
+## BeautyEffectEngine
+
+```javascript
+const engine = new BeautyEffectEngine(config);
+await engine.init({
+  onProgress: ({ percent }) => {
+    // 0–100 while runtime files download
+  },
+});
+```
+
+### 라이프사이클
+
+| 메서드 | 설명 |
+| --- | --- |
+| `init(options?)` | 엔진을 초기화합니다(인증과 리소스). `options.timeout`(기본 `120000`)은 초기화 타임아웃(ms)입니다. `options.onProgress({ loaded, total, percent })`는 런타임 파일의 **다운로드** 진행률을 보고합니다. |
+| `setLogConfig({ consoleEnabled, fileEnabled, level, fileName })` | 전역 로그 설정. `init()` 전에 호출하세요. `level`: `0` TRACE … `5` CRITICAL. 브라우저에서는 파일 로깅을 지원하지 않습니다. `Promise<void>`를 반환합니다. |
+| `destroy()` | 엔진과 리소스를 해제합니다. |
+
+성공한 `init()` 이후 `engine.initialized`는 `true`입니다.
+
+### 피부
+
+| 메서드 | 범위 |
+| --- | --- |
+| `setSmoothing(value)` | `[0, 1]` |
+| `setSmoothingStyle(style)` | `SmoothingStyle` |
+| `setWhitening(value)` | `[0, 1]` |
+| `setWhiteningStyle(style)` | `WhiteningStyle` |
+| `setSharpening(value)` | `[0, 1]` |
+| `setRosiness(value)` | `[0, 1]` |
+| `setBeautySkinOnly(enabled)` | `boolean` |
+
+### 리셰이프
+
+`setReshape(param, value)` — `param`은 `Reshape.*`, `value`는 **`[-1.0, 1.0]`**. [파라미터 열거형](/ko/intro/makeup)을 참고하세요.
+
+### 메이크업
+
+강도 `[0, 1]`. 스타일 / 색상 열거형: [파라미터 열거형](/ko/intro/makeup).
+
+| 강도 | 스타일 / 색상 |
+| --- | --- |
+| `setLipstick` | `setLipstickColor` |
+| `setBlush` | `setBlushStyle`, `setBlushColor` |
+| `setContour` | `setContourStyle` |
+| `setEyeShadow` | `setEyeShadowStyle`, `setEyeShadowColor` |
+| `setEyeLiner` | `setEyeLinerStyle`, `setEyeLinerColor` |
+| `setEyebrow` | `setEyebrowStyle`, `setEyebrowColor` |
+| `setEyelash` | `setEyelashStyle`, `setEyelashColor` |
+| `setPupil` | `setPupilColor` |
+
+### 필터 / 스티커
+
+| 메서드 | 설명 |
+| --- | --- |
+| `setFilter(path \| Uint8Array)` | URL 또는 바이트로 LUT `.fbd` 적용 |
+| `clearFilter()` | 현재 필터 제거 |
+| `setFilterIntensity(intensity)` | `[0, 1]` |
+| `setSticker(path \| Uint8Array)` | 2D 스티커 `.fbd` 적용 |
+| `clearSticker()` | 스티커 제거 |
+| `addResourcePack(path \| Uint8Array)` | 추가 기능 팩 등록(예: `set3DSticker` 전 `resource_3d.fbd`) |
+| `set3DSticker(path \| Uint8Array)` | 3D 스티커 `.fbd` 적용 |
+| `clear3DSticker()` | 3D 스티커 제거 |
+
+### 가상 배경 / 크로마키
+
+| 메서드 | 설명 |
+| --- | --- |
+| `setVirtualBackgroundBlur(level)` | 연속 블러 `[0, 1]`. `0`이면 지움 |
+| `setVirtualBackground(path \| Uint8Array)` | png/jpg 경로 또는 인코딩된 바이트 |
+| `clearVirtualBackground()` | 블러 / 이미지 끄기 |
+| `setChromaKey(color)` | `ChromaKeyColor.Green` / `Blue` / `Red` |
+| `clearChromaKey()` | 인물 세그멘테이션 마스크로 복귀 |
+| `setChromaKeySimilarity(value)` | `[0, 1]` |
+| `setChromaKeySmoothness(value)` | `[0, 1]` |
+| `setChromaKeyDesaturation(value)` | `[0, 1]` |
+
+### 콜백
+
+```javascript
+engine.setCallbacks({
+  onFaceLandmarks, // (faces) => void
+  onEngineEvent,   // (code, message) => void
+  maxFaces,        // optional, default 10
+});
+```
+
+### 처리
+
+```javascript
+processImage(input, width, height, frameType = FrameType.Video, mirrorMode = MirrorMode.None) → ImageData
+```
+
+- `input`: `ImageData` \| `HTMLImageElement` \| `HTMLCanvasElement` \| `HTMLVideoElement` \| `Uint8ClampedArray`
+- `width` / `height`는 `Uint8ClampedArray`에만 필요
+
+```javascript
+processTexture(textureHandle, width, height, stride, frameType, mirrorMode) → number
+```
+
+출력 `GL_TEXTURE_2D` 핸들을 반환합니다. **이 경로에서는 미러가 적용되지 않습니다.** `processImage`를 권장합니다.
+
+### 통계
+
+```javascript
+engine.getStats() → { fps, avgProcessTimeMs, sessionTimeS }
+```
+
+## 열거형 (JS)
+
+값은 네이티브와 일치합니다. 전체 메이크업 / 리셰이프 표: [파라미터 열거형](/ko/intro/makeup).
+
+```javascript
+FrameType = { Image: 0, Video: 1 }
+
+MirrorMode = { None: 0, Horizontal: 1, Vertical: 2, Both: 3 }
+
+EngineEventCode = {
+  LicenseValidationSuccess: 0,
+  LicenseValidationFailed: 1,
+  InitializationComplete: 100,
+  InitializationFailed: 101,
+}
+
+ChromaKeyColor = { Green: 0, Blue: 1, Red: 2 }
+
+Reshape = { FaceThin: 0, FaceVShape: 1, /* … BrowThickness: 25 */ }
+```
+
+함께 내보내짐: `SmoothingStyle`, `WhiteningStyle`, `LipstickColor`, `BlushStyle`, `BlushColor`, `ContourStyle`, `EyeShadowStyle`, `EyeShadowColor`, `EyeLinerStyle`, `EyeLinerColor`, `EyebrowStyle`, `EyebrowColor`, `EyelashStyle`, `EyelashColor`, `PupilColor`.
+
+## FacebetterError
+
+```javascript
+class FacebetterError extends Error {
+  constructor(message, code = -1)
+  // name === 'FacebetterError'
+  // code: number or string
+}
+```
+
+숫자 코드: `0`, `-1` … `-8`. [오류 처리](/ko/web/error-handling)를 참고하세요.

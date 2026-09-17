@@ -1,0 +1,188 @@
+---
+title: "오류 처리"
+description: "Android에서 Facebetter SDK 2.0 오류를 처리합니다"
+---
+
+뷰티 setter는 `int`를 반환합니다. `ErrorCode`와 비교하세요. 생성과 `processImage`는 예외를 던지거나 `null`을 반환할 수도 있습니다.
+
+## ErrorCode
+
+```java
+public final class ErrorCode {
+  public static final int SUCCESS = 0;
+  public static final int INVALID_ARGUMENT = -1;
+  public static final int NOT_INITIALIZED = -2;
+  public static final int LICENSE = -3;
+  public static final int UNSUPPORTED = -4;
+  public static final int IO = -5;
+  public static final int NO_SLOT = -6;
+  public static final int PROCESS = -7;
+  public static final int OUT_OF_MEMORY = -8;
+}
+```
+
+| 값 | 상수 | 일반적인 원인 |
+| --- | --- | --- |
+| `0` | `SUCCESS` | 호출 성공 |
+| `-1` | `INVALID_ARGUMENT` | `null` / 빈 경로, 빈 `byte[]`, `null` 콜백 |
+| `-2` | `NOT_INITIALIZED` | 엔진이 초기화되지 않았거나 이미 해제됨 |
+| `-3` | `LICENSE` | 토큰 / 온라인 인증 거부 |
+| `-4` | `UNSUPPORTED` | 형식 또는 기능을 사용할 수 없음 |
+| `-5` | `IO` | 없는 `.fbd`, 읽을 수 없는 이미지, 로그 파일 경로 |
+| `-6` | `NO_SLOT` | 리소스 한도에 도달 |
+| `-7` | `PROCESS` | 프레임 처리 실패 |
+| `-8` | `OUT_OF_MEMORY` | 메모리 부족 |
+
+<Note>
+**`-1`은 잘못된 인자입니다. `-2`는 미초기화입니다.**
+</Note>
+
+```java
+int ret = engine.setSmoothing(0.5f);
+if (ret != ErrorCode.SUCCESS) {
+    Log.e(TAG, "setSmoothing failed: " + ret);
+}
+```
+
+## 생성
+
+`new BeautyEffectEngine(context, config)`는 다음일 때 `IllegalArgumentException`을 던집니다.
+
+- `context` 또는 `config`가 `null`
+- `config.isValid()`가 `false`(`licenseToken`이 없고 `appId` / `appKey`가 없음)
+
+`null`을 반환하지는 **않습니다**.
+
+```java
+BeautyEffectEngine.EngineConfig config = new BeautyEffectEngine.EngineConfig();
+config.appId = "your_app_id";
+config.appKey = "your_app_key";
+// config.licenseToken = "...";
+
+BeautyEffectEngine engine;
+try {
+    engine = new BeautyEffectEngine(this, config);
+} catch (IllegalArgumentException e) {
+    Log.e(TAG, "EngineConfig invalid", e);
+    return;
+}
+```
+
+라이선스와 리소스 초기화는 비동기로 실패할 수 있습니다. 엔진 이벤트를 구독하세요.
+
+```java
+EngineCallbacks callbacks = new EngineCallbacks();
+callbacks.onEngineEvent = (code, message) -> {
+    if (code == EngineEventCode.LICENSE_VALIDATION_FAILED
+        || code == EngineEventCode.INITIALIZATION_FAILED) {
+        Log.e(TAG, "engine event " + code + ": " + message);
+    }
+};
+engine.setCallbacks(callbacks);
+```
+
+| `EngineEventCode` | 값 |
+| --- | --- |
+| `LICENSE_VALIDATION_SUCCESS` | `0` |
+| `LICENSE_VALIDATION_FAILED` | `1` |
+| `INITIALIZATION_COMPLETE` | `100` |
+| `INITIALIZATION_FAILED` | `101` |
+
+인증 문제 해결: [인증 및 라이선스](/ko/intro/license). 생성 **전에** 로깅을 켜세요. [뷰티 효과 적용](/ko/android/implement-beauty)을 참고하세요.
+
+## processImage
+
+```java
+if (input == null || !input.isValid()) {
+    Log.e(TAG, "Invalid input frame");
+    return null;
+}
+if (input.type == null) {
+    input.type = ImageFrame.FrameType.VIDEO;
+}
+
+ImageFrame output;
+try {
+    output = engine.processImage(input);
+} catch (IllegalArgumentException e) {
+    Log.e(TAG, "processImage rejected the frame", e);
+    return null;
+}
+if (output == null) {
+    Log.e(TAG, "processImage returned null (engine released or native failure)");
+    return null;
+}
+```
+
+- `null` 입력 또는 `null` `type` → `IllegalArgumentException`
+- 엔진이 이미 `release()`됨 → `null`(예외 없음)
+- `finally` 블록에서 입력과 출력 모두 `release()`하세요
+
+```java
+ImageFrame output = null;
+try {
+    input.type = ImageFrame.FrameType.VIDEO;
+    output = engine.processImage(input);
+    return output;
+} finally {
+    if (input != null) {
+        input.release();
+    }
+}
+```
+
+출력에 `convert` / `toBitmap`을 하면 추가 프레임도 해제하세요.
+
+## 필터, 스티커, 가상 배경
+
+빈 경로 또는 빈 `byte[]`는 `ErrorCode.INVALID_ARGUMENT`를 반환합니다. 없는 파일은 보통 `ErrorCode.IO`를 반환합니다.
+
+```java
+int ret = engine.setFilter(fbdPath);
+if (ret == ErrorCode.INVALID_ARGUMENT) {
+    Log.e(TAG, "Filter path empty");
+} else if (ret == ErrorCode.IO) {
+    Log.e(TAG, "Cannot read .fbd: " + fbdPath);
+} else if (ret != ErrorCode.SUCCESS) {
+    Log.e(TAG, "setFilter: " + ret);
+}
+```
+
+필터 / 스티커 변경은 **다음** 처리 프레임에서 적용됩니다. setter 성공이 텍스처 업로드를 증명하지는 않습니다. 이후 `processImage` 결과와 SDK 로그를 확인하세요.
+
+## 로그 설정
+
+`setLogConfig`는 `config` 또는 `level`이 `null`이면 예외를 던집니다. 파일 로그를 켜기 전에 부모 디렉터리를 만드세요.
+
+```java
+File logFile = new File(getFilesDir(), "facebetter.log");
+File parent = logFile.getParentFile();
+if (parent != null && !parent.exists() && !parent.mkdirs()) {
+    Log.e(TAG, "Cannot create log dir");
+    return;
+}
+BeautyEffectEngine.LogConfig logConfig = new BeautyEffectEngine.LogConfig();
+logConfig.consoleEnabled = true;
+logConfig.fileEnabled = true;
+logConfig.level = BeautyEffectEngine.LogLevel.DEBUG;
+logConfig.fileName = logFile.getAbsolutePath();
+BeautyEffectEngine.setLogConfig(logConfig);
+```
+
+## 메모리 부족
+
+`ErrorCode.OUT_OF_MEMORY` 또는 `OutOfMemoryError`는 보통 프레임이 해제되지 않았거나, 해상도가 너무 높거나, heap/direct 버퍼가 쌓인 경우입니다.
+
+- 카메라 / 패킹된 픽셀에는 `ByteBuffer.allocateDirect`를 사용하세요
+- 모든 `ImageFrame`을 해제하세요(`convert` 결과 포함)
+- 라이브 카메라에는 `FrameType.VIDEO`를 권장합니다
+- 매 프레임 새 엔진을 만들지 마세요
+
+## 느린 프레임용 통계
+
+```java
+EngineStats stats = engine.getStats();
+if (stats.avgProcessTimeMs > 33) {
+    Log.w(TAG, "Slow pipeline: " + stats.avgProcessTimeMs + " ms, fps=" + stats.fps);
+}
+```

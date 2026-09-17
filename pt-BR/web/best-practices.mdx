@@ -1,0 +1,90 @@
+---
+title: "Práticas recomendadas"
+description: "Desempenho e segurança do Facebetter Web SDK 2.0"
+---
+
+<Note>
+SDK **2.0.0**. Autenticação: [Autenticação e licença](/pt-BR/intro/license).
+</Note>
+
+## Autenticação em produção
+
+Mantenha `app_id` / `app_key` no servidor. Busque um `licenseToken` de curta duração **no seu** backend e, em seguida, passe-o para o mecanismo.
+
+```javascript
+const licenseToken = await fetch('/api/facebetter/auth', { method: 'POST' }).then((r) => r.text());
+const engine = new BeautyEffectEngine(new EngineConfig({ licenseToken }));
+```
+
+<Warning>
+Nunca coloque `appKey` em um bundle de frontend.
+</Warning>
+
+Vincule o domínio exato de produção no Console. A Web não pode usar `.lic` offline.
+
+## Um mecanismo por página
+
+Crie **um** `BeautyEffectEngine`, chame `init()` uma vez e reutilize-o durante a sessão. Não construa um mecanismo novo a cada quadro.
+
+```javascript
+useEffect(() => {
+  let engine;
+  (async () => {
+    engine = new BeautyEffectEngine(new EngineConfig({ licenseToken }));
+    await engine.init();
+    engineRef.current = engine;
+  })();
+  return () => {
+    engineRef.current?.destroy();
+    engineRef.current = null;
+  };
+}, []);
+```
+
+## Loop de quadros
+
+- Dirija o vídeo com `requestAnimationFrame`, não um `while` sem limite.
+- Use `FrameType.Video` para a câmera; `FrameType.Image` para stills.
+- Combine o tamanho do canvas com o `ImageData` processado para evitar scaling extra.
+- Pule quadros até `video.readyState >= 2` e `videoWidth > 0`.
+- Prefira `processImage` para câmera e canvas. `processTexture` não aplica espelhamento.
+
+```javascript
+const result = engine.processImage(
+  video,
+  video.videoWidth,
+  video.videoHeight,
+  FrameType.Video,
+  MirrorMode.Horizontal,
+);
+ctx.putImageData(result, 0, 0);
+```
+
+## Parâmetros
+
+Comece baixo na prévia em tempo real (`smoothing` ~ `0.2`–`0.5`). A remodelagem é `[-1, 1]`; valores pequenos ficam mais naturais na câmera.
+
+Não registre `onFaceLandmarks` a menos que a UI precise deles — isso força detecção por quadro.
+
+`setBeautySkinOnly(true)` evita borrar fundos quando a suavização está alta.
+
+## Recursos
+
+- Hospede `.fbd` de filtro / adesivo e jpg/png de fundo como arquivos estáticos; passe a URL para `setFilter` / `setSticker` / `setVirtualBackground`.
+- Os recursos de runtime são carregados pelo SDK durante `init()`. Não coloque um `resource.fbd` na raiz do site para o mecanismo.
+- Troque filtro / adesivo na entrada do usuário, não a cada quadro.
+
+## Memória
+
+- Chame `destroy()` no unmount / `beforeunload`.
+- Reutilize o canvas de exibição; não aloque um canvas novo a cada quadro.
+
+## HTTPS e CORS
+
+O acesso à câmera precisa de HTTPS ou localhost. Se os assets de filtro / adesivo estiverem em outra origem, envie headers CORS.
+
+## Relacionado
+
+- [Tratamento de erros](/pt-BR/web/error-handling)
+- [Perguntas frequentes](/pt-BR/web/faq)
+- [Referência da API](/pt-BR/web/api-reference)

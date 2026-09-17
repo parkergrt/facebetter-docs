@@ -1,0 +1,142 @@
+---
+title: "Prácticas recomendadas"
+description: "Rendimiento y arquitectura del SDK Facebetter 2.0 en macOS"
+---
+
+<Note>
+Esta página corresponde al SDK **2.0.0**. Enumeraciones de maquillaje / remodelado: [Enumeraciones de parámetros](/es/intro/makeup).
+</Note>
+
+## Elegir el tipo de fotograma correcto
+
+Configura `FBImageFrame.type` **antes** de `processImage:`. El motor no tiene un argumento de modo de proceso.
+
+- **`FBFrameTypeVideo` (`1`)**: vista previa de cámara, directo, llamadas — menor latencia.
+- **`FBFrameTypeImage` (`0`)**: fotos estáticas / `NSImage` — mayor calidad.
+
+```objc
+input.type = FBFrameTypeVideo;
+FBImageFrame *output = [engine processImage:input];
+```
+
+## Rangos de parámetros
+
+- Intensidad de piel / maquillaje / filtro: `[0.0, 1.0]`. `0` desactiva ese efecto.
+- Remodelado (`setReshape:intensity:`): **`[-1.0, 1.0]`**. `0` desactiva. Positivo y negativo son direcciones opuestas.
+
+Empieza bajo en vídeo en directo. Significados de las enumeraciones: [Enumeraciones de parámetros](/es/intro/makeup).
+
+```objc
+[engine setSmoothing:0.25f];
+[engine setSmoothingStyle:FBSmoothingStyle_Natural];
+[engine setWhitening:0.15f];
+[engine setReshape:FBReshape_FaceThin intensity:0.12f];
+[engine setBeautySkinOnly:YES];
+```
+
+## Un motor, una cola serial
+
+`createEngineWithConfig:` devuelve una **instancia**, no un singleton de proceso. Mantén un motor por sesión y llámalo desde una cola **serial** (o el hilo GL cuando `externalContext = YES`).
+
+```objc
+@interface BeautyEngineManager : NSObject
+@property (nonatomic, strong, readonly) FBBeautyEffectEngine *engine;
+@property (nonatomic, strong, readonly) dispatch_queue_t queue;
++ (instancetype)sharedManager;
+@end
+
+@implementation BeautyEngineManager
+
++ (instancetype)sharedManager {
+  static BeautyEngineManager *instance;
+  static dispatch_once_t onceToken;
+  dispatch_once(&onceToken, ^{
+    instance = [[BeautyEngineManager alloc] init];
+  });
+  return instance;
+}
+
+- (instancetype)init {
+  self = [super init];
+  if (self) {
+    _queue = dispatch_queue_create("com.facebetter.process", DISPATCH_QUEUE_SERIAL);
+    FBEngineConfig *config = [[FBEngineConfig alloc] init];
+    config.appId = @"your_app_id";
+    config.appKey = @"your_app_key";
+    _engine = [FBBeautyEffectEngine createEngineWithConfig:config];
+  }
+  return self;
+}
+
+- (void)process:(FBImageFrame *)input completion:(void (^)(FBImageFrame * _Nullable))completion {
+  dispatch_async(self.queue, ^{
+    input.type = FBFrameTypeVideo;
+    FBImageFrame *output = [self.engine processImage:input];
+    dispatch_async(dispatch_get_main_queue(), ^{
+      completion(output);
+    });
+  });
+}
+
+@end
+```
+
+No proceses fotogramas en el hilo principal salvo estáticos muy pequeños. No compartas un motor entre colas concurrentes.
+
+## Memoria
+
+- Prefiere ARC. Suelta las referencias a `FBImageFrame` cuando un fotograma termine.
+- Reutiliza buffers de píxel de la cámara (NV12 / BGRA) en lugar de convertir cada fotograma a RGBA.
+- Llama a `setFilter:` / `setSticker:` una vez; las texturas se cargan en el siguiente `processImage:`.
+- Usa `clearFilter`, `clearSticker`, `clearVirtualBackground` y `clearChromaKey` en lugar de crear un segundo motor.
+
+## OpenGL externo
+
+Cuando la vista AppKit ya posee un contexto GL:
+
+1. Configura `config.externalContext = YES`.
+2. Crea el motor **en ese hilo GL**.
+3. Envuelve la textura con `createWithTexture:width:height:stride:`.
+4. Lee la salida con `[output texture]`.
+
+## Supervisar con `getStats`
+
+```objc
+FBEngineStats *stats = [engine getStats];
+NSLog(@"fps=%.1f avg=%.2fms session=%.1fs",
+      stats.fps, stats.avgProcessTimeMs, stats.sessionTimeS);
+```
+
+Apunta a `avgProcessTimeMs` por debajo de ~33 ms a 30 fps. Las GPU de escritorio pueden correr resoluciones más altas; aun así baja efectos si la UI se entrecorta.
+
+## Ciclo de vida (AppKit)
+
+Mantén el motor en el `NSViewController` (o un objeto de sesión). Detén la captura en `viewWillDisappear`. Pausa cuando la ventana se minimice. Pon el motor a nil en `dealloc` / `applicationWillTerminate`.
+
+```objc
+- (void)viewWillDisappear {
+  [super viewWillDisappear];
+  [self.captureSession stopRunning];
+}
+
+- (void)dealloc {
+  self.beautyEffectEngine = nil;
+}
+```
+
+Usa `__weak` en los bloques de `FBEngineCallbacks`.
+
+## Captura y visualización en macOS
+
+- Construye fotogramas con `createWithNV12:...`, `createWithBGRA:...` o `createWithNSImage:`.
+- Cámara frontal / vista previa de usuario: `setMirror:@"horizontal"`.
+- Retina: procesa en tamaño de píxel (`backingScaleFactor`), no en puntos.
+- Cámara: `NSCameraUsageDescription`. Las apps en sandbox necesitan **Outgoing Connections** para autenticación en línea.
+- `.fbd` / imágenes de fondo elegidos por el usuario: URLs con ámbito de seguridad.
+
+## Pruebas
+
+- Vincula el Bundle ID de la app Mac (o el nombre del proceso para herramientas CLI).
+- Usa un `appId` / `appKey` o `licenseToken` reales.
+- Cubre `FBFrameTypeImage` + `createWithNSImage:` y `FBFrameTypeVideo`.
+- Comprueba que los códigos de los setters sean `FBErrorCode_Success`. Universal Binary: prueba Intel y Apple Silicon.

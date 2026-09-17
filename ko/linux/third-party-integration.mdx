@@ -1,0 +1,62 @@
+---
+title: "서드파티 연동"
+description: "TRTC, Agora, LiveKit 및 기타 Linux 비디오 파이프라인에 Facebetter 뷰티를 연결합니다"
+---
+
+SDK **2.0.0**. [Windows · 서드파티 연동](/ko/windows/third-party-integration)과 동일한 C++ API 및 연동 모델입니다. 데스크톱 벤더는 보통 모바일 스타일 OpenGL 텍스처 콜백이 아니라 **I420 / YUV 버퍼**를 제공합니다.
+
+이 페이지는 Linux 전용 차이를 다룹니다. 공유 헬퍼와 TRTC / Agora / LiveKit 배선은 Windows 페이지에 있습니다. Linux 패키지에 맞게 헤더와 라이브러리 경로를 바꾸세요.
+
+```
+Third-party SDK (preprocess callback)
+  I420 planes
+       ↓
+BeautyEffectEngine (external_context = false)
+  CreateWithI420 → ProcessImage → write back
+```
+
+## Linux 차이
+
+| 항목 | 참고 |
+| --- | --- |
+| 라이브러리 | `libfacebetter.so` + `facebetter/*.h` |
+| 링크 | [뷰티 효과 적용](/ko/linux/implement-beauty)을 참고하세요. 런타임에 `LD_LIBRARY_PATH` / rpath를 확인하세요 |
+| GL | 디스플레이가 있는 시스템 GL; 헤드리스는 OSMesa / EGL([권장 사항](/ko/linux/best-practices)). 버퍼 경로는 대부분 여전히 `external_context = false`를 사용합니다 |
+| `resource_path` | `resource.fbd` **파일**을 가리켜야 합니다 |
+| 대시보드 바인딩 | 패키지 / 실행 파일 / 프로세스 이름 — [구독](/ko/intro/enable-service) |
+
+엔진 생성:
+
+```cpp
+EngineConfig cfg;
+cfg.app_id = "your_app_id";
+cfg.app_key = "your_app_key";
+cfg.resource_path = "/opt/yourapp/resource/resource.fbd";
+cfg.external_context = false;
+auto engine = BeautyEffectEngine::Create(cfg);
+```
+
+공유 I420 헬퍼와 벤더 훅: **전체 복사는 [Windows · 서드파티 연동](/ko/windows/third-party-integration)** (`ProcessI420InPlace`, TRTC Buffer, Agora `IVideoFrameObserver`, LiveKit 커스텀 비디오 소스).
+
+## 벤더 스냅샷
+
+| 벤더 | Linux 참고 |
+| --- | --- |
+| **TRTC** | PC는 **Buffer / I420**만 — Android Texture 경로를 사용하지 마세요 |
+| **Agora** | C++ `registerVideoFrameObserver`, ReadWrite + in-place I420 |
+| **LiveKit** | 커스텀 비디오 소스; 헤드리스 호스트의 캡처 + GL/소프트웨어 경로를 확인하세요 |
+
+## 문제 해결
+
+| 증상 | 확인 |
+| --- | --- |
+| `.so` 없음 | `LD_LIBRARY_PATH`, rpath, 아키텍처 일치 |
+| `Create` 실패 | `.fbd` 경로, 인증, 헤드리스 GL / OSMesa |
+| 그 외 | [Windows 문제 해결](/ko/windows/third-party-integration#troubleshooting)과 동일 |
+
+## 관련 문서
+
+- [Windows · 서드파티 연동](/ko/windows/third-party-integration) (기본)
+- [뷰티 효과 적용](/ko/linux/implement-beauty)
+- [권장 사항](/ko/linux/best-practices)
+- [API 레퍼런스](/ko/linux/api-reference)

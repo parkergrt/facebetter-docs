@@ -1,0 +1,140 @@
+---
+title: "Preguntas frecuentes"
+description: "Preguntas habituales del SDK Facebetter 2.0 para Android"
+---
+
+## Integración
+
+### La construcción del motor lanza una excepción o nunca queda lista
+
+- `IllegalArgumentException`: `EngineConfig` necesita un `licenseToken` no vacío, **o** ambos `appId` y `appKey`
+- Vincula el **nombre de paquete de la aplicación** en la Consola a esta app
+- Para autenticación en línea, confirma acceso de red a `/facebetter/v2/auth`
+- Escucha `EngineEventCode.LICENSE_VALIDATION_FAILED` / `INITIALIZATION_FAILED`
+- Llama a `setLogConfig` **antes** de `new BeautyEffectEngine(...)`
+
+Autenticación: [Autenticación y licencia](/es/intro/license).
+
+### Compilación: no se resuelve `net.pixpark.facebetter`
+
+- Maven: `implementation 'net.pixpark:facebetter:2.0.0'`
+- AAR local: `implementation files('libs/facebetter.aar')` y Sync
+- Clean / Rebuild
+
+### `UnsatisfiedLinkError`
+
+- El ABI del dispositivo debe ser `arm64-v8a` o `armeabi-v7a`
+- Conserva `libfacebetter.so` si reduces/ofuscas; conserva los métodos nativos de Facebetter en ProGuard / R8
+- Confirma que el artefacto AAR / Maven está completo
+
+## Efectos
+
+### La belleza se ve débil
+
+- Sube las intensidades en `[0, 1]` (`setSmoothing`, `setWhitening`, maquillaje, …)
+- El remodelado usa **`[-1, 1]`** — un valor cercano a `0` está casi desactivado
+- Confirma `INITIALIZATION_COMPLETE` y que `processImage` devuelve un fotograma no nulo
+- Revisa los landmarks con `onFaceLandmarks` (lista vacía = no hay rostro)
+
+### El rostro se ve deformado
+
+- Baja las magnitudes de `setReshape`; el signo opuesto invierte la dirección
+- Evita apilar muchos mandos de remodelado a valores absolutos altos
+- Usa `FrameType.IMAGE` para exportar estáticos si el `VIDEO` en directo se ve más suave, no más fuerte
+
+### El fondo virtual no hace nada
+
+- Llama a `setVirtualBackgroundBlur(level)` con `level > 0`, **o** `setVirtualBackground(path|bytes)`
+- `setVirtualBackgroundBlur(0)` **borra** el efecto
+- La ruta de imagen debe ser un PNG/JPG legible; una ruta vacía devuelve `ErrorCode.INVALID_ARGUMENT`
+- Pantalla verde: `setChromaKey(ChromaKeyColor.GREEN)` más un relleno (desenfoque o imagen)
+- `clearChromaKey()` solo restaura la máscara de retrato; no quita el relleno
+
+### El filtro o el sticker no aparecen
+
+- Pasa una **ruta o bytes** `.fbd` a `setFilter` / `setSticker` (no hay API de registro)
+- La subida ocurre en el **siguiente** `processImage` en el hilo GL
+- Con `externalContext = true`, esa llamada debe ejecutarse con un contexto GL actual
+- `setFilterIntensity(0)` hace invisible un LUT
+
+## Rendimiento y memoria
+
+### La vista previa es lenta
+
+- `input.type = ImageFrame.FrameType.VIDEO`
+- Baja la resolución de captura
+- Menos efectos simultáneos de remodelado / maquillaje / fondo virtual
+- `processImage` fuera del hilo principal (hilo de cámara o GL)
+- Observa `engine.getStats().avgProcessTimeMs`
+
+### La memoria sube o hay crash nativo
+
+- `release()` de cada `ImageFrame`, incluidos los resultados de `convert()` y la salida de `processImage`
+- Usa `ByteBuffer.allocateDirect`
+- Una instancia de motor; llama a `engine.release()` en `onDestroy`
+
+### ANR
+
+- No ejecutes `processImage` en el hilo de UI para vídeo HD
+- No cargues archivos `.fbd` / JPEG grandes en el hilo principal
+
+## Imagen y cámara
+
+### ¿Cómo cambio el formato de píxel?
+
+Usa `ImageFrame.convert(Format)` (devuelve un fotograma nuevo):
+
+```java
+ImageFrame rgba = frame.convert(ImageFrame.Format.RGBA);
+ImageFrame nv21 = frame.convert(ImageFrame.Format.NV21);
+ImageFrame i420 = frame.convert(ImageFrame.Format.I420);
+```
+
+Píxeles empaquetados: `getData()`. YUV planar: `getDataY()` / `getDataU()` / `getDataV()` o `getDataUV()`.
+
+### Vista previa Camera2
+
+1. `Image` de `YUV_420_888`
+2. `ImageFrame.createWithAndroid420(...)`
+3. `rotate` / `mirror` para el sensor + cámara frontal
+4. `input.type = FrameType.VIDEO`
+5. `processImage(input)`
+6. Convierte o usa `getTexture()` para mostrar
+
+### Rotación
+
+`rotate(ImageFrame.Rotation.ROTATION_90)` (0 / 90 / 180 / 270, sentido horario) muta el fotograma.
+
+## Permisos
+
+Autenticación en línea:
+
+```xml
+<uses-permission android:name="android.permission.INTERNET" />
+<uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+```
+
+Vista previa de cámara: `CAMERA` (solicitud en runtime en API 23+). Los logs de archivo fuera del almacenamiento de la app pueden necesitar permisos de almacenamiento en APIs antiguas.
+
+## Depuración
+
+Activa los logs antes de crear el motor:
+
+```java
+BeautyEffectEngine.LogConfig logConfig = new BeautyEffectEngine.LogConfig();
+logConfig.consoleEnabled = true;
+logConfig.fileEnabled = true;
+logConfig.level = BeautyEffectEngine.LogLevel.DEBUG;
+logConfig.fileName = getFilesDir() + "/facebetter.log";
+BeautyEffectEngine.setLogConfig(logConfig);
+```
+
+Los setters devuelven `0` si tienen éxito. **`-1` = argumento no válido, `-2` = no inicializado.** Lista completa: [Manejo de errores](/es/android/error-handling).
+
+## Compatibilidad
+
+- Android 7.0 (API 24)+
+- ABIs: `arm64-v8a`, `armeabi-v7a`
+- Maven: `net.pixpark:facebetter:2.0.0`
+
+Para actualizar: sube la versión Maven / AAR, Clean, recompila y vuelve a probar licencia + cámara + estáticos.

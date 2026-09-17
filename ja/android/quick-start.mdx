@@ -1,0 +1,58 @@
+---
+title: "クイックスタート"
+description: "Android サンプルアプリを実行します"
+---
+
+## 要件
+
+- **Android**: 7.0（API 24）以上
+- **言語**: Java
+- **ABI**: `armeabi-v7a`、`arm64-v8a`
+- **SDK**: Facebetter **2.0.0**（`net.pixpark:facebetter:2.0.0`）
+
+## サンプルの取得
+
+[GitHub リポジトリ](https://github.com/pixpark/facebetter-sdk) をクローンし、Android Studio で `demo/android` を開きます。
+
+```bash
+git clone https://github.com/pixpark/facebetter-sdk.git
+```
+
+## パッケージ名と認証情報のバインド
+
+### アプリケーションパッケージ名のバインド
+
+[サブスクリプション](/ja/intro/enable-service#アプリ情報のバインド) に従い、ダッシュボードで Android の **アプリケーションパッケージ名**（例: `com.example.app`）をバインドします。
+
+### エンジンの作成
+
+[サブスクリプション](/ja/intro/enable-service#appid-と-appkey-の取得) に従い `appId` / `appKey` をコピーするか、`licenseToken` を使います。デモのカメラ Activity を開き、`new BeautyEffectEngine(...)` の前に `EngineConfig` を設定します。
+
+**オンライン**（`appId` + `appKey` → `/facebetter/v2/auth`）:
+
+```java
+BeautyEffectEngine.EngineConfig config = new BeautyEffectEngine.EngineConfig();
+config.appId = "your appId";
+config.appKey = "your appKey";
+mBeautyEngine = new BeautyEffectEngine(this, config);
+```
+
+**トークン**（ライセンストークン文字列、`{token}` JSON、またはオフライン `.lic` の内容）。`licenseToken` が空でない場合はそちらが優先され、SDK は `appId` / `appKey` でネットワーク呼び出しをしません。
+
+```java
+BeautyEffectEngine.EngineConfig config = new BeautyEffectEngine.EngineConfig();
+config.licenseToken = "/* license token, {token} JSON, or .lic contents */";
+mBeautyEngine = new BeautyEffectEngine(this, config);
+```
+
+<Tip>
+認証モードとオフライン `.lic` ファイル: [認証とライセンス](/ja/intro/license)。
+</Tip>
+
+## 実行
+
+Android Studio で Gradle を同期し、実機またはエミュレータを選んで実行します。
+
+<Frame>
+  <img src="/images/android-1.png" alt="Android プロジェクト" />
+</Frame>

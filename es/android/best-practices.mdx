@@ -1,0 +1,198 @@
+---
+title: "Prácticas recomendadas"
+description: "Rendimiento y arquitectura del SDK Facebetter 2.0 en Android"
+---
+
+## Elegir FrameType
+
+Configura `ImageFrame.type` antes de `processImage`. No hay un argumento de modo extra.
+
+**`FrameType.VIDEO`** (predeterminado)
+
+- Vista previa de cámara, videollamadas, streaming en directo
+- Menor latencia
+
+**`FrameType.IMAGE`**
+
+- Fotos de galería, exportación, captura de estáticos
+- Mayor calidad, más coste por fotograma
+
+```java
+input.type = ImageFrame.FrameType.VIDEO;
+ImageFrame output = engine.processImage(input);
+```
+
+## Rangos de parámetros
+
+Empieza bajo; sube cuando confirmes la detección facial y el FPS.
+
+| API | Rango | Notas |
+| --- | --- | --- |
+| Suavizado / blanqueamiento / nitidez / rubor / intensidad de maquillaje / intensidad de filtro / desenfoque VB / mandos de croma | `[0, 1]` | `0` desactivado |
+| `setReshape` | **`[-1, 1]`** | `0` desactivado; el signo es la dirección |
+
+Vista previa en directo (ejemplo):
+
+```java
+engine.setSmoothing(0.25f);
+engine.setWhitening(0.12f);
+engine.setRosiness(0.08f);
+engine.setReshape(Reshape.FACE_THIN, 0.15f);
+engine.setReshape(Reshape.EYE_SIZE, 0.12f);
+```
+
+Activa `setBeautySkinOnly(true)` cuando no quieras suavizado en pelo / ropa / fondo.
+
+Nombres de estilos: [Enumeraciones de parámetros](/es/intro/makeup).
+
+## Memoria
+
+Usa `ByteBuffer`s **directos** al crear fotogramas a partir de datos de píxel:
+
+```java
+ByteBuffer data = ByteBuffer.allocateDirect(width * height * 4);
+```
+
+Libera los fotogramas nativos:
+
+```java
+ImageFrame input = ImageFrame.createWithRGBA(data, width, height, stride);
+try {
+    input.type = ImageFrame.FrameType.VIDEO;
+    ImageFrame output = engine.processImage(input);
+    try {
+        // draw / encode output
+    } finally {
+        if (output != null) {
+            output.release();
+        }
+    }
+} finally {
+    if (input != null) {
+        input.release();
+    }
+}
+```
+
+- Un motor por proceso / contexto GL; no lo crees por fotograma
+- Limita los estáticos (el demo escala el lado largo a 1920) antes de `createWithBitmap`
+- `convert()` asigna un fotograma **nuevo**: libéralo
+
+## OpenGL ES
+
+Cuando `externalContext = true`:
+
+- Construye el motor en el hilo GL con un contexto actual
+- Mantén la textura de entrada, `processImage` y la textura de salida en ese mismo contexto
+- Recrea el motor tras una pérdida de contexto
+- Lee el resultado con `output.getTexture()`, no con una descarga a CPU, si te quedas en GPU
+
+Consulta [Implementar belleza](/es/android/implement-beauty#external-texture-opengl-es).
+
+## Un motor, contexto de aplicación
+
+Mantén un único `BeautyEffectEngine`. Usa `getApplicationContext()` para que el motor sobreviva a una Activity, y aun así llama a `release()` cuando termine la sesión.
+
+```java
+public final class BeautyEngineHolder {
+    private static BeautyEngineHolder sInstance;
+    private BeautyEffectEngine mEngine;
+
+    public static synchronized BeautyEngineHolder get(Context context) {
+        if (sInstance == null) {
+            sInstance = new BeautyEngineHolder(context.getApplicationContext());
+        }
+        return sInstance;
+    }
+
+    private BeautyEngineHolder(Context app) {
+        BeautyEffectEngine.EngineConfig config = new BeautyEffectEngine.EngineConfig();
+        config.appId = "your_app_id";
+        config.appKey = "your_app_key";
+        mEngine = new BeautyEffectEngine(app, config);
+    }
+
+    public BeautyEffectEngine engine() {
+        return mEngine;
+    }
+
+    public synchronized void release() {
+        if (mEngine != null) {
+            mEngine.release();
+            mEngine = null;
+        }
+        sInstance = null;
+    }
+}
+```
+
+<Warning>
+Siempre llama a `release()` del motor cuando termine la sesión. Los objetos ImageFrame también necesitan `release()`.
+</Warning>
+
+## Fuera del hilo de UI
+
+Ejecuta `processImage` en un hilo de cámara / GL / dedicado. Publica resultados al looper principal solo para la UI.
+
+```java
+executor.execute(() -> {
+    input.type = ImageFrame.FrameType.VIDEO;
+    ImageFrame output = engine.processImage(input);
+    mainHandler.post(() -> callback.onFrame(output));
+});
+```
+
+No compartas un `ImageFrame` entre hilos sin tu propio lock. El camino de cámara del demo procesa el fotograma más reciente en el hilo de render.
+
+## Filtros y stickers desde assets
+
+Guarda archivos `.fbd` en `assets/` y pasa `byte[]` (o cópialos a `filesDir` y pasa una ruta). Llama a `setFilter` / `setSticker` una vez cuando el usuario elija un efecto, no en cada fotograma. Ajusta la mezcla con `setFilterIntensity`.
+
+La subida a GPU ocurre en el siguiente `processImage`.
+
+## Supervisar con getStats
+
+```java
+EngineStats stats = engine.getStats();
+Log.d(TAG, "fps=" + stats.fps
+    + " avgMs=" + stats.avgProcessTimeMs
+    + " sessionS=" + stats.sessionTimeS);
+```
+
+Si `avgProcessTimeMs` se mantiene por encima de ~33 ms en una vista previa en directo a 30 FPS, baja la resolución, usa `FrameType.VIDEO` o reduce remodelado / maquillaje / fondo virtual simultáneos.
+
+## Persistir deslizadores del usuario
+
+Guarda las intensidades tú mismo (`SharedPreferences`). Vuelve a aplicarlas con `setSmoothing`, `setReshape`, `setLipstick`, … después de crear el motor: el SDK no persiste el estado de la UI.
+
+## Ciclo de vida
+
+- `onResume` / `onPause`: inicia y detén la cámara; conserva el motor si vas a reanudar pronto
+- `onDestroy` / `onDetach`: `engine.release()` si este propietario lo creó
+- `externalContext`: crear / destruir en el hilo GL
+
+## Pruebas
+
+```java
+@Test
+public void processRgbaFrame() {
+    BeautyEffectEngine.EngineConfig config = new BeautyEffectEngine.EngineConfig();
+    config.appId = "test_app_id";
+    config.appKey = "test_app_key";
+    BeautyEffectEngine engine = new BeautyEffectEngine(context, config);
+
+    ByteBuffer data = ByteBuffer.allocateDirect(640 * 480 * 4);
+    ImageFrame input = ImageFrame.createWithRGBA(data, 640, 480, 640 * 4);
+    input.type = ImageFrame.FrameType.IMAGE;
+    ImageFrame output = engine.processImage(input);
+
+    assertNotNull(output);
+    assertTrue(output.isValid());
+
+    input.release();
+    output.release();
+    engine.release();
+}
+```
+
+Las pruebas instrumentadas necesitan una licencia válida (`licenseToken` o `/facebetter/v2/auth` accesible más un nombre de paquete vinculado).

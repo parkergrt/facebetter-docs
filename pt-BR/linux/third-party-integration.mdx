@@ -1,0 +1,62 @@
+---
+title: "Integração com terceiros"
+description: "Conecte a beleza Facebetter a TRTC, Agora, LiveKit e outros pipelines de vídeo no Linux"
+---
+
+SDK **2.0.0**. A mesma API C++ e o mesmo modelo de integração de [Windows · Integração com terceiros](/pt-BR/windows/third-party-integration): os fornecedores desktop costumam entregar **buffers I420 / YUV**, não callbacks de textura OpenGL no estilo mobile.
+
+Esta página cobre as diferenças exclusivas do Linux. Helpers compartilhados e o encaixe TRTC / Agora / LiveKit ficam na página do Windows — troque headers e caminhos de biblioteca pelo pacote Linux.
+
+```
+Third-party SDK (preprocess callback)
+  I420 planes
+       ↓
+BeautyEffectEngine (external_context = false)
+  CreateWithI420 → ProcessImage → write back
+```
+
+## Diferenças no Linux
+
+| Item | Observações |
+| --- | --- |
+| Biblioteca | `libfacebetter.so` + `facebetter/*.h` |
+| Link | Veja [Implementar beleza](/pt-BR/linux/implement-beauty); observe `LD_LIBRARY_PATH` / rpath em runtime |
+| GL | GL do sistema com display; headless via OSMesa / EGL ([Práticas recomendadas](/pt-BR/linux/best-practices)). O caminho de buffer ainda usa `external_context = false` na maioria dos casos |
+| `resource_path` | Precisa apontar para o **arquivo** `resource.fbd` |
+| Vinculação no Console | Nome do pacote / executável / processo — [Assinatura](/pt-BR/intro/enable-service) |
+
+Crie o mecanismo:
+
+```cpp
+EngineConfig cfg;
+cfg.app_id = "your_app_id";
+cfg.app_key = "your_app_key";
+cfg.resource_path = "/opt/yourapp/resource/resource.fbd";
+cfg.external_context = false;
+auto engine = BeautyEffectEngine::Create(cfg);
+```
+
+Helper I420 compartilhado e hooks de fornecedor: **cópia completa em [Windows · Integração com terceiros](/pt-BR/windows/third-party-integration)** (`ProcessI420InPlace`, TRTC Buffer, Agora `IVideoFrameObserver`, fonte de vídeo personalizada LiveKit).
+
+## Snapshot dos fornecedores
+
+| Fornecedor | Notas Linux |
+| --- | --- |
+| **TRTC** | PC é somente **Buffer / I420** — não use o caminho Texture do Android |
+| **Agora** | C++ `registerVideoFrameObserver`, ReadWrite + I420 in-place |
+| **LiveKit** | Fonte de vídeo personalizada; confirme captura + caminho GL/software para hosts headless |
+
+## Solução de problemas
+
+| Sintoma | Verifique |
+| --- | --- |
+| `.so` ausente | `LD_LIBRARY_PATH`, rpath, arquitetura correspondente |
+| `Create` falha | Caminho `.fbd`, autenticação, GL headless / OSMesa |
+| Todo o resto | Igual à [solução de problemas do Windows](/pt-BR/windows/third-party-integration#troubleshooting) |
+
+## Relacionado
+
+- [Windows · Integração com terceiros](/pt-BR/windows/third-party-integration) (principal)
+- [Implementar beleza](/pt-BR/linux/implement-beauty)
+- [Práticas recomendadas](/pt-BR/linux/best-practices)
+- [Referência da API](/pt-BR/linux/api-reference)

@@ -1,0 +1,209 @@
+---
+title: "서드파티 연동"
+description: "TRTC, Agora, LiveKit 및 기타 Windows 비디오 파이프라인에 Facebetter 뷰티를 연결합니다"
+---
+
+SDK **2.0.0**. 데스크톱은 모바일과 다릅니다. Windows의 TRTC / Agora는 보통 OpenGL `textureId`가 아니라 **CPU 버퍼(I420 / YUV)**를 제공합니다. 벤더의 커스텀 전처리 콜백에 Facebetter를 걸고, `ImageFrame::CreateWithI420`(또는 NV12) → `ProcessImage`를 실행한 뒤 평면을 다시 씁니다.
+
+[Linux](/ko/linux/third-party-integration)와 동일한 C++ API를 공유합니다. 기본: [뷰티 효과 적용](/ko/windows/implement-beauty). 방 입장 / 게시는 벤더 문서에 따릅니다.
+
+```
+Third-party SDK (preprocess callback)
+  I420 / YUV planes
+       ↓
+BeautyEffectEngine (usually external_context = false)
+  CreateWithI420 → ProcessImage
+       ↓
+  write back to vendor dst / in-place buffers
+```
+
+## 공통 계약
+
+| 항목 | 요구 사항 |
+| --- | --- |
+| 엔진 | `BeautyEffectEngine::Create`; 데스크톱은 `resource_path`를 `resource.fbd` **파일**로 설정해야 함 |
+| 컨텍스트 | 버퍼 경로: `external_context = false`. 벤더 GL 스레드에서 `CreateWithTexture`를 넣을 때만 `true` |
+| 형식 | PC에서는 **I420** 권장(TRTC Buffer / Agora YUV420과 일치) |
+| 프레임 유형 | `FrameType::Video` |
+| 라이프사이클 | 콜백을 제거한 뒤 `engine.reset()`. 싱글톤이 아님 |
+
+### 공유: I420을 처리하고 평면을 다시 쓰기
+
+```cpp
+#include <facebetter/beauty_effect_engine.h>
+#include <facebetter/image_frame.h>
+#include <cstring>
+
+using namespace facebetter;
+
+static void CopyPlane(uint8_t* dst, int dst_stride,
+                      const uint8_t* src, int src_stride,
+                      int width, int height) {
+  for (int y = 0; y < height; ++y) {
+    std::memcpy(dst + y * dst_stride, src + y * src_stride, width);
+  }
+}
+
+/** Returns true on success; leave vendor buffers untouched on failure */
+static bool ProcessI420InPlace(BeautyEffectEngine* engine,
+                               uint8_t* y, int stride_y,
+                               uint8_t* u, int stride_u,
+                               uint8_t* v, int stride_v,
+                               int width, int height) {
+  if (!engine || !y || !u || !v || width <= 0 || height <= 0) {
+    return false;
+  }
+  auto input = ImageFrame::CreateWithI420(
+      width, height, y, stride_y, u, stride_u, v, stride_v);
+  if (!input) {
+    return false;
+  }
+  input->type = FrameType::Video;
+  auto output = engine->ProcessImage(input);
+  if (!output || !output->DataY()) {
+    return false;
+  }
+  CopyPlane(y, stride_y, output->DataY(), output->StrideY(), width, height);
+  CopyPlane(u, stride_u, output->DataU(), output->StrideU(), width / 2, height / 2);
+  CopyPlane(v, stride_v, output->DataV(), output->StrideV(), width / 2, height / 2);
+  return true;
+}
+```
+
+엔진 생성:
+
+```cpp
+EngineConfig cfg;
+cfg.app_id = "your_app_id";
+cfg.app_key = "your_app_key";
+cfg.resource_path = "resource/resource.fbd";
+cfg.external_context = false;
+auto engine = BeautyEffectEngine::Create(cfg);
+if (!engine) {
+  return;
+}
+engine->SetSmoothing(0.5f);
+```
+
+자격 증명: [구독](/ko/intro/enable-service), [인증 및 라이선스](/ko/intro/license).
+
+---
+
+## TRTC (Tencent)
+
+Windows / 데스크톱 C++: **커스텀 전처리는 Texture가 아니라 Buffer**를 사용합니다. 최신 SDK는 `enableLocalVideoCustomProcess` + `setLocalVideoCustomProcessCallback`을 사용합니다(구 `setLocalVideoProcessCallback`은 폐기됨 — 버전을 확인하세요).
+
+픽셀 형식 **I420**과 버퍼 유형 **Buffer**를 사용하세요. `onProcessVideoFrame`에서 `srcFrame`을 처리하고 `dstFrame`을 채웁니다.
+
+```cpp
+#include "ITRTCCloud.h"
+#include "TRTCTypeDef.h"
+
+class BeautyFrameCallback : public liteav::ITRTCVideoFrameCallback {
+ public:
+  explicit BeautyFrameCallback(std::shared_ptr<BeautyEffectEngine> engine)
+      : engine_(std::move(engine)) {}
+
+  int onProcessVideoFrame(liteav::TRTCVideoFrame* src,
+                          liteav::TRTCVideoFrame* dst) override {
+    if (!src || !dst || !engine_) {
+      return 0;
+    }
+    // Field names (data / split YUV planes) vary slightly by LiteAV headers
+    ProcessI420InPlace(engine_.get(),
+                       /* y,u,v,strides,width,height from src */);
+    // Copy processed planes into dst, or set dst->data / length per TRTC docs
+    return 0;
+  }
+
+ private:
+  std::shared_ptr<BeautyEffectEngine> engine_;
+};
+
+// Registration sketch (names per your TRTC C++ version):
+// trtc->enableLocalVideoCustomProcess(true);
+// trtc->setLocalVideoCustomProcessCallback(callback);
+```
+
+<Note>
+Tencent 문서: 모바일은 Texture를 사용할 수 있습니다. **PC는 Buffer만 지원합니다.** Windows에서 Android `Texture_2D` 경로를 따르지 마세요.
+</Note>
+
+---
+
+## Agora
+
+훅: `IRtcEngine::registerVideoFrameObserver`(C++ Video SDK **4.x**). Windows는 보통 **YUV420 / I420**을 제공합니다.
+
+1. `getVideoFrameProcessMode`에서 `PROCESS_MODE_READ_WRITE`를 반환
+2. `onCaptureVideoFrame`에서 `yBuffer` / `uBuffer` / `vBuffer`에 `ProcessI420InPlace` 실행
+3. SDK가 프레임을 유지하도록 `true`를 반환
+
+```cpp
+#include "IAgoraMediaEngine.h"
+#include "IAgoraRtcEngine.h"
+
+class BeautyObserver : public agora::media::IVideoFrameObserver {
+ public:
+  explicit BeautyObserver(std::shared_ptr<BeautyEffectEngine> engine)
+      : engine_(std::move(engine)) {}
+
+  bool onCaptureVideoFrame(agora::rtc::VIDEO_SOURCE_TYPE /*type*/,
+                           VideoFrame& frame) override {
+    if (!engine_ || !frame.yBuffer || !frame.uBuffer || !frame.vBuffer) {
+      return true;
+    }
+    ProcessI420InPlace(engine_.get(),
+                       frame.yBuffer, frame.yStride,
+                       frame.uBuffer, frame.uStride,
+                       frame.vBuffer, frame.vStride,
+                       frame.width, frame.height);
+    return true;
+  }
+
+  VIDEO_FRAME_PROCESS_MODE getVideoFrameProcessMode() override {
+    return PROCESS_MODE_READ_WRITE;
+  }
+
+  // Implement getVideoFormatPreference / getObservedFramePosition per Agora docs
+
+ private:
+  std::shared_ptr<BeautyEffectEngine> engine_;
+};
+
+// mediaEngine->registerVideoFrameObserver(observer);
+```
+
+`IRtcEngine`를 파괴하기 전에 등록을 해제하고 `engine.reset()`을 호출하세요.
+
+---
+
+## LiveKit
+
+데스크톱의 일반적인 패턴은 **커스텀 비디오 소스**입니다. 직접 캡처 / 처리한 뒤 프레임을 LiveKit(C++ 클라이언트 또는 브리지)에 푸시합니다. 모바일 `VideoProcessor` 텍스처 콜백이 아닙니다.
+
+권장 파이프라인:
+
+1. 프레임 캡처(카메라 / DXGI / 등)  
+2. `CreateWithI420` / `CreateWithRGBA` → `ProcessImage`  
+3. 출력을 LiveKit / WebRTC 프레임으로 감싸 `VideoSource` / `RTCVideoSource`에 푸시
+
+정확한 타입 이름은 LiveKit 클라이언트 버전에 따라 다릅니다. 커스텀 트랙은 [LiveKit 문서](https://docs.livekit.io/)를 참고하세요. Facebetter는 2단계만 담당합니다.
+
+---
+
+## 문제 해결
+
+| 증상 | 확인 |
+| --- | --- |
+| `Create` 실패 | `resource_path`가 `.fbd` **파일**을 가리키는지, 인증이 유효한지 |
+| 뷰티 없음 | ReadWrite / 커스텀 전처리 안에서 처리하고 평면을 다시 썼는지 |
+| 왜곡 | 올바른 `stride`로 행 단위 복사, I420의 짝수 width/height |
+| 끊김 | 프레임마다 큰 할당을 피하고, `ProcessImage`를 한 스레드에서 직렬화 |
+
+## 관련 문서
+
+- [뷰티 효과 적용](/ko/windows/implement-beauty)
+- [Linux · 서드파티 연동](/ko/linux/third-party-integration)
+- [권장 사항](/ko/windows/best-practices)
+- [API 레퍼런스](/ko/windows/api-reference)

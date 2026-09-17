@@ -1,0 +1,165 @@
+---
+title: "API 레퍼런스"
+description: "Facebetter Flutter SDK 2.0 API"
+---
+
+<Note>
+이 페이지는 SDK **2.0.0**에 해당합니다. 클래스: **`FBEngine`**. 메이크업 / 리셰이프 열거형: [파라미터 열거형](/ko/intro/makeup). 인증: [인증 및 라이선스](/ko/intro/license).
+</Note>
+
+```yaml
+dependencies:
+  facebetter_flutter: ^2.0.0
+```
+
+```dart
+import 'package:facebetter_flutter/facebetter_flutter.dart';
+```
+
+## FBEngineConfig
+
+```dart
+const FBEngineConfig({
+  String? appId,
+  String? appKey,
+  String? licenseToken,
+  bool enableLandmarks = false,
+  bool externalContext = true,
+  String? resourcePath,
+});
+```
+
+`appId` + `appKey`, 또는 `licenseToken`으로 만듭니다. `licenseToken`이 비어 있지 않으면 사용되며 온라인 `appId` / `appKey`는 건너뜁니다.
+
+## FBEngine
+
+```dart
+static Future<FBEngine> create(FBEngineConfig config)
+static String get version
+static void setLogConfig({
+  bool console = true,
+  bool file = false,
+  FBLogLevel level = FBLogLevel.info,
+  String fileName = '',
+})
+void dispose()
+```
+
+`FBEngine.create`로 인스턴스 하나를 만듭니다. 프로세스 전역 싱글톤이 아닙니다.
+
+뷰티 / 리셰이프 / 메이크업 / 크로마 / 블러 / `clear*` / `setFilterIntensity`는 **동기**입니다. 필터, 스티커, 배경 **이미지**, 사진 API는 **`Future`**를 반환합니다.
+
+### 피부
+
+`setSmoothing`, `setSmoothingStyle(FBSmoothingStyle)`, `setWhitening`, `setWhiteningStyle(FBWhiteningStyle)`, `setSharpening`, `setRosiness`, `setBeautySkinOnly(bool)` — 강도 `[0, 1]`.
+
+### 리셰이프
+
+`setReshape(FBReshape param, double intensity)` — **`[-1.0, 1.0]`**. Dart 이름: `FBReshape.faceThin`, `faceVShape`, … `browThickness`. 표: [파라미터 열거형](/ko/intro/makeup).
+
+### 메이크업
+
+| 강도 | 스타일 / 색상 |
+| --- | --- |
+| `setLipstick` | `setLipstickColor(FBLipstickColor)` |
+| `setBlush` | `setBlushStyle`, `setBlushColor` |
+| `setContour` | `setContourStyle` |
+| `setEyeShadow` | `setEyeShadowStyle`, `setEyeShadowColor` |
+| `setEyeLiner` | `setEyeLinerStyle`, `setEyeLinerColor` |
+| `setEyebrow` | `setEyebrowStyle`, `setEyebrowColor` |
+| `setEyelash` | `setEyelashStyle`, `setEyelashColor` |
+| `setPupil` | `setPupilColor` |
+
+### 필터 / 스티커 / VB / 크로마
+
+```dart
+Future<void> setFilter({String? path, Uint8List? data})
+void clearFilter()
+void setFilterIntensity(double intensity) // [0, 1]
+
+Future<void> setSticker({String? path, Uint8List? data})
+void clearSticker()
+
+Future<void> addResourcePack({String? path, Uint8List? data})
+Future<void> set3DSticker({String? path, Uint8List? data})
+void clear3DSticker()
+
+void setVirtualBackgroundBlur(double level) // [0, 1]; 0 clears
+Future<void> setVirtualBackground({String? path, Uint8List? data})
+void clearVirtualBackground()
+
+void setChromaKey(FBChromaKeyColor color)
+void clearChromaKey()
+void setChromaKeySimilarity(double value)
+void setChromaKeySmoothness(double value)
+void setChromaKeyDesaturation(double value)
+```
+
+`path`와 `data`는 상호 배타적이며, 정확히 하나가 필요합니다. 3D 스티커는 [선택 리소스 팩](/ko/intro/resource-packs)을 참고하세요.
+
+### 사진
+
+`externalContext: false`가 필요합니다. 그렇지 않으면 `StateError`를 던집니다. **라이브 전처리 비디오에 사용하지 마세요.**
+
+```dart
+Future<void> processFile({required String input, required String output, int quality = 90})
+Future<FBBitmap> processImageBytes(Uint8List encoded)
+Future<FBBitmap> processImageFile(String path)
+Future<ui.Image> processImageToUiImage(Uint8List encoded)
+```
+
+### 관측
+
+```dart
+Stream<FBEngineEvent> get events
+FBStats get stats
+```
+
+`FBStats`: `fps`, `avgProcessTimeMs`, `sessionTimeSeconds`.
+
+`FBEngineEvent`: `code`, `message`, `eventCode` → `FBEngineEventCode`:
+
+| 값 | Dart |
+| --- | --- |
+| `0` | `licenseValidationSuccess` |
+| `1` | `licenseValidationFailed` |
+| `100` | `engineInitializationComplete` |
+| `101` | `engineInitializationFailed` |
+
+## FBException {#fbexception}
+
+네이티브 호출이 `< 0`을 반환하면 던져집니다.
+
+| `code` | 의미 |
+| --- | --- |
+| `0` | 성공(던져지지 않음) |
+| `-1` | 잘못된 인자 |
+| `-2` | 미초기화 / 해제됨 |
+| `-3` | 라이선스 |
+| `-4` | 미지원 |
+| `-5` | I/O |
+| `-6` | 슬롯 없음(배압) |
+| `-7` | 처리 실패 |
+| `-8` | 메모리 부족 |
+
+```dart
+} on FBException catch (e) {
+  debugPrint('${e.operation} ${e.code} ${e.reason}');
+}
+```
+
+## 기타 유형
+
+- `FBBitmap` — `width`, `height`, `stride`, `pixels`(RGBA8888 복사)
+- `FBLogLevel` — `trace` … `critical`
+- `FBMirror` — `none`, `horizontal`, `vertical`, `both`(라이브 텍스처 경로에서는 보통 사용하지 않음)
+- `FBFace` / `FBFaceList` / `FBRect` — `enableLandmarks: true`일 때의 랜드마크 뷰(`kLandmarkCount` = 111)
+
+## 네이티브 텍스처 (Dart 아님)
+
+`externalContext: true`로 `create`한 뒤, **벤더 SDK GL 스레드**에서 호출하세요.
+
+- iOS: `[FacebetterPlugin processTexture:width:height:]`
+- Android: `FacebetterPlugin.processTexture(textureId, width, height)`
+
+실패 시 `0`을 반환합니다. 전체 스니펫: [서드파티 연동](/ko/flutter/third-party-integration).

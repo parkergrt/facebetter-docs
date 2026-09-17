@@ -1,0 +1,226 @@
+---
+title: "Enumeraciones de parámetros"
+description: "Enumeraciones de remodelado, maquillaje, blanqueamiento y suavizado del SDK Facebetter 2.0"
+---
+
+<Note>
+Esta página corresponde al SDK **2.0**. Los valores numéricos son idénticos en C++, Objective-C, Java, JavaScript y Dart.
+</Note>
+
+El maquillaje se controla con tres mandos:
+
+1. **Intensidad** — `SetLipstick` / `SetBlush` / `SetContour` / `SetEyeShadow` / `SetEyeLiner` / `SetEyebrow` / `SetEyelash` / `SetPupil`, rango `[0.0, 1.0]`. `0` desactiva el efecto.
+2. **Forma** — cambia la textura de máscara (`SetBlushStyle`, `SetContourStyle`, `SetEyeShadowStyle`, …).
+3. **Color** — tiñe la forma actual (`SetLipstickColor`, `SetBlushColor`, `SetEyeShadowColor`, …). **Pupil** y **Contour** no se tiñen; al cambiarlos se sustituye la textura.
+
+| C++ / JS | Java | Objective-C | Dart |
+| --- | --- | --- | --- |
+| `LipstickColor::Rouge` | `LipstickColor.ROUGE` | `FBLipstickColor_Rouge` | `FBLipstickColor.rouge` |
+
+## Blanqueamiento (`WhiteningStyle`)
+
+Se usa con `SetWhiteningStyle`. La intensidad sigue siendo `SetWhitening`. Predeterminado: `ColdWhite`.
+
+| Valor | Nombre | Significado |
+| --- | --- | --- |
+| 0 | `ColdWhite` | Blanco frío |
+| 1 | `PinkWhite` | Blanco rosado |
+| 2 | `WarmWhite` | Blanco cálido |
+| 3 | `Wheat` | Trigo |
+| 4 | `Tan` | Bronceado |
+
+## Suavizado (`SmoothingStyle`)
+
+Se usa con `SetSmoothingStyle`. La intensidad sigue siendo `SetSmoothing`. Predeterminado: `Natural`.
+
+| Valor | Nombre | Significado |
+| --- | --- | --- |
+| 0 | `Natural` | Conserva los poros |
+| 1 | `Texture` | Más limpio, con textura |
+| 2 | `Smooth` | Piel cremosa |
+
+## Remodelado facial (`Reshape`)
+
+Se usa con `SetReshape(param, intensity)`. El rango es **`[-1.0, 1.0]`**. `0` desactiva el efecto. Positivo y negativo son direcciones opuestas (por ejemplo FaceThin: adelgazar / mejillas más llenas).
+
+| Valor | Nombre | Positivo / negativo |
+| --- | --- | --- |
+| 0 | `FaceThin` | Adelgazar el rostro / mejillas más llenas |
+| 1 | `FaceVShape` | Forma en V / mandíbula más cuadrada |
+| 2 | `FaceNarrow` | Rostro más estrecho / más ancho |
+| 3 | `FaceShort` | Rostro más corto / más largo |
+| 4 | `Cheekbone` | Adelgazar / ensanchar pómulos |
+| 5 | `Jawbone` | Adelgazar / ensanchar mandíbula |
+| 6 | `Chin` | Mentón más largo / más corto |
+| 7 | `NoseSlim` | Nariz más estrecha / más ancha |
+| 8 | `EyeSize` | Ojos más grandes / más pequeños |
+| 9 | `EyeDistance` | Ojos más separados / más juntos |
+| 10 | `FaceSmall` | Rostro más pequeño / más grande |
+| 11 | `Forehead` | Frente más llena / más baja |
+| 12 | `NoseLong` | Nariz más larga / más corta |
+| 13 | `Philtrum` | Filtrum más corto / más largo |
+| 14 | `MouthSize` | Boca más grande / más pequeña |
+| 15 | `MouthPosition` | Boca más baja / más alta |
+| 16 | `MouthSmile` | Sonrisa / comisuras hacia abajo |
+| 17 | `LipThickness` | Labios más gruesos / más finos |
+| 18 | `EyeRound` | Ojos más redondos / más estrechos |
+| 19 | `EyePosition` | Ojos más bajos / más altos |
+| 20 | `EyeAngle` | Esquina exterior hacia arriba / abajo |
+| 21 | `EyeCornerOpen` | Abrir / cerrar esquinas de los ojos |
+| 22 | `LowerEyelid` | Bajar / levantar el párpado |
+| 23 | `BrowPosition` | Cejas más altas / más bajas |
+| 24 | `BrowDistance` | Cejas más separadas / más juntas |
+| 25 | `BrowThickness` | Cejas más gruesas / más finas |
+
+Los nombres Java son `SNAKE_CASE` (`FACE_THIN`, `FACE_V_SHAPE`, …). Objective-C usa `FBReshape_FaceThin`. Dart usa `FBReshape.faceThin`.
+
+## Labial (`LipstickColor`)
+
+Una sola máscara de labios + tinte. Predeterminado: `Rouge`.
+
+| Valor | Nombre | Significado |
+| --- | --- | --- |
+| 0 | `Rouge` | Rosa |
+| 1 | `RetroRed` | Rojo retro |
+| 2 | `Peach` | Melocotón |
+| 3 | `CoralOrange` | Naranja coral |
+| 4 | `GentlePink` | Rosa suave |
+| 5 | `VitalityOrange` | Naranja vivo |
+
+## Rubor
+
+Forma con `BlushStyle` (cambia la textura). Color con `BlushColor` (tinte). Forma predeterminada `SunKissed`, color predeterminado `CoralPink`.
+
+| Valor | `BlushStyle` | Significado |
+| --- | --- | --- |
+| 0 | `SunKissed` | A través de pómulos y nariz |
+| 1 | `Igari` | Banda de rubor “borracho” en la nariz |
+| 2 | `Soft` | Suave en ambas mejillas |
+| 3 | `Apple` | Mejillas de manzana redondas |
+| 4 | `Classic` | Dos puntos clásicos |
+| 5 | `Doll` | Mejillas + punta de la nariz |
+| 6 | `Rose` | Rosa en ambas mejillas |
+
+| Valor | `BlushColor` | Significado |
+| --- | --- | --- |
+| 0 | `CoralPink` | Rosa coral |
+| 1 | `DustyRose` | Rosa empolvado |
+| 2 | `VividRed` | Rojo puro |
+| 3 | `Berry` | Baya |
+| 4 | `SunsetOrange` | Naranja atardecer |
+
+## Contorno (`ContourStyle`)
+
+Mapa Overlay en gris medio: más claro que 128 ilumina, más oscuro contornea. Cambia la textura, sin tinte. Predeterminado: `Natural`.
+
+| Valor | Nombre | Significado |
+| --- | --- | --- |
+| 0 | `Natural` | Contorno ligero cotidiano |
+| 1 | `Sculpt` | Esculpido más marcado |
+| 2 | `Glow` | Prioriza el iluminado |
+| 3 | `Slim` | Adelgaza pómulos |
+| 4 | `Nose` | Define la nariz |
+| 5 | `Glam` | Puntos de iluminado |
+
+## Sombra de ojos
+
+Forma `EyeShadowStyle`, color `EyeShadowColor`. Forma predeterminada `Soft`, color predeterminado `Plum`.
+
+| Valor | Estilo | Significado |
+| --- | --- | --- |
+| 0 | `Soft` | Lavado suave |
+| 1 | `Crease` | Profundiza el pliegue |
+| 2 | `Smoky` | Anillo ahumado |
+| 3 | `Halo` | Halo alrededor del ojo |
+| 4 | `Glow` | Elevación de la esquina exterior |
+| 5 | `Drama` | Cobertura completa |
+| 6 | `Warm` | Lavado cálido |
+
+| Valor | Color | Significado |
+| --- | --- | --- |
+| 0 | `Plum` | Ciruela / malva |
+| 1 | `Brown` | Marrón cálido |
+| 2 | `Gold` | Oro suave |
+| 3 | `Pink` | Rosa empolvado |
+
+## Delineador
+
+| Valor | `EyeLinerStyle` | Significado |
+| --- | --- | --- |
+| 0 | `Classic` | Delineado completo + cola |
+| 1 | `Flick` | Coleta exterior larga |
+| 2 | `CatEye` | Ojo de gato corto |
+| 3 | `Natural` | Línea fina natural |
+| 4 | `Bold` | Cobertura marcada |
+| 5 | `Soft` | Cola suave difuminada |
+
+| Valor | `EyeLinerColor` | Significado |
+| --- | --- | --- |
+| 0 | `Burgundy` | Marrón burdeos |
+| 1 | `Plum` | Ciruela oscura |
+| 2 | `Chocolate` | Chocolate |
+| 3 | `Coffee` | Café casi negro |
+| 4 | `Mauve` | Malva empolvado |
+
+## Cejas
+
+| Valor | `EyebrowStyle` | Significado |
+| --- | --- | --- |
+| 0 | `Natural` | Arco natural + vello |
+| 1 | `Soft` | Ceja en polvo suave |
+| 2 | `Feathered` | Trazos emplumados |
+| 3 | `Mist` | Niebla ligera |
+| 4 | `Arched` | Elevación clásica |
+| 5 | `Powder` | Polvo denso |
+| 6 | `Wild` | Pelitos sueltos en el borde superior |
+| 7 | `Full` | Ceja llena y uniforme |
+| 8 | `Straight` | Arco bajo y recto |
+
+| Valor | `EyebrowColor` | Significado |
+| --- | --- | --- |
+| 0 | `DarkBrown` | Marrón oscuro |
+| 1 | `Black` | Negro |
+| 2 | `SoftBrown` | Marrón suave |
+
+## Pestañas
+
+| Valor | `EyelashStyle` | Significado |
+| --- | --- | --- |
+| 0 | `Classic` | Racimos uniformes + pestaña inferior |
+| 1 | `Manga` | Manga puntiagudo |
+| 2 | `Winged` | Longitud en la esquina exterior |
+| 3 | `Wispy` | Abanico vaporoso |
+| 4 | `Clustered` | Racimos diferenciados |
+| 5 | `Doll` | Pestañas cortas de muñeca |
+
+| Valor | `EyelashColor` | Significado |
+| --- | --- | --- |
+| 0 | `Black` | Casi negro |
+| 1 | `Brown` | Marrón suave |
+| 2 | `SoftBlack` | Negro suave |
+
+## Pupila (`PupilColor`)
+
+Un disco de iris por color. Sin tinte. Predeterminado: `Hazel`.
+
+| Valor | Nombre | Significado |
+| --- | --- | --- |
+| 0 | `Hazel` | Ámbar / marrón miel |
+| 1 | `Ice` | Azul hielo |
+| 2 | `Mocha` | Marrón oscuro con brillo |
+| 3 | `Olive` | Verde bosque |
+| 4 | `Gloss` | Marrón oscuro brillante |
+| 5 | `Moss` | Oliva apagado |
+| 6 | `Sand` | Marrón arena |
+| 7 | `Glow` | Iluminado en media luna del iris inferior (no es una lentilla de color completa) |
+| 8 | `Slate` | Gris azulado |
+
+## Croma (`ChromaKeyColor`)
+
+Se usa con `SetChromaKey` como origen de máscara del fondo virtual.
+
+| Valor | Nombre |
+| --- | --- |
+| 0 | `Green` |
+| 1 | `Blue` |
+| 2 | `Red` |

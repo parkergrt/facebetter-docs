@@ -1,0 +1,39 @@
+---
+title: "Adesivo facial"
+description: "Instruções de uso do plugin de criação de adesivo facial"
+---
+
+## Inicialização do fluxo de trabalho
+
+Antes de desenhar com o plugin, você precisa inicializar o espaço de trabalho:
+
+1.  Na seção **Workflow Initialization**, clique no botão **Initialize Workspace**.
+2.  O plugin cria automaticamente uma tela 2048x2048 chamada `Facebetter_Workspace`.
+3.  A tela contém 106 pontos de referência padrão de **design** do rosto (o template do Figma). O callback de landmarks em runtime informa **111** pontos — veja [Visão geral](/pt-BR/intro/overview).
+4.  **Opção**: marque "Show Landmark Numbers" para identificar facilmente os números das diferentes partes.
+
+## Camada do adesivo e vinculação de atributos
+
+Este é o passo central da criação de adesivos, usado para definir como o adesivo acompanha os movimentos do rosto.
+
+1.  **Selecionar camada**: selecione a camada do adesivo que você desenhou na tela do Figma (ela precisa estar dentro do espaço de trabalho).
+2.  **Configurar atributos**:
+    -   **Blend Mode**: defina o efeito de fusão entre o adesivo e o rosto (por exemplo, Normal, Overlay, Screen etc.).
+    -   **Position Type**:
+        -   **Landmarks**: seguir landmarks específicos do rosto (o mais comum).
+        -   **Face Rect**: posicionar com base na área inteira do rosto.
+        -   **Screen Space**: fixo em uma posição da tela.
+    -   **Trigger Type**: defina as condições para o adesivo aparecer (Always show, Face detected, Mouth open etc.).
+    -   **Trigger Delay**: tempo de atraso após o disparo.
+    -   **Alpha Factor**: ajuste a transparência geral do adesivo.
+    -   **FPS**: defina a taxa de quadros da animação (se a camada contiver vários quadros).
+
+## Prévia e exportação
+
+1.  **Prévia 3D**:
+    -   Clique em **3D Preview**.
+    -   Na janela popup, você vê o efeito em tempo real do adesivo em um modelo 3D de rosto.
+    -   Suporta botão esquerdo para rotacionar, botão direito para pan e scroll para zoom.
+2.  **Exportar pacote**:
+    -   Depois de confirmar a prévia, clique em **Export**.
+    -   O plugin grava um pacote **`.fbd`**. Carregue-o com `setSticker` (caminho ou bytes). Não há um passo separado de pré-carregamento.

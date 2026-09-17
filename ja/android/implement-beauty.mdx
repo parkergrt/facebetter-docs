@@ -1,0 +1,464 @@
+---
+title: "美顔の実装"
+description: "Android に Facebetter SDK 2.0 を統合します"
+---
+
+## SDK の追加
+
+### 方法 A: Maven（推奨）
+
+プロジェクトの `build.gradle` / `settings.gradle` のリポジトリ:
+
+```groovy
+repositories {
+    mavenCentral()
+}
+```
+
+モジュールの `build.gradle`:
+
+```groovy
+dependencies {
+    implementation 'net.pixpark:facebetter:2.0.0'
+}
+```
+
+**Version Catalog**（`gradle/libs.versions.toml`）:
+
+```toml
+[versions]
+facebetter = "2.0.0"
+
+[libraries]
+facebetter = { group = "net.pixpark", name = "facebetter", version.ref = "facebetter" }
+```
+
+```groovy
+dependencies {
+    implementation libs.facebetter
+}
+```
+
+### 方法 B: ローカル AAR
+
+[ダウンロード](https://facebetter.net/ja/download) から SDK を取得し、`facebetter.aar` を `libs/` にコピーしてから:
+
+```groovy
+dependencies {
+    implementation files('libs/facebetter.aar')
+    implementation libs.appcompat
+    implementation libs.material
+}
+```
+
+### 権限
+
+`AndroidManifest.xml`:
+
+```xml
+<!-- Required for online auth (appId + appKey → /facebetter/v2/auth) -->
+<uses-permission android:name="android.permission.INTERNET" />
+<uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+
+<!-- Optional: only if you write SDK logs outside app storage -->
+<uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+<uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+
+<!-- Optional: camera preview / live beauty -->
+<uses-permission android:name="android.permission.CAMERA" />
+```
+
+| 権限 | タイミング |
+| --- | --- |
+| ネットワーク | オンラインの `appId` + `appKey` に必要。オフライン `licenseToken` の検証にはネットワーク不要 |
+| ストレージ | `LogConfig.fileEnabled` がアプリディレクトリ外に書き込む場合のみ |
+| カメラ | ライブフレームをキャプチャする場合のみ |
+
+API 23+ では `CAMERA` を実行時にリクエストしてください。
+
+## インポート
+
+```java
+import net.pixpark.facebetter.BeautyEffectEngine;
+import net.pixpark.facebetter.BeautyParams.*;
+import net.pixpark.facebetter.EngineCallbacks;
+import net.pixpark.facebetter.EngineEventCode;
+import net.pixpark.facebetter.EngineStats;
+import net.pixpark.facebetter.ErrorCode;
+import net.pixpark.facebetter.ImageFrame;
+```
+
+## ログ
+
+ログはデフォルトでオフです。`new BeautyEffectEngine(...)` の**前**に有効にしてください。
+
+<Warning>
+エンジン構築前に `setLogConfig` を呼び出さないと、初期化ログを見逃します。
+</Warning>
+
+```java
+BeautyEffectEngine.LogConfig logConfig = new BeautyEffectEngine.LogConfig();
+logConfig.consoleEnabled = true;
+logConfig.fileEnabled = true;
+logConfig.level = BeautyEffectEngine.LogLevel.INFO;
+logConfig.fileName = getFilesDir() + "/facebetter.log";
+BeautyEffectEngine.setLogConfig(logConfig);
+```
+
+## エンジンの作成
+
+認証情報: [サブスクリプション](/ja/intro/enable-service#appid-と-appkey-の取得)。認証の詳細: [認証とライセンス](/ja/intro/license)。
+
+`licenseToken` が空でない場合はそれを使います（ライセンストークン / `{token}` JSON / オフライン `.lic`）。それ以外は `appId` + `appKey` が `/facebetter/v2/auth` を呼び出します。
+
+```java
+BeautyEffectEngine.EngineConfig config = new BeautyEffectEngine.EngineConfig();
+config.appId = "your appId";
+config.appKey = "your appKey";
+// config.licenseToken = "/* license token, {token} JSON, or .lic contents */";
+// config.externalContext = false;
+
+BeautyEffectEngine engine;
+try {
+    engine = new BeautyEffectEngine(this, config);
+} catch (IllegalArgumentException e) {
+    Log.e(TAG, "Invalid EngineConfig", e);
+    return;
+}
+```
+
+コンストラクタは `null` を返しません。`config` が無効なら例外を投げます。非同期初期化はコールバック上の `EngineEventCode.INITIALIZATION_COMPLETE` / `INITIALIZATION_FAILED` を監視してください。
+
+## 美顔
+
+強度 `[0.0, 1.0]`。`0` で効果を無効にします。`ErrorCode.SUCCESS`（`0`）を確認してください。
+
+```java
+engine.setSmoothing(0.5f);
+engine.setSmoothingStyle(SmoothingStyle.NATURAL);
+engine.setWhitening(0.3f);
+engine.setWhiteningStyle(WhiteningStyle.COLD_WHITE);
+engine.setSharpening(0.2f);
+engine.setRosiness(0.15f);
+engine.setBeautySkinOnly(true);
+```
+
+<Tip>
+`setBeautySkinOnly(true)` では、スムージング / 美白 / シャープニング / 血色は検出された肌にのみ適用されます。衣服と背景は変わりません。
+</Tip>
+
+スタイル: [パラメータ列挙](/ja/intro/makeup)。
+
+## リシェイプ
+
+範囲 **`[-1.0, 1.0]`**。`0` はオフです。
+
+```java
+engine.setReshape(Reshape.FACE_THIN, 0.4f);
+engine.setReshape(Reshape.EYE_SIZE, 0.3f);
+engine.setReshape(Reshape.CHIN, -0.2f);
+```
+
+26 パラメータすべて（`FACE_THIN` … `BROW_THICKNESS`）と正負の方向: [パラメータ列挙](/ja/intro/makeup)。
+
+## メイク
+
+強度を設定してから、スタイルおよび / または色を設定します。
+
+```java
+engine.setLipstick(0.6f);
+engine.setLipstickColor(LipstickColor.ROUGE);
+
+engine.setBlush(0.4f);
+engine.setBlushStyle(BlushStyle.SUN_KISSED);
+engine.setBlushColor(BlushColor.CORAL_PINK);
+
+engine.setContour(0.35f);
+engine.setContourStyle(ContourStyle.NATURAL);
+
+engine.setEyeShadow(0.45f);
+engine.setEyeShadowStyle(EyeShadowStyle.SOFT);
+engine.setEyeShadowColor(EyeShadowColor.PLUM);
+
+engine.setEyeLiner(0.4f);
+engine.setEyeLinerStyle(EyeLinerStyle.CLASSIC);
+
+engine.setEyebrow(0.35f);
+engine.setEyebrowStyle(EyebrowStyle.NATURAL);
+
+engine.setEyelash(0.4f);
+engine.setEyelashStyle(EyelashStyle.CLASSIC);
+
+engine.setPupil(0.3f);
+engine.setPupilColor(PupilColor.HAZEL);
+```
+
+プリセット一覧: [パラメータ列挙](/ja/intro/makeup)。
+
+## バーチャル背景とクロマキー
+
+ぼかし（`0` でクリア）、静止画、またはクロマキーマスク + 塗りつぶし。
+
+```java
+engine.setVirtualBackgroundBlur(0.6f);
+
+int ret = engine.setVirtualBackground("/sdcard/bg.jpg");
+if (ret != ErrorCode.SUCCESS) {
+    Log.e(TAG, "setVirtualBackground failed: " + ret);
+}
+
+byte[] png = loadAssetBytes("backgrounds/office.png");
+engine.setVirtualBackground(png);
+
+engine.setChromaKey(ChromaKeyColor.GREEN);
+engine.setChromaKeySimilarity(0.4f);
+engine.setChromaKeySmoothness(0.3f);
+engine.setChromaKeyDesaturation(0.2f);
+
+engine.clearChromaKey();
+engine.clearVirtualBackground();
+```
+
+`clearChromaKey()` はポートレートセグメンテーションを復元し、現在のぼかし / 画像の塗りつぶしは**取り除きません**。
+
+## フィルターとステッカー
+
+ファイルパスまたは `assets` から `.fbd` を読み込みます。登録手順はありません。
+
+```java
+engine.setFilter(getFilesDir() + "/filters/vivid.fbd");
+engine.setFilterIntensity(0.8f);
+
+byte[] lut = loadAssetBytes("filters/vivid.fbd");
+engine.setFilter(lut);
+
+engine.clearFilter();
+
+engine.setSticker(getFilesDir() + "/stickers/cherry.fbd");
+byte[] sticker = loadAssetBytes("stickers/cherry.fbd");
+engine.setSticker(sticker);
+engine.clearSticker();
+```
+
+3D ステッカーにはオプションの `resource_3d.fbd` パックが必要です（AAR には含まれません）。[オプションリソースパック](/ja/intro/resource-packs) を参照してください。アプリの assets から登録してから、3D ステッカー `.fbd` を適用します。
+
+```java
+engine.addResourcePack(loadAssetBytes("resource_3d.fbd"));
+engine.set3DSticker(loadAssetBytes("stickers/3d/oculos.fbd"));
+engine.clear3DSticker();
+```
+
+フィルター / ステッカーの変更は、次の `processImage` で有効になります。
+
+```java
+private byte[] loadAssetBytes(String path) throws IOException {
+    try (InputStream in = getAssets().open(path);
+         ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+        byte[] buf = new byte[4096];
+        int n;
+        while ((n = in.read(buf)) >= 0) {
+            out.write(buf, 0, n);
+        }
+        return out.toByteArray();
+    }
+}
+```
+
+## コールバックと統計
+
+```java
+EngineCallbacks callbacks = new EngineCallbacks();
+callbacks.onEngineEvent = (code, message) -> {
+    switch (code) {
+        case EngineEventCode.LICENSE_VALIDATION_SUCCESS:
+            Log.d(TAG, "License OK");
+            break;
+        case EngineEventCode.LICENSE_VALIDATION_FAILED:
+            Log.e(TAG, "License failed: " + message);
+            break;
+        case EngineEventCode.INITIALIZATION_COMPLETE:
+            Log.d(TAG, "Engine ready");
+            break;
+        case EngineEventCode.INITIALIZATION_FAILED:
+            Log.e(TAG, "Init failed: " + message);
+            break;
+        default:
+            break;
+    }
+};
+callbacks.onFaceLandmarks = results -> {
+    Log.d(TAG, "faces=" + results.size());
+};
+engine.setCallbacks(callbacks);
+
+EngineStats stats = engine.getStats();
+Log.d(TAG, "fps=" + stats.fps + " avgMs=" + stats.avgProcessTimeMs
+    + " sessionS=" + stats.sessionTimeS);
+```
+
+## フレームの処理
+
+<Warning>
+作成したすべてのフレーム（および `processImage` の出力）で `ImageFrame.release()` を呼び出してください。省略するとネイティブメモリがリークします。
+</Warning>
+
+`ImageFrame.type` を `FrameType.IMAGE`（静止画）または `FrameType.VIDEO`（カメラ / ライブ）に設定します。`processImage` が受け取るのは**フレームのみ**で、追加のモード引数はありません。
+
+```java
+ByteBuffer data = ByteBuffer.allocateDirect(width * height * 4);
+ImageFrame input = ImageFrame.createWithRGBA(data, width, height, width * 4);
+input.type = ImageFrame.FrameType.VIDEO;
+ImageFrame output = engine.processImage(input);
+```
+
+ファイルまたは `Bitmap` から:
+
+```java
+ImageFrame input = ImageFrame.createWithFile("/sdcard/photo.jpg");
+input.type = ImageFrame.FrameType.IMAGE;
+ImageFrame output = engine.processImage(input);
+Bitmap preview = output.toBitmap();
+```
+
+カメラセンサーが回転している場合は、処理前に回転 / ミラーします。
+
+```java
+input.rotate(ImageFrame.Rotation.ROTATION_90);
+input.mirror("horizontal");
+```
+
+<Tip>
+エンジンは入力と出力のピクセルフォーマットを揃えます（NV21 入力 → NV21 出力、RGBA 入力 → RGBA 出力）。
+</Tip>
+
+`getData()` / プレーナーアクセサでピクセルを読むか、変換します。
+
+```java
+ImageFrame rgba = output.convert(ImageFrame.Format.RGBA);
+ByteBuffer pixels = rgba.getData();
+int w = rgba.getWidth();
+int h = rgba.getHeight();
+int stride = rgba.getStride();
+rgba.release();
+
+ImageFrame i420 = output.convert(ImageFrame.Format.I420);
+ByteBuffer y = i420.getDataY();
+ByteBuffer u = i420.getDataU();
+ByteBuffer v = i420.getDataV();
+i420.release();
+```
+
+## カメラパイプライン
+
+典型的な Camera2 `YUV_420_888` → エンジン → 表示:
+
+```java
+Image.Plane[] planes = image.getPlanes();
+ImageFrame input = ImageFrame.createWithAndroid420(
+    image.getWidth(), image.getHeight(),
+    planes[0].getBuffer(), planes[0].getRowStride(),
+    planes[1].getBuffer(), planes[1].getRowStride(),
+    planes[2].getBuffer(), planes[2].getRowStride(),
+    planes[1].getPixelStride());
+if (input == null) {
+    image.close();
+    return;
+}
+if (isFrontCamera) {
+    input.rotate(ImageFrame.Rotation.ROTATION_270);
+    input.mirror("horizontal");
+} else {
+    input.rotate(ImageFrame.Rotation.ROTATION_90);
+}
+input.type = ImageFrame.FrameType.VIDEO;
+ImageFrame output = engine.processImage(input);
+image.close();
+```
+
+## 外部テクスチャ（OpenGL ES）
+
+<Warning>
+`externalContext = true` で、GL スレッド上にエンジンを作成してください。入力と出力のテクスチャはそのコンテキストを共有する必要があります。
+</Warning>
+
+すでに OpenGL ES で描画しており、CPU の往復を避けたい場合に使います。
+
+```java
+BeautyEffectEngine.EngineConfig config = new BeautyEffectEngine.EngineConfig();
+config.appId = "your appId";
+config.appKey = "your appKey";
+config.externalContext = true;
+BeautyEffectEngine engine = new BeautyEffectEngine(context, config);
+engine.setSmoothing(0.5f);
+```
+
+```java
+int stride = srcWidth * 4;
+ImageFrame input = ImageFrame.createWithTexture(srcTextureId, srcWidth, srcHeight, stride);
+if (input == null) {
+    return;
+}
+input.type = ImageFrame.FrameType.VIDEO;
+ImageFrame output = engine.processImage(input);
+if (output == null) {
+    input.release();
+    return;
+}
+int dstTextureId = output.getTexture();
+int dstWidth = output.getWidth();
+int dstHeight = output.getHeight();
+output.release();
+input.release();
+```
+
+入力 `GL_TEXTURE_2D` の推奨サンプラー状態:
+
+```java
+GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_MIN_FILTER, GLES20.GL_LINEAR);
+GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_MAG_FILTER, GLES20.GL_LINEAR);
+GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_WRAP_S, GLES20.GL_CLAMP_TO_EDGE);
+GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_WRAP_T, GLES20.GL_CLAMP_TO_EDGE);
+```
+
+注意:
+
+- 入力テクスチャ: `GL_TEXTURE_2D`、通常は RGBA。`stride` は通常 `width * 4`
+- コンテキストがカレントになるよう、最初の GL コールバックでエンジンを遅延作成します
+- 出力テクスチャは SDK が所有します。`glDeleteTextures` しないでください。`ImageFrame` を解放します
+- GL コンテキストが失われた場合は、エンジンを `release()` し、新しいコンテキスト上で再作成します
+- ライブ GL パイプラインでは `FrameType.VIDEO` を使います
+- TRTC / Agora / LiveKit などの SDK: [サードパーティ連携](/ja/android/third-party-integration)
+
+## ライフサイクル
+
+<Warning>
+`onDestroy` / `onDetach` で `engine.release()` を呼び出してください。未解放のエンジンは GPU とネイティブメモリをリークします。
+</Warning>
+
+```java
+@Override
+protected void onDestroy() {
+    super.onDestroy();
+    if (mBeautyEngine != null) {
+        mBeautyEngine.release();
+        mBeautyEngine = null;
+    }
+}
+```
+
+```java
+if (input != null) {
+    input.release();
+}
+if (output != null) {
+    output.release();
+}
+```
+
+## 関連
+
+- [サードパーティ連携](/ja/android/third-party-integration)
+- [ベストプラクティス](/ja/android/best-practices)
+- [エラー処理](/ja/android/error-handling)
+- [よくある質問](/ja/android/faq)
+- [API リファレンス](/ja/android/api-reference)

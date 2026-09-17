@@ -1,0 +1,152 @@
+---
+title: "서드파티 연동"
+description: "TRTC, Agora, LiveKit 및 기타 Flutter 비디오 파이프라인에 Facebetter 뷰티를 연결합니다"
+---
+
+SDK **2.0.0**. Flutter는 **뷰티 파라미터만 설정**합니다. 라이브 프레임은 Dart로 들어오지 않습니다. 벤더 SDK의 **네이티브 GL 스레드**에서 `FacebetterPlugin.processTexture`를 호출한 뒤 출력 텍스처를 다시 씁니다.
+
+```
+Flutter (Dart)                              Native GL thread (iOS / Android)
+FBEngine.create(externalContext: true)
+engine.setSmoothing / setReshape / …  →     Vendor preprocess callback
+await engine.setFilter                      FacebetterPlugin.processTexture(tex, w, h)
+engine.dispose()                            Write back vendor textureId
+```
+
+## 공통 계약
+
+| 항목 | 요구 사항 |
+| --- | --- |
+| 라이브 엔진 | `externalContext: true`(기본값); 벤더 커스텀 전처리를 켜기 **전에** `FBEngine.create` |
+| 프레임 | 네이티브 `FacebetterPlugin.processTexture`만; **현재 GL 스레드**에서 실행해야 함 |
+| 정지 | `externalContext: false`인 별도 엔진; 라이브 엔진과 섞지 마세요 |
+| 입력 | 벤더 **Texture2D / RGB (`GL_TEXTURE_2D`)** 권장; OES / YUV는 먼저 변환하거나 벤더 문서에 따라 형식을 바꾸세요 |
+| 해제 | 벤더 전처리 비활성화 / 트랙 중지 후 `engine.dispose()` |
+
+라이브 엔진에서 `processFile` / `processImageBytes` / `processImageFile` / `processImageToUiImage`를 호출하지 **마세요**.
+
+```dart
+import 'package:facebetter_flutter/facebetter_flutter.dart';
+
+FBEngine.setLogConfig(console: true, level: FBLogLevel.info);
+
+final engine = await FBEngine.create(const FBEngineConfig(
+  appId: 'your_app_id',
+  appKey: 'your_app_key',
+  externalContext: true,
+  enableLandmarks: false,
+));
+
+engine.setSmoothing(0.8);
+engine.setWhitening(0.5);
+engine.setReshape(FBReshape.faceThin, 0.3);
+engine.setLipstick(0.4);
+await engine.setFilter(path: '/path/to/filter.fbd');
+
+// Sliders can call sync setters directly:
+// onChanged: (v) => engine.setSmoothing(v),
+```
+
+자격 증명: [구독](/ko/intro/enable-service), [인증 및 라이선스](/ko/intro/license). 네이티브 텍스처 규칙: [Android · 서드파티 연동](/ko/android/third-party-integration), [iOS · 서드파티 연동](/ko/ios/third-party-integration).
+
+| | 라이브 엔진 | 사진 엔진 |
+| --- | --- | --- |
+| `externalContext` | `true`(기본값) | `false` |
+| 프레임 | 네이티브 `processTexture` | Dart `processFile` / `processImageBytes` / … |
+| 혼합 | 사진 API 없음 | 라이브 / 미팅 전처리용이 아님 |
+
+**하지 마세요:** 매 프레임 Dart에서 픽셀이나 texture id를 푸시; GL 스레드 밖에서 `processTexture` 호출; `FBEngine`을 프로세스 전역 싱글톤으로 취급.
+
+---
+
+## TRTC (Tencent)
+
+사전 요구 사항: `tencent_trtc_cloud`(또는 네이티브 TRTC)와 `facebetter_flutter: ^2.0.0`. 커스텀 전처리를 켤 때 YUV / PixelBuffer가 아니라 **Texture2D + Texture buffer**를 사용하세요.
+
+Dart에서 엔진을 만든 뒤 커스텀 처리를 켭니다(API 이름은 플러그인 버전에 따라 다를 수 있음):
+
+```dart
+await trtcCloud.enableCustomVideoProcess(true);
+```
+
+### iOS — `onProcessVideoFrame`
+
+```objc
+#import <facebetter_flutter/FacebetterPlugin.h>
+
+- (uint32_t)onProcessVideoFrame:(TRTCVideoFrame *)srcFrame
+                        dstFrame:(TRTCVideoFrame *)dstFrame {
+  uint32_t out = [FacebetterPlugin processTexture:srcFrame.textureId
+                                            width:srcFrame.width
+                                           height:srcFrame.height];
+  if (out != 0) {
+    dstFrame.textureId = out;
+  }
+  return 0;
+}
+```
+
+`tencent_trtc_cloud`의 `ITXCustomBeautyProcesser`를 쓰면 **Texture2D / Texture**를 유지하고 콜백에서 같은 `processTexture`를 호출하세요. 팩토리는 `GeneratedPluginRegistrant.register(with:)` **이후**에 등록하세요.
+
+### Android — Kotlin
+
+```kotlin
+import net.pixpark.facebetter.flutter.FacebetterPlugin
+
+override fun onProcessVideoFrame(
+    srcFrame: TRTCCloudDef.TRTCVideoFrame,
+    dstFrame: TRTCCloudDef.TRTCVideoFrame,
+): Int {
+    val out = FacebetterPlugin.processTexture(
+        srcFrame.texture.textureId,
+        srcFrame.width,
+        srcFrame.height,
+    )
+    if (out != 0) {
+        dstFrame.texture.textureId = out
+    }
+    return 0
+}
+```
+
+### 해제
+
+```dart
+await trtcCloud.enableCustomVideoProcess(false);
+engine.dispose();
+```
+
+---
+
+## Agora
+
+네이티브와 같은 모델입니다. **iOS / Android** 프레임 옵저버 / 커스텀 전처리 콜백 안에서 `FacebetterPlugin.processTexture`를 호출하고, Dart는 `FBEngine` 파라미터만 소유합니다.
+
+1. Dart: `FBEngine.create(externalContext: true)` 후 뷰티 설정  
+2. Agora Flutter 플러그인에 따라 커스텀 비디오 처리를 켜거나 네이티브 옵저버를 등록(`agora_rtc_engine` 버전에 따라 API가 다름)  
+3. **`GL_TEXTURE_2D` textureId**에서 `processTexture`를 호출하고 벤더 프레임에 다시 씀  
+
+OES / YUV 전용 콜백이면 먼저 Texture2D로 변환하거나, [Android](/ko/android/third-party-integration#agora) / [iOS](/ko/ios/third-party-integration#agora)를 참고하세요(Flutter 라이브 경로는 여전히 텍스처 + `processTexture`를 권장).
+
+해제: Agora 전처리를 등록 해제한 뒤 `engine.dispose()`.
+
+---
+
+## LiveKit
+
+다시: **Dart가 파라미터를 설정하고, 네이티브가 텍스처를 처리**합니다.
+
+1. Dart에서 `externalContext: true` 엔진을 만듭니다  
+2. LiveKit Flutter / 네이티브 커스텀 capturer 또는 video processor로 텍스처 프레임을 얻습니다  
+3. **GL 스레드**에서 `FacebetterPlugin.processTexture`를 호출한 뒤 출력을 LiveKit 트랙에 다시 넣습니다  
+
+훅 세부 사항은 `livekit_client`와 플랫폼에 따라 다릅니다. 텍스처 규칙: [Android · LiveKit](/ko/android/third-party-integration#livekit), [iOS · LiveKit](/ko/ios/third-party-integration#livekit).
+
+---
+
+## 관련 문서
+
+- [뷰티 효과 적용](/ko/flutter/implement-beauty)
+- [API 레퍼런스](/ko/flutter/api-reference)
+- [Android · 서드파티 연동](/ko/android/third-party-integration)
+- [iOS · 서드파티 연동](/ko/ios/third-party-integration)

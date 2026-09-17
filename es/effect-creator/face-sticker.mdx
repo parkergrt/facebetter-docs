@@ -1,0 +1,39 @@
+---
+title: "Sticker facial"
+description: "Instrucciones para usar el plugin de creación de stickers faciales"
+---
+
+## Inicialización del flujo de trabajo
+
+Antes de diseñar con el plugin, hay que inicializar el espacio de trabajo:
+
+1.  En la sección **Inicialización del flujo de trabajo (Workflow Initialization)**, haz clic en el botón **Inicializar espacio de trabajo (Initialize Workspace)**.
+2.  El plugin creará automáticamente un lienzo de 2048x2048 llamado `Facebetter_Workspace`.
+3.  El lienzo contiene 106 puntos de referencia de **diseño** facial estándar (la plantilla de Figma). El callback de landmarks en runtime informa **111** puntos; consulta [Descripción general](/es/intro/overview).
+4.  **Opción**: marca «Mostrar números de landmarks» para identificar fácilmente los números de las distintas partes.
+
+## Capa de sticker y vinculación de atributos
+
+Este es el paso central de la creación de stickers: define cómo el sticker sigue los movimientos del rostro.
+
+1.  **Seleccionar capa**: selecciona la capa de sticker que diseñaste en el lienzo de Figma (debe estar dentro del espacio de trabajo).
+2.  **Configurar atributos**:
+    -   **Modo de fusión (Blend Mode)**: define el efecto de fusión entre el sticker y el rostro (p. ej. Normal, Superposición, Trama, etc.).
+    -   **Tipo de posición (Position Type)**:
+        -   **Puntos clave (Landmarks)**: sigue landmarks faciales concretos (el más habitual).
+        -   **Recuadro facial (Face Rect)**: posición según el área completa del rostro.
+        -   **Espacio de pantalla (Screen Space)**: fijo en una posición de pantalla.
+    -   **Tipo de disparo (Trigger Type)**: condiciones para que aparezca el sticker (mostrar siempre, cara detectada, boca abierta, etc.).
+    -   **Retraso de disparo (Trigger Delay)**: tiempo de retraso tras el disparo.
+    -   **Factor alfa (Alpha Factor)**: ajusta la transparencia global del sticker.
+    -   **FPS**: define la tasa de fotogramas de la animación (si la capa contiene varios fotogramas).
+
+## Vista previa y exportación
+
+1.  **Vista previa 3D**:
+    -   Haz clic en **Vista previa 3D (3D Preview)**.
+    -   En la ventana emergente verás el efecto en tiempo real del sticker sobre un modelo 3D de rostro.
+    -   Admite clic izquierdo para rotar, clic derecho para desplazar y rueda para zoom.
+2.  **Exportar paquete**:
+    -   Tras confirmar la vista previa, haz clic en **Exportar (Export)**.
+    -   El plugin escribe un paquete **`.fbd`**. Cárgalo con `setSticker` (ruta o bytes). No hay un paso de precarga independiente.

@@ -1,0 +1,44 @@
+---
+title: "Paquetes de recursos opcionales"
+description: "Descarga paquetes de capacidad extra como resource_3d.fbd y regístralos con AddResourcePack"
+---
+
+El SDK incluye un paquete de runtime principal `resource.fbd` (~7 MB) para belleza 2D, maquillaje, filtros y stickers 2D.
+
+Los stickers 3D necesitan un paquete **opcional**, `resource_3d.fbd` (~9 MB). **No** está incluido en el SDK de iOS / Android / Web. Descárgalo tú mismo al integrar y regístralo con `AddResourcePack` / `addResourcePack` **antes** de `Set3DSticker` / `set3DSticker`.
+
+Descarga `resource_3d.fbd` desde el [GitHub Release](https://github.com/pixpark/facebetter-sdk/releases) (también está en la [página de descargas](https://facebetter.net/es/download)).
+
+## Cómo funciona la búsqueda
+
+El motor busca en el paquete principal más cada paquete extra que añadas. Los archivos se identifican por su **ruta relativa interna** (por ejemplo `tddfa/models/mb05_120x120.mnn`). Mantén las rutas internas únicas entre paquetes: da a cada capacidad su propio prefijo (`tddfa/…`, más adelante `body/…`). Si dos paquetes contienen la misma ruta, gana el **último** `AddResourcePack`.
+
+Registra cada `.fbd` con una llamada independiente. **No** concatenes archivos de paquete.
+
+## Escritorio (Windows / Linux / C++)
+
+Coloca `resource_3d.fbd` junto a `resource.fbd`. El motor carga ese archivo hermano automáticamente. Aun así puedes llamar a `AddResourcePack` de forma explícita.
+
+```cpp
+engine->AddResourcePack("resource/resource_3d.fbd");
+engine->Set3DSticker("assets/stickers/3d/oculos.fbd");
+engine->Clear3DSticker();
+```
+
+## iOS / macOS / Android / Flutter / Web
+
+Los SDK móviles y Web **no** incluyen `resource_3d.fbd`. Copia u obtén el archivo en **tu** app y luego llama a `addResourcePack` (ruta o bytes).
+
+```javascript
+const pack = new Uint8Array(
+  await (await fetch('/resource_3d.fbd')).arrayBuffer()
+);
+engine.addResourcePack(pack);
+engine.set3DSticker('/stickers/3d/oculos.fbd');
+```
+
+Los stickers 2D siguen usando solo `setSticker`. `addResourcePack` es para modelos de capacidad, no para assets de sticker.
+
+<Tip>
+Llama a `addResourcePack` una vez por cada paquete extra después de crear el motor (Web: después de `init()`). Los stickers 3D posteriores reutilizan el mismo paquete.
+</Tip>

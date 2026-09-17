@@ -1,0 +1,307 @@
+---
+title: "Implementar beleza"
+description: "Implemente beleza no iOS com o Facebetter SDK 2.0"
+---
+
+<Note>
+Esta página corresponde ao SDK **2.0.0**. Autenticação: [Autenticação e licença](/pt-BR/intro/license). Enums de maquiagem / remodelagem: [Enums de parâmetros](/pt-BR/intro/makeup).
+</Note>
+
+## Adicionar a dependência do SDK
+
+### Método A: CocoaPods (recomendado)
+
+```ruby
+target 'YourTargetName' do
+  pod 'Facebetter', '2.0.0'
+end
+```
+
+```bash
+pod install
+```
+
+<Warning>
+**Erro de compilação no Xcode 15+**
+
+Se você usa **Xcode 15** ou posterior, pode encontrar o erro `Sandbox: rsync.samba deny(1)`. Isso é causado pelo **User Script Sandboxing**.
+
+**Solução:**
+1. Selecione o **Project** no Xcode.
+2. Abra **Build Settings**.
+3. Pesquise `ENABLE_USER_SCRIPT_SANDBOXING`.
+4. Altere o valor de `Yes` para **`No`**.
+</Warning>
+
+### Método B: Framework manual
+
+Baixe o SDK em [Downloads](https://facebetter.net/pt-BR/download), copie `Facebetter.framework` para o projeto e [incorpore a biblioteca dinâmica](https://help.apple.com/xcode/mac/current/#/dev51a648b07) com **Embed & Sign**.
+
+<Frame>
+  <img src="/images/ios-3.png" alt="Vincular biblioteca no Xcode" />
+</Frame>
+
+### Permissões
+
+Adicione a permissão de câmera no `Info.plist` somente se o app capturar da câmera:
+
+```xml
+<key>NSCameraUsageDescription</key>
+<string>Camera permission required for beauty photography</string>
+```
+
+## Import
+
+```objc
+#import <Facebetter/FBBeautyEffectEngine.h>
+```
+
+## Configuração de log
+
+O logging vem desligado por padrão. Chame `setLogConfig:` **antes** de criar o mecanismo.
+
+```objc
+FBLogConfig *logConfig = [[FBLogConfig alloc] init];
+logConfig.level = FBLogLevel_Info;
+logConfig.consoleEnabled = YES;
+logConfig.fileEnabled = YES;
+logConfig.fileName = @"/path/to/facebetter.log";
+[FBBeautyEffectEngine setLogConfig:logConfig];
+```
+
+## Criar o mecanismo
+
+Vincule o Bundle ID do iOS e, em seguida, passe `licenseToken` ou `appId` + `appKey`. Veja [Obter AppID e AppKey](/pt-BR/intro/enable-service#get-appid-and-appkey) e [Autenticação e licença](/pt-BR/intro/license).
+
+**Prioridade:** se `licenseToken` não estiver vazio (string do token de licença, JSON `{token}` ou conteúdo de `.lic`), o SDK o valida localmente. Caso contrário, usa `appId` + `appKey` contra `/facebetter/v2/auth`.
+
+```objc
+FBEngineConfig *engineConfig = [[FBEngineConfig alloc] init];
+engineConfig.appId = @"your appId";
+engineConfig.appKey = @"your appKey";
+// engineConfig.licenseToken = @"your license token";
+engineConfig.externalContext = NO;  // YES only when you own the GL context
+
+self.beautyEffectEngine = [FBBeautyEffectEngine createEngineWithConfig:engineConfig];
+if (self.beautyEffectEngine == nil) {
+  NSLog(@"Failed to create beauty engine");
+  return;
+}
+```
+
+`createEngineWithConfig:` retorna uma **instância**, não um singleton.
+
+## Beleza da pele
+
+A intensidade costuma ser `[0.0, 1.0]`. Enums de estilo: [Enums de parâmetros](/pt-BR/intro/makeup).
+
+```objc
+[self.beautyEffectEngine setSmoothing:0.5f];
+[self.beautyEffectEngine setSmoothingStyle:FBSmoothingStyle_Natural];
+[self.beautyEffectEngine setWhitening:0.3f];
+[self.beautyEffectEngine setWhiteningStyle:FBWhiteningStyle_ColdWhite];
+[self.beautyEffectEngine setSharpening:0.2f];
+[self.beautyEffectEngine setRosiness:0.15f];
+```
+
+### Somente pele
+
+Quando ativado, suavização / clareamento / tom rosado se aplicam apenas à pele detectada.
+
+```objc
+[self.beautyEffectEngine setBeautySkinOnly:YES];
+```
+
+## Remodelagem facial
+
+A faixa de `setReshape:intensity:` é **`[-1.0, 1.0]`**. `0` desliga. Parâmetros: `FBReshape_FaceThin` … `FBReshape_BrowThickness` (`0`–`25`). Significados: [Enums de parâmetros](/pt-BR/intro/makeup).
+
+```objc
+[self.beautyEffectEngine setReshape:FBReshape_FaceThin intensity:0.4f];
+[self.beautyEffectEngine setReshape:FBReshape_EyeSize intensity:0.2f];
+```
+
+## Maquiagem
+
+Intensidade, formato e cor são chamadas separadas. Predefinições completas: [Enums de parâmetros](/pt-BR/intro/makeup).
+
+```objc
+[self.beautyEffectEngine setLipstick:0.5f];
+[self.beautyEffectEngine setLipstickColor:FBLipstickColor_Rouge];
+
+[self.beautyEffectEngine setBlush:0.4f];
+[self.beautyEffectEngine setBlushStyle:FBBlushStyle_SunKissed];
+[self.beautyEffectEngine setBlushColor:FBBlushColor_CoralPink];
+
+[self.beautyEffectEngine setContour:0.35f];
+[self.beautyEffectEngine setContourStyle:FBContourStyle_Natural];
+
+[self.beautyEffectEngine setEyeShadow:0.4f];
+[self.beautyEffectEngine setEyeShadowStyle:FBEyeShadowStyle_Soft];
+[self.beautyEffectEngine setEyeShadowColor:FBEyeShadowColor_Plum];
+
+[self.beautyEffectEngine setEyeLiner:0.4f];
+[self.beautyEffectEngine setEyeLinerStyle:FBEyeLinerStyle_Classic];
+[self.beautyEffectEngine setEyeLinerColor:FBEyeLinerColor_Coffee];
+
+[self.beautyEffectEngine setEyebrow:0.4f];
+[self.beautyEffectEngine setEyebrowStyle:FBEyebrowStyle_Natural];
+[self.beautyEffectEngine setEyebrowColor:FBEyebrowColor_DarkBrown];
+
+[self.beautyEffectEngine setEyelash:0.4f];
+[self.beautyEffectEngine setEyelashStyle:FBEyelashStyle_Classic];
+[self.beautyEffectEngine setEyelashColor:FBEyelashColor_Black];
+
+[self.beautyEffectEngine setPupil:0.4f];
+[self.beautyEffectEngine setPupilColor:FBPupilColor_Hazel];
+```
+
+## Fundo virtual
+
+A segmentação de retrato é a máscara padrão. O nível de desfoque é `[0.0, 1.0]`; `0` limpa o desfoque. O caminho da imagem precisa ser um png/jpg não vazio.
+
+```objc
+[self.beautyEffectEngine setVirtualBackgroundBlur:0.6f];
+[self.beautyEffectEngine setVirtualBackground:imagePath];
+[self.beautyEffectEngine setVirtualBackgroundWithData:pngOrJpegData];
+[self.beautyEffectEngine clearVirtualBackground];
+```
+
+### Chroma key
+
+O chroma key substitui apenas a máscara. O preenchimento continua sendo desfoque ou a imagem de substituição.
+
+```objc
+[self.beautyEffectEngine setChromaKey:FBChromaKeyColor_Green];
+[self.beautyEffectEngine setChromaKeySimilarity:0.4f];
+[self.beautyEffectEngine setChromaKeySmoothness:0.3f];
+[self.beautyEffectEngine setChromaKeyDesaturation:0.2f];
+[self.beautyEffectEngine clearChromaKey];  // back to portrait segmentation
+```
+
+## Filtros e adesivos
+
+Passe um caminho de arquivo `.fbd` ou bytes em memória. As alterações passam a valer no próximo `processImage:`.
+
+```objc
+NSString *filterPath = [[NSBundle mainBundle] pathForResource:@"chuxin" ofType:@"fbd"];
+[self.beautyEffectEngine setFilter:filterPath];
+[self.beautyEffectEngine setFilterIntensity:0.8f];
+[self.beautyEffectEngine clearFilter];
+
+NSData *filterData = [NSData dataWithContentsOfFile:filterPath];
+[self.beautyEffectEngine setFilterWithData:filterData];
+
+NSString *stickerPath = [[NSBundle mainBundle] pathForResource:@"cherry" ofType:@"fbd"];
+[self.beautyEffectEngine setSticker:stickerPath];
+[self.beautyEffectEngine clearSticker];
+[self.beautyEffectEngine setStickerWithData:stickerData];
+```
+
+Adesivos 3D precisam do pacote opcional `resource_3d.fbd` (não está no framework). Veja [Pacotes de recursos opcionais](/pt-BR/intro/resource-packs):
+
+```objc
+NSString *packPath = [[NSBundle mainBundle] pathForResource:@"resource_3d" ofType:@"fbd"];
+[self.beautyEffectEngine addResourcePack:packPath];
+NSString *sticker3dPath = [[NSBundle mainBundle] pathForResource:@"oculos" ofType:@"fbd"];
+[self.beautyEffectEngine set3DSticker:sticker3dPath];
+[self.beautyEffectEngine clear3DSticker];
+```
+
+## Callbacks e estatísticas
+
+```objc
+FBEngineCallbacks *callbacks = [[FBEngineCallbacks alloc] init];
+__weak typeof(self) weakSelf = self;
+callbacks.onEngineEvent = ^(FBEngineEventCode code, NSString * _Nullable message) {
+  // 0 license OK, 1 license fail, 100 init complete, 101 init fail
+  NSLog(@"engine event %ld %@", (long)code, message);
+};
+callbacks.onFaceLandmarks = ^(NSArray<FBFaceDetectionResult *> * _Nullable results) {
+  for (FBFaceDetectionResult *face in results) {
+    NSLog(@"face %d keypoints %lu", face.faceId, (unsigned long)face.keyPoints.count);
+  }
+};
+[self.beautyEffectEngine setCallbacks:callbacks];
+
+FBEngineStats *stats = [self.beautyEffectEngine getStats];
+NSLog(@"fps=%.1f avg=%.2fms session=%.1fs",
+      stats.fps, stats.avgProcessTimeMs, stats.sessionTimeS);
+```
+
+## Processar imagens
+
+`FBImageFrame` suporta I420, NV12, NV21, RGB, RGBA, BGR, BGRA, arquivo, textura e `UIImage`.
+
+```objc
+FBImageFrame *fromFile = [FBImageFrame createWithFile:@"/path/photo.png"];
+FBImageFrame *fromRGBA = [FBImageFrame createWithRGBA:data width:width height:height stride:stride];
+FBImageFrame *fromUIImage = [FBImageFrame createWithUIImage:uiImage];
+```
+
+Defina `type` e, em seguida, chame `processImage:` (sem argumento extra de modo). A saída mantém o formato de entrada.
+
+```objc
+input.type = FBFrameTypeVideo;  // or FBFrameTypeImage
+FBImageFrame *output = [self.beautyEffectEngine processImage:input];
+```
+
+<Tip>
+`FBFrameTypeVideo` é para streams ao vivo; `FBFrameTypeImage` é para stills.
+</Tip>
+
+Rotacionar / espelhar / converter / salvar:
+
+```objc
+[input rotate:FBImageRotation90];
+[input setMirror:@"horizontal"];  // applied during processImage:
+FBImageFrame *rgba = [output convert:FBImageFormatRGBA];
+const uint8_t *bytes = [rgba data];
+[output toFile:@"/path/out.jpg" quality:90];
+```
+
+Planos YUV: `dataY`, `dataU`, `dataV`, `dataUV` e `strideY` / `strideU` / `strideV` / `strideUV`.
+
+## Textura externa
+
+<Warning>
+Crie o mecanismo no thread OpenGL ES e defina `externalContext = YES`. As texturas de entrada e saída precisam compartilhar esse contexto.
+</Warning>
+
+```objc
+FBEngineConfig *config = [[FBEngineConfig alloc] init];
+config.appId = @"your appId";
+config.appKey = @"your appKey";
+config.externalContext = YES;
+self.engine = [FBBeautyEffectEngine createEngineWithConfig:config];
+
+FBImageFrame *inputFrame = [FBImageFrame createWithTexture:textureId
+                                                     width:width
+                                                    height:height
+                                                    stride:width * 4];
+inputFrame.type = FBFrameTypeVideo;
+FBImageFrame *outputFrame = [self.engine processImage:inputFrame];
+GLuint outputTexture = [outputFrame texture];
+```
+
+Parâmetros de textura recomendados: `GL_LINEAR`, `GL_CLAMP_TO_EDGE`. O mecanismo não exclui sua textura de entrada. As texturas de saída pertencem ao SDK.
+
+Para TRTC / Agora / LiveKit: [Integração com terceiros](/pt-BR/ios/third-party-integration).
+
+## Ciclo de vida
+
+Mantenha uma referência strong durante a sessão. Atribua nil ao mecanismo quando o view controller desaparecer. Pause a sessão de captura ao sair da tela para parar de chamar `processImage:`.
+
+```objc
+- (void)dealloc {
+  self.beautyEffectEngine = nil;
+}
+```
+
+## Relacionado
+
+- [Integração com terceiros](/pt-BR/ios/third-party-integration)
+- [Práticas recomendadas](/pt-BR/ios/best-practices)
+- [Tratamento de erros](/pt-BR/ios/error-handling)
+- [Perguntas frequentes](/pt-BR/ios/faq)
+- [Referência da API](/pt-BR/ios/api-reference)

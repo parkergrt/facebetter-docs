@@ -1,0 +1,64 @@
+---
+title: "권장 사항"
+description: "Linux에서 Facebetter 2.0의 성능과 연동 가이드"
+---
+
+<Note>
+SDK **2.0.0**. C++ API는 Windows와 공유합니다. 열거형: [파라미터 열거형](/ko/intro/makeup).
+</Note>
+
+## `resource_path`를 `resource.fbd`로 지정
+
+디렉터리가 아니라 **파일**을 전달하세요.
+
+```cpp
+cfg.resource_path = "/opt/facebetter/resource.fbd";
+```
+
+시작 시 절대 경로를 해석해 cwd 변경이 `fopen`을 깨지 않게 하세요.
+
+## 엔진 하나, 직렬 `ProcessImage`
+
+`Create`는 `shared_ptr`를 반환합니다. 엔진은 싱글톤이 **아닙니다**. `ProcessImage`(및 상태를 바꾸는 setter)를 한 스레드에서 직렬화하세요. `external_context = true`이면 해당 스레드에 현재 GL 컨텍스트가 있어야 합니다.
+
+## 프레임의 `FrameType`
+
+| 값 | 용도 |
+| --- | --- |
+| `FrameType::Video` (기본값) | 카메라 / 라이브 |
+| `FrameType::Image` | 정지 내보내기 |
+
+## 강도와 피부만
+
+실시간: `0.15–0.3` 근처에서 시작하세요. 리셰이프는 `[-1.0, 1.0]`입니다. `SetBeautySkinOnly(true)`를 사용해 스무딩이 피부에만 적용되게 하세요.
+
+## 필터와 스티커
+
+`.fbd` 경로 또는 바이트입니다. 다음 `ProcessImage`에서 적용됩니다. 매 프레임 에셋을 바꾸지 마세요.
+
+## `GetStats`
+
+```cpp
+EngineStats s = engine->GetStats();
+if (s.avg_process_time_ms > 33.0) {
+    // lower resolution or drop stickers / virtual background
+}
+```
+
+## 공유 라이브러리
+
+- 개발: `LD_LIBRARY_PATH`
+- 배포: `RPATH` / `RUNPATH`, 또는 `/usr/local/lib`에 설치 + `ldconfig`
+- `libfacebetter.so`와 헤더는 **같은** SDK 빌드에서 가져오세요(`./scripts/build_linux.sh` 또는 다운로드 zip)
+
+## OpenGL
+
+기본 `external_context = false`는 SDK가 관리하는 OpenGL 컨텍스트를 사용합니다. GLFW / EGL이 이미 컨텍스트를 소유하면 `true`로 설정하고 해당 스레드에서 처리하세요. 동작하는 Mesa/NVIDIA/AMD 드라이버가 필요합니다. `glxinfo`가 3.0+를 보고해야 합니다.
+
+## 유휴 시 일시 중지
+
+창이 unmapped이면 `ProcessImage`를 건너뛰세요. 세션이 끝나면 `engine.reset()`을 호출하세요.
+
+## 인증
+
+오프라인 호스트에는 `license_token`, 그렇지 않으면 `app_id` + `app_key` 온라인 v2. 시크릿은 소스가 아니라 env/config에서 로드하세요. [인증 및 라이선스](/ko/intro/license)를 참고하세요.

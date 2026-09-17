@@ -9,7 +9,8 @@ description: >-
 
 # Facebetter 对外客户文档
 
-文档仓库：本仓（Mintlify）。英文在仓库根，中文在 `zh/`，树结构一致。
+文档仓库：本仓（Mintlify）。英文在仓库根，其他语言在 `zh/`、`ja/`、`ko/`、`es/`、`pt-BR/`，树结构一致。
+
 
 聊天用中文回复用户；文档正文按页面语言写。未要求时不要 commit。
 
@@ -20,9 +21,9 @@ description: >-
 ## 工作流
 
 1. 以各平台**公开绑定层**为准（ObjC / Java / JS `facebetter` / Dart / C++ `BeautyEffectEngine`），不要把 C/JNI/WASM 实现写进客户文案。
-2. 枚举只维护 `intro/makeup.mdx` 与 `zh/intro/makeup.mdx`，平台页链接过去。
-3. 鉴权只维护 `intro/license.mdx` 与 `zh/intro/license.mdx`，平台页摘要并链接。
-4. 中英文一起改。
+2. 枚举只维护 `intro/makeup.mdx` 与各语言目录下的对应页，平台页链接过去。
+3. 鉴权只维护 `intro/license.mdx` 与各语言目录下的对应页，平台页摘要并链接。
+4. 所有已上线语言一起改（en / zh / ja / ko / es / pt-BR）。
 5. 写完前 grep 禁止词（见下）。有命中则改成对外表述或删除。
 
 ## 禁止出现（除非是客户必须捕获的公开符号）

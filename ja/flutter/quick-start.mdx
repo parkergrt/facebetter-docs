@@ -1,0 +1,85 @@
+---
+title: "クイックスタート"
+description: "Facebetter Flutter SDK 2.0 のサンプルを実行します"
+---
+
+<Note>
+このページは SDK **2.0.0** に対応します。エンジンクラスは **`FBEngine`** です（シングルトンではありません）。認証: [認証とライセンス](/ja/intro/license)。列挙: [パラメータ列挙](/ja/intro/makeup)。
+</Note>
+
+## 要件
+
+- **Flutter** `>= 3.24` / **Dart** `>= 3.5`
+- **iOS** 12.0+
+- **Android** minSdk **24**
+- ネイティブ Facebetter SDK **2.0**（プラグインが取り込みます）
+
+## インストール
+
+```yaml
+dependencies:
+  facebetter_flutter: ^2.0.0
+```
+
+```bash
+flutter pub get
+cd ios && pod install && cd ..
+```
+
+## サンプルの取得
+
+```bash
+git clone https://github.com/pixpark/facebetter-sdk.git
+cd facebetter-sdk/demo/flutter
+flutter create --org net.pixpark --project-name fbexample .
+```
+
+デモフォルダはアプリコードのみを保持します。`flutter create` が `ios/` と `android/` を生成します。
+
+## 識別子とキーのバインド
+
+ダッシュボードで次をバインドします。
+
+- **iOS**: Bundle ID（例: `net.pixpark.fbexample`）
+- **Android**: Application ID（例: `net.pixpark.fbexample`）
+
+`appId` / `appKey` をコピーするか、`licenseToken` を渡します（サーバー発行の短命トークン、または営業経由のオフライン `.lic`）。[サブスクリプション](/ja/intro/enable-service) と [認証とライセンス](/ja/intro/license) を参照してください。
+
+## エンジンの作成
+
+`lib/main.dart` を編集します。ログは `create` の**前**に実行する必要があります。
+
+```dart
+import 'package:facebetter_flutter/facebetter_flutter.dart';
+
+FBEngine.setLogConfig(console: true, level: FBLogLevel.info);
+
+final engine = await FBEngine.create(FBEngineConfig(
+  appId: 'your_app_id',
+  appKey: 'your_app_key',
+  // or licenseToken: '...',
+  enableLandmarks: false,
+  externalContext: true, // default; required for third-party live preprocess
+  resourcePath: null,    // plugin locates resource.fbd
+));
+
+engine.setSmoothing(0.8);
+engine.dispose();
+```
+
+<Tip>
+`externalContext: true`（デフォルト）は呼び出し側の GL コンテキストを再利用します。サードパーティのライブ前処理に必要です。静止画 API には `externalContext: false` の**別**エンジンが必要です。1 つのインスタンスで両者を混在させないでください。
+</Tip>
+
+## 実行
+
+```bash
+flutter devices
+flutter run -d <device-id>
+```
+
+## 次のステップ
+
+- [美顔の実装](/ja/flutter/implement-beauty) — 専用 setter、フィルター、写真
+- [サードパーティ連携](/ja/flutter/third-party-integration) — ネイティブ `FacebetterPlugin.processTexture`
+- [API リファレンス](/ja/flutter/api-reference)

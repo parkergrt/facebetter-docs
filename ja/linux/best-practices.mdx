@@ -1,0 +1,64 @@
+---
+title: "ベストプラクティス"
+description: "Linux 上の Facebetter 2.0 のパフォーマンスと統合の推奨"
+---
+
+<Note>
+SDK **2.0.0**。C++ API は Windows と同じです。列挙: [パラメータ列挙](/ja/intro/makeup)。
+</Note>
+
+## `resource_path` は `resource.fbd` を指す
+
+**ファイルパス**を渡し、ディレクトリは渡さないでください。
+
+```cpp
+cfg.resource_path = "/opt/facebetter/resource.fbd";
+```
+
+起動時に絶対パスへ解決し、作業ディレクトリの変化で `fopen` が失敗しないようにします。
+
+## 1 つのエンジン、シリアルな `ProcessImage`
+
+`Create` は `shared_ptr` を返します。エンジンは**シングルトンではありません**。`ProcessImage`（および状態を変える setter）を同じスレッドへシリアル化します。`external_context = true` の場合、そのスレッドはカレント GL コンテキストを持っている必要があります。
+
+## フレームに `FrameType` を設定
+
+| 値 | 用途 |
+| --- | --- |
+| `FrameType::Video`（デフォルト） | カメラ / リアルタイム |
+| `FrameType::Image` | 静止画書き出し |
+
+## 強度と肌のみ美顔
+
+リアルタイムでは `0.15–0.3` から始めることを推奨します。リシェイプ範囲は `[-1.0, 1.0]` です。`SetBeautySkinOnly(true)` でスムージングを肌にのみ適用します。
+
+## フィルターとステッカー
+
+`.fbd` のパスまたはバイトです。次の `ProcessImage` のあとで有効になります。毎フレームリソースを切り替えないでください。
+
+## `GetStats`
+
+```cpp
+EngineStats s = engine->GetStats();
+if (s.avg_process_time_ms > 33.0) {
+    // lower resolution, or turn off stickers / virtual background
+}
+```
+
+## 動的ライブラリ
+
+- 開発: `LD_LIBRARY_PATH`
+- リリース: `RPATH` / `RUNPATH`、または `/usr/local/lib` へインストールして `ldconfig`
+- `libfacebetter.so` とヘッダーは**同じ** SDK から来る必要があります（`./scripts/build_linux.sh` またはダウンロードパッケージ）
+
+## OpenGL
+
+デフォルトの `external_context = false` では、SDK が OpenGL コンテキストを管理します。GLFW / EGL がすでにコンテキストを持っている場合は `true` にし、そのスレッドで処理します。利用可能な Mesa / NVIDIA / AMD ドライバが必要です。`glxinfo` は 3.0+ を報告する必要があります。
+
+## アイドル時は一時停止
+
+ウィンドウが非表示のときは `ProcessImage` をスキップします。セッション終了時は `engine.reset()` を呼び出します。
+
+## 認証
+
+オフラインホストでは `license_token`、それ以外は `app_id` + `app_key` のオンライン v2 です。キーは環境変数 / 設定から読み、ソースに書かないでください。[認証とライセンス](/ja/intro/license) を参照してください。

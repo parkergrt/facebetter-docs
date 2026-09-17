@@ -1,0 +1,42 @@
+---
+title: "Assinatura"
+description: "Ative o serviço de assinatura do SDK Facebetter e obtenha AppID e AppKey para começar a usar os recursos de beleza"
+---
+
+## Cadastro / login
+
+Abra o [site Facebetter](https://facebetter.net/pt-BR) e, em seguida, [Entre](https://facebetter.net/pt-BR/sign-in) ou [Crie uma conta](https://facebetter.net/pt-BR/sign-up). São suportados e-mail/senha e login social (Google, GitHub).
+
+Após o login, você chega ao [Console](https://facebetter.net/pt-BR/dashboard). Crie um projeto; cada projeto tem seu próprio plano, credenciais e vinculações de plataforma. Projetos novos começam no plano **Free** (a maioria dos efeitos disponível, saída sempre com marca d'água). Detalhes dos planos: [Planos e recursos](/pt-BR/intro/pricing).
+
+## Vincular informações do aplicativo
+
+Abra **Credentials** do projeto. O SDK verifica se o app em execução corresponde aos identificadores vinculados no Console — preencha cada plataforma que você publica e salve:
+
+- **iOS / macOS**: Bundle ID (ex.: `com.example.app`)
+- **Android**: nome do pacote do aplicativo (ex.: `com.example.app`)
+- **Windows**: nome do aplicativo ou nome do executável
+- **Linux**: nome do aplicativo ou nome do pacote
+- **Web**: domínio do aplicativo (ex.: `example.com`)
+- **Flutter**: vincule **tanto** o Bundle ID do iOS quanto o nome do pacote Android
+
+A autenticação falha se as vinculações estiverem ausentes ou não corresponderem. Para ferramentas de linha de comando sem Bundle ID, vincule o nome do processo conforme indicado no Console.
+
+## Assinar um plano
+
+Faça o upgrade a partir da página **Overview** ou **Billing** do projeto:
+
+1. Abra **Adjust plan** (ou uma ação de upgrade em Overview).
+2. Escolha **Monthly** ou **Yearly** (o anual tem cerca de 20% de desconto).
+3. Escolha **Basic / Pro / Pro+** (ou outro nível pago). Veja [Planos e recursos](/pt-BR/intro/pricing).
+4. Conclua o checkout. Cartão e outros métodos comuns são suportados. O console em chinês também oferece Alipay como pré-pagamento único (mensal ou anual, sem renovação automática).
+
+Em **Billing** você pode revisar renovações ou vencimento, faturas e cancelar a renovação automática de assinaturas no cartão. O pré-pagamento via Alipay precisa ser comprado de novo antes de expirar.
+
+## Obter AppID e AppKey
+
+Na página **Credentials** do projeto, copie **App ID** e **App Key**.
+
+Apps nativos podem autenticar com `appId` + `appKey`, ou com um `licenseToken` (string do token de licença, JSON `{token}` ou conteúdo de um arquivo `.lic` offline). A Web não deve incorporar `appKey` no JavaScript do frontend. Detalhes: [Autenticação e licença](/pt-BR/intro/license).
+
+Para rotacionar o App Key, use **Reset key** na mesma página. A chave anterior deixa de funcionar imediatamente — atualize seus apps primeiro.

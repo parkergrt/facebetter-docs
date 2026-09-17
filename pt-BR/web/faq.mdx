@@ -1,0 +1,101 @@
+---
+title: "Perguntas frequentes"
+description: "FAQ do Facebetter Web SDK 2.0"
+---
+
+<Note>
+SDK **2.0.0**. Autenticação: [Autenticação e licença](/pt-BR/intro/license). Enums: [Enums de parâmetros](/pt-BR/intro/makeup).
+</Note>
+
+## Integração
+
+### A criação do mecanismo / `init()` falhou
+
+- `EngineConfig` precisa de um `licenseToken` não vazio. Não há campos `appId` / `appKey` na config Web.
+- Produção: seu servidor precisa devolver o corpo da API de autenticação (`{success, token}` ou JSON de erro). Veja [Autenticação e licença](/pt-BR/intro/license).
+- Confirme que a página consegue baixar os arquivos de runtime do SDK (bundler / CDN). Veja [Tratamento de erros](/pt-BR/web/error-handling).
+- Confirme que a página está em HTTPS ou localhost.
+- Verifique `FacebetterError.code` ([Tratamento de erros](/pt-BR/web/error-handling)).
+
+### Como eu passo AppID / AppKey?
+
+Você não passa — não em `EngineConfig`. Guarde-os no servidor, busque um token e passe `licenseToken`.
+
+### Posso usar um `.lic` offline no navegador?
+
+Não. A Web precisa concluir um caminho online v2.
+
+### Como eu atualizo o pacote?
+
+```bash
+npm install facebetter@2.0.0
+```
+
+## Efeitos
+
+### A beleza parece fraca ou forte demais
+
+As intensidades são `[0.0, 1.0]`. A remodelagem é `[-1.0, 1.0]` (`0` = desligado). Tente `FrameType.Image` para stills. Enums de estilo: [Enums de parâmetros](/pt-BR/intro/makeup).
+
+### O filtro / adesivo não faz nada
+
+Passe o **caminho ou bytes** `.fbd` diretamente para `setFilter` / `setSticker`. String vazia lança — chame `clearFilter()` / `clearSticker()`.
+
+### O fundo virtual fica em branco
+
+Chame `setVirtualBackgroundBlur(level)` ou `setVirtualBackground(path|Uint8Array)`, não um objeto de opções. Desfoque `0` limpa o efeito. Para tela verde, `setChromaKey` só define a máscara; ainda defina desfoque ou uma imagem.
+
+### A saída está preta
+
+O vídeo pode ainda não ter um quadro (`videoWidth === 0`). Contexto do canvas ausente. Chame `processImage` somente após `engine.initialized`.
+
+## Desempenho
+
+### A prévia está lenta
+
+Use `FrameType.Video`, limite a resolução de captura (por exemplo 720p), evite callbacks de landmarks e rode o loop em `requestAnimationFrame`. Observe `engine.getStats().avgProcessTimeMs`.
+
+### A memória cresce em um SPA
+
+Chame `engine.destroy()` ao sair da página. Não vaze mecanismos entre mudanças de rota.
+
+## Compatibilidade
+
+Suportados: Chrome 57+, Firefox 52+, Safari 11+, Edge 16+. No mobile, reduza a resolução de captura e as intensidades dos efeitos.
+
+## Exemplo React
+
+```jsx
+import { useEffect, useRef } from 'react';
+import { BeautyEffectEngine, EngineConfig } from 'facebetter';
+
+function BeautyPreview() {
+  const engineRef = useRef(null);
+
+  useEffect(() => {
+    let engine;
+    (async () => {
+      const licenseToken = await fetch('/api/facebetter/auth', { method: 'POST' }).then((r) => r.text());
+      engine = new BeautyEffectEngine(new EngineConfig({ licenseToken }));
+      engineRef.current = engine;
+      await engine.init();
+    })().catch(console.error);
+    return () => {
+      engine?.destroy();
+      engineRef.current = null;
+    };
+  }, []);
+
+  return <canvas />;
+}
+```
+
+Exemplo completo: `demo/web/react` no repositório do SDK.
+
+## Relacionado
+
+- [Início rápido](/pt-BR/web/quick-start)
+- [Implementar beleza](/pt-BR/web/implement-beauty)
+- [Tratamento de erros](/pt-BR/web/error-handling)
+- [Práticas recomendadas](/pt-BR/web/best-practices)
+- [Referência da API](/pt-BR/web/api-reference)

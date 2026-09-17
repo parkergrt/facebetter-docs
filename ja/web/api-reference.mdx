@@ -1,0 +1,178 @@
+---
+title: "API リファレンス"
+description: "Facebetter Web SDK 2.0 API"
+---
+
+<Note>
+このページは SDK **2.0.0** に対応します。メイク / リシェイプ / スタイル列挙: [パラメータ列挙](/ja/intro/makeup)。認証: [認証とライセンス](/ja/intro/license)。
+</Note>
+
+npm パッケージ: **`facebetter`**。よく使うインポート:
+
+```javascript
+import {
+  BeautyEffectEngine,
+  EngineConfig,
+  FrameType,
+  MirrorMode,
+  Reshape,
+} from 'facebetter';
+```
+
+## EngineConfig
+
+```javascript
+new EngineConfig({
+  licenseToken,      // string — required. license token, or `{token}` JSON
+})
+```
+
+Web はこのオブジェクト上の `appId` / `appKey` を**受け付けません**。Web はオフライン `.lic` に**対応していません**。
+
+`licenseToken` が空でない文字列のとき `isValid()` は true です。
+
+`init()` の**前**に、**自社サーバー**でトークンを取得してください。[認証とライセンス](/ja/intro/license) を参照してください。
+
+## BeautyEffectEngine
+
+```javascript
+const engine = new BeautyEffectEngine(config);
+await engine.init({
+  onProgress: ({ percent }) => {
+    // 0–100 while runtime files download
+  },
+});
+```
+
+### ライフサイクル
+
+| メソッド | 説明 |
+| --- | --- |
+| `init(options?)` | エンジンを初期化します（認証とリソース）。`options.timeout`（デフォルト `120000`）は初期化タイムアウト（ミリ秒）。`options.onProgress({ loaded, total, percent })` はランタイムファイルの**ダウンロード**進捗を報告します。 |
+| `setLogConfig({ consoleEnabled, fileEnabled, level, fileName })` | グローバルログ。`init()` の前に呼び出してください。`level`: `0` TRACE … `5` CRITICAL。ブラウザはファイルログに対応していません。戻り値は `Promise<void>`。 |
+| `destroy()` | エンジンとそのリソースを解放します。 |
+
+`init()` 成功後、`engine.initialized` は `true` です。
+
+### 肌
+
+| メソッド | 範囲 |
+| --- | --- |
+| `setSmoothing(value)` | `[0, 1]` |
+| `setSmoothingStyle(style)` | `SmoothingStyle` |
+| `setWhitening(value)` | `[0, 1]` |
+| `setWhiteningStyle(style)` | `WhiteningStyle` |
+| `setSharpening(value)` | `[0, 1]` |
+| `setRosiness(value)` | `[0, 1]` |
+| `setBeautySkinOnly(enabled)` | `boolean` |
+
+### リシェイプ
+
+`setReshape(param, value)` — `param` は `Reshape.*`、`value` の範囲は **`[-1.0, 1.0]`**。[パラメータ列挙](/ja/intro/makeup) を参照してください。
+
+### メイク
+
+強度 `[0, 1]`。スタイル / 色の列挙: [パラメータ列挙](/ja/intro/makeup)。
+
+| 強度 | スタイル / 色 |
+| --- | --- |
+| `setLipstick` | `setLipstickColor` |
+| `setBlush` | `setBlushStyle`、`setBlushColor` |
+| `setContour` | `setContourStyle` |
+| `setEyeShadow` | `setEyeShadowStyle`、`setEyeShadowColor` |
+| `setEyeLiner` | `setEyeLinerStyle`、`setEyeLinerColor` |
+| `setEyebrow` | `setEyebrowStyle`、`setEyebrowColor` |
+| `setEyelash` | `setEyelashStyle`、`setEyelashColor` |
+| `setPupil` | `setPupilColor` |
+
+### フィルター / ステッカー
+
+| メソッド | 説明 |
+| --- | --- |
+| `setFilter(path \| Uint8Array)` | URL またはバイトで LUT `.fbd` を適用 |
+| `clearFilter()` | 現在のフィルターをクリア |
+| `setFilterIntensity(intensity)` | `[0, 1]` |
+| `setSticker(path \| Uint8Array)` | 2D ステッカー `.fbd` を適用 |
+| `clearSticker()` | ステッカーをクリア |
+| `addResourcePack(path \| Uint8Array)` | 追加の機能パックを登録（例: 3D ステッカー前に `resource_3d.fbd`） |
+| `set3DSticker(path \| Uint8Array)` | 3D ステッカー `.fbd` を適用 |
+| `clear3DSticker()` | 3D ステッカーをクリア |
+
+### バーチャル背景 / クロマキー
+
+| メソッド | 説明 |
+| --- | --- |
+| `setVirtualBackgroundBlur(level)` | 連続ぼかし `[0, 1]`。`0` はオフ |
+| `setVirtualBackground(path \| Uint8Array)` | png/jpg パスまたはエンコード済みバイト |
+| `clearVirtualBackground()` | ぼかし / 背景画像をオフ |
+| `setChromaKey(color)` | `ChromaKeyColor.Green` / `Blue` / `Red` |
+| `clearChromaKey()` | ポートレートセグメンテーションマスクを復元 |
+| `setChromaKeySimilarity(value)` | `[0, 1]` |
+| `setChromaKeySmoothness(value)` | `[0, 1]` |
+| `setChromaKeyDesaturation(value)` | `[0, 1]` |
+
+### コールバック
+
+```javascript
+engine.setCallbacks({
+  onFaceLandmarks, // (faces) => void
+  onEngineEvent,   // (code, message) => void
+  maxFaces,        // optional, default 10
+});
+```
+
+### 処理
+
+```javascript
+processImage(input, width, height, frameType = FrameType.Video, mirrorMode = MirrorMode.None) → ImageData
+```
+
+- `input`: `ImageData` \| `HTMLImageElement` \| `HTMLCanvasElement` \| `HTMLVideoElement` \| `Uint8ClampedArray`
+- `Uint8ClampedArray` のときだけ `width` / `height` が必須
+
+```javascript
+processTexture(textureHandle, width, height, stride, frameType, mirrorMode) → number
+```
+
+出力 `GL_TEXTURE_2D` ハンドルを返します。**この経路はミラーを適用しません。** `processImage` を優先してください。
+
+### 統計
+
+```javascript
+engine.getStats() → { fps, avgProcessTimeMs, sessionTimeS }
+```
+
+## 列挙（JS）
+
+値はネイティブと同一です。メイク / リシェイプの完全な表: [パラメータ列挙](/ja/intro/makeup)。
+
+```javascript
+FrameType = { Image: 0, Video: 1 }
+
+MirrorMode = { None: 0, Horizontal: 1, Vertical: 2, Both: 3 }
+
+EngineEventCode = {
+  LicenseValidationSuccess: 0,
+  LicenseValidationFailed: 1,
+  InitializationComplete: 100,
+  InitializationFailed: 101,
+}
+
+ChromaKeyColor = { Green: 0, Blue: 1, Red: 2 }
+
+Reshape = { FaceThin: 0, FaceVShape: 1, /* … BrowThickness: 25 */ }
+```
+
+同時にエクスポート: `SmoothingStyle`、`WhiteningStyle`、`LipstickColor`、`BlushStyle`、`BlushColor`、`ContourStyle`、`EyeShadowStyle`、`EyeShadowColor`、`EyeLinerStyle`、`EyeLinerColor`、`EyebrowStyle`、`EyebrowColor`、`EyelashStyle`、`EyelashColor`、`PupilColor`。
+
+## FacebetterError
+
+```javascript
+class FacebetterError extends Error {
+  constructor(message, code = -1)
+  // name === 'FacebetterError'
+  // code: number or string
+}
+```
+
+数値コード: `0`、`-1` … `-8`。[エラー処理](/ja/web/error-handling) を参照してください。

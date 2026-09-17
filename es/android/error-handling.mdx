@@ -1,0 +1,188 @@
+---
+title: "Manejo de errores"
+description: "Gestiona errores del SDK Facebetter 2.0 en Android"
+---
+
+Los setters de belleza devuelven `int`. Compáralos con `ErrorCode`. La construcción y `processImage` también pueden lanzar una excepción o devolver `null`.
+
+## ErrorCode
+
+```java
+public final class ErrorCode {
+  public static final int SUCCESS = 0;
+  public static final int INVALID_ARGUMENT = -1;
+  public static final int NOT_INITIALIZED = -2;
+  public static final int LICENSE = -3;
+  public static final int UNSUPPORTED = -4;
+  public static final int IO = -5;
+  public static final int NO_SLOT = -6;
+  public static final int PROCESS = -7;
+  public static final int OUT_OF_MEMORY = -8;
+}
+```
+
+| Valor | Constante | Causa habitual |
+| --- | --- | --- |
+| `0` | `SUCCESS` | La llamada tuvo éxito |
+| `-1` | `INVALID_ARGUMENT` | `null` / ruta vacía, `byte[]` vacío, callbacks `null` |
+| `-2` | `NOT_INITIALIZED` | Motor no inicializado, o ya liberado |
+| `-3` | `LICENSE` | Token / autenticación en línea rechazada |
+| `-4` | `UNSUPPORTED` | Formato o función no disponible |
+| `-5` | `IO` | Falta `.fbd`, imagen ilegible, ruta de archivo de log |
+| `-6` | `NO_SLOT` | Se alcanzó el límite de recursos |
+| `-7` | `PROCESS` | Falló el procesamiento del fotograma |
+| `-8` | `OUT_OF_MEMORY` | Memoria insuficiente |
+
+<Note>
+**`-1` es argumento no válido. `-2` es no inicializado.**
+</Note>
+
+```java
+int ret = engine.setSmoothing(0.5f);
+if (ret != ErrorCode.SUCCESS) {
+    Log.e(TAG, "setSmoothing failed: " + ret);
+}
+```
+
+## Construcción
+
+`new BeautyEffectEngine(context, config)` lanza `IllegalArgumentException` cuando:
+
+- `context` o `config` es `null`
+- `config.isValid()` es `false` (sin `licenseToken` y faltan `appId` / `appKey`)
+
+**No** devuelve `null`.
+
+```java
+BeautyEffectEngine.EngineConfig config = new BeautyEffectEngine.EngineConfig();
+config.appId = "your_app_id";
+config.appKey = "your_app_key";
+// config.licenseToken = "...";
+
+BeautyEffectEngine engine;
+try {
+    engine = new BeautyEffectEngine(this, config);
+} catch (IllegalArgumentException e) {
+    Log.e(TAG, "EngineConfig invalid", e);
+    return;
+}
+```
+
+La inicialización de licencia y recursos aún puede fallar de forma asíncrona. Suscríbete a los eventos del motor:
+
+```java
+EngineCallbacks callbacks = new EngineCallbacks();
+callbacks.onEngineEvent = (code, message) -> {
+    if (code == EngineEventCode.LICENSE_VALIDATION_FAILED
+        || code == EngineEventCode.INITIALIZATION_FAILED) {
+        Log.e(TAG, "engine event " + code + ": " + message);
+    }
+};
+engine.setCallbacks(callbacks);
+```
+
+| `EngineEventCode` | Valor |
+| --- | --- |
+| `LICENSE_VALIDATION_SUCCESS` | `0` |
+| `LICENSE_VALIDATION_FAILED` | `1` |
+| `INITIALIZATION_COMPLETE` | `100` |
+| `INITIALIZATION_FAILED` | `101` |
+
+Solución de autenticación: [Autenticación y licencia](/es/intro/license). Activa el logging **antes** de construir: consulta [Implementar belleza](/es/android/implement-beauty).
+
+## processImage
+
+```java
+if (input == null || !input.isValid()) {
+    Log.e(TAG, "Invalid input frame");
+    return null;
+}
+if (input.type == null) {
+    input.type = ImageFrame.FrameType.VIDEO;
+}
+
+ImageFrame output;
+try {
+    output = engine.processImage(input);
+} catch (IllegalArgumentException e) {
+    Log.e(TAG, "processImage rejected the frame", e);
+    return null;
+}
+if (output == null) {
+    Log.e(TAG, "processImage returned null (engine released or native failure)");
+    return null;
+}
+```
+
+- Entrada `null` o `type` `null` → `IllegalArgumentException`
+- Motor ya con `release()` → `null` (sin excepción)
+- Siempre `release()` de entrada y salida en un bloque `finally`
+
+```java
+ImageFrame output = null;
+try {
+    input.type = ImageFrame.FrameType.VIDEO;
+    output = engine.processImage(input);
+    return output;
+} finally {
+    if (input != null) {
+        input.release();
+    }
+}
+```
+
+Si conviertes la salida (`convert`, `toBitmap`), libera también el fotograma extra.
+
+## Filtros, stickers, fondo virtual
+
+Una ruta vacía o un `byte[]` vacío devuelve `ErrorCode.INVALID_ARGUMENT`. Los archivos que faltan suelen devolver `ErrorCode.IO`.
+
+```java
+int ret = engine.setFilter(fbdPath);
+if (ret == ErrorCode.INVALID_ARGUMENT) {
+    Log.e(TAG, "Filter path empty");
+} else if (ret == ErrorCode.IO) {
+    Log.e(TAG, "Cannot read .fbd: " + fbdPath);
+} else if (ret != ErrorCode.SUCCESS) {
+    Log.e(TAG, "setFilter: " + ret);
+}
+```
+
+Los cambios de filtro / sticker entran en vigor en el **siguiente** fotograma procesado. Un setter correcto no demuestra que la textura se haya subido; observa los resultados posteriores de `processImage` y los logs del SDK.
+
+## Configuración de logging
+
+`setLogConfig` lanza si `config` o `level` es `null`. Crea los directorios padre antes de activar logs de archivo.
+
+```java
+File logFile = new File(getFilesDir(), "facebetter.log");
+File parent = logFile.getParentFile();
+if (parent != null && !parent.exists() && !parent.mkdirs()) {
+    Log.e(TAG, "Cannot create log dir");
+    return;
+}
+BeautyEffectEngine.LogConfig logConfig = new BeautyEffectEngine.LogConfig();
+logConfig.consoleEnabled = true;
+logConfig.fileEnabled = true;
+logConfig.level = BeautyEffectEngine.LogLevel.DEBUG;
+logConfig.fileName = logFile.getAbsolutePath();
+BeautyEffectEngine.setLogConfig(logConfig);
+```
+
+## Memoria insuficiente
+
+`ErrorCode.OUT_OF_MEMORY` o `OutOfMemoryError` suele significar que no se liberan fotogramas, la resolución es demasiado alta o se acumularon buffers heap/direct.
+
+- Usa `ByteBuffer.allocateDirect` para cámara / píxeles empaquetados
+- Libera cada `ImageFrame` (incluidos los resultados de `convert`)
+- Prefiere `FrameType.VIDEO` para cámara en directo
+- No construyas un motor nuevo en cada fotograma
+
+## Estadísticas para fotogramas lentos
+
+```java
+EngineStats stats = engine.getStats();
+if (stats.avgProcessTimeMs > 33) {
+    Log.w(TAG, "Slow pipeline: " + stats.avgProcessTimeMs + " ms, fps=" + stats.fps);
+}
+```

@@ -1,0 +1,125 @@
+---
+title: "Descripción general"
+description: "Descripción general del motor SDK de efectos de belleza Facebetter"
+---
+
+Facebetter es un motor de efectos de belleza en tiempo real pensado para desarrolladores. Ofrece procesamiento de belleza con IA de alta calidad tanto para imágenes como para flujos de vídeo en directo. Está acelerado por GPU para baja latencia y alta tasa de fotogramas, y se integra en Android, iOS, macOS, Windows, Linux, Web y Flutter.
+
+## Funciones principales
+
+### Belleza de piel
+
+Mejora de piel de grano fino con cuatro parámetros independientes: suavizado, blanqueamiento, rubor y nitidez. La intensidad es `[0.0, 1.0]` (`0` desactiva el efecto). El suavizado y el blanqueamiento también tienen estilos predefinidos.
+
+### Remodelado facial
+
+Ajustes completos de contorno y proporciones de los rasgos:
+
+- **Forma del rostro**: adelgazar, forma en V, estrechar, acortar, rostro pequeño, frente
+- **Contorno**: pómulo, mandíbula, mentón
+- **Rasgos**: estrechar/alargar nariz, filtrum, tamaño/posición/sonrisa de la boca, grosor de labios
+- **Ojos y cejas**: tamaño/distancia/redondez/posición/ángulo/esquina del ojo, párpado inferior, posición/distancia/grosor de cejas
+
+El rango de intensidad es `[-1.0, 1.0]`. Consulta [Enumeraciones de parámetros](./makeup).
+
+> Un mismo fotograma admite hasta **5 rostros** a la vez para remodelado y maquillaje.
+
+### Maquillaje
+
+Maquillaje por capas: labial, rubor, sombra de ojos, delineador, cejas, pestañas, lentillas de color y contorno. La intensidad, la forma y el color se configuran por separado. Se pueden aplicar varios elementos a la vez. Consulta [Enumeraciones de parámetros](./makeup).
+
+### Filtros y estilos
+
+Más de 20 filtros de estilo en tiempo real para retrato, comida, paisaje, moderno y otros temas. La intensidad es ajustable. Los filtros personalizados son archivos `.fbd` que se cargan con `setFilter`.
+
+### Fondo virtual
+
+Basado en segmentación de retrato en tiempo real:
+
+- **Desenfoque de fondo**: mantiene nítido el sujeto en primer plano y aplica desenfoque gaussiano al fondo
+- **Sustitución de fondo**: cambia el fondo por una imagen JPEG / PNG
+
+### Efectos de sticker
+
+Efectos de sticker 2D y 3D:
+
+- **Stickers de pantalla**: superpuestos en una posición fija del fotograma
+- **Stickers con seguimiento facial**: anclados a puntos clave del rostro y siguen el movimiento de la cabeza
+- **Stickers 3D**: accesorios de malla (gafas, sombreros, máscaras). Requieren el paquete opcional `resource_3d.fbd`; consulta [Paquetes de recursos opcionales](./resource-packs)
+
+Los recursos de sticker (y de filtro) son **archivos `.fbd`**. Aplica un sticker 2D a la vez con `setSticker` y un sticker 3D con `set3DSticker` (ruta o bytes). Quítalos con `clearSticker` / `clear3DSticker`. El nuevo recurso entra en vigor en el siguiente fotograma procesado.
+
+### Funciones avanzadas
+
+- **Callbacks de puntos clave faciales**: cada rostro detectado devuelve **111** landmarks normalizados (más visibilidad, pose e id de rostro) para efectos personalizados y lógica de negocio
+- **Croma**: recorta pantalla verde, azul o roja como máscara de fondo virtual
+
+La disponibilidad de funciones depende del plan de suscripción. Free permite probar la mayoría de los efectos con marca de agua. Consulta [Planes y funciones](./pricing).
+
+---
+
+## Formatos de entrada / salida
+
+### Formatos de imagen
+
+| Tipo | Formatos admitidos |
+| --- | --- |
+| Imágenes estáticas | `JPEG`, `PNG` |
+| Fotogramas de vídeo | `YUV I420`, `NV12`, `NV21`, `RGB`, `RGBA`, `BGR`, `BGRA` |
+| Textura GPU | OpenGL / OpenGL ES `Texture` |
+
+### Límites de resolución
+
+| Escenario | Máximo |
+| --- | --- |
+| Flujo de vídeo en tiempo real | `720P @ 60fps` / `1080P @ 30fps` |
+| Procesamiento de imagen estática | Hasta `4K` |
+
+`ImageFrame` convierte entre estos formatos.
+
+---
+
+## Rendimiento
+
+| Métrica | Valor |
+| --- | --- |
+| Latencia de renderizado | ~`10ms` de media a `1080P` (GPU en paralelo) |
+| Uso de CPU | < `5%` durante el renderizado en tiempo real |
+| Huella de memoria | Principalmente memoria GPU; el uso de RAM del sistema es bajo |
+
+---
+
+## Plataformas admitidas
+
+| Plataforma | SO / versión |
+| --- | --- |
+| Móvil | `iOS 12.0+`, `Android 7.0+` (API 24) |
+| Escritorio | `macOS 10.15+`, `Windows 10+`, `Linux` |
+| Web | Chrome, Firefox, Safari, Edge |
+| Multiplataforma | Flutter (`iOS 12+` / Android API 24) |
+
+---
+
+## Lenguajes e interfaces de integración
+
+| Interfaz | Caso de uso |
+| --- | --- |
+| Java / Kotlin | Aplicaciones Android |
+| Objective-C / Swift | Aplicaciones iOS y macOS |
+| C / C++ | Escritorio (Windows, Linux, macOS) |
+| JavaScript | Web (navegador y Node.js) |
+| Dart | Flutter (iOS / Android) |
+
+---
+
+## Inicio rápido
+
+Elige la plataforma de destino y sigue la guía de integración:
+
+- [Inicio rápido de Android](/es/android/quick-start)
+- [Inicio rápido de iOS](/es/ios/quick-start)
+- [Inicio rápido de macOS](/es/macos/quick-start)
+- [Inicio rápido de Windows](/es/windows/quick-start)
+- [Inicio rápido de Linux](/es/linux/quick-start)
+- [Inicio rápido de Web](/es/web/quick-start)
+- [Inicio rápido de Flutter](/es/flutter/quick-start)

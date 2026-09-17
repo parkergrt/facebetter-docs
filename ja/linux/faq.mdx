@@ -1,0 +1,77 @@
+---
+title: "よくある質問"
+description: "Linux Facebetter SDK 2.0 統合 FAQ"
+---
+
+<Note>
+SDK **2.0.0**。Windows と C++ API を共有します。[パラメータ列挙](/ja/intro/makeup) · [認証とライセンス](/ja/intro/license)。
+</Note>
+
+## 統合
+
+### `Create` が `nullptr` を返す
+
+- `resource_path` は **`resource.fbd` ファイル**である必要があります
+- `license_token` **または**有効な `app_id` + `app_key` を設定します
+- `Create` の前に `SetLogConfig` を呼び出します
+- `libfacebetter.so` を読み込めることを確認します（`ldd your_app`）
+
+### ソースから SDK をコンパイルするには？
+
+```bash
+./scripts/build_linux.sh
+```
+
+`build/linux/release` にインストールされます。`build/` で CMake + Ninja も使えます。デスクトップデモは `demo/cpp` です。
+
+### ヘッダー / リンクエラー
+
+SDK の `include/` をインクルードパスに追加します。`libfacebetter.so` をリンクします。実行時は `LD_LIBRARY_PATH` または rpath を設定します。
+
+### `SetRenderView` がない
+
+iOS / macOS のみです。Linux では `ProcessImage` の出力を自分の GL テクスチャへ貼ります。
+
+## 効果
+
+### 美顔が弱い、またはまったく見えない
+
+`SetBeautyTypeEnabled` はありません。デフォルト強度は `0` です。リシェイプ / メイクには顔検出が必要です。カメラでは `FrameType::Video` を使います。
+
+### リシェイプの方向が逆
+
+範囲は `[-1.0, 1.0]` です。[パラメータ列挙](/ja/intro/makeup) を参照してください。
+
+### フィルター / ステッカーが効かない
+
+`SetFilter` / `SetSticker` に `.fbd` のパスまたはバイトを渡します。
+
+### バーチャル背景 / クロマキー
+
+`SetVirtualBackgroundBlur` / `SetVirtualBackground(path|bytes)` / `ClearVirtualBackground`。キーイング: `SetChromaKey` + similarity / smoothness / desaturation。`ClearChromaKey()` はセグメンテーションを復元します。
+
+## ランタイム
+
+### `libfacebetter.so: cannot open shared object file`
+
+`LD_LIBRARY_PATH`、実行ファイルの隣へコピー、rpath、または `ldconfig`。
+
+### ディスプレイがない / GLFW X11 エラー
+
+グラフィカルセッション、`DISPLAY=:0`、または Wayland。SSH では `ssh -X` が必要です。
+
+### CMake が OpenGL を見つけられない
+
+`libgl1-mesa-dev` / `mesa-libGL-devel` をインストールしてから再構成します。
+
+### ヘッドレスサーバー
+
+OSMesa または EGL を使い、`external_context = true` を設定します。`resource.fbd` と有効な認証は依然として必要です。
+
+## 認証
+
+`license_token` が空でない場合は優先されます（トークン / `{token}` JSON / `.lic`）。それ以外は `app_id` + `app_key` のオンライン v2 です。イベント: `0` / `1` / `100` / `101`。[認証とライセンス](/ja/intro/license) を参照してください。
+
+## バージョン
+
+ドキュメントとリリースは **2.0.0** です。GCC 7+ / Clang 5+、C++17、OpenGL 3.0+。

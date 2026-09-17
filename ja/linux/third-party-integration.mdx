@@ -1,0 +1,62 @@
+---
+title: "サードパーティ連携"
+description: "Linux 上で Facebetter 美顔を TRTC、Agora、LiveKit などのサードパーティ動画パイプラインに接続します"
+---
+
+SDK **2.0.0**。[Windows · サードパーティ連携](/ja/windows/third-party-integration) と**同じ C++ API** と接続方針です。デスクトップ側は多くが **I420 / YUV バッファ**であり、モバイルの OpenGL テクスチャコールバックではありません。
+
+このページは Linux の差分のみです。共通ヘルパー、TRTC / Agora / LiveKit の配線は Windows ページを直接参照してください（ヘッダーとライブラリパスを Linux 成果物に置き換えるだけです）。
+
+```
+Third-party SDK (preprocess callback)
+  I420 planes
+       ↓
+BeautyEffectEngine (external_context = false)
+  CreateWithI420 → ProcessImage → write back to buffer
+```
+
+## Linux の差分
+
+| 項目 | 説明 |
+| --- | --- |
+| ライブラリ | `libfacebetter.so` + `facebetter/*.h` |
+| リンク | [美顔の実装](/ja/linux/implement-beauty) を参照。実行時は `LD_LIBRARY_PATH` / rpath に注意 |
+| GL | ディスプレイがある場合はシステムの GL。ヘッドレスでは OSMesa / EGL（[ベストプラクティス](/ja/linux/best-practices)）。バッファ経路は通常 `external_context = false` |
+| `resource_path` | `resource.fbd` **ファイル**を指す必要があります |
+| コンソールバインド | パッケージ名または実行ファイル名 / プロセス名。[サブスクリプション](/ja/intro/enable-service) を参照 |
+
+エンジン作成の例:
+
+```cpp
+EngineConfig cfg;
+cfg.app_id = "your_app_id";
+cfg.app_key = "your_app_key";
+cfg.resource_path = "/opt/yourapp/resource/resource.fbd";
+cfg.external_context = false;
+auto engine = BeautyEffectEngine::Create(cfg);
+```
+
+I420 共通処理関数とベンダーフックポイント: **完全なコピーは [Windows · サードパーティ連携](/ja/windows/third-party-integration)**（`ProcessI420InPlace`、TRTC Buffer、Agora `IVideoFrameObserver`、LiveKit カスタム動画ソース）。
+
+## ベンダー早見
+
+| ベンダー | Linux の注意 |
+| --- | --- |
+| **TRTC** | PC は **Buffer / I420** のみ。Android Texture 経路を流用しない |
+| **Agora** | C++ `registerVideoFrameObserver`、ReadWrite + I420 プレーナーのその場処理 |
+| **LiveKit** | カスタム動画ソースでフレームを送出。ヘッドレスサーバーではキャプチャと GL/ソフトウェア経路を確認 |
+
+## トラブルシューティング
+
+| 症状 | 確認 |
+| --- | --- |
+| `.so` が見つからない | `LD_LIBRARY_PATH`、rpath、実行ファイルと同じアーキテクチャか |
+| `Create` 失敗 | `.fbd` パス、認証、ヘッドレス環境の GL / OSMesa |
+| その他 | [Windows の切り分け](/ja/windows/third-party-integration#トラブルシューティング) と同じ |
+
+## 関連ドキュメント
+
+- [Windows · サードパーティ連携](/ja/windows/third-party-integration)（主ドキュメント）
+- [美顔の実装](/ja/linux/implement-beauty)
+- [ベストプラクティス](/ja/linux/best-practices)
+- [API リファレンス](/ja/linux/api-reference)

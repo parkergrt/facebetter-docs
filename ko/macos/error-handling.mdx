@@ -1,0 +1,178 @@
+---
+title: "오류 처리"
+description: "macOS Facebetter SDK 2.0 오류 처리"
+---
+
+<Note>
+이 페이지는 SDK **2.0.0**에 해당합니다. 인증: [인증 및 라이선스](/ko/intro/license).
+</Note>
+
+## 오류 코드 (`FBErrorCode`)
+
+Setter API는 `int`를 반환합니다. `0`이 성공입니다. `createEngineWithConfig:`와 `processImage:`는 객체를 반환합니다(실패 시 `nil`).
+
+| 값 | 심볼 | 의미 |
+| --- | --- | --- |
+| `0` | `FBErrorCode_Success` | 성공 |
+| `-1` | `FBErrorCode_InvalidArgument` | 잘못된 인자(nil 설정, 빈 경로, 범위 밖 값, …) |
+| `-2` | `FBErrorCode_NotInitialized` | 엔진이 초기화되지 않음 |
+| `-3` | `FBErrorCode_License` | 라이선스 / 인증 실패 |
+| `-4` | `FBErrorCode_Unsupported` | 미지원 형식, 플랫폼 또는 기능 |
+| `-5` | `FBErrorCode_IO` | 파일 / 리소스 I/O 오류 |
+| `-6` | `FBErrorCode_NoSlot` | 사용 가능한 슬롯 없음(예: 얼굴이 너무 많음) |
+| `-7` | `FBErrorCode_Process` | 프레임 처리 실패 |
+| `-8` | `FBErrorCode_OutOfMemory` | 메모리 부족 |
+
+```objc
+typedef NS_ENUM(NSInteger, FBErrorCode) {
+  FBErrorCode_Success = 0,
+  FBErrorCode_InvalidArgument = -1,
+  FBErrorCode_NotInitialized = -2,
+  FBErrorCode_License = -3,
+  FBErrorCode_Unsupported = -4,
+  FBErrorCode_IO = -5,
+  FBErrorCode_NoSlot = -6,
+  FBErrorCode_Process = -7,
+  FBErrorCode_OutOfMemory = -8,
+};
+```
+
+## 반환 값 확인
+
+```objc
+FBLogConfig *logConfig = [[FBLogConfig alloc] init];
+logConfig.consoleEnabled = YES;
+logConfig.level = FBLogLevel_Info;
+int logRet = [FBBeautyEffectEngine setLogConfig:logConfig];
+if (logRet != FBErrorCode_Success) {
+  NSLog(@"setLogConfig failed: %d", logRet);
+}
+
+FBEngineConfig *config = [[FBEngineConfig alloc] init];
+config.appId = @"your_app_id";
+config.appKey = @"your_app_key";
+self.engine = [FBBeautyEffectEngine createEngineWithConfig:config];
+if (self.engine == nil) {
+  NSLog(@"Failed to create engine (check license, Bundle ID, network, and logs)");
+  return;
+}
+
+int ret = [self.engine setSmoothing:0.5f];
+if (ret != FBErrorCode_Success) {
+  NSLog(@"setSmoothing failed: %d", ret);
+}
+```
+
+코드를 한곳에서 매핑하세요.
+
+```objc
+NSString *FBErrorMessage(int code) {
+  switch (code) {
+    case FBErrorCode_Success: return @"success";
+    case FBErrorCode_InvalidArgument: return @"invalid argument";
+    case FBErrorCode_NotInitialized: return @"engine not initialized";
+    case FBErrorCode_License: return @"license / auth failure";
+    case FBErrorCode_Unsupported: return @"unsupported";
+    case FBErrorCode_IO: return @"I/O error";
+    case FBErrorCode_NoSlot: return @"no available slot";
+    case FBErrorCode_Process: return @"process failed";
+    case FBErrorCode_OutOfMemory: return @"out of memory";
+    default: return [NSString stringWithFormat:@"unknown (%d)", code];
+  }
+}
+```
+
+## 엔진 이벤트
+
+`FBEngineCallbacks.onEngineEvent`는 라이선스와 초기화를 비동기로 보고합니다. 엔진을 만든 직후 콜백을 설정하세요.
+
+| 코드 | 심볼 | 의미 |
+| --- | --- | --- |
+| `0` | `FBEngineEventCodeLicenseValidationSuccess` | 라이선스 성공 |
+| `1` | `FBEngineEventCodeLicenseValidationFailed` | 라이선스 실패 |
+| `100` | `FBEngineEventCodeInitializationComplete` | 초기화 완료 |
+| `101` | `FBEngineEventCodeInitializationFailed` | 초기화 실패 |
+
+```objc
+FBEngineCallbacks *callbacks = [[FBEngineCallbacks alloc] init];
+callbacks.onEngineEvent = ^(FBEngineEventCode code, NSString * _Nullable message) {
+  switch (code) {
+    case FBEngineEventCodeLicenseValidationFailed:
+      NSLog(@"License failed: %@", message);
+      break;
+    case FBEngineEventCodeInitializationFailed:
+      NSLog(@"Init failed: %@", message);
+      break;
+    default:
+      break;
+  }
+};
+[self.engine setCallbacks:callbacks];
+```
+
+<Tip>
+`createEngineWithConfig:`가 nil이 아닌 인스턴스를 반환하는 것이 이벤트 `1` / `101` 수신을 대체하지는 않습니다. 온라인 인증은 생성 후에도 실패할 수 있습니다.
+</Tip>
+
+## 이미지 처리
+
+프레임을 검증하고 `type`을 설정한 뒤, `nil` 반환을 `FBErrorCode_Process`로 다루세요. macOS는 더 큰 정지 이미지를 처리할 수 있지만, 크기가 0인 버퍼는 거부하세요.
+
+```objc
+- (FBImageFrame *)processSafely:(FBImageFrame *)input {
+  if (input == nil || input.width <= 0 || input.height <= 0) {
+    NSLog(@"Invalid FBImageFrame");
+    return nil;
+  }
+  input.type = FBFrameTypeVideo;
+  FBImageFrame *output = [self.engine processImage:input];
+  if (output == nil) {
+    NSLog(@"processImage returned nil");
+  }
+  return output;
+}
+```
+
+저장은 `toFile:`을 사용합니다(`FBErrorCode` 반환):
+
+```objc
+int saved = [output toFile:path quality:90];
+if (saved != FBErrorCode_Success) {
+  NSLog(@"toFile failed: %d", saved);
+}
+```
+
+`createWithNSImage:`는 `NSImage`에 비트맵 표현이 없으면 `nil`을 반환합니다.
+
+## 로깅
+
+엔진을 만들기 **전에** 로그를 켜세요. 파일을 쓰면 로그 디렉터리를 만드세요. 샌드박스 Mac 앱에서는 임의의 경로가 아니라 컨테이너(예: Application Support) 아래에 쓰세요.
+
+```objc
+NSString *logPath = [NSTemporaryDirectory() stringByAppendingPathComponent:@"facebetter.log"];
+NSString *logDir = [logPath stringByDeletingLastPathComponent];
+[[NSFileManager defaultManager] createDirectoryAtPath:logDir
+                          withIntermediateDirectories:YES
+                                           attributes:nil
+                                                error:nil];
+
+FBLogConfig *logConfig = [[FBLogConfig alloc] init];
+logConfig.consoleEnabled = YES;
+logConfig.fileEnabled = YES;
+logConfig.level = FBLogLevel_Debug;
+logConfig.fileName = logPath;
+[FBBeautyEffectEngine setLogConfig:logConfig];
+```
+
+## macOS 전용 실패
+
+- **App Sandbox**: 온라인 `appId` / `appKey`를 위해 아웃바운드 네트워크를 켜세요. 사용자가 선택한 파일에는 security-scoped bookmark가 필요합니다(`startAccessingSecurityScopedResource`).
+- **`-5` I/O**: `.fbd` / 배경 이미지가 샌드박스 밖에 있거나 bookmark가 시작되지 않음.
+- **CLI 도구**: Bundle ID가 없으면 대시보드에서 프로세스 이름을 바인딩하세요.
+- **외부 GL**: `externalContext = YES`이면 같은 OpenGL 스레드에서 생성하고 처리하세요.
+
+## 실무 점검
+
+- **`-1` 잘못된 인자**: 빈 `.fbd` 경로, nil `NSData`, 문서화된 범위 밖 강도, 또는 nil 설정.
+- **`-2` 미초기화**: 실패한 `createEngineWithConfig:` 이후 setter 호출(인스턴스가 `nil`).
+- **`-3` 라이선스**: 잘못된 자격 증명, 바인딩되지 않은 Bundle ID, 만료된 토큰, 또는 샌드박스가 인증 요청을 차단. [인증 및 라이선스](/ko/intro/license)를 참고하세요.

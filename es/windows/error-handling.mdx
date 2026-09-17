@@ -1,0 +1,167 @@
+---
+title: "Manejo de errores"
+description: "Códigos de error del SDK Facebetter 2.0 y solución de problemas en Windows"
+---
+
+<Note>
+SDK **2.0.0**. Detalles de autenticación: [Autenticación y licencia](/es/intro/license).
+</Note>
+
+## Valores de retorno
+
+La mayoría de los setters devuelven `int`:
+
+| Código | Significado |
+| --- | --- |
+| `0` | Correcto |
+| `-1` | Argumento no válido |
+| `-2` | No inicializado |
+| `-3` | Licencia |
+| `-4` | No admitido |
+| `-5` | E/S |
+| `-6` | Sin slot |
+| `-7` | Fallo de proceso |
+| `-8` | Memoria insuficiente |
+
+`BeautyEffectEngine::Create()` devuelve `std::shared_ptr`; el fallo es `nullptr`. `ProcessImage` puede devolver `nullptr` si falla.
+
+```cpp
+int ret = engine->SetSmoothing(0.5f);
+if (ret != 0) {
+    std::cerr << "SetSmoothing failed: " << ret << std::endl;
+}
+```
+
+## Eventos del motor
+
+Registra `on_engine_event` después de `Create`. Códigos:
+
+| Código | Significado |
+| --- | --- |
+| `0` | Licencia correcta |
+| `1` | Licencia fallida |
+| `100` | Init completo |
+| `101` | Init fallido |
+
+La cadena `message` aporta detalle extra en los fallos.
+
+```cpp
+EngineCallbacks cbs;
+cbs.on_engine_event = [](int code, const std::string& message) {
+    if (code == 1 || code == 101) {
+        std::cerr << "engine event " << code << ": " << message << std::endl;
+    }
+};
+engine->SetCallbacks(cbs);
+```
+
+---
+
+## Fallos habituales
+
+### 1. `Create` devuelve `nullptr`
+
+Causas habituales:
+
+- `resource_path` es un directorio, falta o no es el **archivo** `resource.fbd`
+- `app_id` + `app_key` no válido / inactivo, o `license_token` incorrecto
+- Falta `facebetter.dll` o no coincide con `facebetter.lib`
+- La autenticación en línea no puede alcanzar `/facebetter/v2/auth`
+
+Activa logs **antes** de `Create`:
+
+```cpp
+LogConfig log_cfg;
+log_cfg.console_enabled = true;
+log_cfg.level = LogLevel::Debug;
+BeautyEffectEngine::SetLogConfig(log_cfg);
+
+EngineConfig cfg;
+cfg.app_id = "your_app_id";
+cfg.app_key = "your_app_key";
+cfg.resource_path =
+    (std::filesystem::current_path() / "resource" / "resource.fbd").string();
+
+auto engine = BeautyEffectEngine::Create(cfg);
+if (!engine) {
+    std::cerr << "Create failed — check logs, resource.fbd, and license." << std::endl;
+    return -1;
+}
+```
+
+---
+
+### 2. No se encuentra `facebetter.dll`
+
+Windows muestra un diálogo si la DLL no está en la ruta del loader.
+
+```bat
+dir build\facebetter.dll
+copy sdk\lib\facebetter.dll build\
+```
+
+O recompila para que CMake la copie junto al ejecutable.
+
+---
+
+### 3. `ProcessImage` devuelve `nullptr`
+
+Revisa el fotograma de entrada, el puntero del motor y los logs (`-7` proceso / `-8` OOM en setters).
+
+```cpp
+auto input = ImageFrame::CreateWithFile("input.jpg");
+if (!input || !input->Data()) {
+    std::cerr << "Failed to load input." << std::endl;
+    return;
+}
+input->type = FrameType::Image;
+auto output = engine->ProcessImage(input);
+if (!output || !output->Data()) {
+    std::cerr << "ProcessImage failed." << std::endl;
+}
+```
+
+---
+
+### 4. Los efectos se ven igual
+
+2.0 **no** usa `SetBeautyTypeEnabled`. Los efectos están desactivados con intensidad `0`. El remodelado / maquillaje también necesitan un rostro detectado.
+
+```cpp
+engine->SetSmoothing(0.5f);
+engine->SetReshape(Reshape::FaceThin, 0.3f);
+engine->SetLipstick(0.5f);
+input->type = FrameType::Video;
+```
+
+---
+
+### 5. OpenGL / visualización
+
+GLFW o `gladLoadGLLoader` pueden fallar con drivers antiguos, VMs o Remote Desktop sin GPU.
+
+```cpp
+if (!glfwInit()) {
+    std::cerr << "GLFW init failed." << std::endl;
+    return 1;
+}
+glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
+```
+
+Si tu app ya posee el contexto GL, configura `EngineConfig::external_context = true` y llama a `ProcessImage` en ese hilo.
+
+---
+
+## Logs de depuración
+
+```cpp
+LogConfig log_cfg;
+log_cfg.console_enabled = true;
+log_cfg.file_enabled = true;
+log_cfg.level = LogLevel::Debug;
+log_cfg.file_name = "facebetter.log";
+BeautyEffectEngine::SetLogConfig(log_cfg);
+```
+
+El archivo se escribe relativo al directorio de trabajo actual, salvo que pases un `file_name` absoluto.

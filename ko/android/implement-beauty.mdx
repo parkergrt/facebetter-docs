@@ -1,0 +1,464 @@
+---
+title: "뷰티 효과 적용"
+description: "Android에서 Facebetter SDK 2.0을 통합합니다"
+---
+
+## SDK 추가
+
+### 방법 A: Maven (권장)
+
+프로젝트 `build.gradle` / `settings.gradle` repositories:
+
+```groovy
+repositories {
+    mavenCentral()
+}
+```
+
+모듈 `build.gradle`:
+
+```groovy
+dependencies {
+    implementation 'net.pixpark:facebetter:2.0.0'
+}
+```
+
+**Version Catalog** (`gradle/libs.versions.toml`):
+
+```toml
+[versions]
+facebetter = "2.0.0"
+
+[libraries]
+facebetter = { group = "net.pixpark", name = "facebetter", version.ref = "facebetter" }
+```
+
+```groovy
+dependencies {
+    implementation libs.facebetter
+}
+```
+
+### 방법 B: 로컬 AAR
+
+[다운로드](https://facebetter.net/ko/download)에서 SDK를 받아 `facebetter.aar`를 `libs/`에 복사한 뒤:
+
+```groovy
+dependencies {
+    implementation files('libs/facebetter.aar')
+    implementation libs.appcompat
+    implementation libs.material
+}
+```
+
+### 권한
+
+`AndroidManifest.xml`:
+
+```xml
+<!-- Required for online auth (appId + appKey → /facebetter/v2/auth) -->
+<uses-permission android:name="android.permission.INTERNET" />
+<uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+
+<!-- Optional: only if you write SDK logs outside app storage -->
+<uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+<uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+
+<!-- Optional: camera preview / live beauty -->
+<uses-permission android:name="android.permission.CAMERA" />
+```
+
+| 권한 | 시기 |
+| --- | --- |
+| 네트워크 | 온라인 `appId` + `appKey`에 필요. 오프라인 `licenseToken`은 검증에 네트워크가 필요 없음 |
+| 저장소 | `LogConfig.fileEnabled`가 앱 디렉터리 밖에 쓸 때만 |
+| 카메라 | 라이브 프레임을 캡처할 때만 |
+
+API 23+에서는 런타임에 `CAMERA`를 요청하세요.
+
+## 가져오기
+
+```java
+import net.pixpark.facebetter.BeautyEffectEngine;
+import net.pixpark.facebetter.BeautyParams.*;
+import net.pixpark.facebetter.EngineCallbacks;
+import net.pixpark.facebetter.EngineEventCode;
+import net.pixpark.facebetter.EngineStats;
+import net.pixpark.facebetter.ErrorCode;
+import net.pixpark.facebetter.ImageFrame;
+```
+
+## 로깅
+
+로깅은 기본적으로 꺼져 있습니다. `new BeautyEffectEngine(...)` **전에** 켜세요.
+
+<Warning>
+엔진을 생성하기 전에 `setLogConfig`를 호출하세요. 그렇지 않으면 초기화 로그를 놓칩니다.
+</Warning>
+
+```java
+BeautyEffectEngine.LogConfig logConfig = new BeautyEffectEngine.LogConfig();
+logConfig.consoleEnabled = true;
+logConfig.fileEnabled = true;
+logConfig.level = BeautyEffectEngine.LogLevel.INFO;
+logConfig.fileName = getFilesDir() + "/facebetter.log";
+BeautyEffectEngine.setLogConfig(logConfig);
+```
+
+## 엔진 생성
+
+자격 증명: [구독](/ko/intro/enable-service#get-appid-and-appkey). 인증 세부 사항: [인증 및 라이선스](/ko/intro/license).
+
+`licenseToken`이 비어 있지 않으면 사용됩니다(라이선스 토큰 / `{token}` JSON / 오프라인 `.lic`). 그렇지 않으면 `appId` + `appKey`가 `/facebetter/v2/auth`를 호출합니다.
+
+```java
+BeautyEffectEngine.EngineConfig config = new BeautyEffectEngine.EngineConfig();
+config.appId = "your appId";
+config.appKey = "your appKey";
+// config.licenseToken = "/* license token, {token} JSON, or .lic contents */";
+// config.externalContext = false;
+
+BeautyEffectEngine engine;
+try {
+    engine = new BeautyEffectEngine(this, config);
+} catch (IllegalArgumentException e) {
+    Log.e(TAG, "Invalid EngineConfig", e);
+    return;
+}
+```
+
+생성자는 `null`을 반환하지 않습니다. `config`가 유효하지 않으면 예외를 던집니다. 비동기 초기화는 콜백에서 `EngineEventCode.INITIALIZATION_COMPLETE` / `INITIALIZATION_FAILED`를 확인하세요.
+
+## 뷰티
+
+강도 `[0.0, 1.0]`. `0`은 효과를 끕니다. `ErrorCode.SUCCESS`(`0`)를 확인하세요.
+
+```java
+engine.setSmoothing(0.5f);
+engine.setSmoothingStyle(SmoothingStyle.NATURAL);
+engine.setWhitening(0.3f);
+engine.setWhiteningStyle(WhiteningStyle.COLD_WHITE);
+engine.setSharpening(0.2f);
+engine.setRosiness(0.15f);
+engine.setBeautySkinOnly(true);
+```
+
+<Tip>
+`setBeautySkinOnly(true)`이면 스무딩 / 화이트닝 / 샤프닝 / 로지니스가 감지된 피부에만 적용됩니다. 옷과 배경은 그대로입니다.
+</Tip>
+
+스타일: [파라미터 열거형](/ko/intro/makeup).
+
+## 리셰이프
+
+범위 **`[-1.0, 1.0]`**. `0`은 꺼짐입니다.
+
+```java
+engine.setReshape(Reshape.FACE_THIN, 0.4f);
+engine.setReshape(Reshape.EYE_SIZE, 0.3f);
+engine.setReshape(Reshape.CHIN, -0.2f);
+```
+
+26개 파라미터 전체(`FACE_THIN` … `BROW_THICKNESS`)와 양/음 방향: [파라미터 열거형](/ko/intro/makeup).
+
+## 메이크업
+
+강도를 설정한 뒤 스타일 및/또는 색상을 설정합니다.
+
+```java
+engine.setLipstick(0.6f);
+engine.setLipstickColor(LipstickColor.ROUGE);
+
+engine.setBlush(0.4f);
+engine.setBlushStyle(BlushStyle.SUN_KISSED);
+engine.setBlushColor(BlushColor.CORAL_PINK);
+
+engine.setContour(0.35f);
+engine.setContourStyle(ContourStyle.NATURAL);
+
+engine.setEyeShadow(0.45f);
+engine.setEyeShadowStyle(EyeShadowStyle.SOFT);
+engine.setEyeShadowColor(EyeShadowColor.PLUM);
+
+engine.setEyeLiner(0.4f);
+engine.setEyeLinerStyle(EyeLinerStyle.CLASSIC);
+
+engine.setEyebrow(0.35f);
+engine.setEyebrowStyle(EyebrowStyle.NATURAL);
+
+engine.setEyelash(0.4f);
+engine.setEyelashStyle(EyelashStyle.CLASSIC);
+
+engine.setPupil(0.3f);
+engine.setPupilColor(PupilColor.HAZEL);
+```
+
+전체 프리셋 목록: [파라미터 열거형](/ko/intro/makeup).
+
+## 가상 배경과 크로마키
+
+블러(`0`은 지움), 정지 이미지, 또는 크로마키 마스크 + 채우기.
+
+```java
+engine.setVirtualBackgroundBlur(0.6f);
+
+int ret = engine.setVirtualBackground("/sdcard/bg.jpg");
+if (ret != ErrorCode.SUCCESS) {
+    Log.e(TAG, "setVirtualBackground failed: " + ret);
+}
+
+byte[] png = loadAssetBytes("backgrounds/office.png");
+engine.setVirtualBackground(png);
+
+engine.setChromaKey(ChromaKeyColor.GREEN);
+engine.setChromaKeySimilarity(0.4f);
+engine.setChromaKeySmoothness(0.3f);
+engine.setChromaKeyDesaturation(0.2f);
+
+engine.clearChromaKey();
+engine.clearVirtualBackground();
+```
+
+`clearChromaKey()`는 인물 세그멘테이션을 복원하며 현재 블러/이미지 채우기는 **제거하지 않습니다**.
+
+## 필터와 스티커
+
+파일 경로 또는 `assets`에서 `.fbd`를 로드합니다. 등록 단계는 없습니다.
+
+```java
+engine.setFilter(getFilesDir() + "/filters/vivid.fbd");
+engine.setFilterIntensity(0.8f);
+
+byte[] lut = loadAssetBytes("filters/vivid.fbd");
+engine.setFilter(lut);
+
+engine.clearFilter();
+
+engine.setSticker(getFilesDir() + "/stickers/cherry.fbd");
+byte[] sticker = loadAssetBytes("stickers/cherry.fbd");
+engine.setSticker(sticker);
+engine.clearSticker();
+```
+
+3D 스티커는 선택 `resource_3d.fbd` 팩이 필요합니다(AAR에 없음). [선택 리소스 팩](/ko/intro/resource-packs)을 참고하세요. 앱 assets에서 등록한 뒤 3D 스티커 `.fbd`를 적용합니다.
+
+```java
+engine.addResourcePack(loadAssetBytes("resource_3d.fbd"));
+engine.set3DSticker(loadAssetBytes("stickers/3d/oculos.fbd"));
+engine.clear3DSticker();
+```
+
+필터 / 스티커 변경은 다음 `processImage`에서 적용됩니다.
+
+```java
+private byte[] loadAssetBytes(String path) throws IOException {
+    try (InputStream in = getAssets().open(path);
+         ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+        byte[] buf = new byte[4096];
+        int n;
+        while ((n = in.read(buf)) >= 0) {
+            out.write(buf, 0, n);
+        }
+        return out.toByteArray();
+    }
+}
+```
+
+## 콜백과 통계
+
+```java
+EngineCallbacks callbacks = new EngineCallbacks();
+callbacks.onEngineEvent = (code, message) -> {
+    switch (code) {
+        case EngineEventCode.LICENSE_VALIDATION_SUCCESS:
+            Log.d(TAG, "License OK");
+            break;
+        case EngineEventCode.LICENSE_VALIDATION_FAILED:
+            Log.e(TAG, "License failed: " + message);
+            break;
+        case EngineEventCode.INITIALIZATION_COMPLETE:
+            Log.d(TAG, "Engine ready");
+            break;
+        case EngineEventCode.INITIALIZATION_FAILED:
+            Log.e(TAG, "Init failed: " + message);
+            break;
+        default:
+            break;
+    }
+};
+callbacks.onFaceLandmarks = results -> {
+    Log.d(TAG, "faces=" + results.size());
+};
+engine.setCallbacks(callbacks);
+
+EngineStats stats = engine.getStats();
+Log.d(TAG, "fps=" + stats.fps + " avgMs=" + stats.avgProcessTimeMs
+    + " sessionS=" + stats.sessionTimeS);
+```
+
+## 프레임 처리
+
+<Warning>
+생성한 모든 프레임(및 `processImage` 출력)에서 `ImageFrame.release()`를 호출하세요. 건너뛰면 네이티브 메모리가 누수됩니다.
+</Warning>
+
+`ImageFrame.type`을 `FrameType.IMAGE`(정지) 또는 `FrameType.VIDEO`(카메라 / 라이브)로 설정합니다. `processImage`는 프레임만 받으며 추가 모드 인자는 없습니다.
+
+```java
+ByteBuffer data = ByteBuffer.allocateDirect(width * height * 4);
+ImageFrame input = ImageFrame.createWithRGBA(data, width, height, width * 4);
+input.type = ImageFrame.FrameType.VIDEO;
+ImageFrame output = engine.processImage(input);
+```
+
+파일 또는 `Bitmap`에서:
+
+```java
+ImageFrame input = ImageFrame.createWithFile("/sdcard/photo.jpg");
+input.type = ImageFrame.FrameType.IMAGE;
+ImageFrame output = engine.processImage(input);
+Bitmap preview = output.toBitmap();
+```
+
+카메라 센서가 회전되어 있으면 처리 전에 회전 / 미러합니다.
+
+```java
+input.rotate(ImageFrame.Rotation.ROTATION_90);
+input.mirror("horizontal");
+```
+
+<Tip>
+엔진은 입력과 출력 픽셀 형식을 맞춥니다(NV21 in → NV21 out, RGBA in → RGBA out).
+</Tip>
+
+픽셀은 `getData()` / 평면 접근자로 읽거나 변환합니다.
+
+```java
+ImageFrame rgba = output.convert(ImageFrame.Format.RGBA);
+ByteBuffer pixels = rgba.getData();
+int w = rgba.getWidth();
+int h = rgba.getHeight();
+int stride = rgba.getStride();
+rgba.release();
+
+ImageFrame i420 = output.convert(ImageFrame.Format.I420);
+ByteBuffer y = i420.getDataY();
+ByteBuffer u = i420.getDataU();
+ByteBuffer v = i420.getDataV();
+i420.release();
+```
+
+## 카메라 파이프라인
+
+일반적인 Camera2 `YUV_420_888` → 엔진 → 표시:
+
+```java
+Image.Plane[] planes = image.getPlanes();
+ImageFrame input = ImageFrame.createWithAndroid420(
+    image.getWidth(), image.getHeight(),
+    planes[0].getBuffer(), planes[0].getRowStride(),
+    planes[1].getBuffer(), planes[1].getRowStride(),
+    planes[2].getBuffer(), planes[2].getRowStride(),
+    planes[1].getPixelStride());
+if (input == null) {
+    image.close();
+    return;
+}
+if (isFrontCamera) {
+    input.rotate(ImageFrame.Rotation.ROTATION_270);
+    input.mirror("horizontal");
+} else {
+    input.rotate(ImageFrame.Rotation.ROTATION_90);
+}
+input.type = ImageFrame.FrameType.VIDEO;
+ImageFrame output = engine.processImage(input);
+image.close();
+```
+
+## 외부 텍스처 (OpenGL ES) {#external-texture-opengl-es}
+
+<Warning>
+GL 스레드에서 `externalContext = true`로 엔진을 만드세요. 입력과 출력 텍스처는 해당 컨텍스트를 공유해야 합니다.
+</Warning>
+
+이미 OpenGL ES로 렌더링하고 CPU round-trip을 피하고 싶을 때 사용합니다.
+
+```java
+BeautyEffectEngine.EngineConfig config = new BeautyEffectEngine.EngineConfig();
+config.appId = "your appId";
+config.appKey = "your appKey";
+config.externalContext = true;
+BeautyEffectEngine engine = new BeautyEffectEngine(context, config);
+engine.setSmoothing(0.5f);
+```
+
+```java
+int stride = srcWidth * 4;
+ImageFrame input = ImageFrame.createWithTexture(srcTextureId, srcWidth, srcHeight, stride);
+if (input == null) {
+    return;
+}
+input.type = ImageFrame.FrameType.VIDEO;
+ImageFrame output = engine.processImage(input);
+if (output == null) {
+    input.release();
+    return;
+}
+int dstTextureId = output.getTexture();
+int dstWidth = output.getWidth();
+int dstHeight = output.getHeight();
+output.release();
+input.release();
+```
+
+입력 `GL_TEXTURE_2D`의 권장 샘플러 상태:
+
+```java
+GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_MIN_FILTER, GLES20.GL_LINEAR);
+GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_MAG_FILTER, GLES20.GL_LINEAR);
+GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_WRAP_S, GLES20.GL_CLAMP_TO_EDGE);
+GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_WRAP_T, GLES20.GL_CLAMP_TO_EDGE);
+```
+
+참고:
+
+- 입력 텍스처: `GL_TEXTURE_2D`, 보통 RGBA; `stride`는 보통 `width * 4`
+- 첫 GL 콜백에서 엔진을 지연 생성하여 컨텍스트가 current인지 확인
+- 출력 텍스처는 SDK가 소유합니다. `glDeleteTextures`를 호출하지 마세요. `ImageFrame`은 release
+- GL 컨텍스트가 손실되면 엔진을 `release()`하고 새 컨텍스트에서 다시 생성
+- 라이브 GL 파이프라인에는 `FrameType.VIDEO`를 사용
+- TRTC / Agora / LiveKit 및 유사 SDK: [서드파티 연동](/ko/android/third-party-integration)
+
+## 라이프사이클
+
+<Warning>
+`onDestroy` / `onDetach`에서 `engine.release()`를 호출하세요. 해제하지 않으면 GPU와 네이티브 메모리가 누수됩니다.
+</Warning>
+
+```java
+@Override
+protected void onDestroy() {
+    super.onDestroy();
+    if (mBeautyEngine != null) {
+        mBeautyEngine.release();
+        mBeautyEngine = null;
+    }
+}
+```
+
+```java
+if (input != null) {
+    input.release();
+}
+if (output != null) {
+    output.release();
+}
+```
+
+## 관련 문서
+
+- [서드파티 연동](/ko/android/third-party-integration)
+- [권장 사항](/ko/android/best-practices)
+- [오류 처리](/ko/android/error-handling)
+- [FAQ](/ko/android/faq)
+- [API 레퍼런스](/ko/android/api-reference)

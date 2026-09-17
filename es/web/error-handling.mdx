@@ -1,0 +1,93 @@
+---
+title: "Manejo de errores"
+description: "Errores del SDK Web Facebetter 2.0"
+---
+
+<Note>
+SDK **2.0.0**. Fallos de autenticación: [Autenticación y licencia](/es/intro/license).
+</Note>
+
+Las llamadas fallidas lanzan `FacebetterError`. Los valores numéricos de `code` se listan abajo. Algunos fallos de carga / autenticación usan un `code` de **cadena**.
+
+```javascript
+import { BeautyEffectEngine, EngineConfig, FacebetterError } from 'facebetter';
+
+try {
+  const licenseToken = await fetch('/api/facebetter/auth', { method: 'POST' }).then((r) => r.text());
+  const engine = new BeautyEffectEngine(new EngineConfig({ licenseToken }));
+  await engine.init();
+  engine.setSmoothing(0.5);
+} catch (error) {
+  if (error instanceof FacebetterError) {
+    console.error(error.code, error.message);
+  } else {
+    console.error(error);
+  }
+}
+```
+
+## Códigos numéricos
+
+| Código | Significado |
+| --- | --- |
+| `0` | Correcto (`checkResult` no lanza) |
+| `-1` | Argumento no válido (null, ruta vacía, intensidad fuera de rango, …) |
+| `-2` | Motor no inicializado o ya destruido |
+| `-3` | Licencia no válida |
+| `-4` | Plataforma / formato no admitidos |
+| `-5` | E/S (archivo de recurso / filtro / sticker / fondo) |
+| `-6` | Pool de slots lleno (contrapresión; descarta el fotograma) |
+| `-7` | Falló el procesamiento |
+| `-8` | Memoria insuficiente |
+
+## Códigos de la capa JavaScript (cadena)
+
+Se lanzan durante `init()` / carga / autenticación:
+
+| `error.code` | Cuándo |
+| --- | --- |
+| `'TIMEOUT'` | `init()` agotó el tiempo |
+| `'NETWORK_ERROR'` | Fallo de fetch / red |
+| `'WASM_LOAD_ERROR'` | El SDK no pudo cargar (red, CDN o bloqueador de anuncios) |
+| `'LICENSE_ERROR'` | Falta `licenseToken`, o el token fue rechazado |
+| `'ENGINE_CREATE_FAILED'` | Falló la creación del motor |
+| `'UNKNOWN_ERROR'` | Excepción JS no clasificada envuelta como `FacebetterError` |
+
+```javascript
+try {
+  await engine.init({ timeout: 30000 });
+} catch (error) {
+  if (!(error instanceof FacebetterError)) throw error;
+  if (error.code === 'LICENSE_ERROR' || error.code === -3) {
+    // token missing, expired, or domain not bound — see /es/intro/license
+  } else if (error.code === 'WASM_LOAD_ERROR' || error.code === 'TIMEOUT') {
+    // network, CDN, or ad blocker
+  }
+}
+```
+
+## Lista de comprobación de init
+
+1. La config es válida: `licenseToken` no vacío.
+2. El SDK puede descargar sus archivos de runtime (paquete npm, o archivos junto al script UMD).
+3. La página es un [contexto seguro](https://developer.mozilla.org/es/docs/Web/Security/Secure_Contexts).
+4. El dominio de la Consola coincide con el origin de la página (producción).
+5. Producción **no** incrusta `appKey` en el JS del frontend.
+
+## Errores de parámetros y de proceso
+
+Las intensidades de belleza deben ser `[0.0, 1.0]`. El remodelado debe ser `[-1.0, 1.0]`. Fuera de rango lanza `FacebetterError` antes de la llamada nativa.
+
+`processImage` lanza si el motor no está inicializado, no se pueden asignar buffers o el proceso nativo devuelve un estado distinto de cero. Valida el `readyState` del vídeo y que `videoWidth` / `videoHeight` no sean cero antes de llamar.
+
+Las **rutas** vacías de filtro / sticker / fondo se rechazan; usa `clearFilter()`, `clearSticker()` o `clearVirtualBackground()`.
+
+## Eventos del motor frente a excepciones
+
+La autenticación / init también pueden llegar en `onEngineEvent` (`EngineEventCode` `0` / `1` / `100` / `101`) después de que `init()` ya se haya resuelto. Escucha `LicenseValidationFailed` e `InitializationFailed` aunque `init()` no haya lanzado.
+
+## Relacionado
+
+- [Implementar belleza](/es/web/implement-beauty)
+- [Preguntas frecuentes](/es/web/faq)
+- [Referencia de la API](/es/web/api-reference)

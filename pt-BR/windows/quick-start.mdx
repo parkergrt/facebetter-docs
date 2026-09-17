@@ -1,0 +1,126 @@
+---
+title: "Início rápido"
+description: "Compile e execute o demo desktop C++ do Facebetter no Windows (GLFW + ImGui)"
+---
+
+<Note>
+Esta página corresponde ao SDK **2.0.0**. Windows e Linux compartilham a mesma API C++ no namespace `facebetter` (`facebetter/*.h`).
+</Note>
+
+Este guia compila o demo desktop C++ do Facebetter no Windows. O demo usa **GLFW + Dear ImGui + OpenGL 3**: prévia ao vivo à esquerda, controles de beleza à direita.
+
+## Requisitos
+
+| Ferramenta | Versão |
+| --- | --- |
+| Visual Studio / MSVC | 2019 ou posterior (C++17) |
+| CMake | 3.16+ |
+| Ninja | Qualquer versão recente (`winget install Ninja-build.Ninja`) |
+| Windows SDK | 10.0+ |
+
+<Tip>
+MinGW-w64 também funciona, mas o MSVC é o recomendado.
+</Tip>
+
+## Passo 1: Clonar o repositório
+
+```bash
+git clone https://github.com/pixpark/facebetter-sdk.git
+cd facebetter-sdk
+```
+
+## Passo 2: Colocar os arquivos do SDK
+
+Descompacte o pacote do SDK Windows e coloque os arquivos em `demo/cpp/sdk/`:
+
+```
+demo/cpp/sdk/
+├── include/
+│   └── facebetter/
+│       ├── beauty_effect_engine.h
+│       ├── beauty_params.h
+│       ├── image_frame.h
+│       └── type_defines.h
+├── lib/
+│   ├── facebetter.lib      ← import library
+│   └── facebetter.dll      ← runtime DLL
+└── resource/
+    ├── resource.fbd        ← models and assets (required)
+    └── resource_3d.fbd     ← optional; 3D stickers. Place next to `resource.fbd` or call `AddResourcePack`
+```
+
+<Warning>
+No desktop, `EngineConfig::resource_path` precisa apontar para o **arquivo `resource.fbd`**, não para um diretório. Exemplo: `demo/cpp/sdk/resource/resource.fbd`.
+</Warning>
+
+<Tip>
+Os pacotes do SDK estão na página de [Downloads](https://facebetter.net/pt-BR/download) e no [Console](https://facebetter.net/pt-BR/dashboard).
+</Tip>
+
+## Passo 3: Configurar a licença
+
+Defina `app_id` / `app_key` (autenticação online v2) ou `license_token` no demo antes de executar. Se `license_token` não estiver vazio, ele tem prioridade (string do token de licença, JSON `{token}` ou conteúdo de `.lic` offline). Detalhes: [Autenticação e licença](/pt-BR/intro/license).
+
+## Passo 4: Compilar
+
+Abra um **Developer Command Prompt for VS** (ou PowerShell com o ambiente MSVC carregado):
+
+```bat
+cd demo\cpp
+cmake -B build -G "Ninja" -DCMAKE_BUILD_TYPE=Release
+cmake --build build
+```
+
+Após a compilação, o CMake normalmente:
+
+- Copia `facebetter.dll` para ao lado do executável em `build/`
+- Copia `resource/resource.fbd` para `build/resource/resource.fbd`
+- Copia `demo.png` (se presente) para `build/resource/demo.png`
+
+## Passo 5: Preparar uma imagem de prévia (opcional)
+
+Coloque uma foto de rosto chamada `demo.png` em `demo/cpp/`:
+
+```
+demo/cpp/demo.png
+```
+
+## Passo 6: Executar
+
+```bat
+cd demo\cpp\build
+.\facebetter_demo.exe
+```
+
+A janela mostra:
+
+- **Painel esquerdo** — prévia ao vivo com beleza aplicada
+- **Painel direito** — Painel de controle de beleza:
+  - **Beleza básica**: suavização / clareamento / tom rosado / nitidez
+  - **Remodelagem facial**: 26 parâmetros de remodelagem (faixa `[-1.0, 1.0]`)
+  - **Maquiagem**: batom / blush / sombra / delineador / sobrancelha / cílios / pupila / contorno
+  - **Filtro / adesivo / fundo virtual**
+
+Clique em **Reset All** para zerar as intensidades.
+
+## Solução de problemas
+
+**Q: "facebetter.dll was not found" na inicialização**  
+A: Confirme que `demo/cpp/sdk/lib/facebetter.dll` existe e, em seguida, execute de novo `cmake --build build` para o CMake copiar a DLL para ao lado do executável.
+
+**Q: A criação do mecanismo retorna `nullptr` / licença falhou**  
+A: Aponte `resource_path` para `resource.fbd` e defina `license_token` ou `app_id` + `app_key` válidos. Veja [Autenticação e licença](/pt-BR/intro/license).
+
+**Q: O CMake não encontra o Ninja**  
+A: Execute `winget install Ninja-build.Ninja`, ou use `-G "Visual Studio 17 2022"` e `--config Release`.
+
+## Próximos passos
+
+<CardGroup cols={2}>
+  <Card title="Implementar beleza" href="/pt-BR/windows/implement-beauty">
+    Crie o mecanismo, defina efeitos e processe quadros.
+  </Card>
+  <Card title="Referência da API" href="/pt-BR/windows/api-reference">
+    API C++ completa para Windows e Linux.
+  </Card>
+</CardGroup>

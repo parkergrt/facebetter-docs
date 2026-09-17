@@ -1,0 +1,142 @@
+---
+title: "빠른 시작"
+description: "Linux에서 Facebetter C++ 데스크톱 데모를 빌드하고 실행합니다(GLFW + ImGui)"
+---
+
+<Note>
+이 페이지는 SDK **2.0.0**에 해당합니다. Linux와 Windows는 `facebetter` 네임스페이스의 동일한 C++ API를 공유합니다(`facebetter/*.h`).
+</Note>
+
+이 가이드는 Linux에서 Facebetter C++ 데스크톱 데모를 빌드합니다. 데모는 **GLFW + Dear ImGui + OpenGL 3**을 사용합니다. 왼쪽은 실시간 미리보기, 오른쪽은 뷰티 컨트롤입니다.
+
+## 요구 사항
+
+| 도구 | 버전 |
+| --- | --- |
+| OS (미리 빌드된 SDK zip) | **Ubuntu 22.04+** 또는 동등 환경 (**glibc ≥ 2.35**). 공식 CI는 Ubuntu 22.04에서 빌드합니다. |
+| GCC 또는 Clang | C++17 (GCC 7+ / Clang 5+) |
+| CMake | 3.16+ |
+| Ninja | `apt install ninja-build` / `dnf install ninja-build` |
+| OpenGL | `libgl1-mesa-dev` (Ubuntu/Debian) 또는 `mesa-libGL-devel` (Fedora/RHEL) |
+| X11 / Wayland | GLFW 의존성(아래 참고) |
+
+### Ubuntu / Debian
+
+```bash
+sudo apt update
+sudo apt install -y build-essential cmake ninja-build \
+    libgl1-mesa-dev libglu1-mesa-dev \
+    libx11-dev libxrandr-dev libxinerama-dev \
+    libxcursor-dev libxi-dev
+```
+
+### Fedora / RHEL
+
+```bash
+sudo dnf install -y gcc-c++ cmake ninja-build \
+    mesa-libGL-devel mesa-libGLU-devel \
+    libX11-devel libXrandr-devel libXinerama-devel \
+    libXcursor-devel libXi-devel
+```
+
+## 1단계: 저장소 클론
+
+```bash
+git clone https://github.com/pixpark/facebetter-sdk.git
+cd facebetter-sdk
+```
+
+## 2단계: SDK 파일 배치
+
+Linux SDK를 `demo/cpp/sdk/` 아래에 둡니다.
+
+```
+demo/cpp/sdk/
+├── include/
+│   └── facebetter/
+│       ├── beauty_effect_engine.h
+│       ├── beauty_params.h
+│       ├── image_frame.h
+│       └── type_defines.h
+├── lib/
+│   └── libfacebetter.so    ← shared library
+└── resource/
+    ├── resource.fbd        ← models and assets (required)
+    └── resource_3d.fbd     ← optional; 3D stickers. Place next to `resource.fbd` or call `AddResourcePack`
+```
+
+<Warning>
+데스크톱에서 `EngineConfig::resource_path`는 디렉터리가 아니라 **`resource.fbd` 파일**을 가리켜야 합니다. 예: `demo/cpp/sdk/resource/resource.fbd`.
+</Warning>
+
+<Tip>
+SDK 패키지는 [다운로드](https://facebetter.net/ko/download) 페이지와 [대시보드](https://facebetter.net/ko/dashboard)에 있습니다.
+</Tip>
+
+미리 빌드된 패키지 대신 **소스에서 SDK를 빌드**하려면:
+
+```bash
+./scripts/build_linux.sh
+```
+
+출력은 `build/linux/release`에 설치됩니다. 위와 같이 `include/`, `lib/libfacebetter.so`, `resource.fbd`를 `demo/cpp/sdk/`로 복사할 수 있습니다.
+
+## 3단계: 라이선스 설정
+
+실행 전에 `app_id` / `app_key`(온라인 v2 인증) 또는 `license_token`을 설정하세요. `license_token`이 비어 있지 않으면 우선합니다(라이선스 토큰 문자열, `{token}` JSON, 또는 오프라인 `.lic` 내용). 자세한 내용: [인증 및 라이선스](/ko/intro/license).
+
+## 4단계: 데모 빌드
+
+```bash
+cd demo/cpp
+cmake -B build -G "Ninja" -DCMAKE_BUILD_TYPE=Release
+cmake --build build
+```
+
+CMake는 보통 `resource/resource.fbd`(및 있는 경우 `demo.png`)를 `build/resource/`로 복사합니다.
+
+## 5단계: 미리보기 이미지 준비 (선택)
+
+```
+demo/cpp/demo.png
+```
+
+## 6단계: 실행
+
+```bash
+cd demo/cpp/build
+
+# Option A: runtime library path
+LD_LIBRARY_PATH=../sdk/lib ./facebetter_demo
+
+# Option B: copy the .so next to the binary
+cp ../sdk/lib/libfacebetter.so .
+./facebetter_demo
+```
+
+창에는 실시간 미리보기와 컨트롤 패널(피부, 26개 리셰이프 파라미터, 메이크업, 필터, 스티커, 가상 배경)이 표시됩니다. **Reset All**을 클릭하면 강도가 0이 됩니다.
+
+## 문제 해결
+
+**Q: `libfacebetter.so: cannot open shared object file`**  
+A: `LD_LIBRARY_PATH=../sdk/lib ./facebetter_demo`를 사용하거나, `.so`를 바이너리 옆으로 복사하거나, `ldconfig`로 경로를 추가하세요.
+
+**Q: 엔진 생성이 `nullptr`을 반환 / 라이선스 실패**  
+A: `resource_path`를 `resource.fbd`로 지정하고, `license_token` 또는 유효한 `app_id` + `app_key`를 설정하세요. [인증 및 라이선스](/ko/intro/license)를 참고하세요.
+
+**Q: CMake가 OpenGL을 찾지 못함**  
+A: `libgl1-mesa-dev`(Ubuntu) 또는 `mesa-libGL-devel`(Fedora)을 설치한 뒤 CMake를 다시 실행하세요.
+
+**Q: `GLFW: X11: Display variable not set`**  
+A: 그래픽 세션에서 실행하거나 `DISPLAY`(X11) / `WAYLAND_DISPLAY`(Wayland)를 설정하세요.
+
+## 다음 단계
+
+<CardGroup cols={2}>
+  <Card title="뷰티 효과 적용" href="/ko/linux/implement-beauty">
+    엔진을 만들고 효과를 설정한 뒤 프레임을 처리합니다.
+  </Card>
+  <Card title="API 레퍼런스" href="/ko/linux/api-reference">
+    전체 C++ API(Windows와 동일)와 Linux 참고 사항입니다.
+  </Card>
+</CardGroup>

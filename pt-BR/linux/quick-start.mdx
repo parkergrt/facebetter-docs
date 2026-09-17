@@ -1,0 +1,142 @@
+---
+title: "Início rápido"
+description: "Compile e execute o demo desktop C++ do Facebetter no Linux (GLFW + ImGui)"
+---
+
+<Note>
+Esta página corresponde ao SDK **2.0.0**. Linux e Windows compartilham a mesma API C++ no namespace `facebetter` (`facebetter/*.h`).
+</Note>
+
+Este guia compila o demo desktop C++ do Facebetter no Linux. O demo usa **GLFW + Dear ImGui + OpenGL 3**: prévia ao vivo à esquerda, controles de beleza à direita.
+
+## Requisitos
+
+| Ferramenta | Versão |
+| --- | --- |
+| SO (zip pré-compilado do SDK) | **Ubuntu 22.04+** ou equivalente (**glibc ≥ 2.35**). O CI oficial compila no Ubuntu 22.04. |
+| GCC ou Clang | C++17 (GCC 7+ / Clang 5+) |
+| CMake | 3.16+ |
+| Ninja | `apt install ninja-build` / `dnf install ninja-build` |
+| OpenGL | `libgl1-mesa-dev` (Ubuntu/Debian) ou `mesa-libGL-devel` (Fedora/RHEL) |
+| X11 / Wayland | Dependências do GLFW (veja abaixo) |
+
+### Ubuntu / Debian
+
+```bash
+sudo apt update
+sudo apt install -y build-essential cmake ninja-build \
+    libgl1-mesa-dev libglu1-mesa-dev \
+    libx11-dev libxrandr-dev libxinerama-dev \
+    libxcursor-dev libxi-dev
+```
+
+### Fedora / RHEL
+
+```bash
+sudo dnf install -y gcc-c++ cmake ninja-build \
+    mesa-libGL-devel mesa-libGLU-devel \
+    libX11-devel libXrandr-devel libXinerama-devel \
+    libXcursor-devel libXi-devel
+```
+
+## Passo 1: Clonar o repositório
+
+```bash
+git clone https://github.com/pixpark/facebetter-sdk.git
+cd facebetter-sdk
+```
+
+## Passo 2: Colocar os arquivos do SDK
+
+Coloque o SDK Linux em `demo/cpp/sdk/`:
+
+```
+demo/cpp/sdk/
+├── include/
+│   └── facebetter/
+│       ├── beauty_effect_engine.h
+│       ├── beauty_params.h
+│       ├── image_frame.h
+│       └── type_defines.h
+├── lib/
+│   └── libfacebetter.so    ← shared library
+└── resource/
+    ├── resource.fbd        ← models and assets (required)
+    └── resource_3d.fbd     ← optional; 3D stickers. Place next to `resource.fbd` or call `AddResourcePack`
+```
+
+<Warning>
+No desktop, `EngineConfig::resource_path` precisa apontar para o **arquivo `resource.fbd`**, não para um diretório. Exemplo: `demo/cpp/sdk/resource/resource.fbd`.
+</Warning>
+
+<Tip>
+Os pacotes do SDK estão na página de [Downloads](https://facebetter.net/pt-BR/download) e no [Console](https://facebetter.net/pt-BR/dashboard).
+</Tip>
+
+Para **compilar o SDK a partir do código-fonte** em vez de um pacote pré-compilado:
+
+```bash
+./scripts/build_linux.sh
+```
+
+A saída instala em `build/linux/release`. Você pode copiar `include/`, `lib/libfacebetter.so` e `resource.fbd` para `demo/cpp/sdk/` como acima.
+
+## Passo 3: Configurar a licença
+
+Defina `app_id` / `app_key` (autenticação online v2) ou `license_token` antes de executar. Se `license_token` não estiver vazio, ele tem prioridade (string do token de licença, JSON `{token}` ou conteúdo de `.lic` offline). Detalhes: [Autenticação e licença](/pt-BR/intro/license).
+
+## Passo 4: Compilar o demo
+
+```bash
+cd demo/cpp
+cmake -B build -G "Ninja" -DCMAKE_BUILD_TYPE=Release
+cmake --build build
+```
+
+O CMake normalmente copia `resource/resource.fbd` (e `demo.png` se presente) para `build/resource/`.
+
+## Passo 5: Preparar uma imagem de prévia (opcional)
+
+```
+demo/cpp/demo.png
+```
+
+## Passo 6: Executar
+
+```bash
+cd demo/cpp/build
+
+# Option A: runtime library path
+LD_LIBRARY_PATH=../sdk/lib ./facebetter_demo
+
+# Option B: copy the .so next to the binary
+cp ../sdk/lib/libfacebetter.so .
+./facebetter_demo
+```
+
+A janela mostra uma prévia ao vivo e um painel de controle (pele, 26 parâmetros de remodelagem, maquiagem, filtro, adesivo, fundo virtual). Clique em **Reset All** para zerar as intensidades.
+
+## Solução de problemas
+
+**Q: `libfacebetter.so: cannot open shared object file`**  
+A: Use `LD_LIBRARY_PATH=../sdk/lib ./facebetter_demo`, copie o `.so` para ao lado do binário, ou adicione o caminho com `ldconfig`.
+
+**Q: A criação do mecanismo retorna `nullptr` / licença falhou**  
+A: Aponte `resource_path` para `resource.fbd` e defina `license_token` ou `app_id` + `app_key` válidos. Veja [Autenticação e licença](/pt-BR/intro/license).
+
+**Q: O CMake não encontra o OpenGL**  
+A: Instale `libgl1-mesa-dev` (Ubuntu) ou `mesa-libGL-devel` (Fedora) e, em seguida, execute o CMake de novo.
+
+**Q: `GLFW: X11: Display variable not set`**  
+A: Execute dentro de uma sessão gráfica, ou defina `DISPLAY` (X11) / `WAYLAND_DISPLAY` (Wayland).
+
+## Próximos passos
+
+<CardGroup cols={2}>
+  <Card title="Implementar beleza" href="/pt-BR/linux/implement-beauty">
+    Crie o mecanismo, defina efeitos e processe quadros.
+  </Card>
+  <Card title="Referência da API" href="/pt-BR/linux/api-reference">
+    API C++ completa (igual à do Windows) mais notas do Linux.
+  </Card>
+</CardGroup>

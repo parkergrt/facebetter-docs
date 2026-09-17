@@ -1,0 +1,167 @@
+---
+title: "오류 처리"
+description: "Facebetter SDK 2.0 오류 코드와 Windows 문제 해결"
+---
+
+<Note>
+SDK **2.0.0**. 인증 세부 사항: [인증 및 라이선스](/ko/intro/license).
+</Note>
+
+## 반환 값
+
+대부분의 setter는 `int`를 반환합니다.
+
+| 코드 | 의미 |
+| --- | --- |
+| `0` | 성공 |
+| `-1` | 잘못된 인자 |
+| `-2` | 미초기화 |
+| `-3` | 라이선스 |
+| `-4` | 미지원 |
+| `-5` | I/O |
+| `-6` | 슬롯 없음 |
+| `-7` | 처리 실패 |
+| `-8` | 메모리 부족 |
+
+`BeautyEffectEngine::Create()`는 `std::shared_ptr`를 반환하며, 실패는 `nullptr`입니다. `ProcessImage`는 실패 시 `nullptr`을 반환할 수 있습니다.
+
+```cpp
+int ret = engine->SetSmoothing(0.5f);
+if (ret != 0) {
+    std::cerr << "SetSmoothing failed: " << ret << std::endl;
+}
+```
+
+## 엔진 이벤트
+
+`Create` 후 `on_engine_event`를 등록하세요. 코드:
+
+| 코드 | 의미 |
+| --- | --- |
+| `0` | 라이선스 성공 |
+| `1` | 라이선스 실패 |
+| `100` | 초기화 완료 |
+| `101` | 초기화 실패 |
+
+실패 시 `message` 문자열에 추가 정보가 있습니다.
+
+```cpp
+EngineCallbacks cbs;
+cbs.on_engine_event = [](int code, const std::string& message) {
+    if (code == 1 || code == 101) {
+        std::cerr << "engine event " << code << ": " << message << std::endl;
+    }
+};
+engine->SetCallbacks(cbs);
+```
+
+---
+
+## 일반적인 실패
+
+### 1. `Create`가 `nullptr`을 반환함
+
+일반적인 원인:
+
+- `resource_path`가 디렉터리이거나, 없거나, `resource.fbd` **파일이** 아님
+- 유효하지 않거나 비활성인 `app_id` + `app_key`, 또는 잘못된 `license_token`
+- `facebetter.dll`이 없거나 `facebetter.lib`와 불일치
+- 온라인 인증이 `/facebetter/v2/auth`에 도달할 수 없음
+
+`Create` **전에** 로그를 켜세요.
+
+```cpp
+LogConfig log_cfg;
+log_cfg.console_enabled = true;
+log_cfg.level = LogLevel::Debug;
+BeautyEffectEngine::SetLogConfig(log_cfg);
+
+EngineConfig cfg;
+cfg.app_id = "your_app_id";
+cfg.app_key = "your_app_key";
+cfg.resource_path =
+    (std::filesystem::current_path() / "resource" / "resource.fbd").string();
+
+auto engine = BeautyEffectEngine::Create(cfg);
+if (!engine) {
+    std::cerr << "Create failed — check logs, resource.fbd, and license." << std::endl;
+    return -1;
+}
+```
+
+---
+
+### 2. `facebetter.dll`을 찾을 수 없음
+
+DLL이 로더 경로에 없으면 Windows가 대화 상자를 표시합니다.
+
+```bat
+dir build\facebetter.dll
+copy sdk\lib\facebetter.dll build\
+```
+
+또는 재빌드해 CMake가 실행 파일 옆으로 복사하게 하세요.
+
+---
+
+### 3. `ProcessImage`가 `nullptr`을 반환함
+
+입력 프레임, 엔진 포인터, 로그를 확인하세요(setter의 `-7` 처리 / `-8` 메모리 부족).
+
+```cpp
+auto input = ImageFrame::CreateWithFile("input.jpg");
+if (!input || !input->Data()) {
+    std::cerr << "Failed to load input." << std::endl;
+    return;
+}
+input->type = FrameType::Image;
+auto output = engine->ProcessImage(input);
+if (!output || !output->Data()) {
+    std::cerr << "ProcessImage failed." << std::endl;
+}
+```
+
+---
+
+### 4. 효과가 변하지 않아 보임
+
+2.0은 `SetBeautyTypeEnabled`를 사용하지 **않습니다**. 강도 `0`이면 효과가 꺼집니다. 리셰이프 / 메이크업에도 감지된 얼굴이 필요합니다.
+
+```cpp
+engine->SetSmoothing(0.5f);
+engine->SetReshape(Reshape::FaceThin, 0.3f);
+engine->SetLipstick(0.5f);
+input->type = FrameType::Video;
+```
+
+---
+
+### 5. OpenGL / 디스플레이
+
+드라이버가 오래되었거나, VM이거나, GPU 없는 Remote Desktop에서는 GLFW 또는 `gladLoadGLLoader`가 실패할 수 있습니다.
+
+```cpp
+if (!glfwInit()) {
+    std::cerr << "GLFW init failed." << std::endl;
+    return 1;
+}
+glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
+```
+
+앱이 이미 GL 컨텍스트를 소유하면 `EngineConfig::external_context = true`를 설정하고 해당 스레드에서 `ProcessImage`를 호출하세요.
+
+---
+
+## 디버그 로그
+
+```cpp
+LogConfig log_cfg;
+log_cfg.console_enabled = true;
+log_cfg.file_enabled = true;
+log_cfg.level = LogLevel::Debug;
+log_cfg.file_name = "facebetter.log";
+BeautyEffectEngine::SetLogConfig(log_cfg);
+```
+
+절대 `file_name`을 전달하지 않으면 파일은 현재 작업 디렉터리 기준으로 작성됩니다.

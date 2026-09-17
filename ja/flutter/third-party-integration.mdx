@@ -1,0 +1,152 @@
+---
+title: "サードパーティ連携"
+description: "Flutter 上で Facebetter 美顔を TRTC、Agora、LiveKit などのサードパーティ動画パイプラインに接続します"
+---
+
+SDK **2.0.0**。Flutter は**美顔パラメータだけを設定**します。リアルタイム動画フレームは Dart に入りません。相手 SDK の **ネイティブ GL スレッド**上で `FacebetterPlugin.processTexture` を呼び、出力テクスチャを相手フレームへ書き戻します。
+
+```
+Flutter (Dart)                              Native GL thread (iOS / Android)
+FBEngine.create(externalContext: true)
+engine.setSmoothing / setReshape / …  →     third-party preprocess callback
+await engine.setFilter                      FacebetterPlugin.processTexture(tex, w, h)
+engine.dispose()                            write back vendor textureId
+```
+
+## 共通の契約
+
+| 項目 | 要件 |
+| --- | --- |
+| ライブエンジン | `externalContext: true`（デフォルト）。相手のカスタム前処理を開く**前**に `FBEngine.create` |
+| フレーム処理 | ネイティブ `FacebetterPlugin.processTexture` のみ。**カレント GL スレッド**で必須 |
+| 静止画 | 別エンジンで `externalContext: false`。ライブエンジンと混用しない |
+| 入力 | 相手が提供する **Texture2D / RGB（`GL_TEXTURE_2D`）** を優先。OES / YUV は先に変換するか、相手ドキュメントに従ってフォーマットを変更 |
+| 破棄 | 先に相手のカスタム前処理 / トラック停止、そのあと `engine.dispose()` |
+
+このライブエンジンでは `processFile` / `processImageBytes` / `processImageFile` / `processImageToUiImage` を呼び出さないでください。
+
+```dart
+import 'package:facebetter_flutter/facebetter_flutter.dart';
+
+FBEngine.setLogConfig(console: true, level: FBLogLevel.info);
+
+final engine = await FBEngine.create(const FBEngineConfig(
+  appId: 'your_app_id',
+  appKey: 'your_app_key',
+  externalContext: true,
+  enableLandmarks: false,
+));
+
+engine.setSmoothing(0.8);
+engine.setWhitening(0.5);
+engine.setReshape(FBReshape.faceThin, 0.3);
+engine.setLipstick(0.4);
+await engine.setFilter(path: '/path/to/filter.fbd');
+
+// sliders can call sync setters directly
+// onChanged: (v) => engine.setSmoothing(v),
+```
+
+認証情報: [サブスクリプション](/ja/intro/enable-service)、[認証とライセンス](/ja/intro/license)。ネイティブ側のテクスチャ契約は [Android · サードパーティ連携](/ja/android/third-party-integration)、[iOS · サードパーティ連携](/ja/ios/third-party-integration) も参照できます。
+
+| | ライブエンジン | 静止画エンジン |
+| --- | --- | --- |
+| `externalContext` | `true`（デフォルト） | `false` |
+| フレーム | ネイティブ `processTexture` | Dart `processFile` / `processImageBytes` / … |
+| 混用 | 静止画 API を呼ばない | 配信 / 会議の前処理に使わない |
+
+**しないでください:** Dart から毎フレームピクセルや texture id を渡す。非 GL スレッドで `processTexture` を呼ぶ。`FBEngine` をプロセス単位シングルトンとして扱う。
+
+---
+
+## TRTC（Tencent）
+
+前提: プロジェクトに `tencent_trtc_cloud`（またはネイティブ TRTC）と `facebetter_flutter: ^2.0.0` が入っている。カスタム前処理を開くときは **Texture2D + Texture buffer** を指定し、YUV / PixelBuffer を使わない。
+
+Dart 側でエンジン作成後にカスタム前処理を開きます（メソッド名はプラグインバージョンで多少異なります）。
+
+```dart
+await trtcCloud.enableCustomVideoProcess(true);
+```
+
+### iOS — `onProcessVideoFrame`
+
+```objc
+#import <facebetter_flutter/FacebetterPlugin.h>
+
+- (uint32_t)onProcessVideoFrame:(TRTCVideoFrame *)srcFrame
+                        dstFrame:(TRTCVideoFrame *)dstFrame {
+  uint32_t out = [FacebetterPlugin processTexture:srcFrame.textureId
+                                            width:srcFrame.width
+                                           height:srcFrame.height];
+  if (out != 0) {
+    dstFrame.textureId = out;
+  }
+  return 0;
+}
+```
+
+`tencent_trtc_cloud` の `ITXCustomBeautyProcesser` を使う場合も、ピクセルフォーマットは **Texture2D / Texture** を選び、コールバックで同じ `processTexture` を呼びます。ファクトリ登録は `GeneratedPluginRegistrant.register(with:)` の**あと**である必要があります。
+
+### Android — Kotlin
+
+```kotlin
+import net.pixpark.facebetter.flutter.FacebetterPlugin
+
+override fun onProcessVideoFrame(
+    srcFrame: TRTCCloudDef.TRTCVideoFrame,
+    dstFrame: TRTCCloudDef.TRTCVideoFrame,
+): Int {
+    val out = FacebetterPlugin.processTexture(
+        srcFrame.texture.textureId,
+        srcFrame.width,
+        srcFrame.height,
+    )
+    if (out != 0) {
+        dstFrame.texture.textureId = out
+    }
+    return 0
+}
+```
+
+### 破棄
+
+```dart
+await trtcCloud.enableCustomVideoProcess(false);
+engine.dispose();
+```
+
+---
+
+## Agora
+
+接続方針はネイティブと同じです。**iOS / Android ネイティブ**の動画フレーム観測 / カスタム前処理コールバックで `FacebetterPlugin.processTexture` を呼び、Dart は `FBEngine` パラメータだけを担当します。
+
+1. Dart: `FBEngine.create(externalContext: true)` して美顔を設定
+2. Agora Flutter プラグインドキュメントに従い、カスタム動画処理を開くかネイティブ observer を登録（API は `agora_rtc_engine` バージョンで変化）
+3. ネイティブコールバックで **`GL_TEXTURE_2D` textureId** を取得したら `processTexture` を呼び、相手フレームへ書き戻す
+
+OES / YUV のみのコールバックは先に Texture2D へ変換するか、[Android](/ja/android/third-party-integration#agora) / [iOS](/ja/ios/third-party-integration#agora) のピクセル経路を参照してください（Flutter のライブ経路はテクスチャ + `processTexture` を優先します）。
+
+破棄: 先に Agora 前処理を登録解除し、そのあと `engine.dispose()`。
+
+---
+
+## LiveKit
+
+同様に **Dart でパラメータを設定し、ネイティブでテクスチャを処理**します。
+
+1. Dart で `externalContext: true` のエンジンを作成
+2. LiveKit Flutter / ネイティブのカスタム capturer または video processor でテクスチャフレームを取得
+3. **GL スレッド**で `FacebetterPlugin.processTexture` を呼び、出力を LiveKit トラックへ戻す
+
+具体的なフックは `livekit_client` とプラットフォーム実装で変わります。テクスチャ契約: [Android · LiveKit](/ja/android/third-party-integration#livekit)、[iOS · LiveKit](/ja/ios/third-party-integration#livekit)。
+
+---
+
+## 関連ドキュメント
+
+- [美顔の実装](/ja/flutter/implement-beauty)
+- [API リファレンス](/ja/flutter/api-reference)
+- [Android · サードパーティ連携](/ja/android/third-party-integration)
+- [iOS · サードパーティ連携](/ja/ios/third-party-integration)

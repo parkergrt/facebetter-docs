@@ -1,0 +1,152 @@
+---
+title: "Integração com terceiros"
+description: "Conecte a beleza Facebetter a TRTC, Agora, LiveKit e outros pipelines de vídeo no Flutter"
+---
+
+SDK **2.0.0**. O Flutter **apenas define parâmetros de beleza**. Os quadros ao vivo nunca entram no Dart: chame `FacebetterPlugin.processTexture` no **thread GL nativo** do SDK do fornecedor e, em seguida, escreva a textura de saída de volta.
+
+```
+Flutter (Dart)                              Native GL thread (iOS / Android)
+FBEngine.create(externalContext: true)
+engine.setSmoothing / setReshape / …  →     Vendor preprocess callback
+await engine.setFilter                      FacebetterPlugin.processTexture(tex, w, h)
+engine.dispose()                            Write back vendor textureId
+```
+
+## Contrato compartilhado
+
+| Item | Requisito |
+| --- | --- |
+| Mecanismo ao vivo | `externalContext: true` (padrão); `FBEngine.create` **antes** de ativar o pré-processamento personalizado do fornecedor |
+| Quadros | Somente `FacebetterPlugin.processTexture` nativo; precisa rodar no **thread GL atual** |
+| Stills | Mecanismo separado com `externalContext: false`; nunca misture com o mecanismo ao vivo |
+| Entrada | Prefira **Texture2D / RGB (`GL_TEXTURE_2D`)** do fornecedor; converta OES / YUV primeiro ou mude o formato conforme a documentação do fornecedor |
+| Encerramento | Desative o pré-processamento do fornecedor / pare as tracks e, em seguida, `engine.dispose()` |
+
+**Não** chame `processFile` / `processImageBytes` / `processImageFile` / `processImageToUiImage` no mecanismo ao vivo.
+
+```dart
+import 'package:facebetter_flutter/facebetter_flutter.dart';
+
+FBEngine.setLogConfig(console: true, level: FBLogLevel.info);
+
+final engine = await FBEngine.create(const FBEngineConfig(
+  appId: 'your_app_id',
+  appKey: 'your_app_key',
+  externalContext: true,
+  enableLandmarks: false,
+));
+
+engine.setSmoothing(0.8);
+engine.setWhitening(0.5);
+engine.setReshape(FBReshape.faceThin, 0.3);
+engine.setLipstick(0.4);
+await engine.setFilter(path: '/path/to/filter.fbd');
+
+// Sliders can call sync setters directly:
+// onChanged: (v) => engine.setSmoothing(v),
+```
+
+Credenciais: [Assinatura](/pt-BR/intro/enable-service), [Autenticação e licença](/pt-BR/intro/license). Regras de textura nativa: [Android · Integração com terceiros](/pt-BR/android/third-party-integration), [iOS · Integração com terceiros](/pt-BR/ios/third-party-integration).
+
+| | Mecanismo ao vivo | Mecanismo de foto |
+| --- | --- | --- |
+| `externalContext` | `true` (padrão) | `false` |
+| Quadros | `processTexture` nativo | Dart `processFile` / `processImageBytes` / … |
+| Mistura | Sem APIs de foto | Não para pré-processamento ao vivo / reunião |
+
+**Não:** envie pixels ou ids de textura do Dart a cada quadro; chame `processTexture` fora do thread GL; trate `FBEngine` como um singleton de processo.
+
+---
+
+## TRTC (Tencent)
+
+Pré-requisitos: `tencent_trtc_cloud` (ou TRTC nativo) e `facebetter_flutter: ^2.0.0`. Ao ativar o pré-processamento personalizado, use **Texture2D + Texture buffer**, não YUV / PixelBuffer.
+
+Depois de criar o mecanismo no Dart, ative o processamento personalizado (o nome da API pode variar conforme a versão do plugin):
+
+```dart
+await trtcCloud.enableCustomVideoProcess(true);
+```
+
+### iOS — `onProcessVideoFrame`
+
+```objc
+#import <facebetter_flutter/FacebetterPlugin.h>
+
+- (uint32_t)onProcessVideoFrame:(TRTCVideoFrame *)srcFrame
+                        dstFrame:(TRTCVideoFrame *)dstFrame {
+  uint32_t out = [FacebetterPlugin processTexture:srcFrame.textureId
+                                            width:srcFrame.width
+                                           height:srcFrame.height];
+  if (out != 0) {
+    dstFrame.textureId = out;
+  }
+  return 0;
+}
+```
+
+Se você usar `ITXCustomBeautyProcesser` do `tencent_trtc_cloud`, mantenha **Texture2D / Texture** e chame o mesmo `processTexture` no callback. Registre a factory **depois** de `GeneratedPluginRegistrant.register(with:)`.
+
+### Android — Kotlin
+
+```kotlin
+import net.pixpark.facebetter.flutter.FacebetterPlugin
+
+override fun onProcessVideoFrame(
+    srcFrame: TRTCCloudDef.TRTCVideoFrame,
+    dstFrame: TRTCCloudDef.TRTCVideoFrame,
+): Int {
+    val out = FacebetterPlugin.processTexture(
+        srcFrame.texture.textureId,
+        srcFrame.width,
+        srcFrame.height,
+    )
+    if (out != 0) {
+        dstFrame.texture.textureId = out
+    }
+    return 0
+}
+```
+
+### Encerramento
+
+```dart
+await trtcCloud.enableCustomVideoProcess(false);
+engine.dispose();
+```
+
+---
+
+## Agora
+
+O mesmo modelo do nativo: chame `FacebetterPlugin.processTexture` dentro do observer de quadro / callback de pré-processamento personalizado **iOS / Android**; o Dart só é dono dos parâmetros do `FBEngine`.
+
+1. Dart: `FBEngine.create(externalContext: true)` e defina a beleza  
+2. Ative o processamento de vídeo personalizado ou registre um observer nativo conforme o plugin Agora Flutter (as APIs variam conforme a versão de `agora_rtc_engine`)  
+3. Em um **`textureId` `GL_TEXTURE_2D`**, chame `processTexture` e escreva de volta no quadro do fornecedor  
+
+Para callbacks somente OES / YUV, converta para Texture2D primeiro, ou veja [Android](/pt-BR/android/third-party-integration#agora) / [iOS](/pt-BR/ios/third-party-integration#agora) (o caminho ao vivo do Flutter ainda prefere textura + `processTexture`).
+
+Encerramento: cancele o registro do pré-processamento Agora e, em seguida, `engine.dispose()`.
+
+---
+
+## LiveKit
+
+De novo: **o Dart define parâmetros, o nativo processa texturas**.
+
+1. Crie um mecanismo com `externalContext: true` no Dart  
+2. Obtenha quadros de textura via LiveKit Flutter / um capturer personalizado nativo ou processador de vídeo  
+3. Chame `FacebetterPlugin.processTexture` no **thread GL** e, em seguida, alimente a saída de volta na track LiveKit  
+
+Os detalhes do hook variam conforme `livekit_client` e a plataforma; regras de textura: [Android · LiveKit](/pt-BR/android/third-party-integration#livekit), [iOS · LiveKit](/pt-BR/ios/third-party-integration#livekit).
+
+---
+
+## Relacionado
+
+- [Implementar beleza](/pt-BR/flutter/implement-beauty)
+- [Referência da API](/pt-BR/flutter/api-reference)
+- [Android · Integração com terceiros](/pt-BR/android/third-party-integration)
+- [iOS · Integração com terceiros](/pt-BR/ios/third-party-integration)

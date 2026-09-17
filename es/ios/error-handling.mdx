@@ -1,0 +1,171 @@
+---
+title: "Manejo de errores"
+description: "Manejo de errores del SDK Facebetter 2.0 en iOS"
+---
+
+<Note>
+Esta página corresponde al SDK **2.0.0**. Autenticación: [Autenticación y licencia](/es/intro/license).
+</Note>
+
+## Códigos de error (`FBErrorCode`)
+
+Las APIs setter devuelven `int`. `0` es correcto. `createEngineWithConfig:` y `processImage:` devuelven objetos (`nil` si fallan).
+
+| Valor | Símbolo | Significado |
+| --- | --- | --- |
+| `0` | `FBErrorCode_Success` | Correcto |
+| `-1` | `FBErrorCode_InvalidArgument` | Argumento no válido (config nil, ruta vacía, valor fuera de rango, …) |
+| `-2` | `FBErrorCode_NotInitialized` | El motor no está inicializado |
+| `-3` | `FBErrorCode_License` | Fallo de licencia / autenticación |
+| `-4` | `FBErrorCode_Unsupported` | Formato, plataforma o función no admitidos |
+| `-5` | `FBErrorCode_IO` | Error de E/S de archivo / recurso |
+| `-6` | `FBErrorCode_NoSlot` | No hay slot disponible (por ejemplo demasiados rostros) |
+| `-7` | `FBErrorCode_Process` | Falló el procesamiento del fotograma |
+| `-8` | `FBErrorCode_OutOfMemory` | Memoria insuficiente |
+
+```objc
+typedef NS_ENUM(NSInteger, FBErrorCode) {
+  FBErrorCode_Success = 0,
+  FBErrorCode_InvalidArgument = -1,
+  FBErrorCode_NotInitialized = -2,
+  FBErrorCode_License = -3,
+  FBErrorCode_Unsupported = -4,
+  FBErrorCode_IO = -5,
+  FBErrorCode_NoSlot = -6,
+  FBErrorCode_Process = -7,
+  FBErrorCode_OutOfMemory = -8,
+};
+```
+
+## Comprobar valores de retorno
+
+```objc
+FBLogConfig *logConfig = [[FBLogConfig alloc] init];
+logConfig.consoleEnabled = YES;
+logConfig.level = FBLogLevel_Info;
+int logRet = [FBBeautyEffectEngine setLogConfig:logConfig];
+if (logRet != FBErrorCode_Success) {
+  NSLog(@"setLogConfig failed: %d", logRet);
+}
+
+FBEngineConfig *config = [[FBEngineConfig alloc] init];
+config.appId = @"your_app_id";
+config.appKey = @"your_app_key";
+self.engine = [FBBeautyEffectEngine createEngineWithConfig:config];
+if (self.engine == nil) {
+  NSLog(@"Failed to create engine (check license, Bundle ID, and logs)");
+  return;
+}
+
+int ret = [self.engine setSmoothing:0.5f];
+if (ret != FBErrorCode_Success) {
+  NSLog(@"setSmoothing failed: %d", ret);
+}
+```
+
+Mapea los códigos en un solo sitio:
+
+```objc
+NSString *FBErrorMessage(int code) {
+  switch (code) {
+    case FBErrorCode_Success: return @"success";
+    case FBErrorCode_InvalidArgument: return @"invalid argument";
+    case FBErrorCode_NotInitialized: return @"engine not initialized";
+    case FBErrorCode_License: return @"license / auth failure";
+    case FBErrorCode_Unsupported: return @"unsupported";
+    case FBErrorCode_IO: return @"I/O error";
+    case FBErrorCode_NoSlot: return @"no available slot";
+    case FBErrorCode_Process: return @"process failed";
+    case FBErrorCode_OutOfMemory: return @"out of memory";
+    default: return [NSString stringWithFormat:@"unknown (%d)", code];
+  }
+}
+```
+
+## Eventos del motor
+
+`FBEngineCallbacks.onEngineEvent` informa de licencia e init de forma asíncrona. Configura los callbacks justo después de crear el motor.
+
+| Código | Símbolo | Significado |
+| --- | --- | --- |
+| `0` | `FBEngineEventCodeLicenseValidationSuccess` | Licencia OK |
+| `1` | `FBEngineEventCodeLicenseValidationFailed` | Licencia fallida |
+| `100` | `FBEngineEventCodeInitializationComplete` | Init completo |
+| `101` | `FBEngineEventCodeInitializationFailed` | Init fallido |
+
+```objc
+FBEngineCallbacks *callbacks = [[FBEngineCallbacks alloc] init];
+callbacks.onEngineEvent = ^(FBEngineEventCode code, NSString * _Nullable message) {
+  switch (code) {
+    case FBEngineEventCodeLicenseValidationFailed:
+      NSLog(@"License failed: %@", message);
+      break;
+    case FBEngineEventCodeInitializationFailed:
+      NSLog(@"Init failed: %@", message);
+      break;
+    default:
+      break;
+  }
+};
+[self.engine setCallbacks:callbacks];
+```
+
+<Tip>
+Que `createEngineWithConfig:` devuelva una instancia no nula no sustituye escuchar los eventos `1` / `101`. La autenticación en línea aún puede fallar después de la construcción.
+</Tip>
+
+## Procesamiento de imagen
+
+Valida el fotograma, configura `type` y trata un retorno `nil` como `FBErrorCode_Process`.
+
+```objc
+- (FBImageFrame *)processSafely:(FBImageFrame *)input {
+  if (input == nil || input.width <= 0 || input.height <= 0) {
+    NSLog(@"Invalid FBImageFrame");
+    return nil;
+  }
+  input.type = FBFrameTypeVideo;
+  FBImageFrame *output = [self.engine processImage:input];
+  if (output == nil) {
+    NSLog(@"processImage returned nil");
+  }
+  return output;
+}
+```
+
+Guarda con `toFile:` (devuelve `FBErrorCode`):
+
+```objc
+int saved = [output toFile:path quality:90];
+if (saved != FBErrorCode_Success) {
+  NSLog(@"toFile failed: %d", saved);
+}
+```
+
+## Logging
+
+Activa logs **antes** de crear el motor. Crea el directorio de log si escribes un archivo.
+
+```objc
+NSString *logPath = [NSTemporaryDirectory() stringByAppendingPathComponent:@"facebetter.log"];
+NSString *logDir = [logPath stringByDeletingLastPathComponent];
+[[NSFileManager defaultManager] createDirectoryAtPath:logDir
+                          withIntermediateDirectories:YES
+                                           attributes:nil
+                                                error:nil];
+
+FBLogConfig *logConfig = [[FBLogConfig alloc] init];
+logConfig.consoleEnabled = YES;
+logConfig.fileEnabled = YES;
+logConfig.level = FBLogLevel_Debug;
+logConfig.fileName = logPath;
+[FBBeautyEffectEngine setLogConfig:logConfig];
+```
+
+## Comprobaciones prácticas
+
+- **`-1` Argumento no válido**: ruta `.fbd` vacía, `NSData` nil, intensidad fuera del rango documentado o config nil.
+- **`-2` No inicializado**: llamar a setters tras un `createEngineWithConfig:` fallido (la instancia es `nil`: no le envíes mensajes).
+- **`-3` Licencia**: `appId` / `appKey` incorrectos, Bundle ID no vinculado, token caducado o sin red para autenticación en línea. Consulta [Autenticación y licencia](/es/intro/license).
+- **`-5` E/S**: falta el archivo de filtro / sticker / fondo, o la ruta del sandbox no es legible.
+- **GL externo**: si `externalContext = YES`, crea y procesa en el mismo hilo OpenGL ES; si no, `processImage:` puede devolver `nil`.

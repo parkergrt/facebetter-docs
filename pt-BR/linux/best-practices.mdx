@@ -1,0 +1,64 @@
+---
+title: "Práticas recomendadas"
+description: "Orientação de desempenho e integração do Facebetter 2.0 no Linux"
+---
+
+<Note>
+SDK **2.0.0**. A API C++ é compartilhada com o Windows. Enums: [Enums de parâmetros](/pt-BR/intro/makeup).
+</Note>
+
+## Aponte `resource_path` para `resource.fbd`
+
+Passe o **arquivo**, não um diretório:
+
+```cpp
+cfg.resource_path = "/opt/facebetter/resource.fbd";
+```
+
+Resolva um caminho absoluto na inicialização para que mudanças de cwd não quebrem o `fopen`.
+
+## Um mecanismo, `ProcessImage` serial
+
+`Create` retorna um `shared_ptr`. O mecanismo **não** é um singleton. Serialize `ProcessImage` (e setters que mutam) em um thread. Se `external_context = true`, esse thread precisa ter um contexto GL atual.
+
+## `FrameType` no quadro
+
+| Valor | Uso |
+| --- | --- |
+| `FrameType::Video` (padrão) | Câmera / ao vivo |
+| `FrameType::Image` | Exportação de still |
+
+## Intensidades e somente pele
+
+Tempo real: comece em torno de `0.15–0.3`. A remodelagem é `[-1.0, 1.0]`. Use `SetBeautySkinOnly(true)` para a suavização ficar na pele.
+
+## Filtros e adesivos
+
+Caminho ou bytes `.fbd`. Passa a valer no próximo `ProcessImage`. Não troque assets a cada quadro.
+
+## `GetStats`
+
+```cpp
+EngineStats s = engine->GetStats();
+if (s.avg_process_time_ms > 33.0) {
+    // lower resolution or drop stickers / virtual background
+}
+```
+
+## Biblioteca compartilhada
+
+- Desenvolvimento: `LD_LIBRARY_PATH`
+- Envio: `RPATH` / `RUNPATH`, ou instalar em `/usr/local/lib` + `ldconfig`
+- Mantenha `libfacebetter.so` e os headers do **mesmo** build do SDK (`./scripts/build_linux.sh` ou o zip de download)
+
+## OpenGL
+
+O padrão `external_context = false` usa um contexto OpenGL gerenciado pelo SDK. Se GLFW / EGL já for dono do contexto, defina `true` e processe nesse thread. É necessário um driver Mesa/NVIDIA/AMD funcionando; `glxinfo` deve reportar 3.0+.
+
+## Pausar quando ocioso
+
+Pule `ProcessImage` quando a janela estiver unmapped. `engine.reset()` quando a sessão terminar.
+
+## Autenticação
+
+`license_token` para hosts offline; caso contrário, `app_id` + `app_key` online v2. Carregue segredos de env/config, não do código-fonte. Veja [Autenticação e licença](/pt-BR/intro/license).

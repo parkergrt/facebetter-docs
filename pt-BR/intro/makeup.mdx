@@ -1,0 +1,226 @@
+---
+title: "Enums de parâmetros"
+description: "Enums de remodelagem, maquiagem, clareamento e suavização do Facebetter SDK 2.0"
+---
+
+<Note>
+Esta página corresponde ao SDK **2.0**. Os valores numéricos são idênticos em C++, Objective-C, Java, JavaScript e Dart.
+</Note>
+
+A maquiagem tem três controles:
+
+1. **Intensidade** — `SetLipstick` / `SetBlush` / `SetContour` / `SetEyeShadow` / `SetEyeLiner` / `SetEyebrow` / `SetEyelash` / `SetPupil`, faixa `[0.0, 1.0]`. `0` desliga o efeito.
+2. **Formato** — troca a textura da máscara (`SetBlushStyle`, `SetContourStyle`, `SetEyeShadowStyle`, …).
+3. **Cor** — tinge o formato atual (`SetLipstickColor`, `SetBlushColor`, `SetEyeShadowColor`, …). **Pupil** e **Contour** não recebem tintura; alterá-los troca a textura.
+
+| C++ / JS | Java | Objective-C | Dart |
+| --- | --- | --- | --- |
+| `LipstickColor::Rouge` | `LipstickColor.ROUGE` | `FBLipstickColor_Rouge` | `FBLipstickColor.rouge` |
+
+## Clareamento (`WhiteningStyle`)
+
+Usado com `SetWhiteningStyle`. A intensidade continua sendo `SetWhitening`. Padrão: `ColdWhite`.
+
+| Valor | Nome | Significado |
+| --- | --- | --- |
+| 0 | `ColdWhite` | Branco frio |
+| 1 | `PinkWhite` | Branco rosado |
+| 2 | `WarmWhite` | Branco quente |
+| 3 | `Wheat` | Trigo |
+| 4 | `Tan` | Bronzeado |
+
+## Suavização (`SmoothingStyle`)
+
+Usado com `SetSmoothingStyle`. A intensidade continua sendo `SetSmoothing`. Padrão: `Natural`.
+
+| Valor | Nome | Significado |
+| --- | --- | --- |
+| 0 | `Natural` | Mantém os poros |
+| 1 | `Texture` | Mais limpo, ainda texturizado |
+| 2 | `Smooth` | Pele cremosa |
+
+## Remodelagem facial (`Reshape`)
+
+Usado com `SetReshape(param, intensity)`. A faixa é **`[-1.0, 1.0]`**. `0` desliga. Positivo e negativo são direções opostas (por exemplo FaceThin: afinar / bochechas mais cheias).
+
+| Valor | Nome | Positivo / negativo |
+| --- | --- | --- |
+| 0 | `FaceThin` | Afinar o rosto / bochechas mais cheias |
+| 1 | `FaceVShape` | Formato em V / mandíbula mais quadrada |
+| 2 | `FaceNarrow` | Estreitar / alargar o rosto |
+| 3 | `FaceShort` | Encurtar / alongar o rosto |
+| 4 | `Cheekbone` | Afinar / expandir as maçãs do rosto |
+| 5 | `Jawbone` | Afinar / expandir a mandíbula |
+| 6 | `Chin` | Alongar / encurtar o queixo |
+| 7 | `NoseSlim` | Afinar / alargar o nariz |
+| 8 | `EyeSize` | Aumentar / diminuir os olhos |
+| 9 | `EyeDistance` | Afastar / aproximar os olhos |
+| 10 | `FaceSmall` | Diminuir / aumentar o rosto |
+| 11 | `Forehead` | Testa mais cheia / mais baixa |
+| 12 | `NoseLong` | Alongar / encurtar o nariz |
+| 13 | `Philtrum` | Encurtar / alongar o filtro |
+| 14 | `MouthSize` | Aumentar / diminuir a boca |
+| 15 | `MouthPosition` | Baixar / subir a boca |
+| 16 | `MouthSmile` | Sorriso / cantos para baixo |
+| 17 | `LipThickness` | Lábios mais grossos / mais finos |
+| 18 | `EyeRound` | Olhos mais redondos / mais estreitos |
+| 19 | `EyePosition` | Baixar / subir os olhos |
+| 20 | `EyeAngle` | Canto externo para cima / para baixo |
+| 21 | `EyeCornerOpen` | Abrir / fechar os cantos dos olhos |
+| 22 | `LowerEyelid` | Baixar / levantar a pálpebra |
+| 23 | `BrowPosition` | Subir / baixar as sobrancelhas |
+| 24 | `BrowDistance` | Afastar / aproximar as sobrancelhas |
+| 25 | `BrowThickness` | Sobrancelhas mais grossas / mais finas |
+
+Os nomes em Java são `SNAKE_CASE` (`FACE_THIN`, `FACE_V_SHAPE`, …). Objective-C usa `FBReshape_FaceThin`. Dart usa `FBReshape.faceThin`.
+
+## Batom (`LipstickColor`)
+
+Uma máscara de lábios + tintura. Padrão: `Rouge`.
+
+| Valor | Nome | Significado |
+| --- | --- | --- |
+| 0 | `Rouge` | Rosa |
+| 1 | `RetroRed` | Vermelho retrô |
+| 2 | `Peach` | Pêssego |
+| 3 | `CoralOrange` | Laranja coral |
+| 4 | `GentlePink` | Rosa suave |
+| 5 | `VitalityOrange` | Laranja vivo |
+
+## Blush
+
+Formato via `BlushStyle` (troca a textura). Cor via `BlushColor` (tintura). Formato padrão `SunKissed`, cor padrão `CoralPink`.
+
+| Valor | `BlushStyle` | Significado |
+| --- | --- | --- |
+| 0 | `SunKissed` | Nas maçãs do rosto e no nariz |
+| 1 | `Igari` | Faixa de blush “bêbado” no nariz |
+| 2 | `Soft` | Suave nas duas bochechas |
+| 3 | `Apple` | Maçãs do rosto redondas |
+| 4 | `Classic` | Dois pontos clássicos |
+| 5 | `Doll` | Bochechas + ponta do nariz |
+| 6 | `Rose` | Rosa nas duas bochechas |
+
+| Valor | `BlushColor` | Significado |
+| --- | --- | --- |
+| 0 | `CoralPink` | Rosa coral |
+| 1 | `DustyRose` | Rosa empoeirado |
+| 2 | `VividRed` | Vermelho puro |
+| 3 | `Berry` | Berry |
+| 4 | `SunsetOrange` | Laranja pôr do sol |
+
+## Contorno (`ContourStyle`)
+
+Mapa Overlay em cinza médio: mais claro que 128 destaca, mais escuro contorna. Troca a textura, sem tintura. Padrão: `Natural`.
+
+| Valor | Nome | Significado |
+| --- | --- | --- |
+| 0 | `Natural` | Contorno leve do dia a dia |
+| 1 | `Sculpt` | Escultura mais forte |
+| 2 | `Glow` | Prioriza o highlight |
+| 3 | `Slim` | Afina as maçãs do rosto |
+| 4 | `Nose` | Definição do nariz |
+| 5 | `Glam` | Pontos de highlight |
+
+## Sombra
+
+Formato `EyeShadowStyle`, cor `EyeShadowColor`. Formato padrão `Soft`, cor padrão `Plum`.
+
+| Valor | Estilo | Significado |
+| --- | --- | --- |
+| 0 | `Soft` | Lavagem suave |
+| 1 | `Crease` | Aprofunda o côncavo |
+| 2 | `Smoky` | Anel esfumado |
+| 3 | `Halo` | Halo ao redor do olho |
+| 4 | `Glow` | Elevação no canto externo |
+| 5 | `Drama` | Cobertura total |
+| 6 | `Warm` | Lavagem quente |
+
+| Valor | Cor | Significado |
+| --- | --- | --- |
+| 0 | `Plum` | Ameixa / mauve |
+| 1 | `Brown` | Marrom quente |
+| 2 | `Gold` | Dourado suave |
+| 3 | `Pink` | Rosa empoeirado |
+
+## Delineador
+
+| Valor | `EyeLinerStyle` | Significado |
+| --- | --- | --- |
+| 0 | `Classic` | Delineado completo + asa |
+| 1 | `Flick` | Asa longa no canto externo |
+| 2 | `CatEye` | Olho de gato curto |
+| 3 | `Natural` | Linha natural fina |
+| 4 | `Bold` | Cobertura marcada |
+| 5 | `Soft` | Asa suave esfumada |
+
+| Valor | `EyeLinerColor` | Significado |
+| --- | --- | --- |
+| 0 | `Burgundy` | Marrom burgundy |
+| 1 | `Plum` | Ameixa profunda |
+| 2 | `Chocolate` | Chocolate |
+| 3 | `Coffee` | Café quase preto |
+| 4 | `Mauve` | Mauve empoeirado |
+
+## Sobrancelha
+
+| Valor | `EyebrowStyle` | Significado |
+| --- | --- | --- |
+| 0 | `Natural` | Arco natural + fios |
+| 1 | `Soft` | Sobrancelha em pó suave |
+| 2 | `Feathered` | Traços em pluma |
+| 3 | `Mist` | Névoa leve |
+| 4 | `Arched` | Elevação clássica |
+| 5 | `Powder` | Pó denso |
+| 6 | `Wild` | Fios soltos na borda superior |
+| 7 | `Full` | Sobrancelha cheia e uniforme |
+| 8 | `Straight` | Reta, arco baixo |
+
+| Valor | `EyebrowColor` | Significado |
+| --- | --- | --- |
+| 0 | `DarkBrown` | Marrom escuro |
+| 1 | `Black` | Preto |
+| 2 | `SoftBrown` | Marrom suave |
+
+## Cílios
+
+| Valor | `EyelashStyle` | Significado |
+| --- | --- | --- |
+| 0 | `Classic` | Tufos uniformes + cílios inferiores |
+| 1 | `Manga` | Manga pontiagudo |
+| 2 | `Winged` | Comprimento no canto externo |
+| 3 | `Wispy` | Abertura em fios |
+| 4 | `Clustered` | Tufos distintos |
+| 5 | `Doll` | Cílios curtos de boneca |
+
+| Valor | `EyelashColor` | Significado |
+| --- | --- | --- |
+| 0 | `Black` | Quase preto |
+| 1 | `Brown` | Marrom suave |
+| 2 | `SoftBlack` | Preto suave |
+
+## Pupila (`PupilColor`)
+
+Um disco de íris por cor. Sem tintura. Padrão: `Hazel`.
+
+| Valor | Nome | Significado |
+| --- | --- | --- |
+| 0 | `Hazel` | Âmbar / marrom mel |
+| 1 | `Ice` | Azul gelo |
+| 2 | `Mocha` | Marrom escuro com brilho |
+| 3 | `Olive` | Verde floresta |
+| 4 | `Gloss` | Marrom escuro brilhante |
+| 5 | `Moss` | Oliva suave |
+| 6 | `Sand` | Marrom areia |
+| 7 | `Glow` | Highlight em crescente na íris inferior (não é lente de cor completa) |
+| 8 | `Slate` | Azul-acinzentado |
+
+## Chroma key (`ChromaKeyColor`)
+
+Usado com `SetChromaKey` como origem da máscara de fundo virtual.
+
+| Valor | Nome |
+| --- | --- |
+| 0 | `Green` |
+| 1 | `Blue` |
+| 2 | `Red` |

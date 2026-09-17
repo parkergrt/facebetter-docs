@@ -1,0 +1,126 @@
+---
+title: "빠른 시작"
+description: "Windows에서 Facebetter C++ 데스크톱 데모를 빌드하고 실행합니다(GLFW + ImGui)"
+---
+
+<Note>
+이 페이지는 SDK **2.0.0**에 해당합니다. Windows와 Linux는 `facebetter` 네임스페이스의 동일한 C++ API를 공유합니다(`facebetter/*.h`).
+</Note>
+
+이 가이드는 Windows에서 Facebetter C++ 데스크톱 데모를 빌드합니다. 데모는 **GLFW + Dear ImGui + OpenGL 3**을 사용합니다. 왼쪽은 실시간 미리보기, 오른쪽은 뷰티 컨트롤입니다.
+
+## 요구 사항
+
+| 도구 | 버전 |
+| --- | --- |
+| Visual Studio / MSVC | 2019 이상 (C++17) |
+| CMake | 3.16+ |
+| Ninja | 최신 버전 (`winget install Ninja-build.Ninja`) |
+| Windows SDK | 10.0+ |
+
+<Tip>
+MinGW-w64도 동작하지만 MSVC를 권장합니다.
+</Tip>
+
+## 1단계: 저장소 클론
+
+```bash
+git clone https://github.com/pixpark/facebetter-sdk.git
+cd facebetter-sdk
+```
+
+## 2단계: SDK 파일 배치
+
+Windows SDK 패키지를 압축 해제한 뒤 파일을 `demo/cpp/sdk/` 아래에 둡니다.
+
+```
+demo/cpp/sdk/
+├── include/
+│   └── facebetter/
+│       ├── beauty_effect_engine.h
+│       ├── beauty_params.h
+│       ├── image_frame.h
+│       └── type_defines.h
+├── lib/
+│   ├── facebetter.lib      ← import library
+│   └── facebetter.dll      ← runtime DLL
+└── resource/
+    ├── resource.fbd        ← models and assets (required)
+    └── resource_3d.fbd     ← optional; 3D stickers. Place next to `resource.fbd` or call `AddResourcePack`
+```
+
+<Warning>
+데스크톱에서 `EngineConfig::resource_path`는 디렉터리가 아니라 **`resource.fbd` 파일**을 가리켜야 합니다. 예: `demo/cpp/sdk/resource/resource.fbd`.
+</Warning>
+
+<Tip>
+SDK 패키지는 [다운로드](https://facebetter.net/ko/download) 페이지와 [대시보드](https://facebetter.net/ko/dashboard)에 있습니다.
+</Tip>
+
+## 3단계: 라이선스 설정
+
+실행 전에 데모에서 `app_id` / `app_key`(온라인 v2 인증) 또는 `license_token`을 설정하세요. `license_token`이 비어 있지 않으면 우선합니다(라이선스 토큰 문자열, `{token}` JSON, 또는 오프라인 `.lic` 내용). 자세한 내용: [인증 및 라이선스](/ko/intro/license).
+
+## 4단계: 빌드
+
+**Developer Command Prompt for VS**(또는 MSVC 환경이 로드된 PowerShell)를 엽니다.
+
+```bat
+cd demo\cpp
+cmake -B build -G "Ninja" -DCMAKE_BUILD_TYPE=Release
+cmake --build build
+```
+
+빌드 후 CMake는 보통 다음을 수행합니다.
+
+- `facebetter.dll`을 `build/`의 실행 파일 옆으로 복사
+- `resource/resource.fbd`를 `build/resource/resource.fbd`로 복사
+- `demo.png`가 있으면 `build/resource/demo.png`로 복사
+
+## 5단계: 미리보기 이미지 준비 (선택)
+
+얼굴 사진을 `demo.png`로 이름 지어 `demo/cpp/`에 둡니다.
+
+```
+demo/cpp/demo.png
+```
+
+## 6단계: 실행
+
+```bat
+cd demo\cpp\build
+.\facebetter_demo.exe
+```
+
+창에는 다음이 표시됩니다.
+
+- **왼쪽 패널** — 실시간 뷰티 처리 미리보기
+- **오른쪽 패널** — Beauty Control Panel:
+  - **기본 뷰티**: 스무딩 / 미백 / 혈색 / 샤프닝
+  - **페이스 리셰이프**: 26개 리셰이프 파라미터(범위 `[-1.0, 1.0]`)
+  - **메이크업**: 립스틱 / 블러셔 / 아이섀도 / 아이라이너 / 눈썹 / 속눈썹 / 렌즈 / 컨투어
+  - **필터 / 스티커 / 가상 배경**
+
+**Reset All**을 클릭하면 강도가 0이 됩니다.
+
+## 문제 해결
+
+**Q: 시작 시 "facebetter.dll was not found"**  
+A: `demo/cpp/sdk/lib/facebetter.dll`이 있는지 확인한 뒤 `cmake --build build`를 다시 실행해 CMake가 DLL을 실행 파일 옆으로 복사하게 하세요.
+
+**Q: 엔진 생성이 `nullptr`을 반환 / 라이선스 실패**  
+A: `resource_path`를 `resource.fbd`로 지정하고, `license_token` 또는 유효한 `app_id` + `app_key`를 설정하세요. [인증 및 라이선스](/ko/intro/license)를 참고하세요.
+
+**Q: CMake가 Ninja를 찾지 못함**  
+A: `winget install Ninja-build.Ninja`를 실행하거나, `-G "Visual Studio 17 2022"`와 `--config Release`를 사용하세요.
+
+## 다음 단계
+
+<CardGroup cols={2}>
+  <Card title="뷰티 효과 적용" href="/ko/windows/implement-beauty">
+    엔진을 만들고 효과를 설정한 뒤 프레임을 처리합니다.
+  </Card>
+  <Card title="API 레퍼런스" href="/ko/windows/api-reference">
+    Windows와 Linux용 전체 C++ API입니다.
+  </Card>
+</CardGroup>

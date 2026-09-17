@@ -1,0 +1,422 @@
+---
+title: "API リファレンス"
+description: "Facebetter SDK 2.0 の macOS Objective-C API"
+---
+
+<Note>
+このページは SDK **2.0.0** に対応します。プリセットの意味: [パラメータ列挙](/ja/intro/makeup)。認証: [認証とライセンス](/ja/intro/license)。
+</Note>
+
+iOS と macOS は同一の Objective-C API を共有します。macOS 固有: `+[FBImageFrame createWithNSImage:]`。最低 OS: **macOS 10.15**、アーキテクチャ **x86_64** と **arm64**。静止画は AppKit（`NSImage`）を使用します。
+
+## ログ
+
+### `FBLogLevel`
+
+```objc
+typedef NS_ENUM(NSInteger, FBLogLevel) {
+  FBLogLevel_Trace = 0,
+  FBLogLevel_Debug,
+  FBLogLevel_Info,
+  FBLogLevel_Warn,
+  FBLogLevel_Error,
+  FBLogLevel_Critical,
+};
+```
+
+### `FBLogConfig`
+
+| プロパティ | 型 | 説明 |
+| --- | --- | --- |
+| `consoleEnabled` | `BOOL` | コンソール出力 |
+| `fileEnabled` | `BOOL` | ファイル出力 |
+| `level` | `FBLogLevel` | 最低レベル |
+| `fileName` | `NSString *` | ログパス（`fileEnabled` が `YES` のとき有効） |
+
+```objc
+FB_OBJC_API @interface FBLogConfig : NSObject
+@property(nonatomic, assign) BOOL consoleEnabled;
+@property(nonatomic, assign) BOOL fileEnabled;
+@property(nonatomic, assign) FBLogLevel level;
+@property(nonatomic, copy, nullable) NSString *fileName;
+- (instancetype)init;
+@end
+```
+
+`createEngineWithConfig:` **の前**に `+[FBBeautyEffectEngine setLogConfig:]` を呼び出してください。戻り値は `FBErrorCode`（`0` が成功、`config` が nil のときは `-1`）です。
+
+## エンジン設定
+
+### `FBEngineConfig`
+
+| プロパティ | 型 | 説明 |
+| --- | --- | --- |
+| `appId` | `NSString *` | コンソールの App ID（オンライン認証） |
+| `appKey` | `NSString *` | コンソールの App Key（オンライン認証） |
+| `licenseToken` | `NSString *` | ライセンストークン、`{token}` JSON、またはネイティブ `.lic` の内容 |
+| `externalContext` | `BOOL` | デフォルト `NO`。`YES`: 呼び出し側の OpenGL コンテキストを使用します |
+
+**認証の優先順位:** `licenseToken` が空でなければローカル検証し、`/facebetter/v2/auth` をスキップします。それ以外は `appId` + `appKey` でオンライン認証します。コンソールでアプリの **Bundle ID** をバインドしてください。Bundle のないコマンドラインツールはプロセス名をバインドしてください。
+
+```objc
+FB_OBJC_API @interface FBEngineConfig : NSObject
+@property(nonatomic, copy) NSString *appId;
+@property(nonatomic, copy) NSString *appKey;
+@property(nonatomic, copy, nullable) NSString *licenseToken;
+@property(nonatomic, assign) BOOL externalContext;
+- (instancetype)init;
+@end
+```
+
+### `FBFrameType`
+
+`processImage:` の前に `FBImageFrame.type` を設定します。メソッド引数ではありません。
+
+```objc
+typedef NS_ENUM(NSInteger, FBFrameType) {
+  FBFrameTypeImage = 0,  // 静止画 / NSImage
+  FBFrameTypeVideo = 1   // リアルタイム / カメラ
+};
+```
+
+## `FBBeautyEffectEngine`
+
+```objc
+FB_OBJC_API @interface FBBeautyEffectEngine : NSObject
+
++ (int)setLogConfig:(FBLogConfig *)config;
++ (instancetype)createEngineWithConfig:(FBEngineConfig *)config;
+
+- (int)setSmoothing:(float)intensity;
+- (int)setSmoothingStyle:(FBSmoothingStyle)style;
+- (int)setWhitening:(float)intensity;
+- (int)setWhiteningStyle:(FBWhiteningStyle)style;
+- (int)setSharpening:(float)intensity;
+- (int)setRosiness:(float)intensity;
+- (int)setReshape:(FBReshape)param intensity:(float)value;
+- (int)setBeautySkinOnly:(BOOL)enabled;
+
+- (int)setLipstick:(float)intensity;
+- (int)setLipstickColor:(FBLipstickColor)color;
+- (int)setBlush:(float)intensity;
+- (int)setBlushStyle:(FBBlushStyle)style;
+- (int)setBlushColor:(FBBlushColor)color;
+- (int)setContour:(float)intensity;
+- (int)setContourStyle:(FBContourStyle)style;
+- (int)setEyeShadow:(float)intensity;
+- (int)setEyeShadowStyle:(FBEyeShadowStyle)style;
+- (int)setEyeShadowColor:(FBEyeShadowColor)color;
+- (int)setEyeLiner:(float)intensity;
+- (int)setEyeLinerStyle:(FBEyeLinerStyle)style;
+- (int)setEyeLinerColor:(FBEyeLinerColor)color;
+- (int)setEyebrow:(float)intensity;
+- (int)setEyebrowStyle:(FBEyebrowStyle)style;
+- (int)setEyebrowColor:(FBEyebrowColor)color;
+- (int)setEyelash:(float)intensity;
+- (int)setEyelashStyle:(FBEyelashStyle)style;
+- (int)setEyelashColor:(FBEyelashColor)color;
+- (int)setPupil:(float)intensity;
+- (int)setPupilColor:(FBPupilColor)color;
+
+- (int)setChromaKey:(FBChromaKeyColor)color;
+- (int)clearChromaKey;
+- (int)setChromaKeySimilarity:(float)value;
+- (int)setChromaKeySmoothness:(float)value;
+- (int)setChromaKeyDesaturation:(float)value;
+- (int)setVirtualBackgroundBlur:(float)level;
+- (int)setVirtualBackground:(NSString *)imagePath;
+- (int)setVirtualBackgroundWithData:(NSData *)imageData;
+- (int)clearVirtualBackground;
+
+- (int)setFilter:(NSString *)fbdFilePath;
+- (int)setFilterWithData:(NSData *)fbdData;
+- (int)clearFilter;
+- (int)setFilterIntensity:(float)intensity;
+- (int)setSticker:(NSString *)fbdFilePath;
+- (int)setStickerWithData:(NSData *)fbdData;
+- (int)clearSticker;
+- (int)addResourcePack:(NSString *)fbdFilePath;
+- (int)addResourcePackWithData:(NSData *)fbdData;
+- (int)set3DSticker:(NSString *)resource;
+- (int)set3DStickerWithData:(NSData *)fbdData;
+- (int)clear3DSticker;
+
+- (FBEngineStats *)getStats;
+- (int)setCallbacks:(FBEngineCallbacks *)callbacks;
+- (FBImageFrame * _Nullable)processImage:(FBImageFrame *)imageFrame;
+
+@end
+```
+
+`createEngineWithConfig:` は失敗時に `nil` を返します。整数を返すメソッドは `FBErrorCode`（`0` = 成功）です。
+
+### 美肌
+
+| メソッド | 範囲 / 説明 |
+| --- | --- |
+| `setSmoothing:` | 強度 `[0, 1]` |
+| `setSmoothingStyle:` | スタイル。強度は引き続き `setSmoothing:` で制御 |
+| `setWhitening:` | `[0, 1]` |
+| `setWhiteningStyle:` | 美白 LUT を切り替え |
+| `setSharpening:` | `[0, 1]` |
+| `setRosiness:` | `[0, 1]` |
+| `setBeautySkinOnly:` | `YES` = 肌領域のみ |
+
+### リシェイプ
+
+`setReshape:intensity:` — 強度 **`[-1.0, 1.0]`**、`0` でオフ。`FBReshape` の値は `0`–`25`: `FBReshape_FaceThin` … `FBReshape_BrowThickness`。方向の説明: [パラメータ列挙](/ja/intro/makeup)。
+
+```objc
+typedef NS_ENUM(NSInteger, FBReshape) {
+  FBReshape_FaceThin = 0,
+  FBReshape_FaceVShape = 1,
+  FBReshape_FaceNarrow = 2,
+  FBReshape_FaceShort = 3,
+  FBReshape_Cheekbone = 4,
+  FBReshape_Jawbone = 5,
+  FBReshape_Chin = 6,
+  FBReshape_NoseSlim = 7,
+  FBReshape_EyeSize = 8,
+  FBReshape_EyeDistance = 9,
+  FBReshape_FaceSmall = 10,
+  FBReshape_Forehead = 11,
+  FBReshape_NoseLong = 12,
+  FBReshape_Philtrum = 13,
+  FBReshape_MouthSize = 14,
+  FBReshape_MouthPosition = 15,
+  FBReshape_MouthSmile = 16,
+  FBReshape_LipThickness = 17,
+  FBReshape_EyeRound = 18,
+  FBReshape_EyePosition = 19,
+  FBReshape_EyeAngle = 20,
+  FBReshape_EyeCornerOpen = 21,
+  FBReshape_LowerEyelid = 22,
+  FBReshape_BrowPosition = 23,
+  FBReshape_BrowDistance = 24,
+  FBReshape_BrowThickness = 25,
+};
+```
+
+`FBSmoothingStyle`: `Natural`、`Texture`、`Smooth`。`FBWhiteningStyle`: `ColdWhite`、`PinkWhite`、`WarmWhite`、`Wheat`、`Tan`。
+
+### メイク
+
+強度メソッドの範囲は `[0, 1]` です。形状 / 色番号の型: [パラメータ列挙](/ja/intro/makeup)。
+
+| 強度 | 形状 | 色番号 |
+| --- | --- | --- |
+| `setLipstick:` | — | `setLipstickColor:` |
+| `setBlush:` | `setBlushStyle:` | `setBlushColor:` |
+| `setContour:` | `setContourStyle:` | — |
+| `setEyeShadow:` | `setEyeShadowStyle:` | `setEyeShadowColor:` |
+| `setEyeLiner:` | `setEyeLinerStyle:` | `setEyeLinerColor:` |
+| `setEyebrow:` | `setEyebrowStyle:` | `setEyebrowColor:` |
+| `setEyelash:` | `setEyelashStyle:` | `setEyelashColor:` |
+| `setPupil:` | — | `setPupilColor:` |
+
+### バーチャル背景とクロマキー
+
+| メソッド | 説明 |
+| --- | --- |
+| `setChromaKey:` | 緑 / 青 / 赤のマスク。塗りつぶしは引き続きぼかしまたは画像 |
+| `clearChromaKey` | 人物セグメンテーションマスクに戻します。塗りつぶしは**クリアしません** |
+| `setChromaKeySimilarity:` | キーイング閾値 `[0, 1]` |
+| `setChromaKeySmoothness:` | エッジのぼかし `[0, 1]` |
+| `setChromaKeyDesaturation:` | 色のにじみ抑制 `[0, 1]` |
+| `setVirtualBackgroundBlur:` | ぼかし塗りつぶし `[0, 1]`。`0` でバーチャル背景をクリア |
+| `setVirtualBackground:` | png/jpg ファイルパス（空にできません） |
+| `setVirtualBackgroundWithData:` | エンコード済み png/jpg の `NSData` |
+| `clearVirtualBackground` | ぼかしと画像の塗りつぶしをクリア |
+
+```objc
+typedef NS_ENUM(NSInteger, FBChromaKeyColor) {
+  FBChromaKeyColor_Green = 0,
+  FBChromaKeyColor_Blue,
+  FBChromaKeyColor_Red,
+};
+```
+
+### フィルターとステッカー
+
+ID 登録はありません。パスまたはバイトを渡します。GPU リソースは次の `processImage:`（GL スレッド / 外部コンテキスト）で作成されます。
+
+| メソッド | 説明 |
+| --- | --- |
+| `setFilter:` | `.fbd` パスから LUT を読み込み |
+| `setFilterWithData:` | `.fbd` バイトから LUT を読み込み |
+| `clearFilter` | LUT を削除 |
+| `setFilterIntensity:` | `[0, 1]` |
+| `setSticker:` | 2D ステッカー `.fbd` パス |
+| `setStickerWithData:` | ステッカーバイト |
+| `addResourcePack:` | 追加能力パックのパス（例: 3D ステッカー前に `resource_3d.fbd` を読み込み） |
+| `addResourcePackWithData:` | 追加パックのバイト |
+| `set3DSticker:` | 3D ステッカー `.fbd` パス |
+| `set3DStickerWithData:` | 3D ステッカーバイト |
+| `clear3DSticker` | 3D ステッカーを削除 |
+| `clearSticker` | ステッカーを削除 |
+
+空パス / nil または空の `NSData` → `FBErrorCode_InvalidArgument`。
+
+### 処理
+
+```objc
+- (FBImageFrame * _Nullable)processImage:(FBImageFrame *)imageFrame;
+```
+
+`imageFrame.type`（`FBFrameTypeImage` または `FBFrameTypeVideo`）を読み取ります。出力形式は入力と一致します。失敗時は `nil` を返します。
+
+## エラーコード
+
+
+
+```objc
+typedef NS_ENUM(NSInteger, FBErrorCode) {
+  FBErrorCode_Success = 0,
+  FBErrorCode_InvalidArgument = -1,
+  FBErrorCode_NotInitialized = -2,
+  FBErrorCode_License = -3,
+  FBErrorCode_Unsupported = -4,
+  FBErrorCode_IO = -5,
+  FBErrorCode_NoSlot = -6,
+  FBErrorCode_Process = -7,
+  FBErrorCode_OutOfMemory = -8,
+};
+```
+
+`-1` は引数無効です。`-2` は未初期化です。
+
+## 統計とコールバック
+
+### `FBEngineStats`
+
+| プロパティ | 型 | 説明 |
+| --- | --- | --- |
+| `fps` | `double` | 1 秒あたりのフレーム数 |
+| `avgProcessTimeMs` | `double` | `processImage:` の平均所要時間（ミリ秒） |
+| `sessionTimeS` | `double` | セッション時間（秒） |
+
+```objc
+- (FBEngineStats *)getStats;
+```
+
+### `FBEngineEventCode`
+
+| 値 | シンボル |
+| --- | --- |
+| `0` | `FBEngineEventCodeLicenseValidationSuccess` |
+| `1` | `FBEngineEventCodeLicenseValidationFailed` |
+| `100` | `FBEngineEventCodeInitializationComplete` |
+| `101` | `FBEngineEventCodeInitializationFailed` |
+
+### `FBEngineCallbacks`
+
+```objc
+FB_OBJC_API @interface FBEngineCallbacks : NSObject
+@property(nonatomic, copy, nullable) void (^onFaceLandmarks)
+    (NSArray<FBFaceDetectionResult *> * _Nullable results);
+@property(nonatomic, copy, nullable) void (^onEngineEvent)
+    (FBEngineEventCode code, NSString * _Nullable message);
+@end
+```
+
+### 顔検出結果の型
+
+```objc
+FB_OBJC_API @interface FBPoint2d : NSObject
+@property(nonatomic, assign) float x;
+@property(nonatomic, assign) float y;
+- (instancetype)initWithX:(float)x y:(float)y;
+@end
+
+FB_OBJC_API @interface FBRect : NSObject
+@property(nonatomic, assign) float x;
+@property(nonatomic, assign) float y;
+@property(nonatomic, assign) float width;
+@property(nonatomic, assign) float height;
+- (instancetype)initWithX:(float)x y:(float)y width:(float)width height:(float)height;
+@end
+
+FB_OBJC_API @interface FBFaceDetectionResult : NSObject
+@property(nonatomic, strong) FBRect *rect;
+@property(nonatomic, copy, nullable) NSArray<FBPoint2d *> *keyPoints;  // 111 点
+@property(nonatomic, copy, nullable) NSArray<NSNumber *> *visibility;  // [0, 1]
+@property(nonatomic, assign) int faceId;
+@property(nonatomic, assign) float score;
+@property(nonatomic, assign) float pitch;  // 上 -, 下 +；[-π, π]
+@property(nonatomic, assign) float roll;   // 左 -, 右 +
+@property(nonatomic, assign) float yaw;    // 左 -, 右 +
+@end
+```
+
+## `FBImageFrame`
+
+### 作成
+
+| メソッド | 説明 |
+| --- | --- |
+| `createWithData:width:height:format:` | 生バッファ + `FBImageFormat` |
+| `createWithRGBA:width:height:stride:` | |
+| `createWithBGRA:width:height:stride:` | |
+| `createWithRGB:width:height:stride:` | |
+| `createWithBGR:width:height:stride:` | |
+| `createWithI420:...` | Y / U / V プレーン |
+| `createWithNV12:...` | Y + UV |
+| `createWithNV21:...` | Y + VU |
+| `createWithFile:` | png / jpg パス |
+| `createWithTexture:width:height:stride:` | 現在のコンテキスト内の `GL_TEXTURE_2D`。`stride` は通常 `width * 4` |
+| `createWithNSImage:` | **macOS のみ** |
+
+### 操作
+
+| メソッド | 説明 |
+| --- | --- |
+| `rotate:` | `FBImageRotation`。戻り値は `FBErrorCode` |
+| `mirror:` | `"horizontal"` / `"vertical"` / `"both"`（大文字小文字を区別しません）。ピクセルを直接変更 |
+| `setMirror:` | `processImage:` 用のフラグ（余分な形式変換を避けます）。`nil` / `@""` でクリア |
+| `convert:` | 対象 `FBImageFormat` の新しいフレームを返します |
+| `toFile:quality:` | 品質 `0`–`100` |
+| `toFile:` | 品質 `90` |
+
+### プロパティとアクセサ
+
+`width`、`height`、`stride`、`size`、`type`。メソッド: `data`、`format`、`texture`（テクスチャでないときは `0`）。YUV: `dataY` / `dataU` / `dataV` / `dataUV`、`strideY` / `strideU` / `strideV` / `strideUV`（YUV でないときは `NULL` / `0`）。
+
+```objc
+typedef NS_ENUM(NSInteger, FBImageFormat) {
+  FBImageFormatI420,
+  FBImageFormatNV12,
+  FBImageFormatNV21,
+  FBImageFormatBGRA,
+  FBImageFormatRGBA,
+  FBImageFormatBGR,
+  FBImageFormatRGB,
+  FBImageFormatTexture,
+};
+
+typedef NS_ENUM(NSInteger, FBImageRotation) {
+  FBImageRotation0,
+  FBImageRotation90,   // 時計回り
+  FBImageRotation180,
+  FBImageRotation270,
+};
+```
+
+```objc
+FBImageFrame *frame = [FBImageFrame createWithNSImage:image];
+frame.type = FBFrameTypeImage;
+FBImageFrame *out = [engine processImage:frame];
+```
+
+## メイク / スタイル列挙
+
+Objective-C シンボルは `FBBeautyParams.h` にあります。意味の表はここでは繰り返しません — [パラメータ列挙](/ja/intro/makeup) を参照してください。
+
+- `FBSmoothingStyle`、`FBWhiteningStyle`
+- `FBLipstickColor`
+- `FBBlushStyle`、`FBBlushColor`
+- `FBContourStyle`
+- `FBEyeShadowStyle`、`FBEyeShadowColor`
+- `FBEyeLinerStyle`、`FBEyeLinerColor`
+- `FBEyebrowStyle`、`FBEyebrowColor`
+- `FBEyelashStyle`、`FBEyelashColor`
+- `FBPupilColor`

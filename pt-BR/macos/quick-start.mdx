@@ -1,0 +1,85 @@
+---
+title: "Início rápido"
+description: "Execute o app de exemplo macOS com o Facebetter SDK 2.0"
+---
+
+<Note>
+Esta página corresponde ao SDK **2.0.0**. Autenticação: [Autenticação e licença](/pt-BR/intro/license). Enums de maquiagem / remodelagem: [Enums de parâmetros](/pt-BR/intro/makeup).
+</Note>
+
+## Requisitos de ambiente
+
+- **Versão do macOS**: `macOS 10.15` ou superior
+- **Linguagem de desenvolvimento**: `Objective-C` (AppKit / `NSImage`)
+- **Arquiteturas suportadas**: `x86_64`, `arm64` (Apple Silicon)
+
+## Obter o código-fonte do exemplo
+
+Clone o [repositório GitHub](https://github.com/pixpark/facebetter-sdk) localmente e navegue até o diretório `demo/macos`.
+
+```bash
+# clone
+git clone https://github.com/pixpark/facebetter-sdk.git
+
+# Enter macOS Demo directory
+cd facebetter-sdk/demo/macos
+
+# Install dependencies
+pod install
+```
+
+<Warning>
+**Erro de compilação no Xcode 15+**
+
+Se você usa **Xcode 15** ou posterior, pode encontrar o erro `Sandbox: rsync.samba deny(1)` durante a compilação. Isso é causado pelo **User Script Sandboxing** padrão do Xcode.
+
+**Solução:**
+1. Selecione o **Project** no Xcode.
+2. Vá até a aba **Build Settings**.
+3. Pesquise `ENABLE_USER_SCRIPT_SANDBOXING`.
+4. Altere o valor de `Yes` para **`No`**.
+</Warning>
+
+## Configurar informações do aplicativo e chaves
+
+### Vincular o Bundle ID do aplicativo
+
+Siga [Vincular informações do aplicativo](/pt-BR/intro/enable-service#bind-application-information) para vincular o Bundle ID do aplicativo macOS no console, por exemplo: `com.example.app`.
+
+### Obter credenciais
+
+Siga [Obter AppID e AppKey](/pt-BR/intro/enable-service#get-appid-and-appkey) para obter `appId` e `appKey`. Abra `demo/macos/FBExampleObjc/BeautyCameraViewController.m` e defina as credenciais em `FBEngineConfig`.
+
+```objc
+FBEngineConfig *engineConfig = [[FBEngineConfig alloc] init];
+engineConfig.appId = @"your appId";
+engineConfig.appKey = @"your appKey";
+// Preferred: licenseToken (license token, {token} JSON, or .lic contents)
+// engineConfig.licenseToken = @"your license token";
+
+self.beautyEffectEngine = [FBBeautyEffectEngine createEngineWithConfig:engineConfig];
+```
+
+<Tip>
+Se `licenseToken` não estiver vazio, o SDK valida esse token localmente e **não** chama `/facebetter/v2/auth` com `appId` / `appKey`. Veja [Autenticação e licença](/pt-BR/intro/license).
+</Tip>
+
+## Executar o projeto
+
+Abra `demo/macos/FBExampleObjc.xcworkspace`.
+
+1. Confirme se a assinatura do projeto Xcode está correta.
+
+<Frame>
+  <img src="/images/ios-1.png" alt="Assinatura no Xcode" />
+</Frame>
+
+2. Permita acesso de rede de saída se você usar autenticação online com `appId` / `appKey` (App Sandbox).
+
+<Frame>
+  <img src="/images/macos-4.png" alt="Permissão de rede no macOS" />
+</Frame>
+
+3. Compile e execute.
+
+Selecione um Mac (ou Simulator) e clique no botão de build and run.

@@ -1,0 +1,89 @@
+---
+title: "빠른 시작"
+description: "Facebetter Web SDK 2.0 예제를 실행합니다"
+---
+
+<Note>
+이 페이지는 SDK **2.0.0**에 해당합니다. 인증: [인증 및 라이선스](/ko/intro/license). 메이크업 / 리셰이프 열거형: [파라미터 열거형](/ko/intro/makeup).
+</Note>
+
+## 요구 사항
+
+- **브라우저**: Chrome 57+, Firefox 52+, Safari 11+, Edge 16+
+- **언어**: JavaScript (ES6+) 또는 TypeScript
+- **컨텍스트**: HTTPS 또는 `localhost`(카메라에 필요)
+
+## SDK 설치
+
+```bash
+npm install facebetter
+```
+
+```javascript
+import {
+  BeautyEffectEngine,
+  EngineConfig,
+  FrameType,
+  MirrorMode,
+  Reshape,
+} from 'facebetter';
+```
+
+## 예제 받기
+
+[GitHub 저장소](https://github.com/pixpark/facebetter-sdk)를 클론하고 `demo/web/react`를 엽니다.
+
+```bash
+git clone https://github.com/pixpark/facebetter-sdk.git
+cd demo/web/react
+```
+
+데모는 Vite + React 앱입니다. 개발 중에는 `file:`로 저장소 안의 SDK에 의존합니다.
+
+## 도메인 바인딩 및 자격 증명 받기
+
+1. 대시보드에서 Web **도메인**(예: `example.com`)을 바인딩합니다. [구독](/ko/intro/enable-service)을 참고하세요.
+2. 대시보드에서 `appId` / `appKey`를 복사합니다. **`EngineConfig`에 넣지 마세요.** Web에서는 **서버**에 두어야 합니다.
+
+Web에는 오프라인 `.lic`가 **없습니다**. 자세한 내용: [인증 및 라이선스](/ko/intro/license).
+
+## 데모 설정
+
+데모는 **페이지에 키를 넣지 않습니다**. 페이지는 `/api/facebetter/auth` 프록시를 호출하고(`src/fetchLicenseToken.js`) 응답을 엔진에 전달합니다. 프로덕션 프록시는 `api/facebetter/auth.js`에 있으며, 로컬 `vite`에서는 해당 경로가 배포된 데모 프록시로 전달됩니다.
+
+```javascript
+const licenseToken = await fetch('/api/facebetter/auth', { method: 'POST' }).then((r) => r.text());
+const engine = new BeautyEffectEngine(new EngineConfig({ licenseToken }));
+await engine.init();
+```
+
+프로덕션에서는 **직접 운영하는** 서버에 같은 프록시를 구현하세요. 전체 단계와 Node 예제: [인증 및 라이선스](/ko/intro/license).
+
+SDK는 `init()` 동안 런타임 파일을 로드합니다. `resource.fbd`를 `public/`에 복사할 필요는 **없습니다**. 선택: `init({ onProgress })`가 다운로드 퍼센트를 보고합니다. 3D 스티커에는 추가 팩 `resource_3d.fbd`가 필요합니다. [선택 리소스 팩](/ko/intro/resource-packs)을 참고하세요.
+
+## 실행
+
+```bash
+npm install
+npm run dev
+```
+
+Vite가 출력하는 URL을 엽니다(보통 `http://localhost:5175`).
+
+## 확인
+
+1. DevTools(F12)를 열고 콘솔을 확인합니다.
+2. 요청이 있으면 카메라를 허용합니다.
+3. 뷰티 슬라이더를 드래그하면 미리보기에 피부 스무딩 / 리셰이프가 보여야 합니다.
+
+## 최소 프로덕션 초기화
+
+```javascript
+import { BeautyEffectEngine, EngineConfig } from 'facebetter';
+
+const licenseToken = await fetch('/api/facebetter/auth', { method: 'POST' }).then((r) => r.text());
+const engine = new BeautyEffectEngine(new EngineConfig({ licenseToken }));
+await engine.init();
+```
+
+서버가 `app_id` / `app_key`를 보관하고 토큰을 반환합니다. 서버 예제 코드는 [인증 및 라이선스](/ko/intro/license)에 있습니다.

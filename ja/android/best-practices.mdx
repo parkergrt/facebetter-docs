@@ -1,0 +1,198 @@
+---
+title: "ベストプラクティス"
+description: "Android 上の Facebetter SDK 2.0 のパフォーマンスとアーキテクチャ"
+---
+
+## FrameType を選ぶ
+
+`processImage` の前に `ImageFrame.type` を設定します。追加のモード引数はありません。
+
+**`FrameType.VIDEO`**（デフォルト）
+
+- カメラプレビュー、ビデオ通話、ライブ配信
+- 遅延が低い
+
+**`FrameType.IMAGE`**
+
+- ギャラリー写真、書き出し、静止画キャプチャ
+- 画質は高く、1 フレームあたりのコストは大きい
+
+```java
+input.type = ImageFrame.FrameType.VIDEO;
+ImageFrame output = engine.processImage(input);
+```
+
+## パラメータ範囲
+
+低めから始め、顔検出と FPS を確認してから上げます。
+
+| API | 範囲 | 備考 |
+| --- | --- | --- |
+| スムージング / 美白 / シャープニング / 血色 / メイク強度 / フィルター強度 / バーチャル背景ぼかし / クロマキーつまみ | `[0, 1]` | `0` はオフ |
+| `setReshape` | **`[-1, 1]`** | `0` はオフ。符号が方向 |
+
+ライブプレビュー（例）:
+
+```java
+engine.setSmoothing(0.25f);
+engine.setWhitening(0.12f);
+engine.setRosiness(0.08f);
+engine.setReshape(Reshape.FACE_THIN, 0.15f);
+engine.setReshape(Reshape.EYE_SIZE, 0.12f);
+```
+
+髪 / 衣服 / 背景にスムージングをかけたくない場合は `setBeautySkinOnly(true)` を有効にします。
+
+プリセット名: [パラメータ列挙](/ja/intro/makeup)。
+
+## メモリ
+
+ピクセルデータからフレームを作成するときは **direct** `ByteBuffer` を使います。
+
+```java
+ByteBuffer data = ByteBuffer.allocateDirect(width * height * 4);
+```
+
+ネイティブフレームを解放します。
+
+```java
+ImageFrame input = ImageFrame.createWithRGBA(data, width, height, stride);
+try {
+    input.type = ImageFrame.FrameType.VIDEO;
+    ImageFrame output = engine.processImage(input);
+    try {
+        // draw / encode output
+    } finally {
+        if (output != null) {
+            output.release();
+        }
+    }
+} finally {
+    if (input != null) {
+        input.release();
+    }
+}
+```
+
+- プロセス / GL コンテキストごとにエンジンは 1 つ。フレームごとに作成しないでください
+- 静止画は `createWithBitmap` の前に上限を設けます（デモは長辺を 1920 にスケール）
+- `convert()` は**新しい**フレームを割り当てます。解放してください
+
+## OpenGL ES
+
+`externalContext = true` の場合:
+
+- カレントコンテキスト付きの GL スレッドでエンジンを構築します
+- 入力テクスチャ、`processImage`、出力テクスチャは同じコンテキスト上に保ちます
+- コンテキスト喪失後はエンジンを再作成します
+- GPU 上に留まる場合は CPU へダウンロードせず、`output.getTexture()` で結果を読みます
+
+[美顔の実装](/ja/android/implement-beauty#external-texture-opengl-es) を参照してください。
+
+## 1 つのエンジンとアプリケーションコンテキスト
+
+`BeautyEffectEngine` は 1 つだけ保持します。Activity より長く生きるように `getApplicationContext()` を使い、セッション終了時は必ず `release()` します。
+
+```java
+public final class BeautyEngineHolder {
+    private static BeautyEngineHolder sInstance;
+    private BeautyEffectEngine mEngine;
+
+    public static synchronized BeautyEngineHolder get(Context context) {
+        if (sInstance == null) {
+            sInstance = new BeautyEngineHolder(context.getApplicationContext());
+        }
+        return sInstance;
+    }
+
+    private BeautyEngineHolder(Context app) {
+        BeautyEffectEngine.EngineConfig config = new BeautyEffectEngine.EngineConfig();
+        config.appId = "your_app_id";
+        config.appKey = "your_app_key";
+        mEngine = new BeautyEffectEngine(app, config);
+    }
+
+    public BeautyEffectEngine engine() {
+        return mEngine;
+    }
+
+    public synchronized void release() {
+        if (mEngine != null) {
+            mEngine.release();
+            mEngine = null;
+        }
+        sInstance = null;
+    }
+}
+```
+
+<Warning>
+セッション終了時は必ずエンジンを `release()` してください。ImageFrame オブジェクトも `release()` が必要です。
+</Warning>
+
+## UI スレッド以外で実行
+
+`processImage` はカメラ / GL / 専用スレッドで実行します。UI 向けの結果だけメインルーパーに post します。
+
+```java
+executor.execute(() -> {
+    input.type = ImageFrame.FrameType.VIDEO;
+    ImageFrame output = engine.processImage(input);
+    mainHandler.post(() -> callback.onFrame(output));
+});
+```
+
+独自のロックなしに、1 つの `ImageFrame` をスレッド間で共有しないでください。デモのカメラ経路は、レンダースレッドで最新フレームを処理します。
+
+## assets からのフィルターとステッカー
+
+`.fbd` ファイルを `assets/` に置き、`byte[]` を渡す（または `filesDir` にコピーしてパスを渡す）ようにします。ユーザーが効果を選んだときに `setFilter` / `setSticker` を 1 回呼び、毎フレーム呼ばないでください。ミックスは `setFilterIntensity` で調整します。
+
+変更は次の `processImage` で有効になります。
+
+## getStats で監視
+
+```java
+EngineStats stats = engine.getStats();
+Log.d(TAG, "fps=" + stats.fps
+    + " avgMs=" + stats.avgProcessTimeMs
+    + " sessionS=" + stats.sessionTimeS);
+```
+
+ライブ 30 FPS プレビューで `avgProcessTimeMs` が約 33 ms を超え続ける場合は、解像度を下げ、`FrameType.VIDEO` を使うか、同時のリシェイプ / メイク / バーチャル背景を減らしてください。
+
+## ユーザースライダーの永続化
+
+強度はアプリ側で保存します（`SharedPreferences`）。エンジン作成後に `setSmoothing`、`setReshape`、`setLipstick` などで再適用してください。SDK は UI 状態を永続化しません。
+
+## ライフサイクル
+
+- `onResume` / `onPause`: カメラの開始と停止。すぐ再開する場合はエンジンを保持できます
+- `onDestroy` / `onDetach`: このオーナーが作成したなら `engine.release()`
+- `externalContext`: GL スレッドで作成 / 破棄
+
+## テスト
+
+```java
+@Test
+public void processRgbaFrame() {
+    BeautyEffectEngine.EngineConfig config = new BeautyEffectEngine.EngineConfig();
+    config.appId = "test_app_id";
+    config.appKey = "test_app_key";
+    BeautyEffectEngine engine = new BeautyEffectEngine(context, config);
+
+    ByteBuffer data = ByteBuffer.allocateDirect(640 * 480 * 4);
+    ImageFrame input = ImageFrame.createWithRGBA(data, 640, 480, 640 * 4);
+    input.type = ImageFrame.FrameType.IMAGE;
+    ImageFrame output = engine.processImage(input);
+
+    assertNotNull(output);
+    assertTrue(output.isValid());
+
+    input.release();
+    output.release();
+    engine.release();
+}
+```
+
+インストルメントテストには有効なライセンスが必要です（`licenseToken`、または到達可能な `/facebetter/v2/auth` とバインド済みパッケージ名）。

@@ -1,0 +1,226 @@
+---
+title: "パラメータ列挙"
+description: "Facebetter SDK 2.0 のリシェイプ、メイク、美白、スムージング列挙"
+---
+
+<Note>
+このページは SDK **2.0** に対応します。数値は C++、Objective-C、Java、JavaScript、Dart で同一です。
+</Note>
+
+メイクは 3 つのつまみです。
+
+1. **強度** — `SetLipstick` / `SetBlush` / `SetContour` / `SetEyeShadow` / `SetEyeLiner` / `SetEyebrow` / `SetEyelash` / `SetPupil`、範囲 `[0.0, 1.0]`。`0` で効果をオフにします。
+2. **形状** — マスクテクスチャを差し替えます（`SetBlushStyle`、`SetContourStyle`、`SetEyeShadowStyle` など）。
+3. **色** — 現在の形状に着色します（`SetLipstickColor`、`SetBlushColor`、`SetEyeShadowColor` など）。**瞳孔**と**シェーディング**は着色せず、項目を変えるとテクスチャが切り替わります。
+
+| C++ / JS | Java | Objective-C | Dart |
+| --- | --- | --- | --- |
+| `LipstickColor::Rouge` | `LipstickColor.ROUGE` | `FBLipstickColor_Rouge` | `FBLipstickColor.rouge` |
+
+## 美白（`WhiteningStyle`）
+
+`SetWhiteningStyle` と組み合わせて使います。強度はこれまでどおり `SetWhitening` です。デフォルト: `ColdWhite`。
+
+| 値 | 名前 | 意味 |
+| --- | --- | --- |
+| 0 | `ColdWhite` | クールホワイト |
+| 1 | `PinkWhite` | ピンクホワイト |
+| 2 | `WarmWhite` | ウォームホワイト |
+| 3 | `Wheat` | 小麦色 |
+| 4 | `Tan` | 日焼け |
+
+## スムージング（`SmoothingStyle`）
+
+`SetSmoothingStyle` と組み合わせて使います。強度はこれまでどおり `SetSmoothing` です。デフォルト: `Natural`。
+
+| 値 | 名前 | 意味 |
+| --- | --- | --- |
+| 0 | `Natural` | 毛穴を残す |
+| 1 | `Texture` | よりきれいに、質感は残す |
+| 2 | `Smooth` | クリーミーな肌 |
+
+## フェイスリシェイプ（`Reshape`）
+
+`SetReshape(param, intensity)` と組み合わせて使います。範囲は **`[-1.0, 1.0]`** です。`0` はオフです。正と負は逆方向です（例: FaceThin は瘦顔 / 頬をふっくら）。
+
+| 値 | 名前 | 正方向 / 負方向 |
+| --- | --- | --- |
+| 0 | `FaceThin` | 瘦顔 / 頬をふっくら |
+| 1 | `FaceVShape` | V 字 / 四角い顎 |
+| 2 | `FaceNarrow` | 狭い顔 / 広い顔 |
+| 3 | `FaceShort` | 短い顔 / 長い顔 |
+| 4 | `Cheekbone` | 頬骨を細く / 広げる |
+| 5 | `Jawbone` | 顎を細く / 広げる |
+| 6 | `Chin` | あごを長く / 短く |
+| 7 | `NoseSlim` | 鼻を細く / 広く |
+| 8 | `EyeSize` | 目を大きく / 小さく |
+| 9 | `EyeDistance` | 目幅を広く / 狭く |
+| 10 | `FaceSmall` | 小顔 / 大きな顔 |
+| 11 | `Forehead` | 額を豊かに / 低く |
+| 12 | `NoseLong` | 鼻を長く / 短く |
+| 13 | `Philtrum` | 人中を短く / 長く |
+| 14 | `MouthSize` | 口を大きく / 小さく |
+| 15 | `MouthPosition` | 口を下へ / 上へ |
+| 16 | `MouthSmile` | 笑顔 / 口角を下げる |
+| 17 | `LipThickness` | 唇を厚く / 薄く |
+| 18 | `EyeRound` | 丸い目 / 細い目 |
+| 19 | `EyePosition` | 目を下へ / 上へ |
+| 20 | `EyeAngle` | 目尻を上げる / 下げる |
+| 21 | `EyeCornerOpen` | 目尻を開く / 閉じる |
+| 22 | `LowerEyelid` | 下まぶたを下げる / 上げる |
+| 23 | `BrowPosition` | 眉を上げる / 下げる |
+| 24 | `BrowDistance` | 眉間を広く / 狭く |
+| 25 | `BrowThickness` | 眉を太く / 細く |
+
+Java の名前は `SNAKE_CASE`（`FACE_THIN`、`FACE_V_SHAPE` など）です。Objective-C は `FBReshape_FaceThin`、Dart は `FBReshape.faceThin` です。
+
+## リップ（`LipstickColor`）
+
+単一のリップマスク + 着色です。デフォルト: `Rouge`。
+
+| 値 | 名前 | 意味 |
+| --- | --- | --- |
+| 0 | `Rouge` | ローズ |
+| 1 | `RetroRed` | レトロレッド |
+| 2 | `Peach` | ピーチ |
+| 3 | `CoralOrange` | コーラルオレンジ |
+| 4 | `GentlePink` | ソフトピンク |
+| 5 | `VitalityOrange` | 明るいオレンジ |
+
+## チーク
+
+形状は `BlushStyle`（テクスチャ差し替え）、色は `BlushColor`（着色）です。デフォルト形状 `SunKissed`、デフォルト色 `CoralPink`。
+
+| 値 | `BlushStyle` | 意味 |
+| --- | --- | --- |
+| 0 | `SunKissed` | 頬骨から鼻へ横断 |
+| 1 | `Igari` | 鼻のほろ酔いチーク帯 |
+| 2 | `Soft` | 両頬の柔らかいチーク |
+| 3 | `Apple` | 丸いリンゴ頬 |
+| 4 | `Classic` | クラシックな 2 点 |
+| 5 | `Doll` | 頬 + 鼻先 |
+| 6 | `Rose` | 両頬のローズ |
+
+| 値 | `BlushColor` | 意味 |
+| --- | --- | --- |
+| 0 | `CoralPink` | コーラルピンク |
+| 1 | `DustyRose` | ダスティローズ |
+| 2 | `VividRed` | 真っ赤 |
+| 3 | `Berry` | ベリー |
+| 4 | `SunsetOrange` | サンセットオレンジ |
+
+## シェーディング（`ContourStyle`）
+
+中間グレーの Overlay マップです。128 より明るい部分はハイライト、暗い部分は陰影です。テクスチャ差し替えのみで着色はありません。デフォルト: `Natural`。
+
+| 値 | 名前 | 意味 |
+| --- | --- | --- |
+| 0 | `Natural` | 日常の軽いシェーディング |
+| 1 | `Sculpt` | より強いスカルプト |
+| 2 | `Glow` | ハイライト重視 |
+| 3 | `Slim` | 頬骨を細く |
+| 4 | `Nose` | 鼻筋の定義 |
+| 5 | `Glam` | ハイライトスポット |
+
+## アイシャドウ
+
+形状は `EyeShadowStyle`、色は `EyeShadowColor`。デフォルト形状 `Soft`、デフォルト色 `Plum`。
+
+| 値 | スタイル | 意味 |
+| --- | --- | --- |
+| 0 | `Soft` | 柔らかい洗い |
+| 1 | `Crease` | アイホールを深める |
+| 2 | `Smoky` | スモーキーリング |
+| 3 | `Halo` | 目の周りのハロー |
+| 4 | `Glow` | 目尻のリフト |
+| 5 | `Drama` | フルカバー |
+| 6 | `Warm` | ウォームな洗い |
+
+| 値 | 色 | 意味 |
+| --- | --- | --- |
+| 0 | `Plum` | プラム / モーブ |
+| 1 | `Brown` | ウォームブラウン |
+| 2 | `Gold` | ソフトゴールド |
+| 3 | `Pink` | ダスティピンク |
+
+## アイライナー
+
+| 値 | `EyeLinerStyle` | 意味 |
+| --- | --- | --- |
+| 0 | `Classic` | フルライナー + ウイング |
+| 1 | `Flick` | 長いアウターフリック |
+| 2 | `CatEye` | 短いキャットアイ |
+| 3 | `Natural` | 細いナチュラルライン |
+| 4 | `Bold` | 太いカバー |
+| 5 | `Soft` | 柔らかいフェードウイング |
+
+| 値 | `EyeLinerColor` | 意味 |
+| --- | --- | --- |
+| 0 | `Burgundy` | バーガンディブラウン |
+| 1 | `Plum` | ディーププラム |
+| 2 | `Chocolate` | チョコレート |
+| 3 | `Coffee` | ほぼ黒のコーヒー |
+| 4 | `Mauve` | ダスティモーブ |
+
+## アイブロウ
+
+| 値 | `EyebrowStyle` | 意味 |
+| --- | --- | --- |
+| 0 | `Natural` | ナチュラルアーチ + 毛流れ |
+| 1 | `Soft` | 柔らかいパウダーブロウ |
+| 2 | `Feathered` | フェザーストローク |
+| 3 | `Mist` | 薄いミスト |
+| 4 | `Arched` | クラシックリフト |
+| 5 | `Powder` | 濃いパウダー |
+| 6 | `Wild` | 上縁の飛び毛 |
+| 7 | `Full` | 均一で豊かな眉 |
+| 8 | `Straight` | 直線的で低いアーチ |
+
+| 値 | `EyebrowColor` | 意味 |
+| --- | --- | --- |
+| 0 | `DarkBrown` | ダークブラウン |
+| 1 | `Black` | ブラック |
+| 2 | `SoftBrown` | ソフトブラウン |
+
+## まつ毛
+
+| 値 | `EyelashStyle` | 意味 |
+| --- | --- | --- |
+| 0 | `Classic` | 均等な房 + 下まつ毛 |
+| 1 | `Manga` | とげ状のマンガまつ毛 |
+| 2 | `Winged` | 目尻を長く |
+| 3 | `Wispy` | ふんわり広がる |
+| 4 | `Clustered` | はっきりした房 |
+| 5 | `Doll` | 短いドールまつ毛 |
+
+| 値 | `EyelashColor` | 意味 |
+| --- | --- | --- |
+| 0 | `Black` | ほぼ黒 |
+| 1 | `Brown` | ソフトブラウン |
+| 2 | `SoftBlack` | ソフトブラック |
+
+## 瞳孔（`PupilColor`）
+
+色ごとに 1 枚の虹彩ディスクです。着色はありません。デフォルト: `Hazel`。
+
+| 値 | 名前 | 意味 |
+| --- | --- | --- |
+| 0 | `Hazel` | アンバー / ハニーブラウン |
+| 1 | `Ice` | アイスブルー |
+| 2 | `Mocha` | ダークブラウンの輝き |
+| 3 | `Olive` | フォレストグリーン |
+| 4 | `Gloss` | 光沢のあるダークブラウン |
+| 5 | `Moss` | 落ち着いたオリーブ |
+| 6 | `Sand` | サンディブラウン |
+| 7 | `Glow` | 虹彩下縁の三日月ハイライト（フルカラーレンズではありません） |
+| 8 | `Slate` | ブルーグレー |
+
+## クロマキー（`ChromaKeyColor`）
+
+`SetChromaKey` と組み合わせ、バーチャル背景のマスクソースとして使います。
+
+| 値 | 名前 |
+| --- | --- |
+| 0 | `Green` |
+| 1 | `Blue` |
+| 2 | `Red` |

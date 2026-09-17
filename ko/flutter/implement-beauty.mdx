@@ -1,0 +1,195 @@
+---
+title: "뷰티 효과 적용"
+description: "Facebetter Flutter SDK 2.0을 연동합니다"
+---
+
+<Note>
+SDK **2.0.0**. 클래스: **`FBEngine`**. 싱글톤 없음. 인증: [인증 및 라이선스](/ko/intro/license). 열거형: [파라미터 열거형](/ko/intro/makeup).
+</Note>
+
+Flutter는 **파라미터만 설정**합니다. 라이브 비디오 프레임은 Dart로 들어오지 않습니다. 서드파티 RTC SDK가 네이티브 GL 스레드에서 텍스처를 넣습니다. [서드파티 연동](/ko/flutter/third-party-integration)을 참고하세요.
+
+## 플러그인 추가
+
+```yaml
+dependencies:
+  facebetter_flutter: ^2.0.0
+```
+
+```dart
+import 'package:facebetter_flutter/facebetter_flutter.dart';
+```
+
+## 로깅
+
+`FBEngine.create` **전에** 호출하세요.
+
+```dart
+FBEngine.setLogConfig(
+  console: true,
+  file: false,
+  level: FBLogLevel.info,
+  fileName: '',
+);
+```
+
+## 생성
+
+`appId` + `appKey`, **또는** `licenseToken`(라이선스 토큰 문자열, `{token}` JSON, 또는 네이티브 오프라인 `.lic`)을 제공합니다. 둘 다 있으면 토큰이 우선합니다.
+
+```dart
+final engine = await FBEngine.create(FBEngineConfig(
+  appId: '...',
+  appKey: '...',
+  // licenseToken: '...',
+  enableLandmarks: false,
+  externalContext: true,
+  resourcePath: null,
+));
+```
+
+| 필드 | 기본값 | 참고 |
+| --- | --- | --- |
+| `appId` / `appKey` | — | 온라인 인증 |
+| `licenseToken` | — | 토큰 / `{token}` JSON / `.lic` 내용 |
+| `enableLandmarks` | `false` | 엔진 수준. 나중에 바꿀 수 없습니다. 랜드마크를 읽지 않으면 `false`로 유지하세요 |
+| `externalContext` | `true` | 서드파티 라이브 전처리는 `true`; 사진 파일 API는 `false` |
+| `resourcePath` | 플러그인 | Android AAR `resource.fbd` / iOS framework 파일 |
+
+`FBEngine.version`은 네이티브 SDK 버전 문자열을 읽습니다.
+
+## 피부, 리셰이프, 메이크업
+
+강도 setter는 **동기**입니다. `Slider.onChanged`에서 안전합니다.
+
+피부 `[0.0, 1.0]`:
+
+```dart
+engine.setSmoothing(0.8);
+engine.setSmoothingStyle(FBSmoothingStyle.natural);
+engine.setWhitening(0.5);
+engine.setWhiteningStyle(FBWhiteningStyle.coldWhite);
+engine.setSharpening(0.3);
+engine.setRosiness(0.2);
+engine.setBeautySkinOnly(true);
+```
+
+리셰이프 **`[-1.0, 1.0]`**:
+
+```dart
+engine.setReshape(FBReshape.faceThin, 0.3);
+engine.setReshape(FBReshape.eyeSize, 0.2);
+```
+
+메이크업(강도 + 스타일/색상). 전체 열거형: [파라미터 열거형](/ko/intro/makeup).
+
+```dart
+engine.setLipstick(0.4);
+engine.setLipstickColor(FBLipstickColor.rouge);
+engine.setBlush(0.3);
+engine.setBlushStyle(FBBlushStyle.sunKissed);
+engine.setBlushColor(FBBlushColor.coralPink);
+engine.setContour(0.4);
+engine.setContourStyle(FBContourStyle.natural);
+engine.setEyeShadow(0.35);
+engine.setEyeShadowStyle(FBEyeShadowStyle.soft);
+engine.setEyeShadowColor(FBEyeShadowColor.plum);
+engine.setEyeLiner(0.3);
+engine.setEyebrow(0.3);
+engine.setEyelash(0.3);
+engine.setPupil(0.4);
+```
+
+## 필터, 스티커, 가상 배경
+
+경로 **또는** `Uint8List` 바이트 — 둘 다는 안 됩니다. 이들은 `Future`를 반환합니다(파일 디코드 + GPU 업로드).
+
+```dart
+await engine.setFilter(path: '/path/to/filter.fbd');
+// await engine.setFilter(data: bytes);
+engine.setFilterIntensity(0.8);
+engine.clearFilter();
+
+await engine.setSticker(path: '/path/to/sticker.fbd');
+engine.clearSticker();
+
+await engine.addResourcePack(path: '/path/to/resource_3d.fbd');
+await engine.set3DSticker(path: '/path/to/oculos.fbd');
+engine.clear3DSticker();
+
+engine.setVirtualBackgroundBlur(0.6);
+await engine.setVirtualBackground(path: '/path/to/bg.jpg');
+engine.clearVirtualBackground();
+```
+
+3D 스티커에는 선택 팩 `resource_3d.fbd`가 필요합니다(플러그인에 없음). [선택 리소스 팩](/ko/intro/resource-packs)을 참고하세요.
+
+크로마키(동기), 네이티브와 동일:
+
+```dart
+engine.setChromaKey(FBChromaKeyColor.green);
+engine.setChromaKeySimilarity(0.4);
+engine.setChromaKeySmoothness(0.2);
+engine.setChromaKeyDesaturation(0.3);
+engine.clearChromaKey();
+```
+
+크로마키는 **마스크**입니다. 채우기는 여전히 블러 또는 배경 이미지입니다.
+
+## 이벤트와 통계
+
+```dart
+engine.events.listen((FBEngineEvent e) {
+  switch (e.eventCode) {
+    case FBEngineEventCode.licenseValidationSuccess:
+    case FBEngineEventCode.engineInitializationComplete:
+      break;
+    case FBEngineEventCode.licenseValidationFailed:
+    case FBEngineEventCode.engineInitializationFailed:
+      debugPrint(e.message);
+  }
+});
+
+final FBStats s = engine.stats;
+// s.fps, s.avgProcessTimeMs, s.sessionTimeSeconds
+```
+
+## 정지 이미지
+
+`externalContext: false`인 **별도** 엔진을 사용하세요. 라이브 전처리 엔진에서 호출하지 **말고**, Dart에서 미팅 / 푸시 비디오를 처리하지 **마세요**.
+
+```dart
+final photoEngine = await FBEngine.create(const FBEngineConfig(
+  appId: '...',
+  appKey: '...',
+  externalContext: false,
+));
+
+await photoEngine.processFile(input: srcPath, output: dstPath, quality: 90);
+
+final FBBitmap bmp = await photoEngine.processImageBytes(jpegBytes);
+final FBBitmap fromFile = await photoEngine.processImageFile(srcPath);
+final ui.Image image = await photoEngine.processImageToUiImage(jpegBytes);
+
+photoEngine.dispose();
+```
+
+`FBBitmap.pixels`는 RGBA8888입니다(`stride == width * 4`).
+
+## 오류
+
+Setter와 비동기 작업은 코드 `0`, `-1` … `-8`의 `FBException`을 던집니다. [API 레퍼런스](/ko/flutter/api-reference#fbexception)를 참고하세요.
+
+## 해제
+
+먼저 벤더의 커스텀 전처리를 중지한 뒤:
+
+```dart
+engine.dispose();
+```
+
+## 관련 문서
+
+- [서드파티 연동](/ko/flutter/third-party-integration)
+- [API 레퍼런스](/ko/flutter/api-reference)
+- [빠른 시작](/ko/flutter/quick-start)

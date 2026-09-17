@@ -1,0 +1,65 @@
+---
+title: "Prácticas recomendadas"
+description: "Guía de rendimiento e integración de Facebetter 2.0 en Linux"
+---
+
+<Note>
+SDK **2.0.0**. La API C++ se comparte con Windows. Enumeraciones: [Enumeraciones de parámetros](/es/intro/makeup).
+</Note>
+
+## Apunta `resource_path` a `resource.fbd`
+
+Pasa el **archivo**, no un directorio:
+
+```cpp
+cfg.resource_path = "/opt/facebetter/resource.fbd";
+```
+
+Resuelve una ruta absoluta al arrancar para que los cambios de cwd no rompan `fopen`.
+
+## Un motor, `ProcessImage` serial
+
+`Create` devuelve un `shared_ptr`. El motor **no** es un singleton. Serializa `ProcessImage` (y los setters que mutan) en un solo hilo. Si `external_context = true`, ese hilo debe tener un contexto GL actual.
+
+## `FrameType` en el fotograma
+
+| Valor | Uso |
+| --- | --- |
+| `FrameType::Video` (predeterminado) | Cámara / directo |
+| `FrameType::Image` | Exportación estática |
+
+
+## Intensidades y solo piel
+
+Tiempo real: empieza alrededor de `0.15–0.3`. El remodelado es `[-1.0, 1.0]`. Usa `SetBeautySkinOnly(true)` para que el suavizado se quede en la piel.
+
+## Filtros y stickers
+
+Ruta o bytes `.fbd`. Entra en vigor en el siguiente `ProcessImage`. No cambies assets en cada fotograma.
+
+## `GetStats`
+
+```cpp
+EngineStats s = engine->GetStats();
+if (s.avg_process_time_ms > 33.0) {
+    // lower resolution or drop stickers / virtual background
+}
+```
+
+## Biblioteca compartida
+
+- Desarrollo: `LD_LIBRARY_PATH`
+- Distribución: `RPATH` / `RUNPATH`, o instalar en `/usr/local/lib` + `ldconfig`
+- Mantén `libfacebetter.so` y los headers de la **misma** build del SDK (`./scripts/build_linux.sh` o el zip de descarga)
+
+## OpenGL
+
+El valor predeterminado `external_context = false` usa un contexto OpenGL gestionado por el SDK. Si GLFW / EGL ya posee el contexto, pon `true` y procesa en ese hilo. Hace falta un driver Mesa/NVIDIA/AMD que funcione; `glxinfo` debe informar 3.0+.
+
+## Pausar cuando está inactivo
+
+Omite `ProcessImage` cuando la ventana no está mapeada. `engine.reset()` cuando termine la sesión.
+
+## Autenticación
+
+`license_token` para hosts sin conexión; si no, `app_id` + `app_key` v2 en línea. Carga secretos desde env/config, no desde el código fuente. Consulta [Autenticación y licencia](/es/intro/license).

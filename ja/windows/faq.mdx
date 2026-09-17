@@ -1,0 +1,77 @@
+---
+title: "よくある質問"
+description: "Windows Facebetter SDK 2.0 統合 FAQ"
+---
+
+<Note>
+SDK **2.0.0**。Linux と C++ API を共有します。[パラメータ列挙](/ja/intro/makeup) · [認証とライセンス](/ja/intro/license)。
+</Note>
+
+## 統合
+
+### `Create` が `nullptr` を返す
+
+- `resource_path` は **`resource.fbd` ファイル**である必要があります（ディレクトリではありません）
+- `license_token` **または**有効な `app_id` + `app_key` を設定します
+- `Create` の前に `SetLogConfig` を呼び出します
+- `facebetter.dll` がインポートライブラリと一致することを確認します
+
+### ヘッダーが見つからない / リンクエラー
+
+SDK の `include` をインクルードパスに追加します。`facebetter.lib` をリンクし、`facebetter.dll` を実行ファイルの隣に置きます。
+
+### `SetRenderView` がない
+
+この API は iOS / macOS のみです。Windows では `ProcessImage` の出力を自分で GL テクスチャへアップロードするか、D3D 相互運用を行います。
+
+## 効果
+
+### 美顔が弱い、またはまったく見えない
+
+デフォルト強度は `0`（オフ）です。`SetBeautyTypeEnabled` はありません。リシェイプ / メイクには顔検出が必要です。カメラでは `FrameType::Video` を使います。
+
+### リシェイプの方向が逆
+
+範囲は `[-1.0, 1.0]` です。正負は逆方向です。[パラメータ列挙](/ja/intro/makeup) を参照してください。
+
+### フィルター / ステッカーが効かない
+
+`SetFilter` / `SetSticker` に `.fbd` の **パス**またはバイトを渡します。次の `ProcessImage` のあとで有効になります。
+
+### バーチャル背景 / クロマキー
+
+`SetVirtualBackgroundBlur`、`SetVirtualBackground(path|bytes)`、`ClearVirtualBackground` を使います。キーイング: `SetChromaKey(ChromaKeyColor::Green)` のあと similarity / smoothness / desaturation。`ClearChromaKey()` はポートレートセグメンテーションを復元します。
+
+## パフォーマンス
+
+### プレビューがカクつく
+
+解像度を下げ、`FrameType::Video` を使い、ステッカー / バーチャル背景を減らし、`GetStats().avg_process_time_ms` を確認します。毎フレームファイルから `ImageFrame` を作らず、カメラバッファを直接渡してください。
+
+### メモリ使用量が高い
+
+ピクセルバッファを再利用します。使わない `shared_ptr<ImageFrame>` は速やかに解放します。毎フレーム新しいエンジンを作らないでください。
+
+### リモートデスクトップ / VM でプレビューがない
+
+ハードウェア OpenGL がない場合があります。独立 GPU ドライバのあるマシンでテストしてください。
+
+## 認証
+
+### `license_token` と `app_id` + `app_key`
+
+`license_token` が空でない場合は優先されます（トークン / `{token}` JSON / `.lic`）。それ以外のネイティブオンライン v2 は `app_id` + `app_key` を使います。[認証とライセンス](/ja/intro/license) を参照してください。
+
+### イベント `1` または `101`
+
+認証失敗または初期化失敗です。コールバックの `message` と Debug ログを確認してください。
+
+## バージョン
+
+### どのバージョンを使うべき？
+
+**2.0.0** です。
+
+### どの Windows / コンパイラに対応？
+
+Windows 10+、MSVC 2019+（C++17）、x64。デモのドキュメント経路は Ninja + CMake 3.16+ です。

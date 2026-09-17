@@ -1,0 +1,178 @@
+---
+title: "Referência da API"
+description: "API do Facebetter Web SDK 2.0"
+---
+
+<Note>
+Esta página corresponde ao SDK **2.0.0**. Enums de maquiagem / remodelagem / estilo: [Enums de parâmetros](/pt-BR/intro/makeup). Autenticação: [Autenticação e licença](/pt-BR/intro/license).
+</Note>
+
+Pacote: **`facebetter`**. Import típico:
+
+```javascript
+import {
+  BeautyEffectEngine,
+  EngineConfig,
+  FrameType,
+  MirrorMode,
+  Reshape,
+} from 'facebetter';
+```
+
+## EngineConfig
+
+```javascript
+new EngineConfig({
+  licenseToken,      // string — required. License token string, or `{token}` JSON
+})
+```
+
+A Web **não** aceita `appId` / `appKey` neste objeto. A Web **não** suporta `.lic` offline.
+
+`isValid()` é verdadeiro quando `licenseToken` é uma string não vazia.
+
+Busque o token **no seu servidor** **antes** de `init()`. Veja [Autenticação e licença](/pt-BR/intro/license).
+
+## BeautyEffectEngine
+
+```javascript
+const engine = new BeautyEffectEngine(config);
+await engine.init({
+  onProgress: ({ percent }) => {
+    // 0–100 while runtime files download
+  },
+});
+```
+
+### Ciclo de vida
+
+| Método | Descrição |
+| --- | --- |
+| `init(options?)` | Inicializa o mecanismo (autenticação e recursos). `options.timeout` (padrão `120000`) é o timeout de init em ms. `options.onProgress({ loaded, total, percent })` informa o progresso de **download** dos arquivos de runtime. |
+| `setLogConfig({ consoleEnabled, fileEnabled, level, fileName })` | Config global de log. Chame antes de `init()`. `level`: `0` TRACE … `5` CRITICAL. Logging em arquivo não é suportado no navegador. Retorna `Promise<void>`. |
+| `destroy()` | Libera o mecanismo e seus recursos. |
+
+`engine.initialized` é `true` após um `init()` bem-sucedido.
+
+### Pele
+
+| Método | Faixa |
+| --- | --- |
+| `setSmoothing(value)` | `[0, 1]` |
+| `setSmoothingStyle(style)` | `SmoothingStyle` |
+| `setWhitening(value)` | `[0, 1]` |
+| `setWhiteningStyle(style)` | `WhiteningStyle` |
+| `setSharpening(value)` | `[0, 1]` |
+| `setRosiness(value)` | `[0, 1]` |
+| `setBeautySkinOnly(enabled)` | `boolean` |
+
+### Remodelagem
+
+`setReshape(param, value)` — `param` é `Reshape.*`, `value` em **`[-1.0, 1.0]`**. Veja [Enums de parâmetros](/pt-BR/intro/makeup).
+
+### Maquiagem
+
+Intensidade `[0, 1]`. Enums de estilo / cor: [Enums de parâmetros](/pt-BR/intro/makeup).
+
+| Intensidade | Estilo / cor |
+| --- | --- |
+| `setLipstick` | `setLipstickColor` |
+| `setBlush` | `setBlushStyle`, `setBlushColor` |
+| `setContour` | `setContourStyle` |
+| `setEyeShadow` | `setEyeShadowStyle`, `setEyeShadowColor` |
+| `setEyeLiner` | `setEyeLinerStyle`, `setEyeLinerColor` |
+| `setEyebrow` | `setEyebrowStyle`, `setEyebrowColor` |
+| `setEyelash` | `setEyelashStyle`, `setEyelashColor` |
+| `setPupil` | `setPupilColor` |
+
+### Filtro / adesivo
+
+| Método | Descrição |
+| --- | --- |
+| `setFilter(path \| Uint8Array)` | Aplicar um LUT `.fbd` a partir de URL ou bytes |
+| `clearFilter()` | Remover o filtro atual |
+| `setFilterIntensity(intensity)` | `[0, 1]` |
+| `setSticker(path \| Uint8Array)` | Aplicar um adesivo 2D `.fbd` |
+| `clearSticker()` | Remover o adesivo |
+| `addResourcePack(path \| Uint8Array)` | Registrar um pacote extra de capacidade (por exemplo `resource_3d.fbd` antes de `set3DSticker`) |
+| `set3DSticker(path \| Uint8Array)` | Aplicar um adesivo 3D `.fbd` |
+| `clear3DSticker()` | Remover o adesivo 3D |
+
+### Fundo virtual / chroma key
+
+| Método | Descrição |
+| --- | --- |
+| `setVirtualBackgroundBlur(level)` | Desfoque contínuo `[0, 1]`. `0` limpa |
+| `setVirtualBackground(path \| Uint8Array)` | Caminho png/jpg ou bytes codificados |
+| `clearVirtualBackground()` | Desligar desfoque / imagem |
+| `setChromaKey(color)` | `ChromaKeyColor.Green` / `Blue` / `Red` |
+| `clearChromaKey()` | Voltar à máscara de segmentação de retrato |
+| `setChromaKeySimilarity(value)` | `[0, 1]` |
+| `setChromaKeySmoothness(value)` | `[0, 1]` |
+| `setChromaKeyDesaturation(value)` | `[0, 1]` |
+
+### Callbacks
+
+```javascript
+engine.setCallbacks({
+  onFaceLandmarks, // (faces) => void
+  onEngineEvent,   // (code, message) => void
+  maxFaces,        // optional, default 10
+});
+```
+
+### Processamento
+
+```javascript
+processImage(input, width, height, frameType = FrameType.Video, mirrorMode = MirrorMode.None) → ImageData
+```
+
+- `input`: `ImageData` \| `HTMLImageElement` \| `HTMLCanvasElement` \| `HTMLVideoElement` \| `Uint8ClampedArray`
+- `width` / `height` obrigatórios somente para `Uint8ClampedArray`
+
+```javascript
+processTexture(textureHandle, width, height, stride, frameType, mirrorMode) → number
+```
+
+Retorna um handle de saída `GL_TEXTURE_2D`. **O espelhamento não é aplicado neste caminho.** Prefira `processImage`.
+
+### Estatísticas
+
+```javascript
+engine.getStats() → { fps, avgProcessTimeMs, sessionTimeS }
+```
+
+## Enums (JS)
+
+Os valores correspondem ao nativo. Tabelas completas de maquiagem / remodelagem: [Enums de parâmetros](/pt-BR/intro/makeup).
+
+```javascript
+FrameType = { Image: 0, Video: 1 }
+
+MirrorMode = { None: 0, Horizontal: 1, Vertical: 2, Both: 3 }
+
+EngineEventCode = {
+  LicenseValidationSuccess: 0,
+  LicenseValidationFailed: 1,
+  InitializationComplete: 100,
+  InitializationFailed: 101,
+}
+
+ChromaKeyColor = { Green: 0, Blue: 1, Red: 2 }
+
+Reshape = { FaceThin: 0, FaceVShape: 1, /* … BrowThickness: 25 */ }
+```
+
+Também exportados: `SmoothingStyle`, `WhiteningStyle`, `LipstickColor`, `BlushStyle`, `BlushColor`, `ContourStyle`, `EyeShadowStyle`, `EyeShadowColor`, `EyeLinerStyle`, `EyeLinerColor`, `EyebrowStyle`, `EyebrowColor`, `EyelashStyle`, `EyelashColor`, `PupilColor`.
+
+## FacebetterError
+
+```javascript
+class FacebetterError extends Error {
+  constructor(message, code = -1)
+  // name === 'FacebetterError'
+  // code: number or string
+}
+```
+
+Códigos numéricos: `0`, `-1` … `-8`. Veja [Tratamento de erros](/pt-BR/web/error-handling).

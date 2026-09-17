@@ -1,0 +1,90 @@
+---
+title: "ベストプラクティス"
+description: "Facebetter Web SDK 2.0 のパフォーマンスとセキュリティ"
+---
+
+<Note>
+SDK **2.0.0**。認証: [認証とライセンス](/ja/intro/license)。
+</Note>
+
+## 本番の認証
+
+`app_id` / `app_key` はサーバーに置きます。**自社バックエンド**が短命の `licenseToken` を取得し、エンジンへ渡します。
+
+```javascript
+const licenseToken = await fetch('/api/facebetter/auth', { method: 'POST' }).then((r) => r.text());
+const engine = new BeautyEffectEngine(new EngineConfig({ licenseToken }));
+```
+
+<Warning>
+`appKey` をフロントエンドバンドルに入れないでください。
+</Warning>
+
+コンソールに本番と同じドメインをバインドします。Web はオフライン `.lic` を使えません。
+
+## 1 ページに 1 エンジン
+
+`BeautyEffectEngine` を 1 つ作成し、`init()` を 1 回行い、セッション全体で再利用します。毎フレーム new しないでください。
+
+```javascript
+useEffect(() => {
+  let engine;
+  (async () => {
+    engine = new BeautyEffectEngine(new EngineConfig({ licenseToken }));
+    await engine.init();
+    engineRef.current = engine;
+  })();
+  return () => {
+    engineRef.current?.destroy();
+    engineRef.current = null;
+  };
+}, []);
+```
+
+## フレームループ
+
+- 動画は `requestAnimationFrame` で駆動し、空の `while` は使わないでください。
+- カメラは `FrameType.Video`、静止画は `FrameType.Image`。
+- Canvas サイズを処理後の `ImageData` に合わせ、余分なスケールを避けます。
+- `video.readyState >= 2` かつ `videoWidth > 0` になってから処理します。
+- `processImage` を優先します。`processTexture` はミラーを適用しません。
+
+```javascript
+const result = engine.processImage(
+  video,
+  video.videoWidth,
+  video.videoHeight,
+  FrameType.Video,
+  MirrorMode.Horizontal,
+);
+ctx.putImageData(result, 0, 0);
+```
+
+## パラメータ
+
+ライブプレビューは低強度から始めます（スムージングは約 `0.2`–`0.5`）。リシェイプ範囲は `[-1, 1]` で、カメラでは小さめの調整の方が自然です。
+
+UI にキーポイントが不要なら `onFaceLandmarks` を登録しないでください。登録すると毎フレーム検出が走ります。
+
+スムージングが高いときは `setBeautySkinOnly(true)` をオンにし、背景がぼやけないようにします。
+
+## リソース
+
+- フィルター / ステッカー `.fbd` と背景 jpg/png は静的ファイルとしてホストし、URL を `setFilter` / `setSticker` / `setVirtualBackground` に渡します。
+- エンジンのランタイムリソースは SDK が `init()` 時に読み込みます。サイトルートに `resource.fbd` を置く必要はありません。
+- フィルター / ステッカーの切り替えはユーザー操作時に行い、毎フレーム切り替えないでください。
+
+## メモリ
+
+- ページのアンロードやルート離脱時に `destroy()` を呼び出します。
+- 表示用 canvas を再利用し、毎フレーム新規作成しないでください。
+
+## HTTPS と CORS
+
+カメラには HTTPS または localhost が必要です。フィルター / ステッカーなどの静的リソースが別オリジンにある場合は CORS を設定してください。
+
+## 関連ドキュメント
+
+- [エラー処理](/ja/web/error-handling)
+- [よくある質問](/ja/web/faq)
+- [API リファレンス](/ja/web/api-reference)

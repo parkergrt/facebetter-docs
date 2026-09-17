@@ -1,0 +1,271 @@
+---
+title: "서드파티 연동"
+description: "TRTC, Agora, LiveKit 및 기타 Android 비디오 파이프라인에 Facebetter 뷰티를 연결합니다"
+---
+
+SDK **2.0.0**. 서드파티 SDK의 **커스텀 비디오 전처리** 콜백에 Facebetter를 겁니다. 해당 SDK의 **OpenGL ES 스레드**에서 외부 텍스처에 `processImage`를 실행한 뒤 출력 텍스처를 반환합니다.
+
+전체 텍스처 규칙: [뷰티 효과 적용 · 외부 텍스처](/ko/android/implement-beauty#external-texture-opengl-es). 방 입장, 게시, 권한은 벤더 문서에 따릅니다. 이 페이지는 Facebetter 연결만 다룹니다.
+
+```
+Third-party SDK (GL thread)
+  input textureId
+       ↓
+BeautyEffectEngine (externalContext = true)
+  ImageFrame.createWithTexture → processImage
+       ↓
+  output textureId → write back to vendor frame / callback
+```
+
+## 공통 계약
+
+| 항목 | 요구 사항 |
+| --- | --- |
+| 엔진 | `externalContext = true`, **벤더 GL 콜백 스레드**에서 지연 생성 |
+| 입력 | `GL_TEXTURE_2D`(RGBA); `stride`는 보통 `width * 4` |
+| 프레임 유형 | `ImageFrame.FrameType.VIDEO` |
+| 출력 | SDK가 출력 텍스처를 소유합니다. `glDeleteTextures`를 호출하지 마세요. 항상 `ImageFrame.release()` |
+| 라이프사이클 | 벤더가 GL 컨텍스트를 파괴하면 `engine.release()`한 뒤 새 컨텍스트에서 다시 생성 |
+
+Facebetter는 `createWithTexture`에 **`GL_TEXTURE_EXTERNAL_OES`를 받지 않습니다**. 벤더가 기본으로 OES를 쓰면 문서에 따라 **Texture2D / RGB**로 바꾸거나 먼저 `GL_TEXTURE_2D`로 blit하세요.
+
+### 공유 헬퍼
+
+모든 벤더 GL 콜백에서 재사용합니다(GL 스레드에서 실행해야 함).
+
+```java
+import net.pixpark.facebetter.BeautyEffectEngine;
+import net.pixpark.facebetter.ImageFrame;
+
+/** @return beauty output GL_TEXTURE_2D; on failure returns srcTextureId (or 0, your choice) */
+static int processTexture(BeautyEffectEngine engine, int srcTextureId, int width, int height) {
+    if (engine == null || srcTextureId == 0 || width <= 0 || height <= 0) {
+        return srcTextureId;
+    }
+    int stride = width * 4;
+    ImageFrame input = ImageFrame.createWithTexture(srcTextureId, width, height, stride);
+    if (input == null) {
+        return srcTextureId;
+    }
+    input.type = ImageFrame.FrameType.VIDEO;
+    ImageFrame output = engine.processImage(input);
+    if (output == null) {
+        input.release();
+        return srcTextureId;
+    }
+    int dst = output.getTexture();
+    output.release();
+    input.release();
+    return dst != 0 ? dst : srcTextureId;
+}
+```
+
+엔진 생성(역시 GL 스레드):
+
+```java
+BeautyEffectEngine.EngineConfig config = new BeautyEffectEngine.EngineConfig();
+config.appId = "your appId";
+config.appKey = "your appKey";
+// or config.licenseToken = "...";
+config.externalContext = true;
+BeautyEffectEngine engine = new BeautyEffectEngine(context, config);
+engine.setSmoothing(0.5f);
+```
+
+자격 증명: [구독](/ko/intro/enable-service), [인증 및 라이선스](/ko/intro/license).
+
+---
+
+## TRTC (Tencent)
+
+훅: `TRTCCloud.setLocalVideoProcessListener`. 픽셀 형식 **Texture_2D**와 버퍼 유형 **TEXTURE**를 사용하세요.
+
+`onGLContextCreated`에서 Facebetter를 만들고, `onProcessVideoFrame`에서 처리한 뒤 `dstFrame.texture.textureId`를 설정하고, `onGLContextDestory`에서 `release()`합니다.
+
+```java
+import com.tencent.trtc.TRTCCloud;
+import com.tencent.trtc.TRTCCloudDef;
+import com.tencent.trtc.TRTCCloudListener;
+
+trtcCloud.setLocalVideoProcessListener(
+    TRTCCloudDef.TRTC_VIDEO_PIXEL_FORMAT_Texture_2D,
+    TRTCCloudDef.TRTC_VIDEO_BUFFER_TYPE_TEXTURE,
+    new TRTCCloudListener.TRTCVideoFrameListener() {
+        @Override
+        public void onGLContextCreated() {
+            // TRTC has bound the GL context — lazy-create BeautyEffectEngine here
+            ensureEngine();
+        }
+
+        @Override
+        public int onProcessVideoFrame(
+                TRTCCloudDef.TRTCVideoFrame srcFrame,
+                TRTCCloudDef.TRTCVideoFrame dstFrame) {
+            int out = processTexture(
+                    beautyEngine,
+                    srcFrame.texture.textureId,
+                    srcFrame.width,
+                    srcFrame.height);
+            dstFrame.texture.textureId = out;
+            return 0;
+        }
+
+        @Override
+        public void onGLContextDestory() {
+            if (beautyEngine != null) {
+                beautyEngine.release();
+                beautyEngine = null;
+            }
+        }
+    });
+```
+
+리스너를 제거하거나 방을 나간 뒤 엔진을 해제하세요. 최신 TRTC 세부 사항은 Tencent 서드파티 뷰티 가이드를 참고하세요.
+
+Flutter는 [Flutter · 서드파티 연동](/ko/flutter/third-party-integration)(`FacebetterPlugin.processTexture`, 이 Java API가 아님)을 사용하세요.
+
+---
+
+## Agora
+
+훅: `RtcEngine.registerVideoFrameObserver`(Video SDK **4.x**). 다음이 필요합니다.
+
+1. `getVideoFrameProcessMode()`에서 `PROCESS_MODE_READ_WRITE`를 반환
+2. 유형 **RGB(`GL_TEXTURE_2D`)**인 **TextureBuffer**를 선호
+3. `onCaptureVideoFrame`(또는 선택한 observe position)에서 Facebetter를 실행한 뒤 처리된 텍스처를 `VideoFrame`에 **다시 씀**
+
+```java
+import io.agora.rtc2.RtcEngine;
+import io.agora.rtc2.video.IVideoFrameObserver;
+import io.agora.base.VideoFrame;
+
+engine.registerVideoFrameObserver(new IVideoFrameObserver() {
+    @Override
+    public boolean onCaptureVideoFrame(int sourceType, VideoFrame videoFrame) {
+        VideoFrame.Buffer buffer = videoFrame.getBuffer();
+        if (!(buffer instanceof VideoFrame.TextureBuffer)) {
+            return true; // non-texture: pass through or convert, per your app
+        }
+        VideoFrame.TextureBuffer tex = (VideoFrame.TextureBuffer) buffer;
+        if (tex.getType() != VideoFrame.TextureBuffer.Type.RGB) {
+            return true; // OES: convert to GL_TEXTURE_2D, or adjust format preference
+        }
+
+        ensureEngine(); // must use the current GL / EGL context
+        int outId = processTexture(
+                beautyEngine,
+                tex.getTextureId(),
+                tex.getWidth(),
+                tex.getHeight());
+
+        // Wrap outId as a TextureBuffer and write it back into videoFrame.
+        // Exact APIs (TextureBufferHelper / replaceBuffer, etc.) vary by Agora version —
+        // follow Agora’s raw video-frame docs, then return true.
+        return true;
+    }
+
+    @Override
+    public int getVideoFrameProcessMode() {
+        return IVideoFrameObserver.PROCESS_MODE_READ_WRITE;
+    }
+
+    @Override
+    public int getVideoFormatPreference() {
+        // Prefer a processable texture; use the constant from your Agora version
+        return IVideoFrameObserver.VIDEO_PIXEL_DEFAULT;
+    }
+
+    // Implement other callbacks as needed; POSITION_POST_CAPTURER is common
+});
+```
+
+<Warning>
+새 `textureId`를 Agora `VideoFrame`에 주입하는 방법은 TextureBuffer 헬퍼와 메이저 버전에 따라 다릅니다. Facebetter는 새 `GL_TEXTURE_2D`만 만듭니다. 다시 쓰는 단계는 [Agora video frame observer](https://docs.agora.io/en/video-calling/develop/product-workflow) / API Reference를 따르세요.
+</Warning>
+
+`RtcEngine`를 파괴하기 전에 observer를 등록 해제하고 `beautyEngine.release()`를 호출하세요.
+
+---
+
+## LiveKit
+
+훅: 로컬 비디오 트랙을 만들 때 `org.webrtc.VideoProcessor`(또는 동등한 트랙 프로세서)를 전달합니다. `onFrameCaptured`에서 텍스처를 처리한 뒤 `sink.onFrame(...)`으로 전달합니다.
+
+```kotlin
+import io.livekit.android.room.track.LocalVideoTrackOptions
+import org.webrtc.VideoFrame
+import org.webrtc.VideoProcessor
+import org.webrtc.VideoSink
+
+class FacebetterVideoProcessor(
+    private val appContext: android.content.Context,
+) : VideoProcessor {
+    private var sink: VideoSink? = null
+    private var beautyEngine: BeautyEffectEngine? = null
+
+    override fun setSink(videoSink: VideoSink?) {
+        sink = videoSink
+    }
+
+    override fun onCapturerStarted(success: Boolean) {}
+
+    override fun onCapturerStopped() {
+        beautyEngine?.release()
+        beautyEngine = null
+    }
+
+    override fun onFrameCaptured(frame: VideoFrame) {
+        val buffer = frame.buffer
+        if (buffer !is VideoFrame.TextureBuffer ||
+            buffer.type != VideoFrame.TextureBuffer.Type.RGB
+        ) {
+            sink?.onFrame(frame)
+            return
+        }
+
+        ensureEngine() // LiveKit / WebRTC current EGL context
+        val outId = processTexture(
+            beautyEngine,
+            buffer.textureId,
+            buffer.width,
+            buffer.height,
+        )
+
+        // Build a new TextureBuffer / VideoFrame from outId, then:
+        // sink?.onFrame(processedFrame)
+        // processedFrame.release()
+        //
+        // TextureBuffer construction needs WebRTC Handler / YuvConverter, etc. —
+        // follow LiveKit Android SDK and WebRTC samples for the wrap.
+        sink?.onFrame(frame)
+    }
+}
+
+// Attach the processor when creating the track (API per your livekit-android version)
+val videoTrack = room.localParticipant.createVideoTrack(
+    options = LocalVideoTrackOptions(),
+    videoProcessor = FacebetterVideoProcessor(context),
+)
+videoTrack.startCapture()
+room.localParticipant.publishVideoTrack(videoTrack)
+```
+
+커스텀 `VideoCapturer`를 구현하고 캡처 후 `processTexture`를 실행한 뒤 `capturerObserver.onFrameCaptured`를 호출할 수도 있습니다. 공식 프로세서(예: 가상 배경)는 LiveKit의 `livekit-android-track-processors` 모듈에 있습니다.
+
+---
+
+## 문제 해결
+
+| 증상 | 확인 |
+| --- | --- |
+| 검은 화면 / 영상 없음 | 벤더 **GL 스레드**에서 엔진 생성 및 `processImage`; 실패한 프레임을 실수로 드롭하지 않았는지 |
+| 뷰티 없음 | `externalContext == true`; 입력이 `GL_TEXTURE_2D`인지 |
+| 간헐적 크래시 | GL destroy / capturer stop에서 `release()`; 출력에 `glDeleteTextures`를 호출하지 않았는지 |
+| 왜곡 | Width / height / rotation / mirror가 벤더 프레임과 일치하는지; OES가 2D로 변환되지 않았는지 |
+
+## 관련 문서
+
+- [뷰티 효과 적용](/ko/android/implement-beauty)
+- [권장 사항](/ko/android/best-practices)
+- [오류 처리](/ko/android/error-handling)
+- [API 레퍼런스](/ko/android/api-reference)

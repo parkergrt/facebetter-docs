@@ -1,0 +1,77 @@
+---
+title: "Perguntas frequentes"
+description: "FAQ de integração do Facebetter SDK 2.0 no Linux"
+---
+
+<Note>
+SDK **2.0.0**. API C++ compartilhada com o Windows. [Enums de parâmetros](/pt-BR/intro/makeup) · [Autenticação e licença](/pt-BR/intro/license).
+</Note>
+
+## Integração
+
+### `Create` do mecanismo retorna `nullptr`
+
+- `resource_path` precisa ser o **arquivo `resource.fbd`**
+- Defina `license_token` **ou** `app_id` + `app_key` válidos
+- Chame `SetLogConfig` antes de `Create`
+- Confirme que `libfacebetter.so` é carregável (`ldd your_app`)
+
+### Como eu compilo o SDK?
+
+```bash
+./scripts/build_linux.sh
+```
+
+Instala em `build/linux/release`. Ou CMake + Ninja a partir de um diretório `build/`. O demo desktop fica em `demo/cpp`.
+
+### Erros de header / link
+
+Adicione `include/` do SDK ao include path. Vincule `libfacebetter.so`. Defina `LD_LIBRARY_PATH` ou rpath em runtime.
+
+### `SetRenderView` está ausente
+
+Somente iOS / macOS. No Linux, faça blit da saída de `ProcessImage` para a sua textura GL.
+
+## Efeitos
+
+### A beleza parece fraca ou desligada
+
+Não há `SetBeautyTypeEnabled`. As intensidades começam em `0`. Remodelagem / maquiagem precisam de um rosto. Use `FrameType::Video` para a câmera.
+
+### A remodelagem parece invertida
+
+A faixa é `[-1.0, 1.0]`. Veja [Enums de parâmetros](/pt-BR/intro/makeup).
+
+### O filtro / adesivo não faz nada
+
+Passe um caminho ou bytes `.fbd` para `SetFilter` / `SetSticker`.
+
+### Fundo virtual / chroma key
+
+`SetVirtualBackgroundBlur` / `SetVirtualBackground(path|bytes)` / `ClearVirtualBackground`. Chroma: `SetChromaKey` + similarity / smoothness / desaturation; `ClearChromaKey()` restaura a segmentação.
+
+## Runtime
+
+### `libfacebetter.so: cannot open shared object file`
+
+`LD_LIBRARY_PATH`, copie para ao lado do binário, rpath ou `ldconfig`.
+
+### Sem display / erro GLFW X11
+
+Sessão gráfica, `DISPLAY=:0` ou Wayland. SSH precisa de `ssh -X`.
+
+### O CMake não encontra o OpenGL
+
+Instale `libgl1-mesa-dev` / `mesa-libGL-devel` e reconfigure.
+
+### Servidor headless
+
+Use OSMesa ou EGL + `external_context = true`. Ainda precisa de `resource.fbd` e de uma licença válida.
+
+## Autenticação
+
+Se `license_token` não estiver vazio, ele prevalece (token / JSON `{token}` / `.lic`). Caso contrário, online v2 com `app_id` + `app_key`. Eventos: `0` / `1` / `100` / `101`. Veja [Autenticação e licença](/pt-BR/intro/license).
+
+## Versão
+
+Documente e envie **2.0.0**. GCC 7+ / Clang 5+, C++17, OpenGL 3.0+.

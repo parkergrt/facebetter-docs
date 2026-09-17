@@ -1,0 +1,134 @@
+---
+title: "よくある質問"
+description: "macOS Facebetter SDK 2.0 のよくある質問"
+---
+
+<Note>
+このページは SDK **2.0.0** に対応します。認証: [認証とライセンス](/ja/intro/license)。列挙: [パラメータ列挙](/ja/intro/makeup)。
+</Note>
+
+## 統合
+
+### エンジン作成が `nil` を返す
+
+- `licenseToken` **または** `appId` + `appKey` を設定してください。両方ある場合はトークンが優先されます。
+- Mac の **Bundle ID** をバインドします（CLI ツールはプロセス名）。
+- オンライン認証には App Sandbox の **Outgoing Connections** と、`/facebetter/v2/auth` への到達が必要です。
+- `createEngineWithConfig:` の**前**にログを開き、イベント `1` / `101` を確認してください。
+- CocoaPods: `pod 'Facebetter', '2.0.0'`。`.xcworkspace` を開きます。
+
+### コンパイルでヘッダーまたはクラスが見つからない
+
+- `#import <Facebetter/FBBeautyEffectEngine.h>` をインポートします。
+- 手動 `.framework`: **Embed & Sign**。
+- Xcode 15+ の CocoaPods サンドボックス: `ENABLE_USER_SCRIPT_SANDBOXING` を **No** にします。
+
+### 実行時のリンク / dyld エラー
+
+- アーキテクチャ: **x86_64** と **arm64**。
+- デプロイターゲット **macOS 10.15+**。
+
+## 認証
+
+### `licenseToken` と `appId` / `appKey`
+
+`licenseToken` が空でない場合、SDK はトークン / `{token}` JSON / `.lic` をローカルで検証します。それ以外はオンライン認証です。詳細: [認証とライセンス](/ja/intro/license)。
+
+### イベント `1` または `101`
+
+認証または初期化の失敗です。Bundle ID、サンドボックスのネットワーク、トークン期限切れ、ログを確認してください。
+
+## 美顔
+
+### 効果が弱すぎる、または強すぎる
+
+- 美肌 / メイク / フィルター: `[0.0, 1.0]`。
+- リシェイプ: `setReshape:intensity:` で **`[-1.0, 1.0]`**。
+- 強度 `0` はその項目をオフにします。
+- 肌領域のみ: `setBeautySkinOnly:`。
+
+プリセット名: [パラメータ列挙](/ja/intro/makeup)。
+
+## フィルター、ステッカー、バーチャル背景
+
+`.fbd` のパスまたはバイトを渡します。サンドボックスアプリはそのパスを読める必要があります。
+
+```objc
+[engine setFilter:fbdPath];
+[engine setFilterIntensity:0.8f];
+[engine clearFilter];
+[engine setSticker:fbdPath];
+[engine clearSticker];
+```
+
+バーチャル背景:
+
+```objc
+[engine setVirtualBackgroundBlur:0.6f];
+[engine setVirtualBackground:imagePath];
+[engine setVirtualBackgroundWithData:imageData];
+[engine clearVirtualBackground];
+[engine setChromaKey:FBChromaKeyColor_Green];
+[engine clearChromaKey];
+```
+
+## 処理
+
+### `processImage:` が `nil` を返す
+
+フレームが無効、初期化失敗、または `externalContext = YES` だが現在 GL コンテキストがない。
+
+### フレームタイプ
+
+`imageFrame.type` を `FBFrameTypeImage`（`0`）または `FBFrameTypeVideo`（`1`）に設定します。処理モード引数はありません。
+
+### フォーマット変換
+
+`convert:` を使います。
+
+```objc
+FBImageFrame *rgba = [frame convert:FBImageFormatRGBA];
+const uint8_t *data = [rgba data];
+```
+
+### NSImage
+
+```objc
+FBImageFrame *frame = [FBImageFrame createWithNSImage:nsImage];
+frame.type = FBFrameTypeImage;
+FBImageFrame *out = [engine processImage:frame];
+```
+
+### カメラ
+
+1. `AVCaptureVideoDataOutput` → `CVPixelBuffer`。
+2. `createWithNV12:...` または `createWithBGRA:...`。
+3. `type = FBFrameTypeVideo`、任意で `setMirror:@"horizontal"`。
+4. AppKit / OpenGL ビューで `[output data]` または `[output texture]` を表示します。
+
+## パフォーマンス
+
+- リアルタイムでは `FBFrameTypeVideo`。`getStats` を確認します。
+- エンジンは 1 つ、シリアルキュー。
+- ウィンドウ最小化時はキャプチャを一時停止します。
+
+## ログ
+
+```objc
+[FBBeautyEffectEngine setLogConfig:logConfig];  // before createEngineWithConfig:
+```
+
+ログはサンドボックスコンテナ内へ書き込みます。戻りコードは [エラー処理](/ja/macos/error-handling) を参照してください。
+
+## バージョン
+
+- **macOS 10.15+**、**x86_64** + **arm64**。
+- CocoaPods: `pod 'Facebetter', '2.0.0'`。
+- Universal Binary: xcframework に両方のスライスがあることを確認します（`lipo -info`）。
+
+## サンドボックスと App Store
+
+- オンライン認証には送信ネットワークが必要です。
+- カメラには `NSCameraUsageDescription` が必要です。
+- ユーザーが選んだファイルには security-scoped bookmark を使います。
+- プライベート API を使わないでください。ライブ動画ではメインスレッドでエンジンを走らせないでください。
