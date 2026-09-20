@@ -28,6 +28,19 @@ Resolve an absolute path at startup so cwd changes do not break `fopen`.
 | `FrameType::Video` (default) | Camera / live |
 | `FrameType::Image` | Still export |
 
+## Large stills (preview vs export) {#large-stills}
+
+Do not feed full-resolution pixels into `ProcessImage` on every slider change, and do not throw the original away after scaling.
+
+When the photo opens, keep the full buffer and build **one** preview frame (long edge about 1280–1440). Slider changes process the preview (`FrameType::Image`). Export processes a full-resolution frame with the same setters. Output size matches the input. Camera preview stays capture resolution + `FrameType::Video`.
+
+```cpp
+preview->type = FrameType::Image;
+auto preview_out = engine->ProcessImage(preview);
+
+full->type = FrameType::Image;
+auto export_out = engine->ProcessImage(full);
+```
 
 ## Intensities and skin-only
 

@@ -60,6 +60,54 @@ const result = engine.processImage(
 ctx.putImageData(result, 0, 0);
 ```
 
+## Stills grandes (prévia e exportação) {#large-stills}
+
+Em galeria ou retoque, não envie pixels em resolução total para `processImage` a cada movimento do slider. Ao abrir o arquivo, mantenha dois buffers:
+
+1. **Quadro de prévia** — um `ImageData` reduzido (lado longo cerca de 1280–1440, ou o tamanho CSS do canvas × `devicePixelRatio`, o que for menor). Use este enquanto o usuário ajusta os efeitos.
+2. **Original** — o `HTMLImageElement` (ou um bitmap sem reduzir). Chame `processImage` **uma vez**, na exportação.
+
+Use `FrameType.Image` nos dois. Mesmo mecanismo, mesmos setters. O tamanho da saída acompanha a entrada: a prévia é pequena; a exportação é em resolução total. Não amplie o resultado da prévia para fingir uma exportação.
+
+Não passe um `<img>` sem reduzir no loop de prévia — `processImage` lê `naturalWidth` / `naturalHeight`.
+
+```javascript
+function rasterize(source, maxEdge) {
+  const sw = source.naturalWidth || source.width;
+  const sh = source.naturalHeight || source.height;
+  const scale = Math.min(1, maxEdge / Math.max(sw, sh));
+  const w = Math.max(1, Math.round(sw * scale));
+  const h = Math.max(1, Math.round(sh * scale));
+  const canvas = document.createElement('canvas');
+  canvas.width = w;
+  canvas.height = h;
+  const ctx = canvas.getContext('2d');
+  ctx.drawImage(source, 0, 0, w, h);
+  return ctx.getImageData(0, 0, w, h);
+}
+
+const preview = rasterize(image, 1440); // once, when the file opens
+// Keep `image` for export
+
+const previewOut = engine.processImage(
+  preview,
+  preview.width,
+  preview.height,
+  FrameType.Image,
+);
+previewCtx.putImageData(previewOut, 0, 0);
+
+// Export — full resolution, once
+const exportOut = engine.processImage(
+  image,
+  image.naturalWidth,
+  image.naturalHeight,
+  FrameType.Image,
+);
+```
+
+A prévia da câmera é outro caminho: resolução de captura + `FrameType.Video`. Faça debounce das chamadas de `processImage` do slider. Mostre um estado de ocupado antes de exportar; o processamento em resolução total é síncrono e pode travar a página.
+
 ## Parâmetros
 
 Comece baixo na prévia em tempo real (`smoothing` ~ `0.2`–`0.5`). A remodelagem é `[-1, 1]`; valores pequenos ficam mais naturais na câmera.

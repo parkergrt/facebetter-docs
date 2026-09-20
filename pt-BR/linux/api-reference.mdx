@@ -87,6 +87,18 @@ int SetReshape(Reshape param, float intensity);  // [-1, 1]
 
 Lista completa de `Reshape`: [Enums de parâmetros](/pt-BR/intro/makeup).
 
+### Remodelagem corporal
+
+```cpp
+int SetBodyReshape(BodyReshape param, float intensity);  // [0, 1]
+```
+
+```cpp
+```
+
+
+Lista completa de `BodyReshape`: [Enums de parâmetros](/pt-BR/intro/makeup). Exige `resource_body.fbd`. Veja [Pacotes de recursos opcionais](/pt-BR/intro/resource-packs).
+
 ### Maquiagem
 
 ```cpp
@@ -137,7 +149,7 @@ int Set3DSticker(const std::vector<uint8_t>& fbd_data);
 int Clear3DSticker();
 ```
 
-Carregue primeiro o pacote 3D opcional. Veja [Pacotes de recursos opcionais](/pt-BR/intro/resource-packs).
+Carregue primeiro os pacotes opcionais (`resource_3d.fbd` para adesivos 3D, `resource_body.fbd` para remodelagem corporal). Veja [Pacotes de recursos opcionais](/pt-BR/intro/resource-packs).
 
 ### Estatísticas, callbacks, processamento
 

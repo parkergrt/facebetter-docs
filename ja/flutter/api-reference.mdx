@@ -45,7 +45,7 @@ static void setLogConfig({
 void dispose()
 ```
 
-`FBEngine.create` でインスタンスを作成します。プロセス単位のシングルトンではありません。
+`FBEngine.create` でインスタンスを作成します。プロセス単位のシングルトンではありません。`externalContext: true` のエンジンは同時に 1 台だけ `processTexture` にバインドできます。
 
 美顔 / リシェイプ / メイク / クロマキー / ぼかし / `clear*` / `setFilterIntensity` は**同期**です。フィルター、ステッカー、背景**画像**、静止画 API は **`Future`** を返します。
 
@@ -56,6 +56,10 @@ void dispose()
 ### リシェイプ
 
 `setReshape(FBReshape param, double intensity)` — **`[-1.0, 1.0]`**。Dart 名: `FBReshape.faceThin`、`faceVShape`、… `browThickness`。表は [パラメータ列挙](/ja/intro/makeup)。
+
+### ボディリシェイプ
+
+`setBodyReshape(FBBodyReshape param, double intensity)` — **`[0.0, 1.0]`**。Dart 名: `FBBodyReshape.bodySlim` … `torsoLong`。先に `addResourcePack` で `resource_body.fbd`。[パラメータ列挙](/ja/intro/makeup)、[オプションリソースパック](/ja/intro/resource-packs)。
 
 ### メイク
 
@@ -95,7 +99,7 @@ void setChromaKeySmoothness(double value)
 void setChromaKeyDesaturation(double value)
 ```
 
-`path` と `data` は排他で、どちらか一方だけ必須です。3D ステッカー: [オプションリソースパック](/ja/intro/resource-packs)。
+`path` と `data` は排他で、どちらか一方だけ必須です。3D ステッカーとボディリシェイプ: [オプションリソースパック](/ja/intro/resource-packs)。
 
 ### 静止画
 
@@ -152,12 +156,10 @@ FBStats get stats
 
 - `FBBitmap` — `width`、`height`、`stride`、`pixels`（RGBA8888 コピー）
 - `FBLogLevel` — `trace` … `critical`
-- `FBMirror` — `none`、`horizontal`、`vertical`、`both`（ライブテクスチャ経路では通常使わない）
-- `FBFace` / `FBFaceList` / `FBRect` — `enableLandmarks: true` 時のキーポイントビュー（`kLandmarkCount` = 111）
 
 ## ネイティブテクスチャ（Dart を経由しない）
 
-`externalContext: true` で `create` したあと、**相手 SDK の GL スレッド**上で:
+`externalContext: true` で `create` したあと、**相手 SDK の GL スレッド**上で呼びます。ライブエンジンは同時に 1 台だけバインドできます。先のエンジンを `dispose()` する前に 2 台目を `create(externalContext: true)` すると例外になります。静止画エンジン（`externalContext: false`）はこのスロットを使いません。
 
 - iOS: `[FacebetterPlugin processTexture:width:height:]`
 - Android: `FacebetterPlugin.processTexture(textureId, width, height)`

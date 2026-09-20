@@ -52,7 +52,7 @@ final engine = await FBEngine.create(FBEngineConfig(
 | --- | --- | --- |
 | `appId` / `appKey` | — | 在线鉴权 |
 | `licenseToken` | — | token / `{token}` JSON / `.lic` 全文 |
-| `enableLandmarks` | `false` | 引擎级开关，创建后不能改。不读关键点请保持 `false` |
+| `enableLandmarks` | `false` | 引擎级开关，创建后不能改。Flutter 没有关键点回调，请保持 `false` |
 | `externalContext` | `true` | 接第三方实时前处理用 `true`；静图文件接口用 `false` |
 | `resourcePath` | 插件自动 | Android AAR 内 `resource.fbd` / iOS framework 内文件 |
 
@@ -79,6 +79,15 @@ engine.setBeautySkinOnly(true);
 ```dart
 engine.setReshape(FBReshape.faceThin, 0.3);
 engine.setReshape(FBReshape.eyeSize, 0.2);
+```
+
+美体 **`[0.0, 1.0]`**。先登记 `resource_body.fbd`。见 [参数枚举](/zh/intro/makeup) 与 [可选资源包](/zh/intro/resource-packs)：
+
+```dart
+await engine.addResourcePack(path: '/path/to/resource_body.fbd');
+engine.setBodyReshape(FBBodyReshape.waistSlim, 0.4);
+engine.setBodyReshape(FBBodyReshape.legStretch, 0.3);
+engine.setBodyReshape(FBBodyReshape.torsoLong, 0.3);
 ```
 
 美妆（强度 + 风格/色号）。完整枚举：[参数枚举](/zh/intro/makeup)。

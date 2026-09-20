@@ -121,6 +121,18 @@ A faixa de `setReshape:intensity:` é **`[-1.0, 1.0]`**. `0` desliga. Parâmetro
 [self.beautyEffectEngine setReshape:FBReshape_EyeSize intensity:0.2f];
 ```
 
+## Remodelagem corporal
+
+A faixa de `setBodyReshape:intensity:` é **`[0.0, 1.0]`**. `0` desliga. Registre `resource_body.fbd` com `addResourcePack:` primeiro. Parâmetros: `FBBodyReshape_BodySlim` … `FBBodyReshape_TorsoLong` (`0`–`8`). Veja [Enums de parâmetros](/pt-BR/intro/makeup) e [Pacotes de recursos opcionais](/pt-BR/intro/resource-packs).
+
+```objc
+NSString *bodyPack = [[NSBundle mainBundle] pathForResource:@"resource_body" ofType:@"fbd"];
+[self.beautyEffectEngine addResourcePack:bodyPack];
+[self.beautyEffectEngine setBodyReshape:FBBodyReshape_WaistSlim intensity:0.4f];
+[self.beautyEffectEngine setBodyReshape:FBBodyReshape_LegStretch intensity:0.3f];
+[self.beautyEffectEngine setBodyReshape:FBBodyReshape_TorsoLong intensity:0.3f];
+```
+
 ## Maquiagem
 
 Intensidade, formato e cor são chamadas separadas. Predefinições completas: [Enums de parâmetros](/pt-BR/intro/makeup).

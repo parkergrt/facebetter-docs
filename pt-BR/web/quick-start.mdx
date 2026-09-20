@@ -59,7 +59,7 @@ await engine.init();
 
 Em produção, implemente o mesmo proxy **no seu** servidor. Passos completos e um exemplo Node: [Autenticação e licença](/pt-BR/intro/license).
 
-O SDK carrega os arquivos de runtime durante `init()`. Você **não** precisa copiar `resource.fbd` para `public/`. Opcional: `init({ onProgress })` informa o percentual de download. Adesivos 3D precisam do pacote extra `resource_3d.fbd` — veja [Pacotes de recursos opcionais](/pt-BR/intro/resource-packs).
+O SDK carrega os arquivos de runtime durante `init()`. Você **não** precisa copiar `resource.fbd` para `public/`. Opcional: `init({ onProgress })` informa o percentual de download. Adesivos 3D precisam de `resource_3d.fbd`; remodelagem corporal precisa de `resource_body.fbd` — veja [Pacotes de recursos opcionais](/pt-BR/intro/resource-packs).
 
 ## Executar
 

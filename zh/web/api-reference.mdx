@@ -70,6 +70,10 @@ await engine.init({
 
 `setReshape(param, value)` — `param` 为 `Reshape.*`，`value` 范围 **`[-1.0, 1.0]`**。见 [参数枚举](/zh/intro/makeup)。
 
+### 美体
+
+`setBodyReshape(param, value)` — `param` 为 `BodyReshape.*`，`value` 范围 **`[0.0, 1.0]`**。需先 `addResourcePack` 加载 `resource_body.fbd`。见 [参数枚举](/zh/intro/makeup) 与 [可选资源包](/zh/intro/resource-packs)。
+
 ### 美妆
 
 强度 `[0, 1]`。风格 / 色号枚举：[参数枚举](/zh/intro/makeup)。
@@ -94,7 +98,7 @@ await engine.init({
 | `setFilterIntensity(intensity)` | `[0, 1]` |
 | `setSticker(path \| Uint8Array)` | 应用 2D 贴纸 `.fbd` |
 | `clearSticker()` | 清除贴纸 |
-| `addResourcePack(path \| Uint8Array)` | 登记额外能力包（例如 3D 贴纸前加载 `resource_3d.fbd`） |
+| `addResourcePack(path \| Uint8Array)` | 登记额外能力包（3D 贴纸前加载 `resource_3d.fbd`，美体前加载 `resource_body.fbd`） |
 | `set3DSticker(path \| Uint8Array)` | 应用 3D 贴纸 `.fbd` |
 | `clear3DSticker()` | 清除 3D 贴纸 |
 

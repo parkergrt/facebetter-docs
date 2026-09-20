@@ -53,7 +53,9 @@ options 객체가 아니라 `setVirtualBackgroundBlur(level)` 또는 `setVirtual
 
 ### 미리보기가 느림
 
-`FrameType.Video`를 사용하고, 캡처 해상도를 제한하며(예: 720p), 랜드마크 콜백을 피하고, 루프를 `requestAnimationFrame`에서 실행하세요. `engine.getStats().avgProcessTimeMs`를 확인하세요.
+카메라: `FrameType.Video`를 사용하고, 캡처 해상도를 제한하며(예: 720p), 랜드마크 콜백을 피하고, 루프를 `requestAnimationFrame`에서 실행하세요. `engine.getStats().avgProcessTimeMs`를 확인하세요.
+
+갤러리 대형은 슬라이더마다 원본을 `processImage`에 넣지 마세요. 파일을 열 때 작은 미리보기 프레임을 만들고, 내보낼 때 원본을 한 번 처리하세요. [모범 사례](/ko/web/best-practices#large-stills)를 보세요.
 
 ### SPA에서 메모리가 증가함
 

@@ -1,6 +1,6 @@
 ---
 title: "Parameter enums"
-description: "Reshape, makeup, whitening, and smoothing enums for Facebetter SDK 2.0"
+description: "Face reshape, body reshape, makeup, whitening, and smoothing enums for Facebetter SDK 2.0"
 ---
 
 <Note>
@@ -43,6 +43,10 @@ Used with `SetSmoothingStyle`. Intensity is still `SetSmoothing`. Default: `Natu
 
 Used with `SetReshape(param, intensity)`. Range is **`[-1.0, 1.0]`**. `0` is off. Positive and negative are opposite directions (for example FaceThin: slim / fuller cheeks).
 
+<Note>
+Face reshape is available from **Pro**. Free can try it with a watermark. See [Plans & Features](./pricing).
+</Note>
+
 | Value | Name | Positive / negative |
 | --- | --- | --- |
 | 0 | `FaceThin` | Slim face / fuller cheeks |
@@ -73,6 +77,30 @@ Used with `SetReshape(param, intensity)`. Range is **`[-1.0, 1.0]`**. `0` is off
 | 25 | `BrowThickness` | Thicker / thinner brows |
 
 Java names are `SNAKE_CASE` (`FACE_THIN`, `FACE_V_SHAPE`, …). Objective-C uses `FBReshape_FaceThin`. Dart uses `FBReshape.faceThin`.
+
+## Body reshape (`BodyReshape`)
+
+Used with `SetBodyReshape(param, intensity)`. Range is **`[0.0, 1.0]`**. `0` is off. Unlike face reshape, these values are not bipolar.
+
+<Note>
+Body reshape requires **Pro+**. Free can try it with a watermark. See [Plans & Features](./pricing).
+</Note>
+
+Requires the optional pack `resource_body.fbd` except `LegStretch` and `TorsoLong`. Register it with `AddResourcePack` / `addResourcePack` **before** pose-based `SetBodyReshape` / `setBodyReshape`. See [Optional resource packs](./resource-packs).
+
+| Value | Name | Meaning |
+| --- | --- | --- |
+| 0 | `BodySlim` | Slim the whole body |
+| 1 | `WaistSlim` | Slim the waist |
+| 2 | `LegSlim` | Slim the legs |
+| 3 | `ShoulderSlim` | Slim the shoulders |
+| 4 | `ArmSlim` | Slim the arms |
+| 5 | `LegLong` | Lengthen the legs along the skeleton |
+| 6 | `BustEnhance` | Enhance the bust |
+| 7 | `LegStretch` | Stretch below the waist (face only; no `resource_body.fbd`) |
+| 8 | `TorsoLong` | Lengthen the torso chin-to-waist (face only; no `resource_body.fbd`) |
+
+Java names are `SNAKE_CASE` (`BODY_SLIM`, `WAIST_SLIM`, …). Objective-C uses `FBBodyReshape_BodySlim`. Dart uses `FBBodyReshape.bodySlim`.
 
 ## Lipstick (`LipstickColor`)
 

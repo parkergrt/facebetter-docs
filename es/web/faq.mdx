@@ -53,7 +53,9 @@ El vídeo puede no tener aún un fotograma (`videoWidth === 0`). Falta el contex
 
 ### La vista previa es lenta
 
-Usa `FrameType.Video`, limita la resolución de captura (por ejemplo 720p), evita callbacks de landmarks y ejecuta el bucle en `requestAnimationFrame`. Observa `engine.getStats().avgProcessTimeMs`.
+Cámara: usa `FrameType.Video`, limita la resolución de captura (por ejemplo 720p), evita callbacks de landmarks y ejecuta el bucle en `requestAnimationFrame`. Observa `engine.getStats().avgProcessTimeMs`.
+
+En fotos grandes de galería, no envíes el original a `processImage` en cada tick del deslizador. Crea un fotograma de vista previa más pequeño al abrir el archivo; exporta el original una vez. Véase [Mejores prácticas](/es/web/best-practices#large-stills).
 
 ### La memoria crece en una SPA
 

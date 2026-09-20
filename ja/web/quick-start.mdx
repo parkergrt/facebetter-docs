@@ -59,7 +59,7 @@ await engine.init();
 
 本番では、同じプロキシを**自社サーバー**に実装してください。手順と Node の例: [認証とライセンス](/ja/intro/license)。
 
-SDK は `init()` 中にランタイムファイルを読み込みます。`resource.fbd` を `public/` にコピーする必要は**ありません**。任意: `init({ onProgress })` はダウンロードパーセントを報告します。3D ステッカーには追加パック `resource_3d.fbd` が必要です。[オプションリソースパック](/ja/intro/resource-packs) を参照してください。
+SDK は `init()` 中にランタイムファイルを読み込みます。`resource.fbd` を `public/` にコピーする必要は**ありません**。任意: `init({ onProgress })` はダウンロードパーセントを報告します。3D ステッカーには `resource_3d.fbd`、ボディリシェイプには `resource_body.fbd` が必要です。[オプションリソースパック](/ja/intro/resource-packs) を参照してください。
 
 ## 実行
 

@@ -60,6 +60,54 @@ const result = engine.processImage(
 ctx.putImageData(result, 0, 0);
 ```
 
+## Fotos grandes (vista previa y exportación) {#large-stills}
+
+En galería o retoque, no envíes los píxeles a resolución completa a `processImage` en cada movimiento del deslizador. Al abrir el archivo, guarda dos búferes:
+
+1. **Fotograma de vista previa** — un `ImageData` reducido (lado largo unos 1280–1440, o el tamaño CSS del canvas × `devicePixelRatio`, el que sea menor). Úsalo mientras el usuario ajusta efectos.
+2. **Original** — el `HTMLImageElement` (o un bitmap sin reducir). Llama a `processImage` **una vez**, al exportar.
+
+Usa `FrameType.Image` en ambos. Mismo motor, mismos setters. El tamaño de salida coincide con la entrada: la vista previa es pequeña; la exportación es a resolución completa. No amplíes el resultado de vista previa para fingir una exportación.
+
+No pases un `<img>` sin reducir al bucle de vista previa: `processImage` lee `naturalWidth` / `naturalHeight`.
+
+```javascript
+function rasterize(source, maxEdge) {
+  const sw = source.naturalWidth || source.width;
+  const sh = source.naturalHeight || source.height;
+  const scale = Math.min(1, maxEdge / Math.max(sw, sh));
+  const w = Math.max(1, Math.round(sw * scale));
+  const h = Math.max(1, Math.round(sh * scale));
+  const canvas = document.createElement('canvas');
+  canvas.width = w;
+  canvas.height = h;
+  const ctx = canvas.getContext('2d');
+  ctx.drawImage(source, 0, 0, w, h);
+  return ctx.getImageData(0, 0, w, h);
+}
+
+const preview = rasterize(image, 1440); // once, when the file opens
+// Keep `image` for export
+
+const previewOut = engine.processImage(
+  preview,
+  preview.width,
+  preview.height,
+  FrameType.Image,
+);
+previewCtx.putImageData(previewOut, 0, 0);
+
+// Export — full resolution, once
+const exportOut = engine.processImage(
+  image,
+  image.naturalWidth,
+  image.naturalHeight,
+  FrameType.Image,
+);
+```
+
+La vista previa de cámara es otro camino: resolución de captura + `FrameType.Video`. Debounce las llamadas a `processImage` desde el deslizador. Muestra un estado de ocupado antes de exportar; el proceso a resolución completa es síncrono y puede congelar la página.
+
 ## Parámetros
 
 Empieza bajo en vista previa en tiempo real (`smoothing` ~ `0.2`–`0.5`). El remodelado es `[-1, 1]`; los valores pequeños se ven más naturales en cámara.

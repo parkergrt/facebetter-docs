@@ -46,7 +46,7 @@ SDK の `include` をインクルードパスに追加します。`facebetter.li
 
 ### プレビューがカクつく
 
-解像度を下げ、`FrameType::Video` を使い、ステッカー / バーチャル背景を減らし、`GetStats().avg_process_time_ms` を確認します。毎フレームファイルから `ImageFrame` を作らず、カメラバッファを直接渡してください。
+解像度を下げ、`FrameType::Video` を使い、ステッカー / バーチャル背景を減らし、`GetStats().avg_process_time_ms` を確認します。毎フレームファイルから `ImageFrame` を作らず、カメラバッファを直接渡してください。ギャラリーの大きな静止画は、開いたときに小さいプレビューフレームを作り、書き出しで原寸を 1 回処理します。[ベストプラクティス](/ja/windows/best-practices#large-stills) を参照してください。
 
 ### メモリ使用量が高い
 

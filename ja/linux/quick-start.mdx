@@ -62,7 +62,8 @@ demo/cpp/sdk/
 │   └── libfacebetter.so    ← shared library
 └── resource/
     ├── resource.fbd        ← models and assets (required)
-    └── resource_3d.fbd     ← optional; 3D stickers. Place next to `resource.fbd` or call `AddResourcePack`
+    ├── resource_3d.fbd     ← optional; 3D stickers. Place next to `resource.fbd` or call `AddResourcePack`
+    └── resource_body.fbd   ← optional; body reshape. Place next to `resource.fbd` or call `AddResourcePack`
 ```
 
 <Warning>
@@ -114,7 +115,7 @@ cp ../sdk/lib/libfacebetter.so .
 ./facebetter_demo
 ```
 
-ウィンドウにはライブプレビューとコントロールパネル（肌、26 のリシェイプパラメータ、メイク、フィルター、ステッカー、バーチャル背景）が表示されます。**Reset All** をクリックすると強度がゼロになります。
+ウィンドウにはライブプレビューとコントロールパネル（肌、26 のフェイスリシェイプ、7 のボディリシェイプ、メイク、フィルター、ステッカー、バーチャル背景）が表示されます。**Reset All** をクリックすると強度がゼロになります。
 
 ## トラブルシューティング
 

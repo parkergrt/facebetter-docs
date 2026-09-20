@@ -45,7 +45,7 @@ static void setLogConfig({
 void dispose()
 ```
 
-Create one instance with `FBEngine.create`. It is not a process-wide singleton.
+Create one instance with `FBEngine.create`. It is not a process-wide singleton. At most one `externalContext: true` engine can be bound to `processTexture` at a time.
 
 Beauty / reshape / makeup / chroma / blur / `clear*` / `setFilterIntensity` are **synchronous**. Filter, sticker, background **image**, and photo APIs return **`Future`**.
 
@@ -56,6 +56,10 @@ Beauty / reshape / makeup / chroma / blur / `clear*` / `setFilterIntensity` are 
 ### Reshape
 
 `setReshape(FBReshape param, double intensity)` — **`[-1.0, 1.0]`**. Dart names: `FBReshape.faceThin`, `faceVShape`, … `browThickness`. Tables: [Parameter enums](/intro/makeup).
+
+### Body reshape
+
+`setBodyReshape(FBBodyReshape param, double intensity)` — **`[0.0, 1.0]`**. Dart names: `FBBodyReshape.bodySlim` … `torsoLong`. Requires `resource_body.fbd` via `addResourcePack` first. Tables: [Parameter enums](/intro/makeup). Packs: [Optional resource packs](/intro/resource-packs).
 
 ### Makeup
 
@@ -95,7 +99,7 @@ void setChromaKeySmoothness(double value)
 void setChromaKeyDesaturation(double value)
 ```
 
-`path` and `data` are mutually exclusive; exactly one is required. For 3D stickers see [Optional resource packs](/intro/resource-packs).
+`path` and `data` are mutually exclusive; exactly one is required. For 3D stickers and body reshape see [Optional resource packs](/intro/resource-packs).
 
 ### Photo
 
@@ -152,12 +156,10 @@ Thrown when a native call returns `< 0`.
 
 - `FBBitmap` — `width`, `height`, `stride`, `pixels` (RGBA8888 copy)
 - `FBLogLevel` — `trace` … `critical`
-- `FBMirror` — `none`, `horizontal`, `vertical`, `both` (usually unused on the live texture path)
-- `FBFace` / `FBFaceList` / `FBRect` — landmark views (`kLandmarkCount` = 111) when `enableLandmarks: true`
 
 ## Native texture (not Dart)
 
-After `create` with `externalContext: true`, call on the **vendor SDK GL thread**:
+After `create` with `externalContext: true`, call on the **vendor SDK GL thread**. Only one live engine can be bound at a time; a second `create(externalContext: true)` throws until you `dispose()` the first. Still-image engines (`externalContext: false`) do not bind.
 
 - iOS: `[FacebetterPlugin processTexture:width:height:]`
 - Android: `FacebetterPlugin.processTexture(textureId, width, height)`

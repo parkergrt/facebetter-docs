@@ -60,6 +60,54 @@ const result = engine.processImage(
 ctx.putImageData(result, 0, 0);
 ```
 
+## 大きな静止画（プレビューと書き出し） {#large-stills}
+
+ギャラリー写真やレタッチでは、スライダーを動かすたびに原寸ピクセルを `processImage` に渡さないでください。ファイルを開いたときにバッファを 2 つ用意します。
+
+1. **プレビューフレーム** — 縮小した `ImageData`（長辺は約 1280–1440、または表示 canvas の CSS サイズ × `devicePixelRatio` の小さい方）。パラメータ調整中はこちらだけ処理します。
+2. **原寸** — `HTMLImageElement`（または未縮小のビットマップ）。ユーザーが書き出すときに **1 回だけ** `processImage` します。
+
+どちらも `FrameType.Image`。同じエンジン、同じ setter。出力サイズは入力と同じです。プレビュー結果を拡大して書き出しにしないでください。
+
+縮小していない `<img>` をプレビューループに渡さないでください。`processImage` は `naturalWidth` / `naturalHeight` を読みます。
+
+```javascript
+function rasterize(source, maxEdge) {
+  const sw = source.naturalWidth || source.width;
+  const sh = source.naturalHeight || source.height;
+  const scale = Math.min(1, maxEdge / Math.max(sw, sh));
+  const w = Math.max(1, Math.round(sw * scale));
+  const h = Math.max(1, Math.round(sh * scale));
+  const canvas = document.createElement('canvas');
+  canvas.width = w;
+  canvas.height = h;
+  const ctx = canvas.getContext('2d');
+  ctx.drawImage(source, 0, 0, w, h);
+  return ctx.getImageData(0, 0, w, h);
+}
+
+const preview = rasterize(image, 1440); // once, when the file opens
+// Keep `image` for export
+
+const previewOut = engine.processImage(
+  preview,
+  preview.width,
+  preview.height,
+  FrameType.Image,
+);
+previewCtx.putImageData(previewOut, 0, 0);
+
+// Export — full resolution, once
+const exportOut = engine.processImage(
+  image,
+  image.naturalWidth,
+  image.naturalHeight,
+  FrameType.Image,
+);
+```
+
+カメラプレビューはこの経路ではありません。キャプチャ解像度 + `FrameType.Video` を使います。スライダーからの `processImage` は短く debounce してください。書き出しは同期でページが止まることがあるので、先に進行表示を出します。
+
 ## パラメータ
 
 ライブプレビューは低強度から始めます（スムージングは約 `0.2`–`0.5`）。リシェイプ範囲は `[-1, 1]` で、カメラでは小さめの調整の方が自然です。

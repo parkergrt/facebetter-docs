@@ -22,6 +22,20 @@ input.type = ImageFrame.FrameType.VIDEO;
 ImageFrame output = engine.processImage(input);
 ```
 
+## Fotos grandes (vista previa y exportación) {#large-stills}
+
+No envíes píxeles a resolución completa a `processImage` en cada movimiento del deslizador, ni tires el original después de escalar.
+
+Al abrir la foto, conserva el `Bitmap` completo y crea **un** fotograma de vista previa (lado largo unos 1280–1440). Los cambios de parámetros llaman a `processImage` sobre la vista previa (`FrameType.IMAGE`). La exportación llama a `processImage` sobre un fotograma a resolución completa con los mismos setters. El tamaño de salida coincide con la entrada: no amplíes la vista previa. La cámara sigue en resolución de captura + `FrameType.VIDEO`.
+
+```java
+preview.type = ImageFrame.FrameType.IMAGE;
+ImageFrame previewOut = engine.processImage(preview);
+
+full.type = ImageFrame.FrameType.IMAGE;
+ImageFrame exportOut = engine.processImage(full);
+```
+
 ## Rangos de parámetros
 
 Empieza bajo; sube cuando confirmes la detección facial y el FPS.
@@ -75,7 +89,7 @@ try {
 ```
 
 - Un motor por proceso / contexto GL; no lo crees por fotograma
-- Limita los estáticos (el demo escala el lado largo a 1920) antes de `createWithBitmap`
+- Estáticos interactivos: escala una **copia** para la vista previa; conserva el `Bitmap` original para exportar. Véase [Fotos grandes](#large-stills)
 - `convert()` asigna un fotograma **nuevo**: libéralo
 
 ## OpenGL ES

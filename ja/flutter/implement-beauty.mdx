@@ -52,7 +52,7 @@ final engine = await FBEngine.create(FBEngineConfig(
 | --- | --- | --- |
 | `appId` / `appKey` | — | オンライン認証 |
 | `licenseToken` | — | トークン / `{token}` JSON / `.lic` 全文 |
-| `enableLandmarks` | `false` | エンジンレベルのスイッチ。作成後は変更できません。キーポイントを読まない場合は `false` のまま |
+| `enableLandmarks` | `false` | エンジンレベルのスイッチ。作成後は変更できません。Flutter にキーポイントコールバックはないため `false` のまま |
 | `externalContext` | `true` | サードパーティのライブ前処理は `true`。静止画ファイル API は `false` |
 | `resourcePath` | プラグイン自動 | Android AAR 内の `resource.fbd` / iOS framework 内のファイル |
 
@@ -79,6 +79,15 @@ engine.setBeautySkinOnly(true);
 ```dart
 engine.setReshape(FBReshape.faceThin, 0.3);
 engine.setReshape(FBReshape.eyeSize, 0.2);
+```
+
+ボディリシェイプ **`[0.0, 1.0]`**。先に `resource_body.fbd` を登録。[パラメータ列挙](/ja/intro/makeup) と [オプションリソースパック](/ja/intro/resource-packs)：
+
+```dart
+await engine.addResourcePack(path: '/path/to/resource_body.fbd');
+engine.setBodyReshape(FBBodyReshape.waistSlim, 0.4);
+engine.setBodyReshape(FBBodyReshape.legStretch, 0.3);
+engine.setBodyReshape(FBBodyReshape.torsoLong, 0.3);
 ```
 
 メイク（強度 + スタイル/色）。完全な列挙: [パラメータ列挙](/ja/intro/makeup)。

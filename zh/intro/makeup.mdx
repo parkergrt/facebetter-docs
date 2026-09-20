@@ -1,6 +1,6 @@
 ---
 title: "参数枚举"
-description: "Facebetter SDK 2.0 的美型、美妆、美白、磨皮枚举"
+description: "Facebetter SDK 2.0 的美型、美体、美妆、美白、磨皮枚举"
 ---
 
 <Note>
@@ -43,6 +43,10 @@ description: "Facebetter SDK 2.0 的美型、美妆、美白、磨皮枚举"
 
 配合 `SetReshape(param, intensity)` 使用。范围是 **`[-1.0, 1.0]`**。`0` 关闭。正负为相反方向（例如瘦脸：瘦脸 / 丰脸颊）。
 
+<Note>
+美型从**专业版**起可用。免费版可带水印试用。见 [套餐与功能](./pricing)。
+</Note>
+
 | 值 | 名称 | 正向 / 负向 |
 | --- | --- | --- |
 | 0 | `FaceThin` | 瘦脸 / 丰脸颊 |
@@ -73,6 +77,30 @@ description: "Facebetter SDK 2.0 的美型、美妆、美白、磨皮枚举"
 | 25 | `BrowThickness` | 粗眉 / 细眉 |
 
 Java 使用 `SNAKE_CASE`（`FACE_THIN`、`FACE_V_SHAPE` …）。Objective-C 使用 `FBReshape_FaceThin`。Dart 使用 `FBReshape.faceThin`。
+
+## 美体（`BodyReshape`）
+
+配合 `SetBodyReshape(param, intensity)` 使用。范围是 **`[0.0, 1.0]`**。`0` 关闭。与美型不同，美体没有负向。
+
+<Note>
+美体需要**专业版 Plus**。免费版可带水印试用。见 [套餐与功能](./pricing)。
+</Note>
+
+除 `LegStretch`、`TorsoLong` 外需要可选包 `resource_body.fbd`。调用骨骼类 `SetBodyReshape` / `setBodyReshape` **之前**先用 `AddResourcePack` / `addResourcePack` 登记。见 [可选资源包](./resource-packs)。
+
+| 值 | 名称 | 说明 |
+| --- | --- | --- |
+| 0 | `BodySlim` | 瘦身 |
+| 1 | `WaistSlim` | 瘦腰 |
+| 2 | `LegSlim` | 瘦腿 |
+| 3 | `ShoulderSlim` | 瘦肩 |
+| 4 | `ArmSlim` | 瘦胳膊 |
+| 5 | `LegLong` | 沿骨骼长腿 |
+| 6 | `BustEnhance` | 美胸 |
+| 7 | `LegStretch` | 腰以下拉伸（只需人脸点，不需要 `resource_body.fbd`） |
+| 8 | `TorsoLong` | 下巴到腰修长（只需人脸点，不需要 `resource_body.fbd`） |
+
+Java 使用 `SNAKE_CASE`（`BODY_SLIM`、`WAIST_SLIM` …）。Objective-C 使用 `FBBodyReshape_BodySlim`。Dart 使用 `FBBodyReshape.bodySlim`。
 
 ## 口红（`LipstickColor`）
 

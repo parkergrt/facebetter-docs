@@ -53,7 +53,9 @@ Video may not have a frame yet (`videoWidth === 0`). Canvas context missing. Cal
 
 ### Preview is slow
 
-Use `FrameType.Video`, cap capture resolution (for example 720p), avoid landmarks callbacks, and run the loop in `requestAnimationFrame`. Watch `engine.getStats().avgProcessTimeMs`.
+Camera: use `FrameType.Video`, cap capture resolution (for example 720p), avoid landmarks callbacks, and run the loop in `requestAnimationFrame`. Watch `engine.getStats().avgProcessTimeMs`.
+
+For large gallery stills, do not send the original into `processImage` on every slider tick. Build a smaller preview frame when the file opens; export the original once. See [Best practices](/web/best-practices#large-stills).
 
 ### Memory grows in an SPA
 

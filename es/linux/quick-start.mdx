@@ -62,7 +62,8 @@ demo/cpp/sdk/
 │   └── libfacebetter.so    ← shared library
 └── resource/
     ├── resource.fbd        ← models and assets (required)
-    └── resource_3d.fbd     ← optional; 3D stickers. Place next to `resource.fbd` or call `AddResourcePack`
+    ├── resource_3d.fbd     ← optional; 3D stickers. Place next to `resource.fbd` or call `AddResourcePack`
+    └── resource_body.fbd   ← optional; body reshape. Place next to `resource.fbd` or call `AddResourcePack`
 ```
 
 <Warning>
@@ -114,7 +115,7 @@ cp ../sdk/lib/libfacebetter.so .
 ./facebetter_demo
 ```
 
-La ventana muestra una vista previa en directo y un panel de control (piel, 26 parámetros de remodelado, maquillaje, filtro, sticker, fondo virtual). Haz clic en **Reset All** para poner las intensidades a cero.
+La ventana muestra una vista previa en directo y un panel de control (piel, 26 parámetros de remodelado facial, 7 de remodelado corporal, maquillaje, filtro, sticker, fondo virtual). Haz clic en **Reset All** para poner las intensidades a cero.
 
 ## Solución de problemas
 

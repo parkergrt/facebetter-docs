@@ -28,6 +28,20 @@ cfg.resource_path = "/opt/facebetter/resource.fbd";
 | `FrameType::Video`（デフォルト） | カメラ / リアルタイム |
 | `FrameType::Image` | 静止画書き出し |
 
+## 大きな静止画（プレビューと書き出し） {#large-stills}
+
+高解像度の静止画では、スライダーのたびに原寸を `ProcessImage` に渡さないでください。縮小したあとに原画を捨てないでください。
+
+写真を開いたら完全なバッファを残し、プレビュー用フレームを **1 枚**作ります（長辺は約 1280–1440）。パラメータ調整はプレビュー（`FrameType::Image`）、書き出しは同じ setter で全サイズをもう一度処理します。出力サイズは入力と同じです。カメラプレビューはキャプチャ解像度 + `FrameType::Video` のままです。
+
+```cpp
+preview->type = FrameType::Image;
+auto preview_out = engine->ProcessImage(preview);
+
+full->type = FrameType::Image;
+auto export_out = engine->ProcessImage(full);
+```
+
 ## 強度と肌のみ美顔
 
 リアルタイムでは `0.15–0.3` から始めることを推奨します。リシェイプ範囲は `[-1.0, 1.0]` です。`SetBeautySkinOnly(true)` でスムージングを肌にのみ適用します。

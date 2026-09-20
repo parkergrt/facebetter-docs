@@ -161,6 +161,17 @@ engine.setReshape(Reshape.CHIN, -0.2f);
 
 26 パラメータすべて（`FACE_THIN` … `BROW_THICKNESS`）と正負の方向: [パラメータ列挙](/ja/intro/makeup)。
 
+## ボディリシェイプ
+
+範囲 **`[0.0, 1.0]`**。`0` はオフ。先に `addResourcePack` で `resource_body.fbd` を登録してください（AAR には含まれません）。[パラメータ列挙](/ja/intro/makeup) と [オプションリソースパック](/ja/intro/resource-packs)。
+
+```java
+engine.addResourcePack(loadAssetBytes("resource_body.fbd"));
+engine.setBodyReshape(BodyReshape.WAIST_SLIM, 0.4f);
+engine.setBodyReshape(BodyReshape.LEG_STRETCH, 0.3f);
+engine.setBodyReshape(BodyReshape.TORSO_LONG, 0.3f);
+```
+
 ## メイク
 
 強度を設定してから、スタイルおよび / または色を設定します。

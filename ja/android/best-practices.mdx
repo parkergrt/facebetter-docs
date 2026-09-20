@@ -22,6 +22,20 @@ input.type = ImageFrame.FrameType.VIDEO;
 ImageFrame output = engine.processImage(input);
 ```
 
+## 大きな静止画（プレビューと書き出し） {#large-stills}
+
+高解像度の静止画では、スライダーのたびに原寸を `processImage` に渡さないでください。縮小したあとに原画を捨てないでください。
+
+写真を開いたら完全な `Bitmap` を残し、プレビュー用フレームを **1 枚**作ります（長辺は約 1280–1440）。パラメータ調整はプレビュー（`FrameType.IMAGE`）に対して `processImage` し、書き出しは同じ setter で全サイズをもう一度処理します。出力サイズは入力フレームと同じです。プレビューを拡大して書き出しにしないでください。カメラプレビューはキャプチャ解像度 + `FrameType.VIDEO` のままです。
+
+```java
+preview.type = ImageFrame.FrameType.IMAGE;
+ImageFrame previewOut = engine.processImage(preview);
+
+full.type = ImageFrame.FrameType.IMAGE;
+ImageFrame exportOut = engine.processImage(full);
+```
+
 ## パラメータ範囲
 
 低めから始め、顔検出と FPS を確認してから上げます。
@@ -75,7 +89,7 @@ try {
 ```
 
 - プロセス / GL コンテキストごとにエンジンは 1 つ。フレームごとに作成しないでください
-- 静止画は `createWithBitmap` の前に上限を設けます（デモは長辺を 1920 にスケール）
+- インタラクティブな静止画: プレビュー用に**コピー**をスケールし、書き出し用に元の `Bitmap` を残します。[大きな静止画](#large-stills) を参照
 - `convert()` は**新しい**フレームを割り当てます。解放してください
 
 ## OpenGL ES

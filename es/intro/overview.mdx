@@ -24,6 +24,10 @@ El rango de intensidad es `[-1.0, 1.0]`. Consulta [Enumeraciones de parámetros]
 
 > Un mismo fotograma admite hasta **5 rostros** a la vez para remodelado y maquillaje.
 
+### Remodelado corporal
+
+Controles de adelgazamiento y proporción: cuerpo, cintura, piernas, hombros, brazos, alargar piernas y realce de busto. La intensidad es `[0.0, 1.0]` (`0` desactiva). Requiere el paquete opcional `resource_body.fbd`; consulta [Paquetes de recursos opcionales](./resource-packs) y [Enumeraciones de parámetros](./makeup). Requiere **Pro+** (Free: prueba con marca de agua). Consulta [Planes y funciones](./pricing).
+
 ### Maquillaje
 
 Maquillaje por capas: labial, rubor, sombra de ojos, delineador, cejas, pestañas, lentillas de color y contorno. La intensidad, la forma y el color se configuran por separado. Se pueden aplicar varios elementos a la vez. Consulta [Enumeraciones de parámetros](./makeup).
@@ -45,7 +49,7 @@ Efectos de sticker 2D y 3D:
 
 - **Stickers de pantalla**: superpuestos en una posición fija del fotograma
 - **Stickers con seguimiento facial**: anclados a puntos clave del rostro y siguen el movimiento de la cabeza
-- **Stickers 3D**: accesorios de malla (gafas, sombreros, máscaras). Requieren el paquete opcional `resource_3d.fbd`; consulta [Paquetes de recursos opcionales](./resource-packs)
+- **Stickers 3D**: accesorios de malla (gafas, sombreros, máscaras). Requieren el paquete opcional `resource_3d.fbd`; consulta [Paquetes de recursos opcionales](./resource-packs). Requieren **Pro+** (Free: prueba con marca de agua). Consulta [Planes y funciones](./pricing)
 
 Los recursos de sticker (y de filtro) son **archivos `.fbd`**. Aplica un sticker 2D a la vez con `setSticker` y un sticker 3D con `set3DSticker` (ruta o bytes). Quítalos con `clearSticker` / `clear3DSticker`. El nuevo recurso entra en vigor en el siguiente fotograma procesado.
 

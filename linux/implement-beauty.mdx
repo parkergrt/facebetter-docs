@@ -86,7 +86,7 @@ if (!engine) {
 
 ## 3. Set beauty parameters
 
-Skin / makeup `[0.0, 1.0]`. Reshape **`[-1.0, 1.0]`**. Full enums: [Parameter enums](/intro/makeup).
+Skin / makeup / body reshape `[0.0, 1.0]`. Face reshape **`[-1.0, 1.0]`**. Body reshape needs `resource_body.fbd`. Full enums: [Parameter enums](/intro/makeup). Packs: [Optional resource packs](/intro/resource-packs).
 
 ```cpp
 engine->SetSmoothing(0.5f);
@@ -99,6 +99,11 @@ engine->SetBeautySkinOnly(true);
 
 engine->SetReshape(Reshape::FaceThin, 0.4f);
 engine->SetReshape(Reshape::EyeSize, 0.3f);
+
+engine->AddResourcePack("resource/resource_body.fbd");  // or place resource_body.fbd next to resource.fbd
+engine->SetBodyReshape(BodyReshape::WaistSlim, 0.4f);
+engine->SetBodyReshape(BodyReshape::LegStretch, 0.3f);
+engine->SetBodyReshape(BodyReshape::TorsoLong, 0.3f);
 
 engine->SetLipstick(0.6f);
 engine->SetLipstickColor(LipstickColor::Rouge);

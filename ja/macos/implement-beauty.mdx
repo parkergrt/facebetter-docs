@@ -124,6 +124,18 @@ if (self.beautyEffectEngine == nil) {
 [self.beautyEffectEngine setReshape:FBReshape_EyeSize intensity:0.2f];
 ```
 
+## ボディリシェイプ
+
+`setBodyReshape:intensity:` の範囲は **`[0.0, 1.0]`** です。`0` はオフです。先に `addResourcePack:` で `resource_body.fbd` を登録してください。パラメータ: `FBBodyReshape_BodySlim` … `FBBodyReshape_TorsoLong`（`0`–`8`）。[パラメータ列挙](/ja/intro/makeup) と [オプションリソースパック](/ja/intro/resource-packs)。
+
+```objc
+NSString *bodyPack = [[NSBundle mainBundle] pathForResource:@"resource_body" ofType:@"fbd"];
+[self.beautyEffectEngine addResourcePack:bodyPack];
+[self.beautyEffectEngine setBodyReshape:FBBodyReshape_WaistSlim intensity:0.4f];
+[self.beautyEffectEngine setBodyReshape:FBBodyReshape_LegStretch intensity:0.3f];
+[self.beautyEffectEngine setBodyReshape:FBBodyReshape_TorsoLong intensity:0.3f];
+```
+
 ## メイク
 
 強度、形状、色を分けて設定します。完全なプリセット: [パラメータ列挙](/ja/intro/makeup)。

@@ -1,6 +1,6 @@
 ---
 title: "파라미터 열거형"
-description: "Facebetter SDK 2.0의 리셰이프, 메이크업, 미백, 스무딩 열거형"
+description: "Facebetter SDK 2.0의 페이스 리셰이프, 바디 리셰이프, 메이크업, 미백, 스무딩 열거형"
 ---
 
 <Note>
@@ -43,6 +43,10 @@ description: "Facebetter SDK 2.0의 리셰이프, 메이크업, 미백, 스무�
 
 `SetReshape(param, intensity)`와 함께 사용합니다. 범위는 **`[-1.0, 1.0]`**입니다. `0`은 꺼짐입니다. 양수와 음수는 반대 방향입니다(예: FaceThin: 슬림 / 볼 볼륨).
 
+<Note>
+페이스 리셰이프는 **Pro**부터 사용할 수 있습니다. Free에서는 워터마크와 함께 체험할 수 있습니다. [요금제 및 기능](./pricing)을 참고하세요.
+</Note>
+
 | 값 | 이름 | 양수 / 음수 |
 | --- | --- | --- |
 | 0 | `FaceThin` | 슬림 얼굴 / 볼 볼륨 |
@@ -73,6 +77,30 @@ description: "Facebetter SDK 2.0의 리셰이프, 메이크업, 미백, 스무�
 | 25 | `BrowThickness` | 눈썹 두껍게 / 얇게 |
 
 Java 이름은 `SNAKE_CASE`입니다(`FACE_THIN`, `FACE_V_SHAPE`, …). Objective-C는 `FBReshape_FaceThin`입니다. Dart는 `FBReshape.faceThin`입니다.
+
+## 바디 리셰이프 (`BodyReshape`)
+
+`SetBodyReshape(param, intensity)`와 함께 사용합니다. 범위는 **`[0.0, 1.0]`**입니다. `0`은 꺼짐입니다. 페이스 리셰이프와 달리 음수 방향은 없습니다.
+
+<Note>
+바디 리셰이프에는 **Pro+**가 필요합니다. Free에서는 워터마크와 함께 체험할 수 있습니다. [요금제 및 기능](./pricing)을 참고하세요.
+</Note>
+
+`LegStretch`, `TorsoLong`를 제외하면 선택 팩 `resource_body.fbd`가 필요합니다. 골격 계열 `SetBodyReshape` / `setBodyReshape` **이전에** `AddResourcePack` / `addResourcePack`으로 등록하세요. [선택 리소스 팩](./resource-packs)을 참고하세요.
+
+| 값 | 이름 | 의미 |
+| --- | --- | --- |
+| 0 | `BodySlim` | 전신 슬림 |
+| 1 | `WaistSlim` | 허리 슬림 |
+| 2 | `LegSlim` | 다리 슬림 |
+| 3 | `ShoulderSlim` | 어깨 슬림 |
+| 4 | `ArmSlim` | 팔 슬림 |
+| 5 | `LegLong` | 골격을 따라 다리 길게 |
+| 6 | `BustEnhance` | 가슴 볼륨 |
+| 7 | `LegStretch` | 허리 아래 늘리기 (얼굴 포인트만, `resource_body.fbd` 불필요) |
+| 8 | `TorsoLong` | 턱~허리 늘리기 (얼굴 포인트만, `resource_body.fbd` 불필요) |
+
+Java 이름은 `SNAKE_CASE`입니다(`BODY_SLIM`, `WAIST_SLIM`, …). Objective-C는 `FBBodyReshape_BodySlim`입니다. Dart는 `FBBodyReshape.bodySlim`입니다.
 
 ## 립스틱 (`LipstickColor`)
 

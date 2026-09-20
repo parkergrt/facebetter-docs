@@ -52,7 +52,7 @@ final engine = await FBEngine.create(FBEngineConfig(
 | --- | --- | --- |
 | `appId` / `appKey` | — | Autenticación en línea |
 | `licenseToken` | — | token / JSON `{token}` / contenido de `.lic` |
-| `enableLandmarks` | `false` | A nivel de motor; no se puede cambiar después. Déjalo en `false` salvo que leas landmarks |
+| `enableLandmarks` | `false` | A nivel de motor; no se puede cambiar después. Flutter no tiene callback de landmarks: déjalo en `false` |
 | `externalContext` | `true` | `true` para preprocess en directo de terceros; `false` para APIs de archivo de foto |
 | `resourcePath` | plugin | AAR Android `resource.fbd` / archivo del framework iOS |
 
@@ -79,6 +79,15 @@ Remodelado **`[-1.0, 1.0]`**:
 ```dart
 engine.setReshape(FBReshape.faceThin, 0.3);
 engine.setReshape(FBReshape.eyeSize, 0.2);
+```
+
+Remodelado corporal **`[0.0, 1.0]`**. Registra `resource_body.fbd` primero. Consulta [Enumeraciones de parámetros](/es/intro/makeup) y [Paquetes de recursos opcionales](/es/intro/resource-packs):
+
+```dart
+await engine.addResourcePack(path: '/path/to/resource_body.fbd');
+engine.setBodyReshape(FBBodyReshape.waistSlim, 0.4);
+engine.setBodyReshape(FBBodyReshape.legStretch, 0.3);
+engine.setBodyReshape(FBBodyReshape.torsoLong, 0.3);
 ```
 
 Maquillaje (intensidad + estilo/color). Enumeraciones completas: [Enumeraciones de parámetros](/es/intro/makeup).

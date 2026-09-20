@@ -46,7 +46,7 @@ SDK `include` 디렉터리의 `facebetter/`를 포함하세요. `facebetter.lib`
 
 ### 미리보기가 느림
 
-해상도를 낮추고, `FrameType::Video`를 사용하고, 스티커 / 가상 배경을 줄이고, `GetStats().avg_process_time_ms`를 확인하세요. 매 프레임 파일에서 `ImageFrame`을 다시 만들지 말고 카메라 버퍼를 넣으세요.
+해상도를 낮추고, `FrameType::Video`를 사용하고, 스티커 / 가상 배경을 줄이고, `GetStats().avg_process_time_ms`를 확인하세요. 매 프레임 파일에서 `ImageFrame`을 다시 만들지 말고 카메라 버퍼를 넣으세요. 갤러리 대형은 사진을 열 때 작은 미리보기 프레임을 만들고, 내보낼 때 원본을 한 번 처리하세요. [모범 사례](/ko/windows/best-practices#large-stills)를 보세요.
 
 ### 메모리가 높음
 

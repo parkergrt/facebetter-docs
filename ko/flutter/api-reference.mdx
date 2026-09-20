@@ -45,7 +45,7 @@ static void setLogConfig({
 void dispose()
 ```
 
-`FBEngine.create`로 인스턴스 하나를 만듭니다. 프로세스 전역 싱글톤이 아닙니다.
+`FBEngine.create`로 인스턴스 하나를 만듭니다. 프로세스 전역 싱글톤이 아닙니다. `externalContext: true` 엔진은 한 번에 하나만 `processTexture`에 바인딩됩니다.
 
 뷰티 / 리셰이프 / 메이크업 / 크로마 / 블러 / `clear*` / `setFilterIntensity`는 **동기**입니다. 필터, 스티커, 배경 **이미지**, 사진 API는 **`Future`**를 반환합니다.
 
@@ -56,6 +56,10 @@ void dispose()
 ### 리셰이프
 
 `setReshape(FBReshape param, double intensity)` — **`[-1.0, 1.0]`**. Dart 이름: `FBReshape.faceThin`, `faceVShape`, … `browThickness`. 표: [파라미터 열거형](/ko/intro/makeup).
+
+### 바디 리셰이프
+
+`setBodyReshape(FBBodyReshape param, double intensity)` — **`[0.0, 1.0]`**. Dart 이름: `FBBodyReshape.bodySlim` … `torsoLong`. 먼저 `addResourcePack`으로 `resource_body.fbd`를 등록하세요. [파라미터 열거형](/ko/intro/makeup), [선택 리소스 팩](/ko/intro/resource-packs).
 
 ### 메이크업
 
@@ -95,7 +99,7 @@ void setChromaKeySmoothness(double value)
 void setChromaKeyDesaturation(double value)
 ```
 
-`path`와 `data`는 상호 배타적이며, 정확히 하나가 필요합니다. 3D 스티커는 [선택 리소스 팩](/ko/intro/resource-packs)을 참고하세요.
+`path`와 `data`는 상호 배타적이며, 정확히 하나가 필요합니다. 3D 스티커와 바디 리셰이프는 [선택 리소스 팩](/ko/intro/resource-packs)을 참고하세요.
 
 ### 사진
 
@@ -152,12 +156,10 @@ FBStats get stats
 
 - `FBBitmap` — `width`, `height`, `stride`, `pixels`(RGBA8888 복사)
 - `FBLogLevel` — `trace` … `critical`
-- `FBMirror` — `none`, `horizontal`, `vertical`, `both`(라이브 텍스처 경로에서는 보통 사용하지 않음)
-- `FBFace` / `FBFaceList` / `FBRect` — `enableLandmarks: true`일 때의 랜드마크 뷰(`kLandmarkCount` = 111)
 
 ## 네이티브 텍스처 (Dart 아님)
 
-`externalContext: true`로 `create`한 뒤, **벤더 SDK GL 스레드**에서 호출하세요.
+`externalContext: true`로 `create`한 뒤, **벤더 SDK GL 스레드**에서 호출하세요. 라이브 엔진은 한 번에 하나만 바인딩됩니다. 첫 엔진을 `dispose()`하기 전에 두 번째 `create(externalContext: true)`를 하면 예외가 납니다. 정지 엔진(`externalContext: false`)은 이 슬롯을 쓰지 않습니다.
 
 - iOS: `[FacebetterPlugin processTexture:width:height:]`
 - Android: `FacebetterPlugin.processTexture(textureId, width, height)`

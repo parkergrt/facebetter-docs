@@ -59,7 +59,7 @@ await engine.init();
 
 In production, implement the same proxy on **your** server. Full steps and a Node example: [Auth & License](/intro/license).
 
-The SDK loads runtime files during `init()`. You do **not** need to copy `resource.fbd` into `public/`. Optional: `init({ onProgress })` reports download percent. 3D stickers need the extra pack `resource_3d.fbd` — see [Optional resource packs](/intro/resource-packs).
+The SDK loads runtime files during `init()`. You do **not** need to copy `resource.fbd` into `public/`. Optional: `init({ onProgress })` reports download percent. 3D stickers need `resource_3d.fbd`; body reshape needs `resource_body.fbd` — see [Optional resource packs](/intro/resource-packs).
 
 ## Run
 

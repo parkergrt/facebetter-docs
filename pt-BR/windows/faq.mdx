@@ -46,7 +46,7 @@ Use `SetVirtualBackgroundBlur`, `SetVirtualBackground(path|bytes)`, `ClearVirtua
 
 ### A prévia está lenta
 
-Reduza a resolução, use `FrameType::Video`, diminua adesivos / fundo virtual e verifique `GetStats().avg_process_time_ms`. Evite recriar `ImageFrame` a partir de arquivos a cada quadro — alimente buffers da câmera.
+Reduza a resolução, use `FrameType::Video`, diminua adesivos / fundo virtual e verifique `GetStats().avg_process_time_ms`. Evite recriar `ImageFrame` a partir de arquivos a cada quadro — alimente buffers da câmera. Em stills grandes da galeria, crie um quadro de prévia menor ao abrir e exporte o original uma vez. Veja [Práticas recomendadas](/pt-BR/windows/best-practices#large-stills).
 
 ### Memória alta
 

@@ -46,7 +46,8 @@ demo/cpp/sdk/
 │   └── facebetter.dll      ← runtime DLL
 └── resource/
     ├── resource.fbd        ← models and assets (required)
-    └── resource_3d.fbd     ← optional; 3D stickers. Place next to `resource.fbd` or call `AddResourcePack`
+    ├── resource_3d.fbd     ← optional; 3D stickers. Place next to `resource.fbd` or call `AddResourcePack`
+    └── resource_body.fbd   ← optional; body reshape. Place next to `resource.fbd` or call `AddResourcePack`
 ```
 
 <Warning>
@@ -98,6 +99,7 @@ cd demo\cpp\build
 - **오른쪽 패널** — Beauty Control Panel:
   - **기본 뷰티**: 스무딩 / 미백 / 혈색 / 샤프닝
   - **페이스 리셰이프**: 26개 리셰이프 파라미터(범위 `[-1.0, 1.0]`)
+  - **바디 리셰이프**: 7개 파라미터(범위 `[0.0, 1.0]`, `resource_body.fbd` 필요)
   - **메이크업**: 립스틱 / 블러셔 / 아이섀도 / 아이라이너 / 눈썹 / 속눈썹 / 렌즈 / 컨투어
   - **필터 / 스티커 / 가상 배경**
 

@@ -19,6 +19,20 @@ input.type = FBFrameTypeVideo;
 FBImageFrame *output = [engine processImage:input];
 ```
 
+## 大きな静止画（プレビューと書き出し） {#large-stills}
+
+高解像度の静止画では、スライダーのたびに原寸を `processImage:` に渡さないでください。縮小したあとに原画を捨てないでください。
+
+写真を開いたら完全な `NSImage` を残し、プレビュー用フレームを **1 枚**作ります（長辺は約 1280–1440、`createWithNSImage:`）。パラメータ調整はプレビュー（`FBFrameTypeImage`）、書き出しは同じ setter で全サイズをもう一度処理します。出力サイズは入力と同じです。カメラプレビューはキャプチャ解像度 + `FBFrameTypeVideo` のままです。
+
+```objc
+preview.type = FBFrameTypeImage;
+FBImageFrame *previewOut = [engine processImage:preview];
+
+full.type = FBFrameTypeImage;
+FBImageFrame *exportOut = [engine processImage:full];
+```
+
 ## パラメータ範囲
 
 - 美肌 / メイク / フィルター強度: `[0.0, 1.0]`。`0` はその項目をオフにします。

@@ -22,6 +22,20 @@ input.type = ImageFrame.FrameType.VIDEO;
 ImageFrame output = engine.processImage(input);
 ```
 
+## 큰 정지 이미지(미리보기와 내보내기) {#large-stills}
+
+고해상도 정지 이미지에서는 슬라이더마다 원본 픽셀을 `processImage`에 넣지 마세요. 축소한 뒤 원본을 버리지 마세요.
+
+사진을 열면 전체 `Bitmap`을 유지하고 미리보기 프레임을 **한 장** 만드세요(긴 변 약 1280–1440). 파라미터 조절은 미리보기(`FrameType.IMAGE`)에 `processImage`하고, 내보내기는 같은 setter로 전체 해상도를 한 번 더 처리합니다. 출력 크기는 입력 프레임과 같습니다. 미리보기를 확대해서 내보내기로 쓰지 마세요. 카메라 미리보기는 캡처 해상도 + `FrameType.VIDEO`입니다.
+
+```java
+preview.type = ImageFrame.FrameType.IMAGE;
+ImageFrame previewOut = engine.processImage(preview);
+
+full.type = ImageFrame.FrameType.IMAGE;
+ImageFrame exportOut = engine.processImage(full);
+```
+
 ## 파라미터 범위
 
 낮게 시작한 뒤 얼굴 검출과 FPS를 확인한 다음 올리세요.
@@ -75,7 +89,7 @@ try {
 ```
 
 - 프로세스 / GL 컨텍스트당 엔진 하나. 프레임마다 만들지 마세요
-- `createWithBitmap` 전에 정지를 제한하세요(데모는 긴 변을 1920으로 스케일)
+- 대화형 정지: 미리보기용 **복사본**을 스케일하고, 내보내기용 원본 `Bitmap`을 유지하세요. [큰 정지 이미지](#large-stills)를 보세요
 - `convert()`는 **새** 프레임을 할당합니다. 해제하세요
 
 ## OpenGL ES

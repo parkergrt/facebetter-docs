@@ -12,13 +12,14 @@ Este site documenta o **SDK 2.0**.
 1. **Auth**: nativo usa `licenseToken` ou `appId` + `appKey`. Web usa apenas `licenseToken` — busque o token no seu servidor; nunca coloque `appKey` no JS do navegador
 2. **Beleza**: `setSmoothing`, `setWhitening`, `setSharpening`, `setRosiness`, `setBeautySkinOnly`, além de predefinições de estilo
 3. **Remodelagem**: 26 parâmetros (`FaceThin` … `BrowThickness`), intensidade `[-1.0, 1.0]`
-4. **Maquiagem**: intensidade + Style (formato) + Color (tintura). Veja [Enums de parâmetros](/pt-BR/intro/makeup)
-5. **Filtro / adesivo**: `setFilter` / `setSticker` com caminho ou bytes `.fbd`; `clearFilter` / `clearSticker`
-6. **Fundo virtual**: desfoque, substituição por imagem, chroma key
-7. **Estatísticas**: `getStats()` — FPS, tempo médio de processamento, duração da sessão
-8. **Tipo de quadro**: `FrameType.Image` / `FrameType.Video`
-9. **Códigos de erro**: `0` sucesso, `-1` argumento inválido, `-2` não inicializado, `-3` licença, `-4` não suportado, `-5` IO, `-6` sem slot, `-7` processamento, `-8` OOM
-10. **Flutter**: `FBEngine.create(FBEngineConfig)`. Vídeo ao vivo é processado nativamente via `FacebetterPlugin.processTexture`
+4. **Remodelagem corporal**: 7 parâmetros (`BodySlim` … `BustEnhance`), intensidade `[0.0, 1.0]`. Exige o pacote opcional `resource_body.fbd` via `addResourcePack`. **Pro+**. Veja [Enums de parâmetros](/pt-BR/intro/makeup) e [Pacotes de recursos opcionais](/pt-BR/intro/resource-packs)
+5. **Maquiagem**: intensidade + Style (formato) + Color (tintura). Veja [Enums de parâmetros](/pt-BR/intro/makeup)
+6. **Filtro / adesivo**: `setFilter` / `setSticker` com caminho ou bytes `.fbd`; adesivos 3D com `set3DSticker` (precisa de `resource_3d.fbd`, **Pro+**). `clearFilter` / `clearSticker` / `clear3DSticker`
+7. **Fundo virtual**: desfoque, substituição por imagem, chroma key
+8. **Estatísticas**: `getStats()` — FPS, tempo médio de processamento, duração da sessão
+9. **Tipo de quadro**: `FrameType.Image` / `FrameType.Video`
+10. **Códigos de erro**: `0` sucesso, `-1` argumento inválido, `-2` não inicializado, `-3` licença, `-4` não suportado, `-5` IO, `-6` sem slot, `-7` processamento, `-8` OOM
+11. **Flutter**: `FBEngine.create(FBEngineConfig)`. Vídeo ao vivo é processado nativamente via `FacebetterPlugin.processTexture`
 
 **Eventos** (`onEngineEvent` / Flutter `events`): `0` licença OK, `1` falha de licença, `100` init concluído, `101` init falhou.
 

@@ -19,6 +19,20 @@ input.type = FBFrameTypeVideo;
 FBImageFrame *output = [engine processImage:input];
 ```
 
+## 相册大图（预览与导出） {#large-stills}
+
+高分辨率静图不要在每次拖动滑条时把原图像素送进 `processImage:`，也不要缩放后丢掉原图。
+
+打开照片时保留完整 `UIImage`，并**另做一份**预览帧（长边约 1280–1440，`createWithUIImage:`）。调参打预览（`FBFrameTypeImage`）；导出对全尺寸帧再处理一次，同一套 setter。输出尺寸等于输入。摄像头预览仍用采集分辨率 + `FBFrameTypeVideo`。
+
+```objc
+preview.type = FBFrameTypeImage;
+FBImageFrame *previewOut = [engine processImage:preview];
+
+full.type = FBFrameTypeImage;
+FBImageFrame *exportOut = [engine processImage:full];
+```
+
 ## 参数范围
 
 - 美肤 / 美妆 / 滤镜强度：`[0.0, 1.0]`。`0` 关闭该项。

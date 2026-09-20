@@ -78,7 +78,7 @@ if (!engine) {
 
 ## 3. Set beauty parameters
 
-Skin / makeup intensities are `[0.0, 1.0]`. `0` is off. Reshape is **`[-1.0, 1.0]`**. Full enum lists: [Parameter enums](/intro/makeup).
+Skin / makeup / body-reshape intensities are `[0.0, 1.0]`. `0` is off. Face reshape is **`[-1.0, 1.0]`**. Full enum lists: [Parameter enums](/intro/makeup).
 
 ### Skin
 
@@ -98,6 +98,17 @@ engine->SetBeautySkinOnly(true);  // beauty only on detected skin
 engine->SetReshape(Reshape::FaceThin, 0.4f);
 engine->SetReshape(Reshape::EyeSize, 0.3f);
 engine->SetReshape(Reshape::Chin, -0.2f);  // negative = opposite direction
+```
+
+### Body reshape
+
+Range **`[0.0, 1.0]`**. `0` is off. Place `resource_body.fbd` next to `resource.fbd` or call `AddResourcePack`. See [Parameter enums](/intro/makeup) and [Optional resource packs](/intro/resource-packs).
+
+```cpp
+engine->AddResourcePack("resource/resource_body.fbd");  // or place it next to resource.fbd
+engine->SetBodyReshape(BodyReshape::WaistSlim, 0.4f);
+engine->SetBodyReshape(BodyReshape::LegStretch, 0.3f);
+engine->SetBodyReshape(BodyReshape::TorsoLong, 0.3f);
 ```
 
 ### Makeup

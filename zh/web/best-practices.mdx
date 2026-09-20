@@ -60,6 +60,54 @@ const result = engine.processImage(
 ctx.putImageData(result, 0, 0);
 ```
 
+## 相册大图（预览与导出） {#large-stills}
+
+影楼修图、相册等高分辨率静图，不要在每次拖动滑条时把原图像素送进 `processImage`。打开文件时准备两份缓冲：
+
+1. **预览帧**：缩小后的 `ImageData`（长边约 1280–1440，或与展示 canvas 的 CSS 尺寸 × `devicePixelRatio` 取较小值）。调参只打这一份。
+2. **原图**：保留 `HTMLImageElement`（或未缩小的位图），用户点导出时再 `processImage` **一次**。
+
+两份都用 `FrameType.Image`，同一台引擎、同一套 setter。输出尺寸等于输入：预览结果是小图，导出才是原分辨率。不要把预览图放大当成片。
+
+不要把未缩小的 `<img>` 丢进预览循环——`processImage` 会按 `naturalWidth` / `naturalHeight` 读全图。
+
+```javascript
+function rasterize(source, maxEdge) {
+  const sw = source.naturalWidth || source.width;
+  const sh = source.naturalHeight || source.height;
+  const scale = Math.min(1, maxEdge / Math.max(sw, sh));
+  const w = Math.max(1, Math.round(sw * scale));
+  const h = Math.max(1, Math.round(sh * scale));
+  const canvas = document.createElement('canvas');
+  canvas.width = w;
+  canvas.height = h;
+  const ctx = canvas.getContext('2d');
+  ctx.drawImage(source, 0, 0, w, h);
+  return ctx.getImageData(0, 0, w, h);
+}
+
+const preview = rasterize(image, 1440); // 打开文件时做一次，之后复用
+// 原图 `image` 留给导出
+
+const previewOut = engine.processImage(
+  preview,
+  preview.width,
+  preview.height,
+  FrameType.Image,
+);
+previewCtx.putImageData(previewOut, 0, 0);
+
+// 导出：全尺寸，只跑一次
+const exportOut = engine.processImage(
+  image,
+  image.naturalWidth,
+  image.naturalHeight,
+  FrameType.Image,
+);
+```
+
+摄像头不要走这条路径，继续用采集分辨率 + `FrameType.Video`。滑条触发的 `processImage` 建议短 debounce。导出会同步卡住页面，先画出进度再处理。
+
 ## 参数
 
 实时预览从低强度开始（磨皮约 `0.2`–`0.5`）。美型范围是 `[-1, 1]`，摄像头上小幅调节更自然。

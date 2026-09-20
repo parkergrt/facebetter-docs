@@ -52,7 +52,7 @@ final engine = await FBEngine.create(FBEngineConfig(
 | --- | --- | --- |
 | `appId` / `appKey` | — | 온라인 인증 |
 | `licenseToken` | — | 토큰 / `{token}` JSON / `.lic` 내용 |
-| `enableLandmarks` | `false` | 엔진 수준. 나중에 바꿀 수 없습니다. 랜드마크를 읽지 않으면 `false`로 유지하세요 |
+| `enableLandmarks` | `false` | 엔진 수준. 나중에 바꿀 수 없습니다. Flutter에는 랜드마크 콜백이 없으니 `false`로 유지하세요 |
 | `externalContext` | `true` | 서드파티 라이브 전처리는 `true`; 사진 파일 API는 `false` |
 | `resourcePath` | 플러그인 | Android AAR `resource.fbd` / iOS framework 파일 |
 
@@ -79,6 +79,15 @@ engine.setBeautySkinOnly(true);
 ```dart
 engine.setReshape(FBReshape.faceThin, 0.3);
 engine.setReshape(FBReshape.eyeSize, 0.2);
+```
+
+바디 리셰이프 **`[0.0, 1.0]`**. 먼저 `resource_body.fbd`를 등록하세요. [파라미터 열거형](/ko/intro/makeup)과 [선택 리소스 팩](/ko/intro/resource-packs):
+
+```dart
+await engine.addResourcePack(path: '/path/to/resource_body.fbd');
+engine.setBodyReshape(FBBodyReshape.waistSlim, 0.4);
+engine.setBodyReshape(FBBodyReshape.legStretch, 0.3);
+engine.setBodyReshape(FBBodyReshape.torsoLong, 0.3);
 ```
 
 메이크업(강도 + 스타일/색상). 전체 열거형: [파라미터 열거형](/ko/intro/makeup).

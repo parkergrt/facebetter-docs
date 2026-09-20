@@ -94,6 +94,7 @@ FB_OBJC_API @interface FBBeautyEffectEngine : NSObject
 - (int)setSharpening:(float)intensity;
 - (int)setRosiness:(float)intensity;
 - (int)setReshape:(FBReshape)param intensity:(float)value;
+- (int)setBodyReshape:(FBBodyReshape)param intensity:(float)value;
 - (int)setBeautySkinOnly:(BOOL)enabled;
 
 - (int)setLipstick:(float)intensity;
@@ -197,6 +198,25 @@ typedef NS_ENUM(NSInteger, FBReshape) {
 };
 ```
 
+### 바디 리셰이프
+
+`setBodyReshape:intensity:` — 강도 **`[0.0, 1.0]`**, `0`은 꺼짐. 먼저 `addResourcePack:`으로 `resource_body.fbd`를 등록하세요. `FBBodyReshape` 값 `0`–`8`. [파라미터 열거형](/ko/intro/makeup)과 [선택 리소스 팩](/ko/intro/resource-packs)을 참고하세요.
+
+```objc
+typedef NS_ENUM(NSInteger, FBBodyReshape) {
+  FBBodyReshape_BodySlim = 0,
+  FBBodyReshape_WaistSlim = 1,
+  FBBodyReshape_LegSlim = 2,
+  FBBodyReshape_ShoulderSlim = 3,
+  FBBodyReshape_ArmSlim = 4,
+  FBBodyReshape_LegLong = 5,
+  FBBodyReshape_BustEnhance = 6,
+  FBBodyReshape_LegStretch = 7,
+  FBBodyReshape_TorsoLong = 8,
+};
+```
+
+
 `FBSmoothingStyle`: `Natural`, `Texture`, `Smooth`. `FBWhiteningStyle`: `ColdWhite`, `PinkWhite`, `WarmWhite`, `Wheat`, `Tan`.
 
 ### 메이크업
@@ -248,7 +268,7 @@ ID로 등록하는 API는 없습니다. 경로 또는 바이트; GPU 리소스�
 | `setFilterIntensity:` | `[0, 1]` |
 | `setSticker:` | 2D 스티커 `.fbd` 경로 |
 | `setStickerWithData:` | 스티커 바이트 |
-| `addResourcePack:` | 추가 기능 팩 경로(예: `set3DSticker:` 전 `resource_3d.fbd`) |
+| `addResourcePack:` | 추가 기능 팩 경로(예: `set3DSticker:` 전 `resource_3d.fbd`, `setBodyReshape:` 전 `resource_body.fbd`) |
 | `addResourcePackWithData:` | 추가 팩 바이트 |
 | `set3DSticker:` | 3D 스티커 `.fbd` 경로 |
 | `set3DStickerWithData:` | 3D 스티커 바이트 |

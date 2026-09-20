@@ -22,6 +22,20 @@ input.type = ImageFrame.FrameType.VIDEO;
 ImageFrame output = engine.processImage(input);
 ```
 
+## Large stills (preview vs export) {#large-stills}
+
+Do not feed full-resolution pixels into `processImage` on every slider change, and do not throw the original away after scaling.
+
+When the photo opens, keep the full `Bitmap` and build **one** preview frame (long edge about 1280–1440). Slider changes call `processImage` on the preview (`FrameType.IMAGE`). Export calls `processImage` on a full-resolution frame with the same setters. Output size matches the input frame — do not upscale the preview. Camera preview stays capture resolution + `FrameType.VIDEO`.
+
+```java
+preview.type = ImageFrame.FrameType.IMAGE;
+ImageFrame previewOut = engine.processImage(preview);
+
+full.type = ImageFrame.FrameType.IMAGE;
+ImageFrame exportOut = engine.processImage(full);
+```
+
 ## Parameter ranges
 
 Start low; raise after you confirm face detection and FPS.
@@ -75,7 +89,7 @@ try {
 ```
 
 - One engine per process / GL context; do not create per frame
-- Cap stills (demo scales long side to 1920) before `createWithBitmap`
+- Interactive stills: scale a **copy** for preview; keep the original `Bitmap` for export. See [Large stills](#large-stills)
 - `convert()` allocates a **new** frame — release it
 
 ## OpenGL ES

@@ -70,6 +70,10 @@ await engine.init({
 
 `setReshape(param, value)` — `param` es `Reshape.*`, `value` en **`[-1.0, 1.0]`**. Consulta [Enumeraciones de parámetros](/es/intro/makeup).
 
+### Remodelado corporal
+
+`setBodyReshape(param, value)` — `param` es `BodyReshape.*`, `value` en **`[0.0, 1.0]`**. Registra `resource_body.fbd` con `addResourcePack` primero. Consulta [Enumeraciones de parámetros](/es/intro/makeup) y [Paquetes de recursos opcionales](/es/intro/resource-packs).
+
 ### Maquillaje
 
 Intensidad `[0, 1]`. Enumeraciones de estilo / color: [Enumeraciones de parámetros](/es/intro/makeup).
@@ -94,7 +98,7 @@ Intensidad `[0, 1]`. Enumeraciones de estilo / color: [Enumeraciones de parámet
 | `setFilterIntensity(intensity)` | `[0, 1]` |
 | `setSticker(path \| Uint8Array)` | Aplica un sticker 2D `.fbd` |
 | `clearSticker()` | Quita el sticker |
-| `addResourcePack(path \| Uint8Array)` | Registra un paquete de capacidad extra (por ejemplo `resource_3d.fbd` antes de `set3DSticker`) |
+| `addResourcePack(path \| Uint8Array)` | Registra un paquete extra (`resource_3d.fbd` antes de `set3DSticker`, o `resource_body.fbd` antes de `setBodyReshape`) |
 | `set3DSticker(path \| Uint8Array)` | Aplica un sticker 3D `.fbd` |
 | `clear3DSticker()` | Quita el sticker 3D |
 

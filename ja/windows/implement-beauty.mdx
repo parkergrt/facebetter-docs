@@ -78,7 +78,7 @@ if (!engine) {
 
 ## 3. 美顔パラメータの設定
 
-肌 / メイクの強度は `[0.0, 1.0]`、`0` はオフです。リシェイプは **`[-1.0, 1.0]`** です。完全な列挙: [パラメータ列挙](/ja/intro/makeup)。
+肌 / メイク / ボディリシェイプの強度は `[0.0, 1.0]`、`0` はオフです。フェイスリシェイプは **`[-1.0, 1.0]`** です。完全な列挙: [パラメータ列挙](/ja/intro/makeup)。
 
 ### 肌
 
@@ -98,6 +98,17 @@ engine->SetBeautySkinOnly(true);  // 検出した肌のみに適用
 engine->SetReshape(Reshape::FaceThin, 0.4f);
 engine->SetReshape(Reshape::EyeSize, 0.3f);
 engine->SetReshape(Reshape::Chin, -0.2f);  // 負の値は反対方向
+```
+
+### ボディリシェイプ
+
+範囲 **`[0.0, 1.0]`**。`0` はオフ。`resource_body.fbd` を `resource.fbd` と同じ場所に置くか、`AddResourcePack` を呼んでください。[パラメータ列挙](/ja/intro/makeup) と [オプションリソースパック](/ja/intro/resource-packs)。
+
+```cpp
+engine->AddResourcePack("resource/resource_body.fbd");  // or place it next to resource.fbd
+engine->SetBodyReshape(BodyReshape::WaistSlim, 0.4f);
+engine->SetBodyReshape(BodyReshape::LegStretch, 0.3f);
+engine->SetBodyReshape(BodyReshape::TorsoLong, 0.3f);
 ```
 
 ### メイク

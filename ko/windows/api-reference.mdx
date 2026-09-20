@@ -124,6 +124,19 @@ virtual int SetReshape(beauty_params::Reshape param, float intensity) = 0;
 engine->SetReshape(Reshape::FaceThin, 0.4f);
 ```
 
+### 바디 리셰이프
+
+```cpp
+virtual int SetBodyReshape(beauty_params::BodyReshape param, float intensity) = 0;
+```
+
+`intensity`는 **`[0.0, 1.0]`**. `0`은 꺼짐. `resource_body.fbd`가 필요합니다(`resource.fbd`와 같은 디렉터리, 또는 `AddResourcePack`). [파라미터 열거형](/ko/intro/makeup), [선택 리소스 팩](/ko/intro/resource-packs).
+
+```cpp
+engine->SetBodyReshape(BodyReshape::WaistSlim, 0.4f);
+```
+
+
 ### 메이크업
 
 각 효과는 강도와 Style(마스크) 및/또는 Color(틴트)를 가집니다. 립스틱: Color만. 렌즈: Color만. 컨투어: Style만.
@@ -210,7 +223,7 @@ virtual int Set3DSticker(const std::vector<uint8_t>& fbd_data) = 0;
 virtual int Clear3DSticker() = 0;
 ```
 
-선택 3D 팩을 먼저 로드하세요. [선택 리소스 팩](/ko/intro/resource-packs)을 참고하세요.
+3D 스티커 또는 바디 리셰이프 전에 해당 선택 팩을 먼저 로드하세요. [선택 리소스 팩](/ko/intro/resource-packs)을 참고하세요.
 
 ### 통계, 콜백, 처리
 

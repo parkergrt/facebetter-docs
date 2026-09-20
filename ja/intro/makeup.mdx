@@ -1,6 +1,6 @@
 ---
 title: "パラメータ列挙"
-description: "Facebetter SDK 2.0 のリシェイプ、メイク、美白、スムージング列挙"
+description: "Facebetter SDK 2.0 のフェイスリシェイプ、ボディリシェイプ、メイク、美白、スムージング列挙"
 ---
 
 <Note>
@@ -43,6 +43,10 @@ description: "Facebetter SDK 2.0 のリシェイプ、メイク、美白、ス�
 
 `SetReshape(param, intensity)` と組み合わせて使います。範囲は **`[-1.0, 1.0]`** です。`0` はオフです。正と負は逆方向です（例: FaceThin は瘦顔 / 頬をふっくら）。
 
+<Note>
+フェイスリシェイプは **Pro** から利用できます。Free では透かし付きで試せます。[プランと機能](./pricing) を参照してください。
+</Note>
+
 | 値 | 名前 | 正方向 / 負方向 |
 | --- | --- | --- |
 | 0 | `FaceThin` | 瘦顔 / 頬をふっくら |
@@ -73,6 +77,30 @@ description: "Facebetter SDK 2.0 のリシェイプ、メイク、美白、ス�
 | 25 | `BrowThickness` | 眉を太く / 細く |
 
 Java の名前は `SNAKE_CASE`（`FACE_THIN`、`FACE_V_SHAPE` など）です。Objective-C は `FBReshape_FaceThin`、Dart は `FBReshape.faceThin` です。
+
+## ボディリシェイプ（`BodyReshape`）
+
+`SetBodyReshape(param, intensity)` と組み合わせて使います。範囲は **`[0.0, 1.0]`** です。`0` はオフです。フェイスリシェイプと違い、負の方向はありません。
+
+<Note>
+ボディリシェイプには **Pro+** が必要です。Free では透かし付きで試せます。[プランと機能](./pricing) を参照してください。
+</Note>
+
+`LegStretch` と `TorsoLong` 以外はオプションパック `resource_body.fbd` が必要です。骨格系の `SetBodyReshape` / `setBodyReshape` の**前**に `AddResourcePack` / `addResourcePack` で登録してください。[オプションリソースパック](./resource-packs) を参照してください。
+
+| 値 | 名前 | 意味 |
+| --- | --- | --- |
+| 0 | `BodySlim` | 全身を細く |
+| 1 | `WaistSlim` | ウエストを細く |
+| 2 | `LegSlim` | 脚を細く |
+| 3 | `ShoulderSlim` | 肩を細く |
+| 4 | `ArmSlim` | 腕を細く |
+| 5 | `LegLong` | 骨格に沿って脚を長く |
+| 6 | `BustEnhance` | バストアップ |
+| 7 | `LegStretch` | ウエストより下を伸ばす（顔点のみ。`resource_body.fbd` 不要） |
+| 8 | `TorsoLong` | あご〜ウエストを伸ばす（顔点のみ。`resource_body.fbd` 不要） |
+
+Java の名前は `SNAKE_CASE`（`BODY_SLIM`、`WAIST_SLIM` など）です。Objective-C は `FBBodyReshape_BodySlim`、Dart は `FBBodyReshape.bodySlim` です。
 
 ## リップ（`LipstickColor`）
 

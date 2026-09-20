@@ -86,7 +86,7 @@ if (!engine) {
 
 ## 3. 뷰티 파라미터 설정
 
-피부 / 메이크업 `[0.0, 1.0]`. 리셰이프 **`[-1.0, 1.0]`**. 전체 열거형: [파라미터 열거형](/ko/intro/makeup).
+피부 / 메이크업 / 바디 리셰이프 `[0.0, 1.0]`. 페이스 리셰이프 **`[-1.0, 1.0]`**. 바디 리셰이프에는 `resource_body.fbd`가 필요합니다. [파라미터 열거형](/ko/intro/makeup), [선택 리소스 팩](/ko/intro/resource-packs).
 
 ```cpp
 engine->SetSmoothing(0.5f);
@@ -99,6 +99,11 @@ engine->SetBeautySkinOnly(true);
 
 engine->SetReshape(Reshape::FaceThin, 0.4f);
 engine->SetReshape(Reshape::EyeSize, 0.3f);
+
+engine->AddResourcePack("resource/resource_body.fbd");  // or place resource_body.fbd next to resource.fbd
+engine->SetBodyReshape(BodyReshape::WaistSlim, 0.4f);
+engine->SetBodyReshape(BodyReshape::LegStretch, 0.3f);
+engine->SetBodyReshape(BodyReshape::TorsoLong, 0.3f);
 
 engine->SetLipstick(0.6f);
 engine->SetLipstickColor(LipstickColor::Rouge);

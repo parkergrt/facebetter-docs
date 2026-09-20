@@ -87,6 +87,18 @@ int SetReshape(Reshape param, float intensity);  // [-1, 1]
 
 전체 `Reshape` 목록: [파라미터 열거형](/ko/intro/makeup).
 
+### 바디 리셰이프
+
+```cpp
+int SetBodyReshape(BodyReshape param, float intensity);  // [0, 1]
+```
+
+```cpp
+```
+
+
+전체 `BodyReshape` 목록: [파라미터 열거형](/ko/intro/makeup). `resource_body.fbd`가 필요합니다. [선택 리소스 팩](/ko/intro/resource-packs).
+
 ### 메이크업
 
 ```cpp
@@ -137,7 +149,7 @@ int Set3DSticker(const std::vector<uint8_t>& fbd_data);
 int Clear3DSticker();
 ```
 
-선택 3D 팩을 먼저 로드하세요. [선택 리소스 팩](/ko/intro/resource-packs)을 참고하세요.
+3D 스티커 또는 바디 리셰이프 전에 해당 선택 팩을 먼저 로드하세요. [선택 리소스 팩](/ko/intro/resource-packs)을 참고하세요.
 
 ### 통계, 콜백, 처리
 

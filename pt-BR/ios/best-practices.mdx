@@ -19,6 +19,20 @@ input.type = FBFrameTypeVideo;
 FBImageFrame *output = [engine processImage:input];
 ```
 
+## Stills grandes (prévia e exportação) {#large-stills}
+
+Não envie pixels em resolução total para `processImage:` a cada movimento do slider, nem descarte o original depois de reduzir.
+
+Ao abrir a foto, mantenha o `UIImage` completo e crie **um** quadro de prévia (lado longo cerca de 1280–1440, `createWithUIImage:`). Ajustes processam a prévia (`FBFrameTypeImage`). A exportação processa um quadro em resolução total com os mesmos setters. O tamanho da saída acompanha a entrada. A câmera continua na resolução de captura + `FBFrameTypeVideo`.
+
+```objc
+preview.type = FBFrameTypeImage;
+FBImageFrame *previewOut = [engine processImage:preview];
+
+full.type = FBFrameTypeImage;
+FBImageFrame *exportOut = [engine processImage:full];
+```
+
 ## Faixas de parâmetros
 
 - Intensidade de pele / maquiagem / filtro: `[0.0, 1.0]`. `0` desliga esse efeito.

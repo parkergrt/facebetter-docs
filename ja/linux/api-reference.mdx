@@ -87,6 +87,18 @@ int SetReshape(Reshape param, float intensity);  // [-1, 1]
 
 完全な `Reshape` リスト: [パラメータ列挙](/ja/intro/makeup)。
 
+### ボディリシェイプ
+
+```cpp
+int SetBodyReshape(BodyReshape param, float intensity);  // [0, 1]
+```
+
+```cpp
+```
+
+
+`BodyReshape` の全リスト: [パラメータ列挙](/ja/intro/makeup)。`resource_body.fbd` が必要です。[オプションリソースパック](/ja/intro/resource-packs)。
+
 ### メイク
 
 ```cpp
@@ -137,7 +149,7 @@ int Set3DSticker(const std::vector<uint8_t>& fbd_data);
 int Clear3DSticker();
 ```
 
-3D ステッカーの前にオプションパックを読み込んでください。[オプションリソースパック](/ja/intro/resource-packs)。
+3D ステッカーやボディリシェイプの前に対応するオプションパックを読み込んでください。[オプションリソースパック](/ja/intro/resource-packs)。
 
 ### 統計、コールバック、処理
 

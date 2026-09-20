@@ -70,6 +70,10 @@ await engine.init({
 
 `setReshape(param, value)` — `param` は `Reshape.*`、`value` の範囲は **`[-1.0, 1.0]`**。[パラメータ列挙](/ja/intro/makeup) を参照してください。
 
+### ボディリシェイプ
+
+`setBodyReshape(param, value)` — `param` は `BodyReshape.*`、`value` は **`[0.0, 1.0]`**。先に `addResourcePack` で `resource_body.fbd` を登録。[パラメータ列挙](/ja/intro/makeup) と [オプションリソースパック](/ja/intro/resource-packs)。
+
 ### メイク
 
 強度 `[0, 1]`。スタイル / 色の列挙: [パラメータ列挙](/ja/intro/makeup)。
@@ -94,7 +98,7 @@ await engine.init({
 | `setFilterIntensity(intensity)` | `[0, 1]` |
 | `setSticker(path \| Uint8Array)` | 2D ステッカー `.fbd` を適用 |
 | `clearSticker()` | ステッカーをクリア |
-| `addResourcePack(path \| Uint8Array)` | 追加の機能パックを登録（例: 3D ステッカー前に `resource_3d.fbd`） |
+| `addResourcePack(path \| Uint8Array)` | 追加の機能パックを登録（3D ステッカー前に `resource_3d.fbd`、ボディリシェイプ前に `resource_body.fbd`） |
 | `set3DSticker(path \| Uint8Array)` | 3D ステッカー `.fbd` を適用 |
 | `clear3DSticker()` | 3D ステッカーをクリア |
 

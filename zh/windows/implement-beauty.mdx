@@ -78,7 +78,7 @@ if (!engine) {
 
 ## 3. 设置美颜参数
 
-皮肤 / 美妆强度为 `[0.0, 1.0]`，`0` 表示关闭。美型为 **`[-1.0, 1.0]`**。完整枚举见 [参数枚举](/zh/intro/makeup)。
+皮肤 / 美妆 / 美体强度为 `[0.0, 1.0]`，`0` 表示关闭。美型为 **`[-1.0, 1.0]`**。完整枚举见 [参数枚举](/zh/intro/makeup)。
 
 ### 皮肤
 
@@ -98,6 +98,17 @@ engine->SetBeautySkinOnly(true);  // 仅作用于检测到的皮肤
 engine->SetReshape(Reshape::FaceThin, 0.4f);
 engine->SetReshape(Reshape::EyeSize, 0.3f);
 engine->SetReshape(Reshape::Chin, -0.2f);  // 负值为相反方向
+```
+
+### 美体
+
+范围 **`[0.0, 1.0]`**。`0` 关闭。把 `resource_body.fbd` 放在 `resource.fbd` 同目录，或调用 `AddResourcePack`。见 [参数枚举](/zh/intro/makeup) 与 [可选资源包](/zh/intro/resource-packs)。
+
+```cpp
+engine->AddResourcePack("resource/resource_body.fbd");  // or place it next to resource.fbd
+engine->SetBodyReshape(BodyReshape::WaistSlim, 0.4f);
+engine->SetBodyReshape(BodyReshape::LegStretch, 0.3f);
+engine->SetBodyReshape(BodyReshape::TorsoLong, 0.3f);
 ```
 
 ### 美妆

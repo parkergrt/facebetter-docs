@@ -24,6 +24,10 @@ Intensity range is `[-1.0, 1.0]`. See [Parameter enums](./makeup).
 
 > A single frame supports up to **5 faces** for reshape and makeup at once.
 
+### Body reshape
+
+Body slimming and proportion controls: whole-body slim, waist, legs, shoulders, arms, longer legs, and bust enhance. Intensity is `[0.0, 1.0]` (`0` is off). Requires the optional `resource_body.fbd` pack — see [Optional resource packs](./resource-packs) and [Parameter enums](./makeup). Requires **Pro+** (Free: watermarked trial). See [Plans & Features](./pricing).
+
 ### Makeup
 
 Layered makeup: lipstick, blush, eyeshadow, eyeliner, eyebrow, eyelash, colored contacts, and contour. Intensity, shape, and color are set separately. Multiple items can be applied at once. See [Parameter enums](./makeup).
@@ -45,7 +49,7 @@ Powered by real-time portrait segmentation:
 
 - **Screen stickers**: overlaid at a fixed position on the frame
 - **Face-tracking stickers**: anchored to face keypoints and follow head movement
-- **3D stickers**: mesh props (glasses, hats, masks). Requires the optional `resource_3d.fbd` pack — see [Optional resource packs](./resource-packs)
+- **3D stickers**: mesh props (glasses, hats, masks). Requires the optional `resource_3d.fbd` pack — see [Optional resource packs](./resource-packs). Requires **Pro+** (Free: watermarked trial). See [Plans & Features](./pricing)
 
 Sticker (and filter) resources are **`.fbd` files**. Apply one 2D sticker at a time with `setSticker` and one 3D sticker with `set3DSticker` (path or bytes). Remove with `clearSticker` / `clear3DSticker`. The new resource takes effect on the next processed frame.
 

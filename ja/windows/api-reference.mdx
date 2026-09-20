@@ -124,6 +124,19 @@ virtual int SetReshape(beauty_params::Reshape param, float intensity) = 0;
 engine->SetReshape(Reshape::FaceThin, 0.4f);
 ```
 
+### ボディリシェイプ
+
+```cpp
+virtual int SetBodyReshape(beauty_params::BodyReshape param, float intensity) = 0;
+```
+
+`intensity` は **`[0.0, 1.0]`**。`0` はオフ。`resource_body.fbd` が必要です（`resource.fbd` と同じ場所、または `AddResourcePack`）。[パラメータ列挙](/ja/intro/makeup)、[オプションリソースパック](/ja/intro/resource-packs)。
+
+```cpp
+engine->SetBodyReshape(BodyReshape::WaistSlim, 0.4f);
+```
+
+
 ### メイク
 
 各効果には強度があり、Style（マスク）および / または Color（着色）があります。口紅は Color のみ、瞳は Color のみ、コントアは Style のみです。
@@ -210,7 +223,7 @@ virtual int Set3DSticker(const std::vector<uint8_t>& fbd_data) = 0;
 virtual int Clear3DSticker() = 0;
 ```
 
-3D ステッカーの前にオプションパックを読み込んでください。[オプションリソースパック](/ja/intro/resource-packs)。
+3D ステッカーやボディリシェイプの前に対応するオプションパックを読み込んでください。[オプションリソースパック](/ja/intro/resource-packs)。
 
 ### 統計、コールバック、処理
 

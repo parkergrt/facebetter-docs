@@ -19,6 +19,20 @@ input.type = FBFrameTypeVideo;
 FBImageFrame *output = [engine processImage:input];
 ```
 
+## Large stills (preview vs export) {#large-stills}
+
+Do not feed full-resolution pixels into `processImage:` on every slider change, and do not throw the original away after scaling.
+
+When the photo opens, keep the full `NSImage` and build **one** preview frame (long edge about 1280–1440, `createWithNSImage:`). Slider changes process the preview (`FBFrameTypeImage`). Export processes a full-resolution frame with the same setters. Output size matches the input. Camera preview stays capture resolution + `FBFrameTypeVideo`.
+
+```objc
+preview.type = FBFrameTypeImage;
+FBImageFrame *previewOut = [engine processImage:preview];
+
+full.type = FBFrameTypeImage;
+FBImageFrame *exportOut = [engine processImage:full];
+```
+
 ## Parameter ranges
 
 - Skin / makeup / filter intensity: `[0.0, 1.0]`. `0` turns that effect off.

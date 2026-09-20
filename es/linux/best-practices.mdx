@@ -28,6 +28,19 @@ Resuelve una ruta absoluta al arrancar para que los cambios de cwd no rompan `fo
 | `FrameType::Video` (predeterminado) | Cámara / directo |
 | `FrameType::Image` | Exportación estática |
 
+## Fotos grandes (vista previa y exportación) {#large-stills}
+
+No envíes píxeles a resolución completa a `ProcessImage` en cada movimiento del deslizador, ni tires el original después de escalar.
+
+Al abrir la foto, conserva el búfer completo y crea **un** fotograma de vista previa (lado largo unos 1280–1440). Los ajustes procesan la vista previa (`FrameType::Image`). La exportación procesa un fotograma a resolución completa con los mismos setters. El tamaño de salida coincide con la entrada. La cámara sigue en resolución de captura + `FrameType::Video`.
+
+```cpp
+preview->type = FrameType::Image;
+auto preview_out = engine->ProcessImage(preview);
+
+full->type = FrameType::Image;
+auto export_out = engine->ProcessImage(full);
+```
 
 ## Intensidades y solo piel
 

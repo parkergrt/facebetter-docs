@@ -121,6 +121,18 @@ if (self.beautyEffectEngine == nil) {
 [self.beautyEffectEngine setReshape:FBReshape_EyeSize intensity:0.2f];
 ```
 
+## 바디 리셰이프
+
+`setBodyReshape:intensity:` 범위는 **`[0.0, 1.0]`**입니다. `0`은 꺼짐입니다. 먼저 `addResourcePack:`으로 `resource_body.fbd`를 등록하세요. 파라미터: `FBBodyReshape_BodySlim` … `FBBodyReshape_TorsoLong`(`0`–`8`). [파라미터 열거형](/ko/intro/makeup)과 [선택 리소스 팩](/ko/intro/resource-packs)을 참고하세요.
+
+```objc
+NSString *bodyPack = [[NSBundle mainBundle] pathForResource:@"resource_body" ofType:@"fbd"];
+[self.beautyEffectEngine addResourcePack:bodyPack];
+[self.beautyEffectEngine setBodyReshape:FBBodyReshape_WaistSlim intensity:0.4f];
+[self.beautyEffectEngine setBodyReshape:FBBodyReshape_LegStretch intensity:0.3f];
+[self.beautyEffectEngine setBodyReshape:FBBodyReshape_TorsoLong intensity:0.3f];
+```
+
 ## 메이크업
 
 강도, 형태, 색상은 별도 호출입니다. 전체 프리셋: [파라미터 열거형](/ko/intro/makeup).

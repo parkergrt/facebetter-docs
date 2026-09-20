@@ -78,7 +78,7 @@ if (!engine) {
 
 ## 3. Configurar parámetros de belleza
 
-Las intensidades de piel / maquillaje son `[0.0, 1.0]`. `0` desactiva. El remodelado es **`[-1.0, 1.0]`**. Listas completas de enumeraciones: [Enumeraciones de parámetros](/es/intro/makeup).
+Las intensidades de piel / maquillaje / remodelado corporal son `[0.0, 1.0]`. `0` desactiva. El remodelado facial es **`[-1.0, 1.0]`**. Listas completas de enumeraciones: [Enumeraciones de parámetros](/es/intro/makeup).
 
 ### Piel
 
@@ -98,6 +98,17 @@ engine->SetBeautySkinOnly(true);  // beauty only on detected skin
 engine->SetReshape(Reshape::FaceThin, 0.4f);
 engine->SetReshape(Reshape::EyeSize, 0.3f);
 engine->SetReshape(Reshape::Chin, -0.2f);  // negative = opposite direction
+```
+
+### Remodelado corporal
+
+Rango **`[0.0, 1.0]`**. `0` desactiva. Coloca `resource_body.fbd` junto a `resource.fbd` o llama a `AddResourcePack`. Consulta [Enumeraciones de parámetros](/es/intro/makeup) y [Paquetes de recursos opcionales](/es/intro/resource-packs).
+
+```cpp
+engine->AddResourcePack("resource/resource_body.fbd");  // or place it next to resource.fbd
+engine->SetBodyReshape(BodyReshape::WaistSlim, 0.4f);
+engine->SetBodyReshape(BodyReshape::LegStretch, 0.3f);
+engine->SetBodyReshape(BodyReshape::TorsoLong, 0.3f);
 ```
 
 ### Maquillaje

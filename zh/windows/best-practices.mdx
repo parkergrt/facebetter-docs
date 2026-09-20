@@ -35,6 +35,20 @@ std::shared_ptr<BeautyEffectEngine> engine = BeautyEffectEngine::Create(cfg);
 | `FrameType::Video`（默认） | 摄像头、采集、实时预览 |
 | `FrameType::Image` | 单张照片 / 导出 |
 
+## 相册大图（预览与导出） {#large-stills}
+
+高分辨率静图不要在每次拖动滑条时把原图像素送进 `ProcessImage`，也不要缩放后丢掉原图。
+
+打开照片时保留完整缓冲，并**另做一份**预览帧（长边约 1280–1440）。调参打预览（`FrameType::Image`）；导出对全尺寸帧再处理一次，同一套 setter。输出尺寸等于输入。摄像头预览仍用采集分辨率 + `FrameType::Video`。
+
+```cpp
+preview->type = FrameType::Image;
+auto preview_out = engine->ProcessImage(preview);
+
+full->type = FrameType::Image;
+auto export_out = engine->ProcessImage(full);
+```
+
 ## 强度
 
 实时场景从较低值开始。美型为 **`[-1.0, 1.0]`**，其余强度为 `[0.0, 1.0]`。

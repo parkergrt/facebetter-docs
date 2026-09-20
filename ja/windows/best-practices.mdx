@@ -36,6 +36,20 @@ std::shared_ptr<BeautyEffectEngine> engine = BeautyEffectEngine::Create(cfg);
 | `FrameType::Video`（デフォルト） | カメラ、キャプチャ、ライブプレビュー |
 | `FrameType::Image` | 単一写真 / 書き出し |
 
+## 大きな静止画（プレビューと書き出し） {#large-stills}
+
+高解像度の静止画では、スライダーのたびに原寸を `ProcessImage` に渡さないでください。縮小したあとに原画を捨てないでください。
+
+写真を開いたら完全なバッファを残し、プレビュー用フレームを **1 枚**作ります（長辺は約 1280–1440）。パラメータ調整はプレビュー（`FrameType::Image`）、書き出しは同じ setter で全サイズをもう一度処理します。出力サイズは入力と同じです。カメラプレビューはキャプチャ解像度 + `FrameType::Video` のままです。
+
+```cpp
+preview->type = FrameType::Image;
+auto preview_out = engine->ProcessImage(preview);
+
+full->type = FrameType::Image;
+auto export_out = engine->ProcessImage(full);
+```
+
 ## 強度
 
 リアルタイムでは低めから始めます。リシェイプは **`[-1.0, 1.0]`**、その他の強度は `[0.0, 1.0]` です。

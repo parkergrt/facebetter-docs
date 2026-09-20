@@ -62,7 +62,8 @@ demo/cpp/sdk/
 │   └── libfacebetter.so    ← shared library
 └── resource/
     ├── resource.fbd        ← models and assets (required)
-    └── resource_3d.fbd     ← optional; 3D stickers. Place next to `resource.fbd` or call `AddResourcePack`
+    ├── resource_3d.fbd     ← optional; 3D stickers. Place next to `resource.fbd` or call `AddResourcePack`
+    └── resource_body.fbd   ← optional; body reshape. Place next to `resource.fbd` or call `AddResourcePack`
 ```
 
 <Warning>
@@ -114,7 +115,7 @@ cp ../sdk/lib/libfacebetter.so .
 ./facebetter_demo
 ```
 
-창에는 실시간 미리보기와 컨트롤 패널(피부, 26개 리셰이프 파라미터, 메이크업, 필터, 스티커, 가상 배경)이 표시됩니다. **Reset All**을 클릭하면 강도가 0이 됩니다.
+창에는 실시간 미리보기와 컨트롤 패널(피부, 26개 페이스 리셰이프, 7개 바디 리셰이프, 메이크업, 필터, 스티커, 가상 배경)이 표시됩니다. **Reset All**을 클릭하면 강도가 0이 됩니다.
 
 ## 문제 해결
 

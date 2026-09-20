@@ -117,6 +117,18 @@ if (self.beautyEffectEngine == nil) {
 [self.beautyEffectEngine setReshape:FBReshape_EyeSize intensity:0.2f];
 ```
 
+## 美体
+
+`setBodyReshape:intensity:` 范围为 **`[0.0, 1.0]`**。`0` 关闭。先用 `addResourcePack:` 登记 `resource_body.fbd`。参数：`FBBodyReshape_BodySlim` … `FBBodyReshape_TorsoLong`（`0`–`8`）。见 [参数枚举](/zh/intro/makeup) 与 [可选资源包](/zh/intro/resource-packs)。
+
+```objc
+NSString *bodyPack = [[NSBundle mainBundle] pathForResource:@"resource_body" ofType:@"fbd"];
+[self.beautyEffectEngine addResourcePack:bodyPack];
+[self.beautyEffectEngine setBodyReshape:FBBodyReshape_WaistSlim intensity:0.4f];
+[self.beautyEffectEngine setBodyReshape:FBBodyReshape_LegStretch intensity:0.3f];
+[self.beautyEffectEngine setBodyReshape:FBBodyReshape_TorsoLong intensity:0.3f];
+```
+
 ## 美妆
 
 强度、形状、色号分开设置。完整预设见 [参数枚举](/zh/intro/makeup)。

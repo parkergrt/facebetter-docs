@@ -70,6 +70,10 @@ await engine.init({
 
 `setReshape(param, value)` — `param`은 `Reshape.*`, `value`는 **`[-1.0, 1.0]`**. [파라미터 열거형](/ko/intro/makeup)을 참고하세요.
 
+### 바디 리셰이프
+
+`setBodyReshape(param, value)` — `param`은 `BodyReshape.*`, `value`는 **`[0.0, 1.0]`**. 먼저 `addResourcePack`으로 `resource_body.fbd`를 등록하세요. [파라미터 열거형](/ko/intro/makeup)과 [선택 리소스 팩](/ko/intro/resource-packs)을 참고하세요.
+
 ### 메이크업
 
 강도 `[0, 1]`. 스타일 / 색상 열거형: [파라미터 열거형](/ko/intro/makeup).
@@ -94,7 +98,7 @@ await engine.init({
 | `setFilterIntensity(intensity)` | `[0, 1]` |
 | `setSticker(path \| Uint8Array)` | 2D 스티커 `.fbd` 적용 |
 | `clearSticker()` | 스티커 제거 |
-| `addResourcePack(path \| Uint8Array)` | 추가 기능 팩 등록(예: `set3DSticker` 전 `resource_3d.fbd`) |
+| `addResourcePack(path \| Uint8Array)` | 추가 기능 팩 등록(예: `set3DSticker` 전 `resource_3d.fbd`, `setBodyReshape` 전 `resource_body.fbd`) |
 | `set3DSticker(path \| Uint8Array)` | 3D 스티커 `.fbd` 적용 |
 | `clear3DSticker()` | 3D 스티커 제거 |
 

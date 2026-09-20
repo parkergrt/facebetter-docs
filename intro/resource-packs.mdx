@@ -1,44 +1,62 @@
 ---
 title: "Optional resource packs"
-description: "Download extra capability packs such as resource_3d.fbd and register them with AddResourcePack"
+description: "Download extra capability packs such as resource_3d.fbd and resource_body.fbd, then register them with AddResourcePack"
 ---
 
 The SDK ships a core runtime pack `resource.fbd` (~7 MB) for 2D beauty, makeup, filters, and 2D stickers.
 
-3D stickers need an **optional** pack, `resource_3d.fbd` (~9 MB). It is **not** inside the iOS / Android / Web SDK. Download it yourself at integrate time and register it with `AddResourcePack` / `addResourcePack` **before** `Set3DSticker` / `set3DSticker`.
+Some capabilities need an **optional** pack. These files are **not** inside the iOS / Android / Web SDK. Download them at integrate time and register each one with `AddResourcePack` / `addResourcePack` **before** the matching setter.
 
-Download `resource_3d.fbd` from the [GitHub Release](https://github.com/pixpark/facebetter-sdk/releases) (also mirrored on the [download page](https://facebetter.net/download)).
+| Pack | Size | Required before |
+| --- | --- | --- |
+| `resource_3d.fbd` | ~9 MB | `Set3DSticker` / `set3DSticker` |
+| `resource_body.fbd` | ~8.5 MB | Pose-based `SetBodyReshape` (not `LegStretch` / `TorsoLong`) |
+
+<Note>
+3D stickers and body reshape require **Pro+**. Free can try them with a watermark. See [Plans & Features](./pricing).
+</Note>
+
+Download them from the [GitHub Release](https://github.com/pixpark/facebetter-sdk/releases) (also mirrored on the [download page](https://facebetter.net/download)).
 
 ## How lookup works
 
-The engine searches the core pack plus every extra pack you add. Files are keyed by their **inner relative path** (for example `tddfa/models/mb05_120x120.mnn`). Keep inner paths unique across packs — give each capability its own prefix (`tddfa/…`, later `body/…`). If two packs contain the same path, the **last** `AddResourcePack` wins.
+The engine searches the core pack plus every extra pack you add. Files are keyed by their **inner relative path**. Keep inner paths unique across packs — give each capability its own prefix (`tddfa/…`, `body/…`). If two packs contain the same path, the **last** `AddResourcePack` wins.
 
 Register each `.fbd` with a separate call. Do **not** concatenate pack files.
 
 ## Desktop (Windows / Linux / C++)
 
-Place `resource_3d.fbd` next to `resource.fbd`. The engine loads that sibling automatically. You can still call `AddResourcePack` explicitly.
+Place `resource_3d.fbd` and/or `resource_body.fbd` next to `resource.fbd`. The engine loads those siblings automatically. You can still call `AddResourcePack` explicitly.
 
 ```cpp
 engine->AddResourcePack("resource/resource_3d.fbd");
 engine->Set3DSticker("assets/stickers/3d/oculos.fbd");
 engine->Clear3DSticker();
+
+engine->AddResourcePack("resource/resource_body.fbd");
+engine->SetBodyReshape(BodyReshape::WaistSlim, 0.4f);
 ```
 
 ## iOS / macOS / Android / Flutter / Web
 
-The mobile and Web SDKs do **not** embed `resource_3d.fbd`. Copy or fetch the file in **your** app, then call `addResourcePack` (path or bytes).
+The mobile and Web SDKs do **not** embed these optional packs. Copy or fetch each file in **your** app, then call `addResourcePack` (path or bytes).
 
 ```javascript
-const pack = new Uint8Array(
+const pack3d = new Uint8Array(
   await (await fetch('/resource_3d.fbd')).arrayBuffer()
 );
-engine.addResourcePack(pack);
+engine.addResourcePack(pack3d);
 engine.set3DSticker('/stickers/3d/oculos.fbd');
+
+const packBody = new Uint8Array(
+  await (await fetch('/resource_body.fbd')).arrayBuffer()
+);
+engine.addResourcePack(packBody);
+engine.setBodyReshape(BodyReshape.WaistSlim, 0.4);
 ```
 
 2D stickers still use `setSticker` only. `addResourcePack` is for capability models, not sticker assets.
 
 <Tip>
-Call `addResourcePack` once per extra pack after the engine is created (Web: after `init()`). Later 3D stickers reuse the same pack.
+Call `addResourcePack` once per extra pack after the engine is created (Web: after `init()`). Later 3D stickers or body-reshape calls reuse the same pack.
 </Tip>

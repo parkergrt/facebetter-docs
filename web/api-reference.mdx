@@ -70,6 +70,10 @@ await engine.init({
 
 `setReshape(param, value)` — `param` is `Reshape.*`, `value` in **`[-1.0, 1.0]`**. See [Parameter enums](/intro/makeup).
 
+### Body reshape
+
+`setBodyReshape(param, value)` — `param` is `BodyReshape.*`, `value` in **`[0.0, 1.0]`**. Requires `resource_body.fbd` via `addResourcePack` first. See [Parameter enums](/intro/makeup) and [Optional resource packs](/intro/resource-packs).
+
 ### Makeup
 
 Intensity `[0, 1]`. Style / color enums: [Parameter enums](/intro/makeup).
@@ -94,7 +98,7 @@ Intensity `[0, 1]`. Style / color enums: [Parameter enums](/intro/makeup).
 | `setFilterIntensity(intensity)` | `[0, 1]` |
 | `setSticker(path \| Uint8Array)` | Apply a 2D sticker `.fbd` |
 | `clearSticker()` | Remove the sticker |
-| `addResourcePack(path \| Uint8Array)` | Register an extra capability pack (for example `resource_3d.fbd` before `set3DSticker`) |
+| `addResourcePack(path \| Uint8Array)` | Register an extra capability pack (`resource_3d.fbd` before `set3DSticker`, or `resource_body.fbd` before `setBodyReshape`) |
 | `set3DSticker(path \| Uint8Array)` | Apply a 3D sticker `.fbd` |
 | `clear3DSticker()` | Remove the 3D sticker |
 

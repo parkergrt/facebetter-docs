@@ -60,6 +60,54 @@ const result = engine.processImage(
 ctx.putImageData(result, 0, 0);
 ```
 
+## 큰 정지 이미지(미리보기와 내보내기) {#large-stills}
+
+갤러리 사진·리터칭에서는 슬라이더를 움직일 때마다 원본 픽셀을 `processImage`에 넣지 마세요. 파일을 열 때 버퍼를 두 개 만듭니다.
+
+1. **미리보기 프레임** — 축소된 `ImageData`(긴 변 약 1280–1440, 또는 표시 캔버스 CSS 크기 × `devicePixelRatio` 중 작은 값). 파라미터 조절 중에는 이것만 처리합니다.
+2. **원본** — `HTMLImageElement`(또는 축소하지 않은 비트맵). 사용자가 내보낼 때 `processImage`를 **한 번** 호출합니다.
+
+둘 다 `FrameType.Image`입니다. 같은 엔진, 같은 setter. 출력 크기는 입력과 같습니다. 미리보기 결과를 확대해서 내보내기로 쓰지 마세요.
+
+축소하지 않은 `<img>`를 미리보기 루프에 넣지 마세요. `processImage`는 `naturalWidth` / `naturalHeight`를 읽습니다.
+
+```javascript
+function rasterize(source, maxEdge) {
+  const sw = source.naturalWidth || source.width;
+  const sh = source.naturalHeight || source.height;
+  const scale = Math.min(1, maxEdge / Math.max(sw, sh));
+  const w = Math.max(1, Math.round(sw * scale));
+  const h = Math.max(1, Math.round(sh * scale));
+  const canvas = document.createElement('canvas');
+  canvas.width = w;
+  canvas.height = h;
+  const ctx = canvas.getContext('2d');
+  ctx.drawImage(source, 0, 0, w, h);
+  return ctx.getImageData(0, 0, w, h);
+}
+
+const preview = rasterize(image, 1440); // once, when the file opens
+// Keep `image` for export
+
+const previewOut = engine.processImage(
+  preview,
+  preview.width,
+  preview.height,
+  FrameType.Image,
+);
+previewCtx.putImageData(previewOut, 0, 0);
+
+// Export — full resolution, once
+const exportOut = engine.processImage(
+  image,
+  image.naturalWidth,
+  image.naturalHeight,
+  FrameType.Image,
+);
+```
+
+카메라 미리보기는 이 경로가 아닙니다. 캡처 해상도 + `FrameType.Video`를 쓰세요. 슬라이더로 호출하는 `processImage`는 짧게 debounce 하세요. 내보내기는 동기라 페이지가 멈출 수 있으니, 처리 전에 진행 UI를 그리세요.
+
 ## 파라미터
 
 실시간 미리보기에서는 낮게 시작하세요(`smoothing` 약 `0.2`–`0.5`). 리셰이프는 `[-1, 1]`이며, 작은 값이 카메라에서 더 자연스럽습니다.

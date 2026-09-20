@@ -96,6 +96,20 @@ engine.setReshape(Reshape.EyeSize, 0.2);
 
 El rango es **`[-1.0, 1.0]`**. `0` desactiva. Positivo y negativo son direcciones opuestas (por ejemplo `FaceThin`: adelgazar / mejillas más llenas). Lista completa: [Enumeraciones de parámetros](/es/intro/makeup).
 
+## Remodelado corporal
+
+```javascript
+const bodyPack = new Uint8Array(
+  await (await fetch('/resource_body.fbd')).arrayBuffer()
+);
+engine.addResourcePack(bodyPack);
+engine.setBodyReshape(BodyReshape.WaistSlim, 0.4);
+engine.setBodyReshape(BodyReshape.LegStretch, 0.3);
+engine.setBodyReshape(BodyReshape.TorsoLong, 0.3);
+```
+
+El rango es **`[0.0, 1.0]`**. `0` desactiva. Obtén `resource_body.fbd` y llama a `addResourcePack` después de `init()`. Lista: [Enumeraciones de parámetros](/es/intro/makeup). Paquetes: [Paquetes de recursos opcionales](/es/intro/resource-packs).
+
 ## Maquillaje
 
 Intensidad, forma y color son setters separados. La intensidad es `[0.0, 1.0]`. Estilos: [Enumeraciones de parámetros](/es/intro/makeup).

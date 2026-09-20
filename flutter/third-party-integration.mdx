@@ -18,6 +18,7 @@ engine.dispose()                            Write back vendor textureId
 | Item | Requirement |
 | --- | --- |
 | Live engine | `externalContext: true` (default); `FBEngine.create` **before** enabling vendor custom preprocess |
+| Live engines | At most one `externalContext: true` engine; a second `create` throws until you `dispose()` the first |
 | Frames | Native `FacebetterPlugin.processTexture` only; must run on the **current GL thread** |
 | Stills | Separate engine with `externalContext: false`; never mix with the live engine |
 | Input | Prefer vendor **Texture2D / RGB (`GL_TEXTURE_2D`)**; convert OES / YUV first or change format per vendor docs |
@@ -55,7 +56,7 @@ Credentials: [Subscription](/intro/enable-service), [Auth & License](/intro/lice
 | Frames | Native `processTexture` | Dart `processFile` / `processImageBytes` / … |
 | Mixing | No photo APIs | Not for live / meeting preprocess |
 
-**Do not:** push pixels or texture ids from Dart every frame; call `processTexture` off the GL thread; treat `FBEngine` as a process-wide singleton.
+**Do not:** push pixels or texture ids from Dart every frame; call `processTexture` off the GL thread; create a second `externalContext: true` engine before disposing the first.
 
 ---
 

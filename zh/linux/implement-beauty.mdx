@@ -86,7 +86,7 @@ if (!engine) {
 
 ## 3. 设置美颜参数
 
-皮肤 / 美妆 `[0.0, 1.0]`。美型 **`[-1.0, 1.0]`**。完整枚举见 [参数枚举](/zh/intro/makeup)。
+皮肤 / 美妆 / 美体 `[0.0, 1.0]`。美型 **`[-1.0, 1.0]`**。美体需要 `resource_body.fbd`。完整枚举见 [参数枚举](/zh/intro/makeup)，资源包见 [可选资源包](/zh/intro/resource-packs)。
 
 ```cpp
 engine->SetSmoothing(0.5f);
@@ -99,6 +99,11 @@ engine->SetBeautySkinOnly(true);
 
 engine->SetReshape(Reshape::FaceThin, 0.4f);
 engine->SetReshape(Reshape::EyeSize, 0.3f);
+
+engine->AddResourcePack("resource/resource_body.fbd");  // 或与 resource.fbd 同目录
+engine->SetBodyReshape(BodyReshape::WaistSlim, 0.4f);
+engine->SetBodyReshape(BodyReshape::LegStretch, 0.3f);
+engine->SetBodyReshape(BodyReshape::TorsoLong, 0.3f);
 
 engine->SetLipstick(0.6f);
 engine->SetLipstickColor(LipstickColor::Rouge);

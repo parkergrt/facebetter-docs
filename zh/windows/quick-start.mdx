@@ -46,7 +46,8 @@ demo/cpp/sdk/
 │   └── facebetter.dll      ← 运行时 DLL
 └── resource/
     ├── resource.fbd        ← 模型与资源包（必需）
-    └── resource_3d.fbd     ← 可选；3D 贴纸。与 `resource.fbd` 同目录或调用 `AddResourcePack`
+    ├── resource_3d.fbd     ← 可选；3D 贴纸。与 `resource.fbd` 同目录或调用 `AddResourcePack`
+    └── resource_body.fbd   ← 可选；美体。与 `resource.fbd` 同目录或调用 `AddResourcePack`
 ```
 
 <Warning>
@@ -95,7 +96,7 @@ cd demo\cpp\build
 窗口包含：
 
 - **左侧** — 实时美颜预览
-- **右侧** — 控制面板：基础美颜、26 项美型（范围 `[-1.0, 1.0]`）、美妆、滤镜 / 贴纸 / 虚拟背景
+- **右侧** — 控制面板：基础美颜、26 项美型（范围 `[-1.0, 1.0]`）、7 项美体（范围 `[0.0, 1.0]`，需 `resource_body.fbd`）、美妆、滤镜 / 贴纸 / 虚拟背景
 
 点击 **Reset All** 可将强度归零。
 

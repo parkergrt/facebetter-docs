@@ -19,6 +19,20 @@ input.type = FBFrameTypeVideo;
 FBImageFrame *output = [engine processImage:input];
 ```
 
+## 큰 정지 이미지(미리보기와 내보내기) {#large-stills}
+
+고해상도 정지 이미지에서는 슬라이더마다 원본 픽셀을 `processImage:`에 넣지 마세요. 축소한 뒤 원본을 버리지 마세요.
+
+사진을 열면 전체 `NSImage`를 유지하고 미리보기 프레임을 **한 장** 만드세요(긴 변 약 1280–1440, `createWithNSImage:`). 파라미터 조절은 미리보기(`FBFrameTypeImage`)를 처리하고, 내보내기는 같은 setter로 전체 해상도를 한 번 더 처리합니다. 출력 크기는 입력과 같습니다. 카메라 미리보기는 캡처 해상도 + `FBFrameTypeVideo`입니다.
+
+```objc
+preview.type = FBFrameTypeImage;
+FBImageFrame *previewOut = [engine processImage:preview];
+
+full.type = FBFrameTypeImage;
+FBImageFrame *exportOut = [engine processImage:full];
+```
+
 ## 파라미터 범위
 
 - 피부 / 메이크업 / 필터 강도: `[0.0, 1.0]`. `0`이면 해당 효과가 꺼집니다.

@@ -60,6 +60,54 @@ const result = engine.processImage(
 ctx.putImageData(result, 0, 0);
 ```
 
+## Large stills (preview vs export) {#large-stills}
+
+For gallery photos and retouching apps, do not send full-resolution pixels into `processImage` on every slider change. When the file opens, keep two buffers:
+
+1. **Preview frame** — a downscaled `ImageData` (long edge about 1280–1440, or the display canvas CSS size × `devicePixelRatio`, whichever is smaller). Use this while the user adjusts effects.
+2. **Original** — the `HTMLImageElement` (or an unscaled bitmap). Run `processImage` on it **once**, when the user exports.
+
+Use `FrameType.Image` for both. Same engine, same setters. Output size matches input size: preview output is small; export output is full resolution. Do not upscale the preview result to fake an export.
+
+Do not pass an unscaled `<img>` into the preview loop — `processImage` reads `naturalWidth` / `naturalHeight`.
+
+```javascript
+function rasterize(source, maxEdge) {
+  const sw = source.naturalWidth || source.width;
+  const sh = source.naturalHeight || source.height;
+  const scale = Math.min(1, maxEdge / Math.max(sw, sh));
+  const w = Math.max(1, Math.round(sw * scale));
+  const h = Math.max(1, Math.round(sh * scale));
+  const canvas = document.createElement('canvas');
+  canvas.width = w;
+  canvas.height = h;
+  const ctx = canvas.getContext('2d');
+  ctx.drawImage(source, 0, 0, w, h);
+  return ctx.getImageData(0, 0, w, h);
+}
+
+const preview = rasterize(image, 1440); // once, when the file opens
+// Keep `image` for export
+
+const previewOut = engine.processImage(
+  preview,
+  preview.width,
+  preview.height,
+  FrameType.Image,
+);
+previewCtx.putImageData(previewOut, 0, 0);
+
+// Export — full resolution, once
+const exportOut = engine.processImage(
+  image,
+  image.naturalWidth,
+  image.naturalHeight,
+  FrameType.Image,
+);
+```
+
+Camera preview is a different path: capture resolution + `FrameType.Video`. Debounce slider-driven `processImage`. Show a busy state before export; full-resolution processing is synchronous and can hitch the page.
+
 ## Parameters
 
 Start low in real-time preview (`smoothing` ~ `0.2`–`0.5`). Reshape is `[-1, 1]`; small values look more natural on camera.

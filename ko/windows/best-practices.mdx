@@ -36,6 +36,20 @@ std::shared_ptr<BeautyEffectEngine> engine = BeautyEffectEngine::Create(cfg);
 | `FrameType::Video` (기본값) | 카메라, 캡처, 라이브 미리보기 |
 | `FrameType::Image` | 단일 사진 / 내보내기 |
 
+## 큰 정지 이미지(미리보기와 내보내기) {#large-stills}
+
+고해상도 정지 이미지에서는 슬라이더마다 원본 픽셀을 `ProcessImage`에 넣지 마세요. 축소한 뒤 원본을 버리지 마세요.
+
+사진을 열면 전체 버퍼를 유지하고 미리보기 프레임을 **한 장** 만드세요(긴 변 약 1280–1440). 파라미터 조절은 미리보기(`FrameType::Image`)를 처리하고, 내보내기는 같은 setter로 전체 해상도를 한 번 더 처리합니다. 출력 크기는 입력과 같습니다. 카메라 미리보기는 캡처 해상도 + `FrameType::Video`입니다.
+
+```cpp
+preview->type = FrameType::Image;
+auto preview_out = engine->ProcessImage(preview);
+
+full->type = FrameType::Image;
+auto export_out = engine->ProcessImage(full);
+```
+
 ## 강도
 
 실시간에서는 낮게 시작하세요. 리셰이프는 **`[-1.0, 1.0]`**이고, 다른 강도는 `[0.0, 1.0]`입니다.

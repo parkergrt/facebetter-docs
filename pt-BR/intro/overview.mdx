@@ -24,6 +24,10 @@ A faixa de intensidade é `[-1.0, 1.0]`. Veja [Enums de parâmetros](/pt-BR/intr
 
 > Um único quadro suporta até **5 rostos** para remodelagem e maquiagem ao mesmo tempo.
 
+### Remodelagem corporal
+
+Controles de afinamento e proporção: corpo, cintura, pernas, ombros, braços, alongar pernas e realce do busto. A intensidade é `[0.0, 1.0]` (`0` desliga). Exige o pacote opcional `resource_body.fbd` — veja [Pacotes de recursos opcionais](/pt-BR/intro/resource-packs) e [Enums de parâmetros](/pt-BR/intro/makeup). Exige **Pro+** (Free: teste com marca d'água). Veja [Planos e recursos](/pt-BR/intro/pricing).
+
 ### Maquiagem
 
 Maquiagem em camadas: batom, blush, sombra, delineador, sobrancelha, cílios, lentes coloridas e contorno. Intensidade, formato e cor são definidos separadamente. Vários itens podem ser aplicados ao mesmo tempo. Veja [Enums de parâmetros](/pt-BR/intro/makeup).
@@ -45,7 +49,7 @@ Efeitos de adesivo 2D e 3D:
 
 - **Adesivos de tela**: sobrepostos em uma posição fixa no quadro
 - **Adesivos com rastreamento facial**: ancorados aos pontos-chave do rosto e acompanham o movimento da cabeça
-- **Adesivos 3D**: props em malha (óculos, chapéus, máscaras). Exigem o pacote opcional `resource_3d.fbd` — veja [Pacotes de recursos opcionais](/pt-BR/intro/resource-packs)
+- **Adesivos 3D**: props em malha (óculos, chapéus, máscaras). Exigem o pacote opcional `resource_3d.fbd` — veja [Pacotes de recursos opcionais](/pt-BR/intro/resource-packs). Exigem **Pro+** (Free: teste com marca d'água). Veja [Planos e recursos](/pt-BR/intro/pricing)
 
 Os recursos de adesivo (e de filtro) são **arquivos `.fbd`**. Aplique um adesivo 2D por vez com `setSticker` e um adesivo 3D com `set3DSticker` (caminho ou bytes). Remova com `clearSticker` / `clear3DSticker`. O novo recurso passa a valer no próximo quadro processado.
 

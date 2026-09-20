@@ -53,7 +53,9 @@ npm install facebetter@2.0.0
 
 ### プレビューがカクつく
 
-`FrameType.Video` を使い、キャプチャ解像度を制限し（例: 720p）、キーポイントコールバックをオフにし、ループは `requestAnimationFrame` 内に置きます。`engine.getStats().avgProcessTimeMs` を確認できます。
+カメラ: `FrameType.Video` を使い、キャプチャ解像度を制限し（例: 720p）、キーポイントコールバックをオフにし、ループは `requestAnimationFrame` 内に置きます。`engine.getStats().avgProcessTimeMs` を確認できます。
+
+ギャラリーの大きな静止画は、スライダーのたびに原寸を `processImage` に渡さないでください。ファイルを開いたときに小さいプレビューフレームを作り、書き出しで原寸を 1 回処理します。[ベストプラクティス](/ja/web/best-practices#large-stills) を参照してください。
 
 ### SPA でメモリが増え続ける
 

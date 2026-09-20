@@ -12,13 +12,14 @@ Este sitio documenta el **SDK 2.0**.
 1. **Autenticación**: nativo usa `licenseToken` o `appId` + `appKey`. Web usa solo `licenseToken`: obtén el token en tu servidor; nunca pongas `appKey` en el JS del navegador
 2. **Belleza**: `setSmoothing`, `setWhitening`, `setSharpening`, `setRosiness`, `setBeautySkinOnly`, más estilos predefinidos
 3. **Remodelado**: 26 parámetros (`FaceThin` … `BrowThickness`), intensidad `[-1.0, 1.0]`
-4. **Maquillaje**: intensidad + Style (forma) + Color (tinte). Consulta [Enumeraciones de parámetros](./makeup)
-5. **Filtro / sticker**: `setFilter` / `setSticker` con una ruta o bytes `.fbd`; `clearFilter` / `clearSticker`
-6. **Fondo virtual**: desenfoque, sustitución de imagen, croma
-7. **Estadísticas**: `getStats()` — FPS, tiempo medio de proceso, duración de la sesión
-8. **Tipo de fotograma**: `FrameType.Image` / `FrameType.Video`
-9. **Códigos de error**: `0` correcto, `-1` argumento no válido, `-2` no inicializado, `-3` licencia, `-4` no admitido, `-5` IO, `-6` sin slot, `-7` proceso, `-8` memoria insuficiente
-10. **Flutter**: `FBEngine.create(FBEngineConfig)`. El vídeo en directo se procesa de forma nativa con `FacebetterPlugin.processTexture`
+4. **Remodelado corporal**: 7 parámetros (`BodySlim` … `BustEnhance`), intensidad `[0.0, 1.0]`. Requiere el paquete opcional `resource_body.fbd` con `addResourcePack`. **Pro+**. Consulta [Enumeraciones de parámetros](./makeup) y [Paquetes de recursos opcionales](./resource-packs)
+5. **Maquillaje**: intensidad + Style (forma) + Color (tinte). Consulta [Enumeraciones de parámetros](./makeup)
+6. **Filtro / sticker**: `setFilter` / `setSticker` con una ruta o bytes `.fbd`; stickers 3D con `set3DSticker` (requiere `resource_3d.fbd`, **Pro+**). `clearFilter` / `clearSticker` / `clear3DSticker`
+7. **Fondo virtual**: desenfoque, sustitución de imagen, croma
+8. **Estadísticas**: `getStats()` — FPS, tiempo medio de proceso, duración de la sesión
+9. **Tipo de fotograma**: `FrameType.Image` / `FrameType.Video`
+10. **Códigos de error**: `0` correcto, `-1` argumento no válido, `-2` no inicializado, `-3` licencia, `-4` no admitido, `-5` IO, `-6` sin slot, `-7` proceso, `-8` memoria insuficiente
+11. **Flutter**: `FBEngine.create(FBEngineConfig)`. El vídeo en directo se procesa de forma nativa con `FacebetterPlugin.processTexture`
 
 **Eventos** (`onEngineEvent` / Flutter `events`): `0` licencia OK, `1` licencia fallida, `100` init completo, `101` init fallido.
 

@@ -18,6 +18,7 @@ engine.dispose()                            write back vendor textureId
 | 項目 | 要件 |
 | --- | --- |
 | ライブエンジン | `externalContext: true`（デフォルト）。相手のカスタム前処理を開く**前**に `FBEngine.create` |
+| ライブエンジン数 | `externalContext: true` は同時に 1 台。先を `dispose()` する前に 2 台目を `create` すると例外 |
 | フレーム処理 | ネイティブ `FacebetterPlugin.processTexture` のみ。**カレント GL スレッド**で必須 |
 | 静止画 | 別エンジンで `externalContext: false`。ライブエンジンと混用しない |
 | 入力 | 相手が提供する **Texture2D / RGB（`GL_TEXTURE_2D`）** を優先。OES / YUV は先に変換するか、相手ドキュメントに従ってフォーマットを変更 |
@@ -55,7 +56,7 @@ await engine.setFilter(path: '/path/to/filter.fbd');
 | フレーム | ネイティブ `processTexture` | Dart `processFile` / `processImageBytes` / … |
 | 混用 | 静止画 API を呼ばない | 配信 / 会議の前処理に使わない |
 
-**しないでください:** Dart から毎フレームピクセルや texture id を渡す。非 GL スレッドで `processTexture` を呼ぶ。`FBEngine` をプロセス単位シングルトンとして扱う。
+**しないでください:** Dart から毎フレームピクセルや texture id を渡す。非 GL スレッドで `processTexture` を呼ぶ。先のライブエンジンを `dispose` する前に 2 台目の `externalContext: true` を `create` する。
 
 ---
 

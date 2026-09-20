@@ -174,6 +174,23 @@ public enum Reshape {
 
 각 값의 양/음 의미: [파라미터 열거형](/ko/intro/makeup).
 
+## 바디 리셰이프
+
+```java
+public int setBodyReshape(BodyReshape param, float value);
+```
+
+강도 범위 **`[0.0, 1.0]`**. `0`은 꺼짐. 먼저 `addResourcePack`으로 `resource_body.fbd`를 등록하세요. [파라미터 열거형](/ko/intro/makeup)과 [선택 리소스 팩](/ko/intro/resource-packs)을 참고하세요.
+
+```java
+public enum BodyReshape {
+  BODY_SLIM(0), WAIST_SLIM(1), LEG_SLIM(2), SHOULDER_SLIM(3),
+  ARM_SLIM(4), LEG_LONG(5), BUST_ENHANCE(6),
+  LEG_STRETCH(7), TORSO_LONG(8);
+}
+```
+
+
 ## 메이크업
 
 강도 `[0.0, 1.0]`. 강도를 설정한 뒤 스타일(마스크) 및/또는 색상(틴트)을 설정합니다. 동공과 컨투어는 같은 방식의 별도 틴트를 받지 않습니다. [파라미터 열거형](/ko/intro/makeup)을 참고하세요.
@@ -277,7 +294,7 @@ public int clear3DSticker();
 | `setFilterIntensity` | 믹스 `[0.0, 1.0]` |
 | `setSticker` | `.fbd` 경로 또는 바이트에서 2D 스티커 적용 |
 | `clearSticker` | 현재 스티커 제거 |
-| `addResourcePack` | 추가 기능 팩 등록(예: `set3DSticker` 전 `resource_3d.fbd`) |
+| `addResourcePack` | 추가 기능 팩 등록(예: `set3DSticker` 전 `resource_3d.fbd`, `setBodyReshape` 전 `resource_body.fbd`) |
 | `set3DSticker` | `.fbd` 경로 또는 바이트에서 3D 스티커 적용 |
 | `clear3DSticker` | 3D 스티커 제거 |
 

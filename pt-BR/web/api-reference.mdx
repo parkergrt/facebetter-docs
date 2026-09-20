@@ -70,6 +70,10 @@ await engine.init({
 
 `setReshape(param, value)` — `param` é `Reshape.*`, `value` em **`[-1.0, 1.0]`**. Veja [Enums de parâmetros](/pt-BR/intro/makeup).
 
+### Remodelagem corporal
+
+`setBodyReshape(param, value)` — `param` é `BodyReshape.*`, `value` em **`[0.0, 1.0]`**. Registre `resource_body.fbd` com `addResourcePack` primeiro. Veja [Enums de parâmetros](/pt-BR/intro/makeup) e [Pacotes de recursos opcionais](/pt-BR/intro/resource-packs).
+
 ### Maquiagem
 
 Intensidade `[0, 1]`. Enums de estilo / cor: [Enums de parâmetros](/pt-BR/intro/makeup).
@@ -94,7 +98,7 @@ Intensidade `[0, 1]`. Enums de estilo / cor: [Enums de parâmetros](/pt-BR/intro
 | `setFilterIntensity(intensity)` | `[0, 1]` |
 | `setSticker(path \| Uint8Array)` | Aplicar um adesivo 2D `.fbd` |
 | `clearSticker()` | Remover o adesivo |
-| `addResourcePack(path \| Uint8Array)` | Registrar um pacote extra de capacidade (por exemplo `resource_3d.fbd` antes de `set3DSticker`) |
+| `addResourcePack(path \| Uint8Array)` | Registrar um pacote extra (`resource_3d.fbd` antes de `set3DSticker`, ou `resource_body.fbd` antes de `setBodyReshape`) |
 | `set3DSticker(path \| Uint8Array)` | Aplicar um adesivo 3D `.fbd` |
 | `clear3DSticker()` | Remover o adesivo 3D |
 

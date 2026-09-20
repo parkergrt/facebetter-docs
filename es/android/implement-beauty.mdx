@@ -161,6 +161,17 @@ engine.setReshape(Reshape.CHIN, -0.2f);
 
 Los 26 parámetros (`FACE_THIN` … `BROW_THICKNESS`) y las direcciones positiva / negativa: [Enumeraciones de parámetros](/es/intro/makeup).
 
+## Remodelado corporal
+
+Rango **`[0.0, 1.0]`**. `0` desactiva. Registra `resource_body.fbd` con `addResourcePack` primero (no está en el AAR). Consulta [Enumeraciones de parámetros](/es/intro/makeup) y [Paquetes de recursos opcionales](/es/intro/resource-packs).
+
+```java
+engine.addResourcePack(loadAssetBytes("resource_body.fbd"));
+engine.setBodyReshape(BodyReshape.WAIST_SLIM, 0.4f);
+engine.setBodyReshape(BodyReshape.LEG_STRETCH, 0.3f);
+engine.setBodyReshape(BodyReshape.TORSO_LONG, 0.3f);
+```
+
 ## Maquillaje
 
 Configura primero la intensidad y luego el estilo y/o el color.

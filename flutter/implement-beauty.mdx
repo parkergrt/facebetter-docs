@@ -52,7 +52,7 @@ final engine = await FBEngine.create(FBEngineConfig(
 | --- | --- | --- |
 | `appId` / `appKey` | — | Online auth |
 | `licenseToken` | — | token / `{token}` JSON / `.lic` contents |
-| `enableLandmarks` | `false` | Engine-level; cannot change later. Keep `false` unless you read landmarks |
+| `enableLandmarks` | `false` | Engine-level; cannot change later. Flutter has no landmark callback — keep `false` |
 | `externalContext` | `true` | `true` for third-party live preprocess; `false` for photo file APIs |
 | `resourcePath` | plugin | Android AAR `resource.fbd` / iOS framework file |
 
@@ -79,6 +79,15 @@ Reshape **`[-1.0, 1.0]`**:
 ```dart
 engine.setReshape(FBReshape.faceThin, 0.3);
 engine.setReshape(FBReshape.eyeSize, 0.2);
+```
+
+Body reshape **`[0.0, 1.0]`**. Register `resource_body.fbd` first. See [Parameter enums](/intro/makeup) and [Optional resource packs](/intro/resource-packs):
+
+```dart
+await engine.addResourcePack(path: '/path/to/resource_body.fbd');
+engine.setBodyReshape(FBBodyReshape.waistSlim, 0.4);
+engine.setBodyReshape(FBBodyReshape.legStretch, 0.3);
+engine.setBodyReshape(FBBodyReshape.torsoLong, 0.3);
 ```
 
 Makeup (intensity + style/color). Full enums: [Parameter enums](/intro/makeup).

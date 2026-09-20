@@ -12,13 +12,14 @@ description: "Facebetter SDK リリースノート"
 1. **認証**: ネイティブは `licenseToken` または `appId` + `appKey`。Web は `licenseToken` のみ — トークンは自社サーバーで取得し、ブラウザ JS に `appKey` を入れないでください
 2. **美顔**: `setSmoothing`、`setWhitening`、`setSharpening`、`setRosiness`、`setBeautySkinOnly`、およびスタイルプリセット
 3. **リシェイプ**: 26 パラメータ（`FaceThin` … `BrowThickness`）、強度 `[-1.0, 1.0]`
-4. **メイク**: 強度 + Style（形状）+ Color（着色）。[パラメータ列挙](/ja/intro/makeup) を参照してください
-5. **フィルター / ステッカー**: `setFilter` / `setSticker` に `.fbd` のパスまたはバイト。`clearFilter` / `clearSticker`
-6. **バーチャル背景**: ぼかし、画像置換、クロマキー
-7. **統計**: `getStats()` — FPS、平均処理時間、セッション時間
-8. **フレームタイプ**: `FrameType.Image` / `FrameType.Video`
-9. **エラーコード**: `0` 成功、`-1` 引数不正、`-2` 未初期化、`-3` ライセンス、`-4` 非対応、`-5` IO、`-6` スロットなし、`-7` 処理、`-8` メモリ不足
-10. **Flutter**: `FBEngine.create(FBEngineConfig)`。ライブ動画はネイティブの `FacebetterPlugin.processTexture` で処理します
+4. **ボディリシェイプ**: 7 パラメータ（`BodySlim` … `BustEnhance`）、強度 `[0.0, 1.0]`。オプションパック `resource_body.fbd` を `addResourcePack` で登録します。**Pro+**。[パラメータ列挙](/ja/intro/makeup) と [オプションリソースパック](/ja/intro/resource-packs) を参照してください
+5. **メイク**: 強度 + Style（形状）+ Color（着色）。[パラメータ列挙](/ja/intro/makeup) を参照してください
+6. **フィルター / ステッカー**: `setFilter` / `setSticker` に `.fbd` のパスまたはバイト。3D ステッカーは `set3DSticker`（`resource_3d.fbd` が必要、**Pro+**）。`clearFilter` / `clearSticker` / `clear3DSticker`
+7. **バーチャル背景**: ぼかし、画像置換、クロマキー
+8. **統計**: `getStats()` — FPS、平均処理時間、セッション時間
+9. **フレームタイプ**: `FrameType.Image` / `FrameType.Video`
+10. **エラーコード**: `0` 成功、`-1` 引数不正、`-2` 未初期化、`-3` ライセンス、`-4` 非対応、`-5` IO、`-6` スロットなし、`-7` 処理、`-8` メモリ不足
+11. **Flutter**: `FBEngine.create(FBEngineConfig)`。ライブ動画はネイティブの `FacebetterPlugin.processTexture` で処理します
 
 **イベント**（`onEngineEvent` / Flutter `events`）: `0` ライセンス成功、`1` ライセンス失敗、`100` 初期化完了、`101` 初期化失敗。
 

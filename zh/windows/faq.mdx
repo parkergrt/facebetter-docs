@@ -46,7 +46,7 @@ SDK **2.0.0**。与 Linux 共用 C++ API。[参数枚举](/zh/intro/makeup) · [
 
 ### 预览卡顿
 
-降低分辨率，使用 `FrameType::Video`，减少贴纸 / 虚拟背景，查看 `GetStats().avg_process_time_ms`。不要每帧从文件创建 `ImageFrame`，应直接喂摄像头缓冲。
+降低分辨率，使用 `FrameType::Video`，减少贴纸 / 虚拟背景，查看 `GetStats().avg_process_time_ms`。不要每帧从文件创建 `ImageFrame`，应直接喂摄像头缓冲。相册大图：打开时做较小预览帧，导出再打原图。见 [最佳实践](/zh/windows/best-practices#large-stills)。
 
 ### 内存占用高
 

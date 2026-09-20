@@ -1,6 +1,6 @@
 ---
 title: "Enumeraciones de parámetros"
-description: "Enumeraciones de remodelado, maquillaje, blanqueamiento y suavizado del SDK Facebetter 2.0"
+description: "Enumeraciones de remodelado facial, remodelado corporal, maquillaje, blanqueamiento y suavizado del SDK Facebetter 2.0"
 ---
 
 <Note>
@@ -43,6 +43,10 @@ Se usa con `SetSmoothingStyle`. La intensidad sigue siendo `SetSmoothing`. Prede
 
 Se usa con `SetReshape(param, intensity)`. El rango es **`[-1.0, 1.0]`**. `0` desactiva el efecto. Positivo y negativo son direcciones opuestas (por ejemplo FaceThin: adelgazar / mejillas más llenas).
 
+<Note>
+El remodelado facial está disponible desde **Pro**. Free puede probarlo con marca de agua. Consulta [Planes y funciones](./pricing).
+</Note>
+
 | Valor | Nombre | Positivo / negativo |
 | --- | --- | --- |
 | 0 | `FaceThin` | Adelgazar el rostro / mejillas más llenas |
@@ -73,6 +77,30 @@ Se usa con `SetReshape(param, intensity)`. El rango es **`[-1.0, 1.0]`**. `0` de
 | 25 | `BrowThickness` | Cejas más gruesas / más finas |
 
 Los nombres Java son `SNAKE_CASE` (`FACE_THIN`, `FACE_V_SHAPE`, …). Objective-C usa `FBReshape_FaceThin`. Dart usa `FBReshape.faceThin`.
+
+## Remodelado corporal (`BodyReshape`)
+
+Se usa con `SetBodyReshape(param, intensity)`. El rango es **`[0.0, 1.0]`**. `0` desactiva el efecto. A diferencia del remodelado facial, estos valores no son bipolares.
+
+<Note>
+El remodelado corporal requiere **Pro+**. Free puede probarlo con marca de agua. Consulta [Planes y funciones](./pricing).
+</Note>
+
+Requiere el paquete opcional `resource_body.fbd`, salvo `LegStretch` y `TorsoLong`. Regístralo con `AddResourcePack` / `addResourcePack` **antes** de `SetBodyReshape` / `setBodyReshape` basados en pose. Consulta [Paquetes de recursos opcionales](./resource-packs).
+
+| Valor | Nombre | Significado |
+| --- | --- | --- |
+| 0 | `BodySlim` | Adelgazar el cuerpo |
+| 1 | `WaistSlim` | Adelgazar la cintura |
+| 2 | `LegSlim` | Adelgazar las piernas |
+| 3 | `ShoulderSlim` | Estrechar los hombros |
+| 4 | `ArmSlim` | Adelgazar los brazos |
+| 5 | `LegLong` | Alargar las piernas a lo largo del esqueleto |
+| 6 | `BustEnhance` | Realzar el busto |
+| 7 | `LegStretch` | Estirar por debajo de la cintura (solo cara; sin `resource_body.fbd`) |
+| 8 | `TorsoLong` | Alargar el torso de barbilla a cintura (solo cara; sin `resource_body.fbd`) |
+
+Los nombres Java son `SNAKE_CASE` (`BODY_SLIM`, `WAIST_SLIM`, …). Objective-C usa `FBBodyReshape_BodySlim`. Dart usa `FBBodyReshape.bodySlim`.
 
 ## Labial (`LipstickColor`)
 

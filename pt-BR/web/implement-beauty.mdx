@@ -96,6 +96,20 @@ engine.setReshape(Reshape.EyeSize, 0.2);
 
 A faixa é **`[-1.0, 1.0]`**. `0` desliga. Positivo e negativo são direções opostas (por exemplo `FaceThin`: afinar / bochechas mais cheias). Lista completa: [Enums de parâmetros](/pt-BR/intro/makeup).
 
+## Remodelagem corporal
+
+```javascript
+const bodyPack = new Uint8Array(
+  await (await fetch('/resource_body.fbd')).arrayBuffer()
+);
+engine.addResourcePack(bodyPack);
+engine.setBodyReshape(BodyReshape.WaistSlim, 0.4);
+engine.setBodyReshape(BodyReshape.LegStretch, 0.3);
+engine.setBodyReshape(BodyReshape.TorsoLong, 0.3);
+```
+
+A faixa é **`[0.0, 1.0]`**. `0` desliga. Busque `resource_body.fbd` e chame `addResourcePack` após `init()`. Lista: [Enums de parâmetros](/pt-BR/intro/makeup). Pacotes: [Pacotes de recursos opcionais](/pt-BR/intro/resource-packs).
+
 ## Maquiagem
 
 Intensidade, formato e cor são setters separados. A intensidade é `[0.0, 1.0]`. Predefinições: [Enums de parâmetros](/pt-BR/intro/makeup).

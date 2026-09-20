@@ -124,6 +124,19 @@ virtual int SetReshape(beauty_params::Reshape param, float intensity) = 0;
 engine->SetReshape(Reshape::FaceThin, 0.4f);
 ```
 
+### Remodelagem corporal
+
+```cpp
+virtual int SetBodyReshape(beauty_params::BodyReshape param, float intensity) = 0;
+```
+
+`intensity` é **`[0.0, 1.0]`**. `0` desliga. Exige `resource_body.fbd` (ao lado de `resource.fbd`, ou `AddResourcePack`). Lista: [Enums de parâmetros](/pt-BR/intro/makeup). Pacotes: [Pacotes de recursos opcionais](/pt-BR/intro/resource-packs).
+
+```cpp
+engine->SetBodyReshape(BodyReshape::WaistSlim, 0.4f);
+```
+
+
 ### Maquiagem
 
 Cada efeito tem intensidade mais Style (máscara) e/ou Color (tintura). Batom: só Color. Pupila: só Color. Contorno: só Style.
@@ -210,7 +223,7 @@ virtual int Set3DSticker(const std::vector<uint8_t>& fbd_data) = 0;
 virtual int Clear3DSticker() = 0;
 ```
 
-Carregue primeiro o pacote 3D opcional. Veja [Pacotes de recursos opcionais](/pt-BR/intro/resource-packs).
+Carregue primeiro os pacotes opcionais (`resource_3d.fbd` para adesivos 3D, `resource_body.fbd` para remodelagem corporal). Veja [Pacotes de recursos opcionais](/pt-BR/intro/resource-packs).
 
 ### Estatísticas, callbacks, processamento
 

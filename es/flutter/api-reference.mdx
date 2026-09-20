@@ -45,7 +45,7 @@ static void setLogConfig({
 void dispose()
 ```
 
-Crea una instancia con `FBEngine.create`. No es un singleton de proceso.
+Crea una instancia con `FBEngine.create`. No es un singleton de proceso. Como máximo un motor con `externalContext: true` puede vincularse a `processTexture` a la vez.
 
 Belleza / remodelado / maquillaje / croma / desenfoque / `clear*` / `setFilterIntensity` son **síncronos**. Las APIs de filtro, sticker, **imagen** de fondo y foto devuelven **`Future`**.
 
@@ -56,6 +56,10 @@ Belleza / remodelado / maquillaje / croma / desenfoque / `clear*` / `setFilterIn
 ### Remodelado
 
 `setReshape(FBReshape param, double intensity)` — **`[-1.0, 1.0]`**. Nombres Dart: `FBReshape.faceThin`, `faceVShape`, … `browThickness`. Tablas: [Enumeraciones de parámetros](/es/intro/makeup).
+
+### Remodelado corporal
+
+`setBodyReshape(FBBodyReshape param, double intensity)` — **`[0.0, 1.0]`**. Nombres Dart: `FBBodyReshape.bodySlim` … `torsoLong`. Registra `resource_body.fbd` con `addResourcePack` primero. Tablas: [Enumeraciones de parámetros](/es/intro/makeup). Paquetes: [Paquetes de recursos opcionales](/es/intro/resource-packs).
 
 ### Maquillaje
 
@@ -95,7 +99,7 @@ void setChromaKeySmoothness(double value)
 void setChromaKeyDesaturation(double value)
 ```
 
-`path` y `data` son mutuamente excluyentes; hace falta exactamente uno. Para stickers 3D consulta [Paquetes de recursos opcionales](/es/intro/resource-packs).
+`path` y `data` son mutuamente excluyentes; hace falta exactamente uno. Para stickers 3D y remodelado corporal consulta [Paquetes de recursos opcionales](/es/intro/resource-packs).
 
 ### Foto
 
@@ -152,12 +156,10 @@ Se lanza cuando una llamada nativa devuelve `< 0`.
 
 - `FBBitmap` — `width`, `height`, `stride`, `pixels` (copia RGBA8888)
 - `FBLogLevel` — `trace` … `critical`
-- `FBMirror` — `none`, `horizontal`, `vertical`, `both` (normalmente no se usa en el camino de textura en directo)
-- `FBFace` / `FBFaceList` / `FBRect` — vistas de landmarks (`kLandmarkCount` = 111) cuando `enableLandmarks: true`
 
 ## Textura nativa (no Dart)
 
-Tras `create` con `externalContext: true`, llama en el **hilo GL del SDK del vendor**:
+Tras `create` con `externalContext: true`, llama en el **hilo GL del SDK del vendor**. Solo puede haber un motor en directo vinculado; un segundo `create(externalContext: true)` lanza hasta que hagas `dispose()` del primero. Los motores de foto (`externalContext: false`) no se vinculan.
 
 - iOS: `[FacebetterPlugin processTexture:width:height:]`
 - Android: `FacebetterPlugin.processTexture(textureId, width, height)`

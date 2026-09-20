@@ -46,7 +46,7 @@ Use `SetVirtualBackgroundBlur`, `SetVirtualBackground(path|bytes)`, `ClearVirtua
 
 ### Preview is slow
 
-Lower resolution, use `FrameType::Video`, reduce stickers / virtual background, and check `GetStats().avg_process_time_ms`. Avoid recreating `ImageFrame` from files every frame — feed camera buffers.
+Lower resolution, use `FrameType::Video`, reduce stickers / virtual background, and check `GetStats().avg_process_time_ms`. Avoid recreating `ImageFrame` from files every frame — feed camera buffers. For large gallery stills, build a smaller preview frame when the photo opens and export the original once. See [Best practices](/windows/best-practices#large-stills).
 
 ### High memory
 

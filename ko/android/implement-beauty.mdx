@@ -161,6 +161,17 @@ engine.setReshape(Reshape.CHIN, -0.2f);
 
 26개 파라미터 전체(`FACE_THIN` … `BROW_THICKNESS`)와 양/음 방향: [파라미터 열거형](/ko/intro/makeup).
 
+## 바디 리셰이프
+
+범위 **`[0.0, 1.0]`**. `0`은 꺼짐. 먼저 `addResourcePack`으로 `resource_body.fbd`를 등록하세요(AAR에 없음). [파라미터 열거형](/ko/intro/makeup)과 [선택 리소스 팩](/ko/intro/resource-packs)을 참고하세요.
+
+```java
+engine.addResourcePack(loadAssetBytes("resource_body.fbd"));
+engine.setBodyReshape(BodyReshape.WAIST_SLIM, 0.4f);
+engine.setBodyReshape(BodyReshape.LEG_STRETCH, 0.3f);
+engine.setBodyReshape(BodyReshape.TORSO_LONG, 0.3f);
+```
+
 ## 메이크업
 
 강도를 설정한 뒤 스타일 및/또는 색상을 설정합니다.

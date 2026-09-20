@@ -18,6 +18,7 @@ engine.dispose()                            写回对方 textureId
 | 项 | 要求 |
 | --- | --- |
 | 实时引擎 | `externalContext: true`（默认）；在打开对方自定义前处理**之前** `FBEngine.create` |
+| 实时引擎数量 | 同时最多一台 `externalContext: true`；未 `dispose` 前再 `create` 会抛错 |
 | 帧处理 | 仅原生 `FacebetterPlugin.processTexture`；必须在**当前 GL 线程** |
 | 静图 | 另建一台引擎且 `externalContext: false`；不要与实时引擎混用 |
 | 输入 | 优先对方提供的 **Texture2D / RGB（`GL_TEXTURE_2D`）**；OES / YUV 需先转换或按对方文档改格式 |
@@ -55,7 +56,7 @@ await engine.setFilter(path: '/path/to/filter.fbd');
 | 帧 | 原生 `processTexture` | Dart `processFile` / `processImageBytes` / … |
 | 混用 | 不要调静图接口 | 不要用于推流 / 会议前处理 |
 
-**不要：** 从 Dart 每帧传像素或 texture id；在非 GL 线程调 `processTexture`；把 `FBEngine` 当进程级单例。
+**不要：** 从 Dart 每帧传像素或 texture id；在非 GL 线程调 `processTexture`；未 `dispose` 第一台实时引擎前再 `create` 第二台。
 
 ---
 

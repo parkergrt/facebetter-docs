@@ -18,6 +18,7 @@ engine.dispose()                            Write back vendor textureId
 | Item | Requisito |
 | --- | --- |
 | Mecanismo ao vivo | `externalContext: true` (padrão); `FBEngine.create` **antes** de ativar o pré-processamento personalizado do fornecedor |
+| Mecanismos ao vivo | No máximo um com `externalContext: true`; um segundo `create` lança até você dar `dispose()` no primeiro |
 | Quadros | Somente `FacebetterPlugin.processTexture` nativo; precisa rodar no **thread GL atual** |
 | Stills | Mecanismo separado com `externalContext: false`; nunca misture com o mecanismo ao vivo |
 | Entrada | Prefira **Texture2D / RGB (`GL_TEXTURE_2D`)** do fornecedor; converta OES / YUV primeiro ou mude o formato conforme a documentação do fornecedor |
@@ -55,7 +56,7 @@ Credenciais: [Assinatura](/pt-BR/intro/enable-service), [Autenticação e licen�
 | Quadros | `processTexture` nativo | Dart `processFile` / `processImageBytes` / … |
 | Mistura | Sem APIs de foto | Não para pré-processamento ao vivo / reunião |
 
-**Não:** envie pixels ou ids de textura do Dart a cada quadro; chame `processTexture` fora do thread GL; trate `FBEngine` como um singleton de processo.
+**Não:** envie pixels ou ids de textura do Dart a cada quadro; chame `processTexture` fora do thread GL; crie um segundo mecanismo `externalContext: true` antes de dar `dispose` no primeiro.
 
 ---
 

@@ -46,7 +46,7 @@ Usa `SetVirtualBackgroundBlur`, `SetVirtualBackground(path|bytes)`, `ClearVirtua
 
 ### La vista previa es lenta
 
-Baja la resolución, usa `FrameType::Video`, reduce stickers / fondo virtual y revisa `GetStats().avg_process_time_ms`. Evita recrear `ImageFrame` desde archivos en cada fotograma: alimenta buffers de cámara.
+Baja la resolución, usa `FrameType::Video`, reduce stickers / fondo virtual y revisa `GetStats().avg_process_time_ms`. Evita recrear `ImageFrame` desde archivos en cada fotograma: alimenta buffers de cámara. En fotos grandes de galería, crea un fotograma de vista previa más pequeño al abrir y exporta el original una vez. Véase [Prácticas recomendadas](/es/windows/best-practices#large-stills).
 
 ### Memoria alta
 

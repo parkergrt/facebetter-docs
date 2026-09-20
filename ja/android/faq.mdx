@@ -66,6 +66,7 @@ description: "Android Facebetter SDK 2.0 のよくある質問"
 - 同時に使うリシェイプ / メイク / バーチャル背景を減らしてください
 - `processImage` はメインスレッド以外（カメラまたは GL スレッド）で実行してください
 - `engine.getStats().avgProcessTimeMs` を確認してください
+- ギャラリーの大きな静止画: 開いたときに小さいプレビューフレームを作り、書き出しで原寸を 1 回処理します。[ベストプラクティス](/ja/android/best-practices#large-stills) を参照してください
 
 ### メモリが増え続ける、またはネイティブクラッシュする
 

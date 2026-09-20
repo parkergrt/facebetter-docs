@@ -46,7 +46,8 @@ demo/cpp/sdk/
 │   └── facebetter.dll      ← runtime DLL
 └── resource/
     ├── resource.fbd        ← models and assets (required)
-    └── resource_3d.fbd     ← optional; 3D stickers. Place next to `resource.fbd` or call `AddResourcePack`
+    ├── resource_3d.fbd     ← optional; 3D stickers. Place next to `resource.fbd` or call `AddResourcePack`
+    └── resource_body.fbd   ← optional; body reshape. Place next to `resource.fbd` or call `AddResourcePack`
 ```
 
 <Warning>
@@ -98,6 +99,7 @@ A janela mostra:
 - **Painel direito** — Painel de controle de beleza:
   - **Beleza básica**: suavização / clareamento / tom rosado / nitidez
   - **Remodelagem facial**: 26 parâmetros de remodelagem (faixa `[-1.0, 1.0]`)
+  - **Remodelagem corporal**: 7 parâmetros (faixa `[0.0, 1.0]`; precisa de `resource_body.fbd`)
   - **Maquiagem**: batom / blush / sombra / delineador / sobrancelha / cílios / pupila / contorno
   - **Filtro / adesivo / fundo virtual**
 

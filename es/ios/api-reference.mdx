@@ -94,6 +94,7 @@ FB_OBJC_API @interface FBBeautyEffectEngine : NSObject
 - (int)setSharpening:(float)intensity;
 - (int)setRosiness:(float)intensity;
 - (int)setReshape:(FBReshape)param intensity:(float)value;
+- (int)setBodyReshape:(FBBodyReshape)param intensity:(float)value;
 - (int)setBeautySkinOnly:(BOOL)enabled;
 
 - (int)setLipstick:(float)intensity;
@@ -197,6 +198,25 @@ typedef NS_ENUM(NSInteger, FBReshape) {
 };
 ```
 
+### Remodelado corporal
+
+`setBodyReshape:intensity:` — intensidad **`[0.0, 1.0]`**, `0` desactiva. Registra `resource_body.fbd` con `addResourcePack:` primero. `FBBodyReshape` valores `0`–`8`. Consulta [Enumeraciones de parámetros](/es/intro/makeup) y [Paquetes de recursos opcionales](/es/intro/resource-packs).
+
+```objc
+typedef NS_ENUM(NSInteger, FBBodyReshape) {
+  FBBodyReshape_BodySlim = 0,
+  FBBodyReshape_WaistSlim = 1,
+  FBBodyReshape_LegSlim = 2,
+  FBBodyReshape_ShoulderSlim = 3,
+  FBBodyReshape_ArmSlim = 4,
+  FBBodyReshape_LegLong = 5,
+  FBBodyReshape_BustEnhance = 6,
+  FBBodyReshape_LegStretch = 7,
+  FBBodyReshape_TorsoLong = 8,
+};
+```
+
+
 `FBSmoothingStyle`: `Natural`, `Texture`, `Smooth`. `FBWhiteningStyle`: `ColdWhite`, `PinkWhite`, `WarmWhite`, `Wheat`, `Tan`.
 
 ### Maquillaje
@@ -248,7 +268,7 @@ No hay registro por ID. Ruta o bytes; los recursos GPU se crean en el siguiente 
 | `setFilterIntensity:` | `[0, 1]` |
 | `setSticker:` | Ruta `.fbd` del sticker 2D |
 | `setStickerWithData:` | Bytes del sticker |
-| `addResourcePack:` | Ruta del paquete de capacidad extra (por ejemplo `resource_3d.fbd` antes de `set3DSticker:`) |
+| `addResourcePack:` | Ruta del paquete extra (`resource_3d.fbd` antes de `set3DSticker:`, o `resource_body.fbd` antes de `setBodyReshape:`) |
 | `addResourcePackWithData:` | Bytes del paquete extra |
 | `set3DSticker:` | Ruta `.fbd` del sticker 3D |
 | `set3DStickerWithData:` | Bytes del sticker 3D |

@@ -94,6 +94,7 @@ FB_OBJC_API @interface FBBeautyEffectEngine : NSObject
 - (int)setSharpening:(float)intensity;
 - (int)setRosiness:(float)intensity;
 - (int)setReshape:(FBReshape)param intensity:(float)value;
+- (int)setBodyReshape:(FBBodyReshape)param intensity:(float)value;
 - (int)setBeautySkinOnly:(BOOL)enabled;
 
 - (int)setLipstick:(float)intensity;
@@ -197,6 +198,25 @@ typedef NS_ENUM(NSInteger, FBReshape) {
 };
 ```
 
+### 美体
+
+`setBodyReshape:intensity:` — 强度 **`[0.0, 1.0]`**，`0` 关闭。需先用 `addResourcePack:` 加载 `resource_body.fbd`。`FBBodyReshape` 取值 `0`–`8`。见 [参数枚举](/zh/intro/makeup) 与 [可选资源包](/zh/intro/resource-packs)。
+
+```objc
+typedef NS_ENUM(NSInteger, FBBodyReshape) {
+  FBBodyReshape_BodySlim = 0,
+  FBBodyReshape_WaistSlim = 1,
+  FBBodyReshape_LegSlim = 2,
+  FBBodyReshape_ShoulderSlim = 3,
+  FBBodyReshape_ArmSlim = 4,
+  FBBodyReshape_LegLong = 5,
+  FBBodyReshape_BustEnhance = 6,
+  FBBodyReshape_LegStretch = 7,
+  FBBodyReshape_TorsoLong = 8,
+};
+```
+
+
 `FBSmoothingStyle`：`Natural`、`Texture`、`Smooth`。`FBWhiteningStyle`：`ColdWhite`、`PinkWhite`、`WarmWhite`、`Wheat`、`Tan`。
 
 ### 美妆
@@ -248,7 +268,7 @@ typedef NS_ENUM(NSInteger, FBChromaKeyColor) {
 | `setFilterIntensity:` | `[0, 1]` |
 | `setSticker:` | 2D 贴纸 `.fbd` 路径 |
 | `setStickerWithData:` | 贴纸字节 |
-| `addResourcePack:` | 额外能力包路径（例如 3D 贴纸前加载 `resource_3d.fbd`） |
+| `addResourcePack:` | 额外能力包路径（3D 贴纸前加载 `resource_3d.fbd`，美体前加载 `resource_body.fbd`） |
 | `addResourcePackWithData:` | 额外包字节 |
 | `set3DSticker:` | 3D 贴纸 `.fbd` 路径 |
 | `set3DStickerWithData:` | 3D 贴纸字节 |

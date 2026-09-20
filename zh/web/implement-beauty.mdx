@@ -96,6 +96,20 @@ engine.setReshape(Reshape.EyeSize, 0.2);
 
 范围是 **`[-1.0, 1.0]`**。`0` 为关闭。正负是相反方向（例如 `FaceThin`：瘦脸 / 丰颊）。完整列表：[参数枚举](/zh/intro/makeup)。
 
+## 美体
+
+```javascript
+const bodyPack = new Uint8Array(
+  await (await fetch('/resource_body.fbd')).arrayBuffer()
+);
+engine.addResourcePack(bodyPack);
+engine.setBodyReshape(BodyReshape.WaistSlim, 0.4);
+engine.setBodyReshape(BodyReshape.LegStretch, 0.3);
+engine.setBodyReshape(BodyReshape.TorsoLong, 0.3);
+```
+
+范围是 **`[0.0, 1.0]`**。`0` 关闭。先在 `init()` 之后拉取 `resource_body.fbd` 并 `addResourcePack`。完整列表：[参数枚举](/zh/intro/makeup)。资源包：[可选资源包](/zh/intro/resource-packs)。
+
 ## 美妆
 
 强度、形状、色号分开设置。强度 `[0.0, 1.0]`。预设见 [参数枚举](/zh/intro/makeup)。

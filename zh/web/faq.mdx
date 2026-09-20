@@ -53,7 +53,9 @@ npm install facebetter@2.0.0
 
 ### 预览卡
 
-使用 `FrameType.Video`，限制采集分辨率（例如 720p），不要开关键点回调，循环放在 `requestAnimationFrame` 里。可看 `engine.getStats().avgProcessTimeMs`。
+摄像头：使用 `FrameType.Video`，限制采集分辨率（例如 720p），不要开关键点回调，循环放在 `requestAnimationFrame` 里。可看 `engine.getStats().avgProcessTimeMs`。
+
+相册 / 影楼大图不要把原图每滑一次送进 `processImage`。打开文件时做一份较小的预览帧，导出时再处理原图一次。见 [最佳实践](/zh/web/best-practices#large-stills)。
 
 ### SPA 里内存一直涨
 

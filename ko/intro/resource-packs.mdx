@@ -1,44 +1,62 @@
 ---
 title: "선택 리소스 팩"
-description: "resource_3d.fbd 같은 추가 기능 팩을 다운로드하고 AddResourcePack으로 등록합니다"
+description: "resource_3d.fbd, resource_body.fbd 같은 추가 기능 팩을 다운로드하고 AddResourcePack으로 등록합니다"
 ---
 
 SDK는 2D 뷰티, 메이크업, 필터, 2D 스티커용 핵심 런타임 팩 `resource.fbd`(약 7 MB)를 함께 제공합니다.
 
-3D 스티커에는 **선택** 팩 `resource_3d.fbd`(약 9 MB)가 필요합니다. 이 파일은 iOS / Android / Web SDK에 **포함되어 있지 않습니다**. 연동 시 직접 다운로드하고, `Set3DSticker` / `set3DSticker` **이전에** `AddResourcePack` / `addResourcePack`으로 등록하세요.
+일부 기능에는 **선택** 팩이 필요합니다. 이 파일들은 iOS / Android / Web SDK에 **포함되어 있지 않습니다**. 연동 시 직접 다운로드하고, 해당 setter **이전에** `AddResourcePack` / `addResourcePack`으로 각각 등록하세요.
 
-`resource_3d.fbd`는 [GitHub Release](https://github.com/pixpark/facebetter-sdk/releases)에서 다운로드합니다([다운로드 페이지](https://facebetter.net/ko/download)에도 미러가 있습니다).
+| 팩 | 크기 | 호출 전 필요 |
+| --- | --- | --- |
+| `resource_3d.fbd` | 약 9 MB | `Set3DSticker` / `set3DSticker` |
+| `resource_body.fbd` | 약 8.5 MB | 포즈 기반 `SetBodyReshape` (`LegStretch` / `TorsoLong` 제외) |
+
+<Note>
+3D 스티커와 바디 리셰이프에는 **Pro+**가 필요합니다. Free에서는 워터마크와 함께 체험할 수 있습니다. [요금제 및 기능](./pricing)을 참고하세요.
+</Note>
+
+[GitHub Release](https://github.com/pixpark/facebetter-sdk/releases)에서 다운로드합니다([다운로드 페이지](https://facebetter.net/ko/download)에도 미러가 있습니다).
 
 ## 조회 방식
 
-엔진은 핵심 팩과 추가한 모든 팩을 검색합니다. 파일은 **팩 내부 상대 경로**(예: `tddfa/models/mb05_120x120.mnn`)로 식별됩니다. 팩 간에 내부 경로가 겹치지 않도록 유지하세요. 기능마다 고유 접두사(`tddfa/…`, 이후 `body/…`)를 사용합니다. 두 팩에 같은 경로가 있으면 **마지막** `AddResourcePack`이 적용됩니다.
+엔진은 핵심 팩과 추가한 모든 팩을 검색합니다. 파일은 **팩 내부 상대 경로**로 식별됩니다. 팩 간에 내부 경로가 겹치지 않도록 유지하세요. 기능마다 고유 접두사(`tddfa/…`, `body/…`)를 사용합니다. 두 팩에 같은 경로가 있으면 **마지막** `AddResourcePack`이 적용됩니다.
 
 각 `.fbd`는 별도의 호출로 등록하세요. 팩 파일을 이어 붙이지 **마세요**.
 
 ## 데스크톱 (Windows / Linux / C++)
 
-`resource_3d.fbd`를 `resource.fbd`와 같은 디렉터리에 두면 엔진이 자동으로 로드합니다. `AddResourcePack`을 명시적으로 호출해도 됩니다.
+`resource_3d.fbd` 및/또는 `resource_body.fbd`를 `resource.fbd`와 같은 디렉터리에 두면 엔진이 자동으로 로드합니다. `AddResourcePack`을 명시적으로 호출해도 됩니다.
 
 ```cpp
 engine->AddResourcePack("resource/resource_3d.fbd");
 engine->Set3DSticker("assets/stickers/3d/oculos.fbd");
 engine->Clear3DSticker();
+
+engine->AddResourcePack("resource/resource_body.fbd");
+engine->SetBodyReshape(BodyReshape::WaistSlim, 0.4f);
 ```
 
 ## iOS / macOS / Android / Flutter / Web
 
-모바일과 Web SDK는 `resource_3d.fbd`를 **내장하지 않습니다**. **앱**에서 파일을 복사하거나 가져온 뒤 `addResourcePack`(경로 또는 바이트)을 호출하세요.
+모바일과 Web SDK는 이러한 선택 팩을 **내장하지 않습니다**. **앱에서** 파일을 복사하거나 가져온 뒤 `addResourcePack`(경로 또는 바이트)을 호출하세요.
 
 ```javascript
-const pack = new Uint8Array(
+const pack3d = new Uint8Array(
   await (await fetch('/resource_3d.fbd')).arrayBuffer()
 );
-engine.addResourcePack(pack);
+engine.addResourcePack(pack3d);
 engine.set3DSticker('/stickers/3d/oculos.fbd');
+
+const packBody = new Uint8Array(
+  await (await fetch('/resource_body.fbd')).arrayBuffer()
+);
+engine.addResourcePack(packBody);
+engine.setBodyReshape(BodyReshape.WaistSlim, 0.4);
 ```
 
-2D 스티커는 계속 `setSticker`만 사용합니다. `addResourcePack`은 스티커 에셋이 아니라 기능 모델용입니다.
+2D 스티커는 계속 `setSticker`만 사용합니다. `addResourcePack`은 기능 모델용이며 스티커 에셋용이 아닙니다.
 
 <Tip>
-추가 팩마다 엔진 생성 후 한 번만 `addResourcePack`을 호출하면 됩니다(Web: `init()` 이후). 이후 3D 스티커는 같은 팩을 재사용합니다.
+추가 팩마다 엔진 생성 후(Web: `init()` 이후) `addResourcePack`을 한 번 호출하면 됩니다. 이후 3D 스티커나 바디 리셰이프는 같은 팩을 재사용합니다.
 </Tip>

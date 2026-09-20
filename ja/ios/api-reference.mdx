@@ -94,6 +94,7 @@ FB_OBJC_API @interface FBBeautyEffectEngine : NSObject
 - (int)setSharpening:(float)intensity;
 - (int)setRosiness:(float)intensity;
 - (int)setReshape:(FBReshape)param intensity:(float)value;
+- (int)setBodyReshape:(FBBodyReshape)param intensity:(float)value;
 - (int)setBeautySkinOnly:(BOOL)enabled;
 
 - (int)setLipstick:(float)intensity;
@@ -197,6 +198,25 @@ typedef NS_ENUM(NSInteger, FBReshape) {
 };
 ```
 
+### ボディリシェイプ
+
+`setBodyReshape:intensity:` — 強度 **`[0.0, 1.0]`**、`0` はオフ。先に `addResourcePack:` で `resource_body.fbd` を読み込んでください。`FBBodyReshape` は `0`–`8`。[パラメータ列挙](/ja/intro/makeup) と [オプションリソースパック](/ja/intro/resource-packs)。
+
+```objc
+typedef NS_ENUM(NSInteger, FBBodyReshape) {
+  FBBodyReshape_BodySlim = 0,
+  FBBodyReshape_WaistSlim = 1,
+  FBBodyReshape_LegSlim = 2,
+  FBBodyReshape_ShoulderSlim = 3,
+  FBBodyReshape_ArmSlim = 4,
+  FBBodyReshape_LegLong = 5,
+  FBBodyReshape_BustEnhance = 6,
+  FBBodyReshape_LegStretch = 7,
+  FBBodyReshape_TorsoLong = 8,
+};
+```
+
+
 `FBSmoothingStyle`: `Natural`、`Texture`、`Smooth`。`FBWhiteningStyle`: `ColdWhite`、`PinkWhite`、`WarmWhite`、`Wheat`、`Tan`。
 
 ### メイク
@@ -248,7 +268,7 @@ ID 登録はありません。パスまたはバイトを渡します。GPU リ�
 | `setFilterIntensity:` | `[0, 1]` |
 | `setSticker:` | 2D ステッカー `.fbd` パス |
 | `setStickerWithData:` | ステッカーバイト |
-| `addResourcePack:` | 追加能力パックのパス（例: 3D ステッカー前に `resource_3d.fbd` を読み込み） |
+| `addResourcePack:` | 追加能力パックのパス（3D ステッカー前に `resource_3d.fbd`、ボディリシェイプ前に `resource_body.fbd`） |
 | `addResourcePackWithData:` | 追加パックのバイト |
 | `set3DSticker:` | 3D ステッカー `.fbd` パス |
 | `set3DStickerWithData:` | 3D ステッカーバイト |

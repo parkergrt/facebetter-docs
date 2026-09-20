@@ -161,6 +161,17 @@ engine.setReshape(Reshape.CHIN, -0.2f);
 
 全部 26 个参数（`FACE_THIN` … `BROW_THICKNESS`）及正负方向见 [参数枚举](/zh/intro/makeup)。
 
+## 美体
+
+范围 **`[0.0, 1.0]`**。`0` 关闭。先用 `addResourcePack` 登记 `resource_body.fbd`（不在 AAR 内）。见 [参数枚举](/zh/intro/makeup) 与 [可选资源包](/zh/intro/resource-packs)。
+
+```java
+engine.addResourcePack(loadAssetBytes("resource_body.fbd"));
+engine.setBodyReshape(BodyReshape.WAIST_SLIM, 0.4f);
+engine.setBodyReshape(BodyReshape.LEG_STRETCH, 0.3f);
+engine.setBodyReshape(BodyReshape.TORSO_LONG, 0.3f);
+```
+
 ## 美妆
 
 先设强度，再设风格和/或颜色。

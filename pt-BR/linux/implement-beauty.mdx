@@ -86,7 +86,7 @@ if (!engine) {
 
 ## 3. Definir parâmetros de beleza
 
-Pele / maquiagem `[0.0, 1.0]`. Remodelagem **`[-1.0, 1.0]`**. Enums completos: [Enums de parâmetros](/pt-BR/intro/makeup).
+Pele / maquiagem / remodelagem corporal `[0.0, 1.0]`. Remodelagem facial **`[-1.0, 1.0]`**. Remodelagem corporal exige `resource_body.fbd`. Enums: [Enums de parâmetros](/pt-BR/intro/makeup). Pacotes: [Pacotes de recursos opcionais](/pt-BR/intro/resource-packs).
 
 ```cpp
 engine->SetSmoothing(0.5f);
@@ -99,6 +99,11 @@ engine->SetBeautySkinOnly(true);
 
 engine->SetReshape(Reshape::FaceThin, 0.4f);
 engine->SetReshape(Reshape::EyeSize, 0.3f);
+
+engine->AddResourcePack("resource/resource_body.fbd");  // or place resource_body.fbd next to resource.fbd
+engine->SetBodyReshape(BodyReshape::WaistSlim, 0.4f);
+engine->SetBodyReshape(BodyReshape::LegStretch, 0.3f);
+engine->SetBodyReshape(BodyReshape::TorsoLong, 0.3f);
 
 engine->SetLipstick(0.6f);
 engine->SetLipstickColor(LipstickColor::Rouge);

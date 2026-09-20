@@ -100,6 +100,11 @@ engine->SetBeautySkinOnly(true);
 engine->SetReshape(Reshape::FaceThin, 0.4f);
 engine->SetReshape(Reshape::EyeSize, 0.3f);
 
+engine->AddResourcePack("resource/resource_body.fbd");  // または resource.fbd と同じディレクトリ
+engine->SetBodyReshape(BodyReshape::WaistSlim, 0.4f);
+engine->SetBodyReshape(BodyReshape::LegStretch, 0.3f);
+engine->SetBodyReshape(BodyReshape::TorsoLong, 0.3f);
+
 engine->SetLipstick(0.6f);
 engine->SetLipstickColor(LipstickColor::Rouge);
 engine->SetBlush(0.4f);

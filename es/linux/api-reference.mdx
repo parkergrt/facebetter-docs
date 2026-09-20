@@ -87,6 +87,18 @@ int SetReshape(Reshape param, float intensity);  // [-1, 1]
 
 Lista completa de `Reshape`: [Enumeraciones de parámetros](/es/intro/makeup).
 
+### Remodelado corporal
+
+```cpp
+int SetBodyReshape(BodyReshape param, float intensity);  // [0, 1]
+```
+
+```cpp
+```
+
+
+Lista completa de `BodyReshape`: [Enumeraciones de parámetros](/es/intro/makeup). Requiere `resource_body.fbd`. Consulta [Paquetes de recursos opcionales](/es/intro/resource-packs).
+
 ### Maquillaje
 
 ```cpp
@@ -137,7 +149,7 @@ int Set3DSticker(const std::vector<uint8_t>& fbd_data);
 int Clear3DSticker();
 ```
 
-Carga primero el paquete 3D opcional. Consulta [Paquetes de recursos opcionales](/es/intro/resource-packs).
+Carga primero los paquetes opcionales (`resource_3d.fbd` para stickers 3D, `resource_body.fbd` para remodelado corporal). Consulta [Paquetes de recursos opcionales](/es/intro/resource-packs).
 
 ### Estadísticas, callbacks, proceso
 

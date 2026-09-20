@@ -18,6 +18,7 @@ engine.dispose()                            Write back vendor textureId
 | 항목 | 요구 사항 |
 | --- | --- |
 | 라이브 엔진 | `externalContext: true`(기본값); 벤더 커스텀 전처리를 켜기 **전에** `FBEngine.create` |
+| 라이브 엔진 수 | `externalContext: true` 엔진은 한 번에 하나만; 첫 엔진을 `dispose()`하기 전에 두 번째 `create`는 예외 |
 | 프레임 | 네이티브 `FacebetterPlugin.processTexture`만; **현재 GL 스레드**에서 실행해야 함 |
 | 정지 | `externalContext: false`인 별도 엔진; 라이브 엔진과 섞지 마세요 |
 | 입력 | 벤더 **Texture2D / RGB (`GL_TEXTURE_2D`)** 권장; OES / YUV는 먼저 변환하거나 벤더 문서에 따라 형식을 바꾸세요 |
@@ -55,7 +56,7 @@ await engine.setFilter(path: '/path/to/filter.fbd');
 | 프레임 | 네이티브 `processTexture` | Dart `processFile` / `processImageBytes` / … |
 | 혼합 | 사진 API 없음 | 라이브 / 미팅 전처리용이 아님 |
 
-**하지 마세요:** 매 프레임 Dart에서 픽셀이나 texture id를 푸시; GL 스레드 밖에서 `processTexture` 호출; `FBEngine`을 프로세스 전역 싱글톤으로 취급.
+**하지 마세요:** 매 프레임 Dart에서 픽셀이나 texture id를 푸시; GL 스레드 밖에서 `processTexture` 호출; 첫 라이브 엔진을 `dispose`하기 전에 두 번째 `externalContext: true`를 `create`.
 
 ---
 

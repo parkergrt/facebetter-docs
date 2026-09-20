@@ -96,6 +96,20 @@ engine.setReshape(Reshape.EyeSize, 0.2);
 
 범위는 **`[-1.0, 1.0]`**입니다. `0`은 꺼짐입니다. 양수와 음수는 반대 방향입니다(예: `FaceThin`: 슬림 / 볼 볼륨). 전체 목록: [파라미터 열거형](/ko/intro/makeup).
 
+## 바디 리셰이프
+
+```javascript
+const bodyPack = new Uint8Array(
+  await (await fetch('/resource_body.fbd')).arrayBuffer()
+);
+engine.addResourcePack(bodyPack);
+engine.setBodyReshape(BodyReshape.WaistSlim, 0.4);
+engine.setBodyReshape(BodyReshape.LegStretch, 0.3);
+engine.setBodyReshape(BodyReshape.TorsoLong, 0.3);
+```
+
+범위는 **`[0.0, 1.0]`**입니다. `0`은 꺼짐입니다. `init()` 이후 `resource_body.fbd`를 가져와 `addResourcePack`하세요. 전체 목록: [파라미터 열거형](/ko/intro/makeup). [선택 리소스 팩](/ko/intro/resource-packs).
+
 ## 메이크업
 
 강도, 형태, 색상은 별도 setter입니다. 강도는 `[0.0, 1.0]`입니다. 프리셋: [파라미터 열거형](/ko/intro/makeup).

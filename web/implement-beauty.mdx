@@ -96,6 +96,20 @@ engine.setReshape(Reshape.EyeSize, 0.2);
 
 Range is **`[-1.0, 1.0]`**. `0` is off. Positive and negative are opposite directions (for example `FaceThin`: slim / fuller cheeks). Full list: [Parameter enums](/intro/makeup).
 
+## Body reshape
+
+```javascript
+const bodyPack = new Uint8Array(
+  await (await fetch('/resource_body.fbd')).arrayBuffer()
+);
+engine.addResourcePack(bodyPack);
+engine.setBodyReshape(BodyReshape.WaistSlim, 0.4);
+engine.setBodyReshape(BodyReshape.LegStretch, 0.3);
+engine.setBodyReshape(BodyReshape.TorsoLong, 0.3);
+```
+
+Range is **`[0.0, 1.0]`**. `0` is off. Fetch `resource_body.fbd` and call `addResourcePack` after `init()` first. Full list: [Parameter enums](/intro/makeup). Packs: [Optional resource packs](/intro/resource-packs).
+
 ## Makeup
 
 Intensity, shape, and color are separate setters. Intensity is `[0.0, 1.0]`. Presets: [Parameter enums](/intro/makeup).

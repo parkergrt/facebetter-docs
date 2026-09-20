@@ -174,6 +174,23 @@ public enum Reshape {
 
 Positive / negative meaning for each value: [Parameter enums](/intro/makeup).
 
+## Body reshape
+
+```java
+public int setBodyReshape(BodyReshape param, float value);
+```
+
+Intensity range **`[0.0, 1.0]`**. `0` is off. Requires `resource_body.fbd` via `addResourcePack` first. See [Parameter enums](/intro/makeup) and [Optional resource packs](/intro/resource-packs).
+
+```java
+public enum BodyReshape {
+  BODY_SLIM(0), WAIST_SLIM(1), LEG_SLIM(2), SHOULDER_SLIM(3),
+  ARM_SLIM(4), LEG_LONG(5), BUST_ENHANCE(6),
+  LEG_STRETCH(7), TORSO_LONG(8);
+}
+```
+
+
 ## Makeup
 
 Intensity `[0.0, 1.0]`. Set intensity, then style (mask) and/or color (tint). Pupil and contour do not take a separate tint the same way; see [Parameter enums](/intro/makeup).
@@ -277,7 +294,7 @@ public int clear3DSticker();
 | `setFilterIntensity` | Mix `[0.0, 1.0]` |
 | `setSticker` | Apply a 2D sticker from a `.fbd` path or bytes |
 | `clearSticker` | Remove the current sticker |
-| `addResourcePack` | Register an extra capability pack (for example `resource_3d.fbd` before `set3DSticker`) |
+| `addResourcePack` | Register an extra capability pack (`resource_3d.fbd` before `set3DSticker`, or `resource_body.fbd` before `setBodyReshape`) |
 | `set3DSticker` | Apply a 3D sticker from a `.fbd` path or bytes |
 | `clear3DSticker` | Remove the 3D sticker |
 

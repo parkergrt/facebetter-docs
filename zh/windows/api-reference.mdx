@@ -124,6 +124,19 @@ virtual int SetReshape(beauty_params::Reshape param, float intensity) = 0;
 engine->SetReshape(Reshape::FaceThin, 0.4f);
 ```
 
+### 美体
+
+```cpp
+virtual int SetBodyReshape(beauty_params::BodyReshape param, float intensity) = 0;
+```
+
+`intensity` 为 **`[0.0, 1.0]`**。`0` 关闭。需要 `resource_body.fbd`（与 `resource.fbd` 同目录，或 `AddResourcePack`）。完整列表见 [参数枚举](/zh/intro/makeup)，资源包见 [可选资源包](/zh/intro/resource-packs)。
+
+```cpp
+engine->SetBodyReshape(BodyReshape::WaistSlim, 0.4f);
+```
+
+
 ### 美妆
 
 每个效果有强度，以及 Style（蒙版）和/或 Color（染色）。口红只有 Color；美瞳只有 Color；修容只有 Style。
@@ -210,7 +223,7 @@ virtual int Set3DSticker(const std::vector<uint8_t>& fbd_data) = 0;
 virtual int Clear3DSticker() = 0;
 ```
 
-3D 贴纸前请先加载可选包，见 [可选资源包](/zh/intro/resource-packs)。
+3D 贴纸或美体前请先加载对应可选包，见 [可选资源包](/zh/intro/resource-packs)。
 
 ### 统计、回调、处理
 

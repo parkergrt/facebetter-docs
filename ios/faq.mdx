@@ -45,7 +45,8 @@ License or init failed. Check Bundle ID, plan, token expiry, and logs. Creation 
 ### Effect is too weak or too strong
 
 - Skin / makeup / filter: `[0.0, 1.0]`.
-- Reshape: **`[-1.0, 1.0]`** via `setReshape:intensity:` (`0` is off).
+- Face reshape: **`[-1.0, 1.0]`** via `setReshape:intensity:` (`0` is off).
+- Body reshape: **`[0.0, 1.0]`** via `setBodyReshape:intensity:`. Register `resource_body.fbd` first.
 - Intensity `0` disables that effect.
 - Skin-only: `setBeautySkinOnly:`.
 

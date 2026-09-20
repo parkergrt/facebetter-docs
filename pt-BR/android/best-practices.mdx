@@ -22,6 +22,20 @@ input.type = ImageFrame.FrameType.VIDEO;
 ImageFrame output = engine.processImage(input);
 ```
 
+## Stills grandes (prévia e exportação) {#large-stills}
+
+Não envie pixels em resolução total para `processImage` a cada movimento do slider, nem descarte o original depois de reduzir.
+
+Ao abrir a foto, mantenha o `Bitmap` completo e crie **um** quadro de prévia (lado longo cerca de 1280–1440). Ajustes chamam `processImage` na prévia (`FrameType.IMAGE`). A exportação chama `processImage` num quadro em resolução total com os mesmos setters. O tamanho da saída acompanha a entrada — não amplie a prévia. A câmera continua na resolução de captura + `FrameType.VIDEO`.
+
+```java
+preview.type = ImageFrame.FrameType.IMAGE;
+ImageFrame previewOut = engine.processImage(preview);
+
+full.type = ImageFrame.FrameType.IMAGE;
+ImageFrame exportOut = engine.processImage(full);
+```
+
 ## Faixas de parâmetros
 
 Comece baixo; aumente depois de confirmar a detecção facial e o FPS.
@@ -75,7 +89,7 @@ try {
 ```
 
 - Um mecanismo por processo / contexto GL; não crie a cada quadro
-- Limite stills (o demo reduz o lado longo a 1920) antes de `createWithBitmap`
+- Stills interativos: reduza uma **cópia** para a prévia; mantenha o `Bitmap` original para exportar. Veja [Stills grandes](#large-stills)
 - `convert()` aloca um quadro **novo** — libere-o
 
 ## OpenGL ES

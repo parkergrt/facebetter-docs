@@ -22,6 +22,20 @@ input.type = ImageFrame.FrameType.VIDEO;
 ImageFrame output = engine.processImage(input);
 ```
 
+## 相册大图（预览与导出） {#large-stills}
+
+高分辨率静图不要在每次拖动滑条时把原图像素送进 `processImage`，也不要缩放后丢掉原图。
+
+打开照片时保留完整 `Bitmap`，并**另做一份**预览帧（长边约 1280–1440）。调参时对预览帧 `processImage`（`FrameType.IMAGE`）；导出时对全尺寸帧再处理一次，同一套 setter。输出尺寸等于输入帧——不要把预览结果放大当成片。摄像头预览仍用采集分辨率 + `FrameType.VIDEO`。
+
+```java
+preview.type = ImageFrame.FrameType.IMAGE;
+ImageFrame previewOut = engine.processImage(preview);
+
+full.type = ImageFrame.FrameType.IMAGE;
+ImageFrame exportOut = engine.processImage(full);
+```
+
 ## 参数范围
 
 先用较小强度确认人脸检测与帧率，再逐步加大。
@@ -75,7 +89,7 @@ try {
 ```
 
 - 每个进程 / GL 上下文只保留一个引擎，不要每帧创建
-- 静图处理前限制分辨率（Demo 将长边缩到 1920）再 `createWithBitmap`
+- 交互式静图：缩放**副本**做预览，保留原 `Bitmap` 供导出；见 [相册大图](#large-stills)
 - `convert()` 会分配 **新** 帧，必须单独 `release()`
 
 ## OpenGL ES

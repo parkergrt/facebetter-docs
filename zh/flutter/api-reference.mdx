@@ -45,7 +45,7 @@ static void setLogConfig({
 void dispose()
 ```
 
-用 `FBEngine.create` 创建实例。不是进程级单例。
+用 `FBEngine.create` 创建实例。不是进程级单例。同时只能有一台 `externalContext: true` 的引擎绑定到 `processTexture`。
 
 美颜 / 美型 / 美妆 / 色度键 / 虚化 / `clear*` / `setFilterIntensity` 是**同步**的。滤镜、贴纸、背景**图**以及静图接口返回 **`Future`**。
 
@@ -56,6 +56,10 @@ void dispose()
 ### 美型
 
 `setReshape(FBReshape param, double intensity)` — **`[-1.0, 1.0]`**。Dart 名：`FBReshape.faceThin`、`faceVShape`、… `browThickness`。表格见 [参数枚举](/zh/intro/makeup)。
+
+### 美体
+
+`setBodyReshape(FBBodyReshape param, double intensity)` — **`[0.0, 1.0]`**。Dart 名：`FBBodyReshape.bodySlim` … `torsoLong`。需先 `addResourcePack` 加载 `resource_body.fbd`。表格见 [参数枚举](/zh/intro/makeup)，资源包见 [可选资源包](/zh/intro/resource-packs)。
 
 ### 美妆
 
@@ -95,7 +99,7 @@ void setChromaKeySmoothness(double value)
 void setChromaKeyDesaturation(double value)
 ```
 
-`path` 与 `data` 互斥，必须且只能提供一个。3D 贴纸见 [可选资源包](/zh/intro/resource-packs)。
+`path` 与 `data` 互斥，必须且只能提供一个。3D 贴纸与美体见 [可选资源包](/zh/intro/resource-packs)。
 
 ### 静图
 
@@ -152,12 +156,10 @@ FBStats get stats
 
 - `FBBitmap` — `width`、`height`、`stride`、`pixels`（RGBA8888 拷贝）
 - `FBLogLevel` — `trace` … `critical`
-- `FBMirror` — `none`、`horizontal`、`vertical`、`both`（实时纹理路径通常不用）
-- `FBFace` / `FBFaceList` / `FBRect` — `enableLandmarks: true` 时的关键点视图（`kLandmarkCount` = 111）
 
 ## 原生纹理（不经过 Dart）
 
-以 `externalContext: true` `create` 后，在 **对方 SDK 的 GL 线程**上：
+以 `externalContext: true` `create` 后，在 **对方 SDK 的 GL 线程**上调用。同时只能绑定一台实时引擎；未 `dispose` 前再 `create(externalContext: true)` 会抛错。静图引擎（`externalContext: false`）不会占用这个槽。
 
 - iOS：`[FacebetterPlugin processTexture:width:height:]`
 - Android：`FacebetterPlugin.processTexture(textureId, width, height)`

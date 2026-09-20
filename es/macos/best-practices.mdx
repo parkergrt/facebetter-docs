@@ -19,6 +19,20 @@ input.type = FBFrameTypeVideo;
 FBImageFrame *output = [engine processImage:input];
 ```
 
+## Fotos grandes (vista previa y exportación) {#large-stills}
+
+No envíes píxeles a resolución completa a `processImage:` en cada movimiento del deslizador, ni tires el original después de escalar.
+
+Al abrir la foto, conserva el `NSImage` completo y crea **un** fotograma de vista previa (lado largo unos 1280–1440, `createWithNSImage:`). Los ajustes procesan la vista previa (`FBFrameTypeImage`). La exportación procesa un fotograma a resolución completa con los mismos setters. El tamaño de salida coincide con la entrada. La cámara sigue en resolución de captura + `FBFrameTypeVideo`.
+
+```objc
+preview.type = FBFrameTypeImage;
+FBImageFrame *previewOut = [engine processImage:preview];
+
+full.type = FBFrameTypeImage;
+FBImageFrame *exportOut = [engine processImage:full];
+```
+
 ## Rangos de parámetros
 
 - Intensidad de piel / maquillaje / filtro: `[0.0, 1.0]`. `0` desactiva ese efecto.

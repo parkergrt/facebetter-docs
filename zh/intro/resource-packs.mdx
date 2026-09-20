@@ -1,44 +1,62 @@
 ---
 title: "可选资源包"
-description: "下载 resource_3d.fbd 等额外能力包，用 AddResourcePack 登记后再使用 3D 贴纸"
+description: "下载 resource_3d.fbd、resource_body.fbd 等额外能力包，用 AddResourcePack 登记后再使用"
 ---
 
 SDK 默认随包提供核心运行时 `resource.fbd`（约 7 MB），覆盖 2D 美颜、美妆、滤镜和 2D 贴纸。
 
-3D 贴纸需要**可选**包 `resource_3d.fbd`（约 9 MB）。它**不在** iOS / Android / Web SDK 里。接入时自行下载，在调用 `Set3DSticker` / `set3DSticker` **之前**用 `AddResourcePack` / `addResourcePack` 登记。
+部分能力需要**可选**包。这些文件**不在** iOS / Android / Web SDK 里。接入时自行下载，在调用对应 setter **之前**用 `AddResourcePack` / `addResourcePack` 分别登记。
 
-从 [GitHub Release](https://github.com/pixpark/facebetter-sdk/releases) 下载 `resource_3d.fbd`（[下载页](https://facebetter.net/download) 同步镜像）。
+| 包 | 大小 | 调用前需要 |
+| --- | --- | --- |
+| `resource_3d.fbd` | 约 9 MB | `Set3DSticker` / `set3DSticker` |
+| `resource_body.fbd` | 约 8.5 MB | 骨骼类 `SetBodyReshape`（不含 `LegStretch` / `TorsoLong`） |
+
+<Note>
+3D 贴纸和美体需要**专业版 Plus**。免费版可带水印试用。见 [套餐与功能](./pricing)。
+</Note>
+
+从 [GitHub Release](https://github.com/pixpark/facebetter-sdk/releases) 下载（[下载页](https://facebetter.net/zh/download) 同步镜像）。
 
 ## 查找规则
 
-引擎在核心包和你添加的每一个额外包里按**包内相对路径**查找（例如 `tddfa/models/mb05_120x120.mnn`）。各包内路径应保持唯一——每种能力用自己的前缀（`tddfa/…`，以后可以是 `body/…`）。若重名，以**最后一次** `AddResourcePack` 为准。
+引擎在核心包和你添加的每一个额外包里按**包内相对路径**查找。各包内路径应保持唯一——每种能力用自己的前缀（`tddfa/…`、`body/…`）。若重名，以**最后一次** `AddResourcePack` 为准。
 
 每个 `.fbd` 单独调用一次接口登记。不要把多个包文件拼成一个文件。
 
 ## 桌面（Windows / Linux / C++）
 
-把 `resource_3d.fbd` 放在 `resource.fbd` **同目录**，引擎会自动加载。也可以显式调用 `AddResourcePack`。
+把 `resource_3d.fbd` 和/或 `resource_body.fbd` 放在 `resource.fbd` **同目录**，引擎会自动加载。也可以显式调用 `AddResourcePack`。
 
 ```cpp
 engine->AddResourcePack("resource/resource_3d.fbd");
 engine->Set3DSticker("assets/stickers/3d/oculos.fbd");
 engine->Clear3DSticker();
+
+engine->AddResourcePack("resource/resource_body.fbd");
+engine->SetBodyReshape(BodyReshape::WaistSlim, 0.4f);
 ```
 
 ## iOS / macOS / Android / Flutter / Web
 
-移动端和 Web SDK **不会**内置 `resource_3d.fbd`。请在**你的应用**里拷贝或拉取该文件，再调用 `addResourcePack`（路径或字节）。
+移动端和 Web SDK **不会**内置这些可选包。请在**你的应用**里拷贝或拉取文件，再调用 `addResourcePack`（路径或字节）。
 
 ```javascript
-const pack = new Uint8Array(
+const pack3d = new Uint8Array(
   await (await fetch('/resource_3d.fbd')).arrayBuffer()
 );
-engine.addResourcePack(pack);
+engine.addResourcePack(pack3d);
 engine.set3DSticker('/stickers/3d/oculos.fbd');
+
+const packBody = new Uint8Array(
+  await (await fetch('/resource_body.fbd')).arrayBuffer()
+);
+engine.addResourcePack(packBody);
+engine.setBodyReshape(BodyReshape.WaistSlim, 0.4);
 ```
 
 2D 贴纸仍然只用 `setSticker`。`addResourcePack` 用于能力模型，不是贴纸素材。
 
 <Tip>
-每个额外包在引擎创建后调用一次即可（Web：在 `init()` 之后）。之后的 3D 贴纸会复用同一份包。
+每个额外包在引擎创建后调用一次即可（Web：在 `init()` 之后）。之后的 3D 贴纸或美体调用会复用同一份包。
 </Tip>

@@ -12,13 +12,14 @@ description: "Facebetter SDK 릴리스 노트"
 1. **인증**: 네이티브는 `licenseToken` 또는 `appId` + `appKey`를 사용합니다. Web은 `licenseToken`만 사용합니다. 토큰은 서버에서 받고, 브라우저 JS에 `appKey`를 넣지 마세요
 2. **뷰티**: `setSmoothing`, `setWhitening`, `setSharpening`, `setRosiness`, `setBeautySkinOnly`와 스타일 프리셋
 3. **리셰이프**: 26개 파라미터(`FaceThin` … `BrowThickness`), 강도 `[-1.0, 1.0]`
-4. **메이크업**: 강도 + Style(형태) + Color(틴트). [파라미터 열거형](./makeup)을 참고하세요
-5. **필터 / 스티커**: `setFilter` / `setSticker`에 `.fbd` 경로 또는 바이트; `clearFilter` / `clearSticker`
-6. **가상 배경**: 블러, 이미지 교체, 크로마키
-7. **통계**: `getStats()` — FPS, 평균 처리 시간, 세션 길이
-8. **프레임 유형**: `FrameType.Image` / `FrameType.Video`
-9. **오류 코드**: `0` 성공, `-1` 잘못된 인자, `-2` 미초기화, `-3` 라이선스, `-4` 미지원, `-5` IO, `-6` 슬롯 없음, `-7` 처리, `-8` 메모리 부족
-10. **Flutter**: `FBEngine.create(FBEngineConfig)`. 실시간 영상은 네이티브 `FacebetterPlugin.processTexture`로 처리합니다
+4. **바디 리셰이프**: 7개 파라미터(`BodySlim` … `BustEnhance`), 강도 `[0.0, 1.0]`. 선택 팩 `resource_body.fbd`를 `addResourcePack`으로 등록합니다. **Pro+**. [파라미터 열거형](./makeup)과 [선택 리소스 팩](./resource-packs)을 참고하세요
+5. **메이크업**: 강도 + Style(형태) + Color(틴트). [파라미터 열거형](./makeup)을 참고하세요
+6. **필터 / 스티커**: `setFilter` / `setSticker`에 `.fbd` 경로 또는 바이트; 3D 스티커는 `set3DSticker`(`resource_3d.fbd` 필요, **Pro+**). `clearFilter` / `clearSticker` / `clear3DSticker`
+7. **가상 배경**: 블러, 이미지 교체, 크로마키
+8. **통계**: `getStats()` — FPS, 평균 처리 시간, 세션 길이
+9. **프레임 유형**: `FrameType.Image` / `FrameType.Video`
+10. **오류 코드**: `0` 성공, `-1` 잘못된 인자, `-2` 미초기화, `-3` 라이선스, `-4` 미지원, `-5` IO, `-6` 슬롯 없음, `-7` 처리, `-8` 메모리 부족
+11. **Flutter**: `FBEngine.create(FBEngineConfig)`. 실시간 영상은 네이티브 `FacebetterPlugin.processTexture`로 처리합니다
 
 **이벤트** (`onEngineEvent` / Flutter `events`): `0` 라이선스 성공, `1` 라이선스 실패, `100` 초기화 완료, `101` 초기화 실패.
 

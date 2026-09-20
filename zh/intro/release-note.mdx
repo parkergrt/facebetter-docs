@@ -12,13 +12,14 @@ description: "Facebetter SDK Release Note"
 1. **鉴权**：原生使用 `licenseToken` 或 `appId` + `appKey`。Web 只使用 `licenseToken` —— 由你的服务器换 token；不要把 `appKey` 放进前端 JS
 2. **美颜**：`setSmoothing`、`setWhitening`、`setSharpening`、`setRosiness`、`setBeautySkinOnly`，以及风格预设
 3. **美型**：26 项（`FaceThin` … `BrowThickness`），强度 `[-1.0, 1.0]`
-4. **美妆**：强度 + Style（形状）+ Color（色号）。见 [参数枚举](./makeup)
-5. **滤镜 / 贴纸**：`setFilter` / `setSticker` 传入 `.fbd` 路径或字节；`clearFilter` / `clearSticker`
-6. **虚拟背景**：虚化、换图、色键抠图
-7. **统计**：`getStats()` — 帧率、平均处理耗时、会话时长
-8. **帧类型**：`FrameType.Image` / `FrameType.Video`
-9. **错误码**：`0` 成功，`-1` 参数非法，`-2` 未初始化，`-3` 授权，`-4` 不支持，`-5` IO，`-6` 槽位满，`-7` 处理失败，`-8` 内存不足
-10. **Flutter**：`FBEngine.create(FBEngineConfig)`。实时视频由原生 `FacebetterPlugin.processTexture` 处理
+4. **美体**：7 项（`BodySlim` … `BustEnhance`），强度 `[0.0, 1.0]`。需可选包 `resource_body.fbd`，先 `addResourcePack`。**专业版 Plus**。见 [参数枚举](./makeup) 与 [可选资源包](./resource-packs)
+5. **美妆**：强度 + Style（形状）+ Color（色号）。见 [参数枚举](./makeup)
+6. **滤镜 / 贴纸**：`setFilter` / `setSticker` 传入 `.fbd` 路径或字节；3D 贴纸用 `set3DSticker`（需 `resource_3d.fbd`，**专业版 Plus**）。`clearFilter` / `clearSticker` / `clear3DSticker`
+7. **虚拟背景**：虚化、换图、色键抠图
+8. **统计**：`getStats()` — 帧率、平均处理耗时、会话时长
+9. **帧类型**：`FrameType.Image` / `FrameType.Video`
+10. **错误码**：`0` 成功，`-1` 参数非法，`-2` 未初始化，`-3` 授权，`-4` 不支持，`-5` IO，`-6` 槽位满，`-7` 处理失败，`-8` 内存不足
+11. **Flutter**：`FBEngine.create(FBEngineConfig)`。实时视频由原生 `FacebetterPlugin.processTexture` 处理
 
 **事件**（`onEngineEvent` / Flutter `events`）：`0` 授权成功，`1` 授权失败，`100` 初始化完成，`101` 初始化失败。
 

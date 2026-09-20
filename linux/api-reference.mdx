@@ -87,6 +87,18 @@ int SetReshape(Reshape param, float intensity);  // [-1, 1]
 
 Full `Reshape` list: [Parameter enums](/intro/makeup).
 
+### Body reshape
+
+```cpp
+int SetBodyReshape(BodyReshape param, float intensity);  // [0, 1]
+```
+
+```cpp
+```
+
+
+Full `BodyReshape` list: [Parameter enums](/intro/makeup). Requires `resource_body.fbd`. See [Optional resource packs](/intro/resource-packs).
+
 ### Makeup
 
 ```cpp
@@ -137,7 +149,7 @@ int Set3DSticker(const std::vector<uint8_t>& fbd_data);
 int Clear3DSticker();
 ```
 
-Load the optional 3D pack first. See [Optional resource packs](/intro/resource-packs).
+Load optional packs first (`resource_3d.fbd` before 3D stickers, `resource_body.fbd` before body reshape). See [Optional resource packs](/intro/resource-packs).
 
 ### Stats, callbacks, process
 
