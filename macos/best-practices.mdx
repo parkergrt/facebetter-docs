@@ -106,12 +106,14 @@ Do not process frames on the main thread except for tiny stills. Do not share on
 
 ## External OpenGL
 
-When the AppKit view already owns a GL context:
+When the AppKit view already owns a **desktop OpenGL 3.2 Core** context (`NSOpenGLContext` / CGL):
 
 1. Set `config.externalContext = YES`.
-2. Create the engine **on that GL thread**.
-3. Wrap the texture with `createWithTexture:width:height:stride:`.
+2. Create the engine **on that GL thread** (reuse the caller’s current context; do not create a second one).
+3. Wrap a `GL_TEXTURE_2D` with `createWithTexture:width:height:stride:`.
 4. Read the output with `[output texture]`.
+
+macOS uses desktop OpenGL, not OpenGL ES. Do not mix external textures and `CVPixelBuffer` on the same engine.
 
 ## Monitor with `getStats`
 

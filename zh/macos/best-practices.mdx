@@ -106,12 +106,14 @@ FBImageFrame *exportOut = [engine processImage:full];
 
 ## 外部 OpenGL
 
-AppKit 视图已有 GL 上下文时：
+AppKit 视图已有 **桌面 OpenGL 3.2 Core** 上下文（`NSOpenGLContext` / CGL）时：
 
 1. 设置 `config.externalContext = YES`。
-2. 在**该 GL 线程**创建引擎。
-3. 用 `createWithTexture:width:height:stride:` 包装纹理。
+2. 在**该 GL 线程**创建引擎（复用调用方当前上下文，不要另建一套）。
+3. 用 `createWithTexture:width:height:stride:` 包装 `GL_TEXTURE_2D`。
 4. 输出用 `[output texture]`。
+
+macOS 走桌面 OpenGL，不是 OpenGL ES。不要把外部纹理和 `CVPixelBuffer` 混在同一台引擎上。
 
 ## 用 `getStats` 监控
 

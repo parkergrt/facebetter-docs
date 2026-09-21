@@ -262,7 +262,7 @@ YUV 平面：`dataY`、`dataU`、`dataV`、`dataUV` 及对应 stride。
 ## 外部纹理
 
 <Warning>
-在 OpenGL 线程创建引擎，并设置 `externalContext = YES`。输入输出纹理必须共享该上下文。
+在 OpenGL 线程创建引擎，并设置 `externalContext = YES`。输入输出纹理必须共享该上下文。macOS 为桌面 OpenGL 3.2 Core（`NSOpenGLContext` / CGL），不是 OpenGL ES。
 </Warning>
 
 ```objc

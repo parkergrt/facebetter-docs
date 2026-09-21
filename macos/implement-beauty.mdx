@@ -262,7 +262,7 @@ YUV planes: `dataY`, `dataU`, `dataV`, `dataUV` and matching strides.
 ## External texture
 
 <Warning>
-Create the engine on the OpenGL thread and set `externalContext = YES`. Input and output textures must share that context.
+Create the engine on the OpenGL thread and set `externalContext = YES`. Input and output textures must share that context. macOS uses desktop OpenGL 3.2 Core (`NSOpenGLContext` / CGL), not OpenGL ES.
 </Warning>
 
 ```objc
