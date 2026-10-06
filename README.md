@@ -14,7 +14,7 @@ Open [http://localhost:3000](http://localhost:3000).
 ## Navigation
 
 - Languages: English / 简体中文
-- Tabs: **SDK Docs** | **Effect Creator**
+- Tabs: **SDK Docs** | **Effect Creator** | **OBS Plugin**
 - Sidebar groups under SDK Docs: Introduction, Android, iOS, macOS, Windows, Linux, Web, Flutter
 
 ## Deploy

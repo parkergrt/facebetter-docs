@@ -1,0 +1,66 @@
+---
+title: "로그인하고 필터 추가"
+sidebarTitle: "로그인하고 필터 추가"
+icon: "right-to-bracket"
+iconType: "solid"
+description: "Facebetter에 로그인하고 OBS 소스에 뷰티 필터를 추가합니다."
+---
+
+먼저 [macOS 설치](/ko/obs/install) 또는 [Windows 설치](/ko/obs/install-windows) 를 마친 다음, 로그인하고 소스에 필터를 붙입니다.
+
+로그인, 필터 추가, 효과 조절은 macOS 와 Windows 에서 같습니다. 아래 화면은 Mac 의 영어 OBS 입니다. 한국어 OBS 에서는 Filters 가 「필터」, Facebetter Beauty 가 「Facebetter 뷰티」, Sign in 이 「로그인」, No filter yet 이 「필터 없음」입니다.
+
+## 로그인
+
+OBS 를 열면 Facebetter 패널은 창 오른쪽에 있습니다. 보이지 않으면 **도구 → Facebetter** 를 사용합니다. 패널은 오디오 믹서처럼 고정할 수 있습니다.
+
+로그인 전에는 패널 가운데가 로그인 페이지입니다.
+
+<Frame>
+  <img src="/images/obs/login.png" alt="로그인 전 Facebetter 패널" />
+</Frame>
+
+1. **Sign in(로그인)** 을 누릅니다. 계정이 없으면 아래 **Sign up(가입)** 을 누릅니다.
+2. 시스템 브라우저에서 Facebetter 권한 페이지가 열립니다. 이미 웹사이트에 로그인해 있으면 그 계정이 표시되고 암호를 다시 입력하지 않습니다.
+3. **Authorize OBS** 를 누릅니다. 다른 계정을 쓰려면 **Use a different account** 를 누릅니다.
+
+<Frame>
+  <img src="/images/obs/login-auth.png" alt="현재 계정을 OBS 플러그인에 승인" />
+</Frame>
+
+승인이 끝나면 OBS 로 돌아옵니다. 무료 플랜은 모든 효과를 쓸 수 있고, 출력에는 `facebetter.net` 워터마크가 들어갑니다.
+
+## 소스에 필터 추가
+
+로그인만으로는 뷰티가 적용되지 않습니다. 패널 위가 **No filter yet(필터 없음)** 이면 슬라이더는 잠겨 있습니다. 먼저 소스에 필터를 추가합니다.
+
+소스는 카메라만 해당하지 않습니다. 이미지, 비디오, 미디어 소스도 같습니다.
+
+### 그 소스의 필터 열기
+
+소스 목록에서 처리할 항목을 우클릭하고 **Filters(필터)** 를 고릅니다.
+
+<Frame>
+  <img src="/images/obs/add-filter.png" alt="소스를 우클릭하고 Filters 선택" />
+</Frame>
+
+소스 목록 아래에도 **Filters** 버튼이 있습니다. 소스를 선택한 뒤 그 버튼을 눌러도 같습니다.
+
+### Facebetter 뷰티 추가
+
+필터 창 왼쪽 아래 **+** 를 누르고 **Facebetter Beauty(Facebetter 뷰티)** 를 고른 다음 이름을 확인하고 창을 닫습니다.
+
+<Frame>
+  <img src="/images/obs/add-beauty.png" alt="필터 목록에서 Facebetter Beauty 선택" />
+</Frame>
+
+그다음 두 가지가 일어납니다.
+
+- Facebetter 패널이 앞으로 나옵니다. 나중에 열려면 **도구 → Facebetter** 입니다.
+- 패널 위 소스가 「필터 없음」에서 그 소스, 또는 **All sources(모든 소스)** 로 바뀝니다. 슬라이더를 움직일 수 있습니다.
+
+이 필터 창에서는 모양을 조절하지 않습니다. 설명 한 줄과 **Open Facebetter panel(Facebetter 패널 열기)** 버튼만 있습니다. 매끈, 미백, 윤곽은 오른쪽 Facebetter 패널에서 조절합니다.
+
+장면에 화면이 여러 개이면, 처리할 소스마다 필터를 한 번씩 추가합니다.
+
+다음은 [효과 조절](/ko/obs/effects) 에서 슬라이더를 움직입니다. 회색이라 움직이지 않으면 [macOS 자주 묻는 질문](/ko/obs/faq) 또는 [Windows 자주 묻는 질문](/ko/obs/faq-windows) 을 보세요.

@@ -3,217 +3,221 @@ title: "변경 로그"
 description: "Facebetter SDK 릴리스 노트"
 ---
 
-이 사이트는 **SDK 2.0**을 문서화합니다.
+이 사이트는 **SDK 2.x**를 문서화합니다. 최신: **v2.1.0**.
+
+## v2.1.0
+
+2026-09-21
+
+1. 바디 리셰이프: 전신, 허리, 다리, 어깨, 팔, 다리 길게, 가슴 볼륨 등. [파라미터 열거형](./makeup)을 참고하세요
+2. 3D 스티커(안경, 모자 등 메시 소품)
+3. 바디 리셰이프와 3D 스티커용 선택 리소스 팩. [선택 리소스 팩](./resource-packs)을 참고하세요
+
+## v2.0.1
+
+2026-09-15
+
+1. Web과 Android 처리 성능 향상
 
 ## v2.0.0
 
 2026-09-09
 
-1. **인증**: 네이티브는 `licenseToken` 또는 `appId` + `appKey`를 사용합니다. Web은 `licenseToken`만 사용합니다. 토큰은 서버에서 받고, 브라우저 JS에 `appKey`를 넣지 마세요
-2. **뷰티**: `setSmoothing`, `setWhitening`, `setSharpening`, `setRosiness`, `setBeautySkinOnly`와 스타일 프리셋
-3. **리셰이프**: 26개 파라미터(`FaceThin` … `BrowThickness`), 강도 `[-1.0, 1.0]`
-4. **바디 리셰이프**: 7개 파라미터(`BodySlim` … `BustEnhance`), 강도 `[0.0, 1.0]`. 선택 팩 `resource_body.fbd`를 `addResourcePack`으로 등록합니다. **Pro+**. [파라미터 열거형](./makeup)과 [선택 리소스 팩](./resource-packs)을 참고하세요
-5. **메이크업**: 강도 + Style(형태) + Color(틴트). [파라미터 열거형](./makeup)을 참고하세요
-6. **필터 / 스티커**: `setFilter` / `setSticker`에 `.fbd` 경로 또는 바이트; 3D 스티커는 `set3DSticker`(`resource_3d.fbd` 필요, **Pro+**). `clearFilter` / `clearSticker` / `clear3DSticker`
-7. **가상 배경**: 블러, 이미지 교체, 크로마키
-8. **통계**: `getStats()` — FPS, 평균 처리 시간, 세션 길이
-9. **프레임 유형**: `FrameType.Image` / `FrameType.Video`
-10. **오류 코드**: `0` 성공, `-1` 잘못된 인자, `-2` 미초기화, `-3` 라이선스, `-4` 미지원, `-5` IO, `-6` 슬롯 없음, `-7` 처리, `-8` 메모리 부족
-11. **Flutter**: `FBEngine.create(FBEngineConfig)`. 실시간 영상은 네이티브 `FacebetterPlugin.processTexture`로 처리합니다
-
-**이벤트** (`onEngineEvent` / Flutter `events`): `0` 라이선스 성공, `1` 라이선스 실패, `100` 초기화 완료, `101` 초기화 실패.
+1. 새 인증: 네이티브는 `licenseToken` 또는 `appId` + `appKey`. Web은 `licenseToken`만 사용(서버에서 발급)
+2. 뷰티: 스무딩, 미백, 샤픈, 혈색, 피부만, 스타일 프리셋
+3. 얼굴 리셰이프(26개)
+4. 메이크업: 강도, 형태, 컬러. [파라미터 열거형](./makeup)을 참고하세요
+5. LUT 필터와 2D 스티커(`.fbd`)
+6. 가상 배경: 블러, 이미지 교체, 크로마키
+7. Flutter SDK(Android / iOS)
+8. 처리 통계(`getStats()`)
 
 ## v1.5.1
 
 2026-08-03
 
-1. fix: `SetSkinOnlyBeauty`가 켜진 상태에서 해상도가 다른 이미지를 처리하면 메모리 범위 초과가 발생할 수 있음(Web에서는 `memory access out of bounds`; 전체 페이지 새로고침으로만 복구)
-2. improvement: 추론 성능
+1. 피부만 뷰티에서 크기가 다른 이미지를 처리할 때 발생할 수 있던 충돌 수정
+2. 처리 성능 향상
 
 ## v1.5.0
 
 2026-07-30
 
-1. feature: 오프라인 라이선스 — 대시보드에서 다운로드하고 `licenseJson`으로 초기화(네트워크 불필요, 모든 플랫폼)
-2. docs: 온라인·오프라인 인증용 [라이선스 및 인증](./license) 가이드 추가
+1. 대시보드에서 오프라인 라이선스 다운로드(네트워크 불필요)
+2. 인증 가이드: [인증 및 라이선스](./license)
 
 ## v1.4.7
 
 2026-07-29
 
-1. feature: 립스틱 및 블러셔 스타일 선택 API
-2. improvement: 요금제 갱신 / 업그레이드가 다음 온라인 인증에서 즉시 반영
-3. fix: Web `SetSkinOnlyBeauty` 크래시
-4. fix: 이미지 처리 중 드문 크래시와 블랙 프레임
+1. 립스틱·블러셔 스타일 선택
+2. 요금제 갱신·업그레이드는 다음 인증부터 반영
+3. Web 피부만 뷰티 충돌 수정
+4. 간헐적 충돌과 검은 화면 수정
 
 ## v1.4.6
 
 2026-06-22
 
-1. improvement: 얼굴이 빠르게 움직일 때 트래킹이 더 안정적
+1. 얼굴이 빠르게 움직일 때 추적을 더 안정화
 
 ## v1.4.5
 
 2026-06-09
 
-1. platform: Android 및 iOS용 Flutter SDK
-2. docs: Flutter 문서
-3. fix: 외부 텍스처 모드에서 스티커가 블랙 스크린을 표시할 수 있음
+1. Flutter SDK(Android / iOS)
+2. Flutter 문서
+3. 실시간 영상에서 스티커 검은 화면 수정
 
 ## v1.4.4
 
 2026-06-02
 
-1. fix: 외부 텍스처 모드에서 필터와 스티커가 올바르게 적용되지 않음
-2. fix: 외부 텍스처 모드의 iOS RGBA 텍스처 출력
+1. 실시간 영상에서 필터·스티커가 적용되지 않던 문제 수정
+2. iOS 텍스처 색상 출력 수정
 
 ## v1.4.3
 
 2026-05-04
 
-1. feature: 립스틱 및 블러셔 메이크업 효과
-2. feature: 추가 내장 스티커
-3. fix: 일부 경우 스티커 제거 API가 반영되지 않음
+1. 립스틱·블러셔 메이크업
+2. 내장 스티커 추가
+3. 일부 상황에서 스티커 제거가 안 되던 문제 수정
 
 ## v1.4.2
 
 2026-04-23
 
-1. fix: Web 라이선스 검증 엣지 케이스
+1. Web 라이선스 확인을 더 안정화
 
 ## v1.4.1
 
 2026-04-12
 
-1. platform: Windows SDK에 32비트와 64비트 라이브러리 모두 포함
+1. Windows SDK에 32비트와 64비트 포함
 
 ## v1.4.0
 
 2026-03-24
 
-1. feature: 피부 세그멘테이션 — 피부 영역에만 뷰티를 적용하는 `SetSkinOnlyBeauty` API 추가
+1. 피부 영역에만 뷰티 적용
 
 ## v1.3.2
 
 2026-03-10
 
-1. improvement: 무료 버전은 10분 후 워터마크 표시
-2. platform: Windows SDK 및 Linux SDK 지원 추가
+1. 무료 플랜은 10분 후 워터마크 표시
+2. Windows / Linux SDK 추가
 
 ## v1.3.1
 
 2026-03-03
 
-1. web: web npm 버전을 1.3.0으로 업그레이드
-2. improvement: 미러 인터페이스 문서 추가
-3. deprecation: enable beauty type 인터페이스 폐기
+1. Web npm 1.3.0
+2. 미러 문서 추가
 
 ## v1.3.0
 
 2026-02-20
 
-1. improvement: 처리 성능 최적화
-2. platform: Android Maven 저장소 의존성 지원
-3. platform: iOS 및 macOS Demo CocoaPods 설치 지원
-4. feature: 스타일 필터와 스티커 지원
-5. docs: 필터 및 스티커 개발 문서 업데이트
+1. 처리 성능 향상
+2. Android Maven 지원
+3. iOS / macOS Demo CocoaPods 지원
+4. 스타일 필터와 스티커
 
 ## v1.2.5
 
 2026-01-15
 
-1. improvement: 인증 및 리포팅 로직 최적화
-2. platform: Web 인증 및 리포팅 지원
+1. 인증을 더 안정화
 
 ## v1.2.2
 
 2026-01-08
 
-1. feature: 무료 버전 월 최대 5000회 호출
-2. feature: 사용량 기반 과금 지원
+1. 구독 플랜 업데이트
 
 ## v1.2.1
 
 2025-12-20
 
-1. feature: 워터마크 필터 추가
-2. improvement: 네트워크 검증을 비동기 + 콜백 알림으로 변경
-3. price: 가격 플랜 조정, Ultra 등급 추가
+1. 워터마크
+2. 인증을 백그라운드에서 실행
+3. 요금제 업데이트
 
 ## v1.2.0
 
 2025-12-01
 
-1. platform: 전체 플랫폼 지원(Android, iOS, macOS, Windows, Linux, Web)
-2. feature: 가상 배경
-3. feature: 스타일 필터
-4. feature: 스티커 효과
-5. feature: 온라인 인증 업그레이드
-6. improvement: 키포인트 안정성 최적화
+1. 전 플랫폼: Android, iOS, macOS, Windows, Linux, Web
+2. 가상 배경
+3. 스타일 필터
+4. 스티커
+5. 온라인 인증 업그레이드
+6. 얼굴 추적을 더 안정화
 
 ## v1.1.3
 
 2025-11-10
 
-1. feature: 무료 버전 월 최대 5000회 호출
-2. feature: 사용량 기반 과금
+1. 구독 플랜 업데이트
 
 ## v1.1.2
 
 2025-10-28
 
-1. improvement: 키포인트 안정성 최적화
-2. fix: 키포인트 떨림 문제 수정
+1. 얼굴 추적을 더 안정화
+2. 얼굴 흔들림 수정
 
 ## v1.1.1
 
 2025-10-15
 
-1. feature: LUT 필터
-2. feature: 얼굴 키포인트 콜백
-3. feature: 그린스크린 매팅
-4. feature: 앱 ID 바인딩 지원
-5. feature: 온라인 인증 v2
-6. feature: 멀티 프로젝트 지원
+1. LUT 필터
+2. 얼굴 키포인트 콜백
+3. 그린스크린 매팅
+4. 앱 ID 바인딩
+5. 온라인 인증
+6. 여러 프로젝트
 
 ## v1.1.0
 
 2025-09-20
 
-1. feature: 외부 텍스처 처리 지원
-2. improvement: API 사용성 최적화
+1. 실시간 영상 텍스처 처리
+2. API를 더 쉽게
 
 ## v1.0.6
 
 2025-09-05
 
-1. improvement: Android, iOS, macOS Demo 최적화
-2. fix: Android 레이아웃 표시 문제 수정
-3. platform: Android 카메라 권한 확인 추가
+1. Android / iOS / macOS Demo 개선
+2. Android 레이아웃 수정
+3. Android 카메라 권한 확인
 
 ## v1.0.5
 
 2025-08-18
 
-1. improvement: 뷰티 파라미터 조절 최적화
+1. 뷰티 조절 개선
 
 ## v1.0.4
 
 2025-08-01
 
-1. improvement: 얼굴 검출 정확도 최적화
-2. improvement: 리소스 파일 크기 최적화
+1. 얼굴 검출 정확도 향상
+2. 리소스 파일 용량 축소
 
 ## v1.0.3
 
 2025-07-15
 
-1. fix: 여러 얼굴이 감지될 때 메이크업이 한 얼굴에만 적용되던 문제 수정
+1. 여러 얼굴에서 메이크업이 한 명에게만 적용되던 문제 수정
 
 ## v1.0.2
 
 2025-07-01
 
-1. feature: 가상 배경 지원
-2. web: Web 중·영문 문서
-3. web: npm 설치 지원
+1. 가상 배경
+2. Web 한/영 문서
+3. npm 설치

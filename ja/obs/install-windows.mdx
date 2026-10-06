@@ -1,0 +1,53 @@
+---
+title: "Windows にインストール"
+sidebarTitle: "Windows にインストール"
+icon: "windows"
+iconType: "brands"
+description: "Windows に Facebetter OBS プラグインをインストールします。"
+---
+
+Facebetter は OBS Studio 用のリアルタイム美顔フィルタです。美肌、輪郭、メイク、色調、スタンプ、体型、背景は、このパソコン上で処理されます。
+
+OBS 全体には自動ではかかりません。処理したいソースに **Facebetter Beauty（Facebetter ビューティー）** を追加すると、右のパネルのスライダーが使えます。カメラ、画像、動画のいずれでも構いません。Mac の手順は [Mac にインストール](/ja/obs/install) です。インストールのあと、ログインと調整は両方のシステムで同じです。[ログインしてフィルタを追加](/ja/obs/login) を見てください。
+
+始める前に確認してください。
+
+- Windows 10 または Windows 11、64 ビット。
+- OBS Studio 28 以降、64 ビット。
+
+ダウンロード：[facebetter.net/ja/obs](https://facebetter.net/ja/obs)
+
+## OBS を終了して解凍
+
+先に OBS を完全に終了します。コピーしているあいだ OBS が開いていると、その起動ではプラグインは読み込まれません。
+
+Windows の zip をダウンロードして解凍します。中には `obs-facebetter` フォルダ全体と、中国語と英語の短い説明があります。コピーするのはこのフォルダです。中の DLL だけを取り出さないでください。
+
+## OBS のプラグインフォルダへコピー
+
+`obs-facebetter` フォルダ全体を次の場所にコピーします。
+
+```text
+C:\ProgramData\obs-studio\plugins\
+```
+
+コピーが終わると、プラグインの場所は次のとおりです。
+
+```text
+C:\ProgramData\obs-studio\plugins\obs-facebetter\
+```
+
+`ProgramData` は初期状態では隠しフォルダです。エクスプローラーで「表示」→「表示」→「隠しファイル」をオンにします。コピー中に権限を聞かれたら許可します。
+
+ここはこの PC の共有プラグインフォルダで、OBS はここからプラグインを読み込みます。`%APPDATA%\obs-studio\` には置かないでください。そこはシーンとログの場所です。
+
+次の 2 つのファイルが、このファイル名のまま両方必要です。
+
+```text
+C:\ProgramData\obs-studio\plugins\obs-facebetter\bin\64bit\obs-facebetter.dll
+C:\ProgramData\obs-studio\plugins\obs-facebetter\bin\64bit\facebetter.dll
+```
+
+`bin` の隣の `data` フォルダも残します。言語ファイルとリソースが入っています。
+
+OBS を開き、[ログインしてフィルタを追加](/ja/obs/login) に進みます。

@@ -1,0 +1,37 @@
+---
+description: >-
+  用户说改 release note / changelog / RN / GitHub Release 时必用。
+  两处一起改：Mintlify 文档 + pixpark/facebetter-sdk 的 GitHub Release。
+alwaysApply: false
+---
+
+# 改 Release Notes（两处一起）
+
+用户说改 changelog / release note / RN，**两处都改**，不要只改文档。
+
+## 1. 文档
+
+`intro/release-note.mdx` 及 `zh/` `ja/` `ko/` `es/` `pt-BR/` 对应页。六种语言一起改。
+
+给外部客户看：短句、产品能力。不写套餐门槛、破坏性变更名单、错误码、内部接入细节。口径见 `customer-docs.mdc`。
+
+## 2. GitHub Release
+
+仓：`pixpark/facebetter-sdk`。`gh release edit <tag> --repo pixpark/facebetter-sdk --notes`。只写英文。
+
+```
+## Release Notes
+
+1. feature: …
+2. improvement: …
+3. fix: …
+
+## SDK Files
+| file                       | content                    | arch                                         |
+| -------------------------- | -------------------------- | -------------------------------------------- |
+| facebetter-sdk-android.zip | Android aar libs           | armeabi-v7a + arm64-v8a (**16KB Alignment**) |
+| facebetter-sdk-apple.zip   | iOS  and macOS xcframework | arm64 + x86_64                               |
+| facebetter-sdk-win.zip     | Windows  .dll shared libs  | x86 and x64                                          |
+```
+
+`## SDK Files` 表固定，不要改。只改该 tag 的 `## Release Notes`。

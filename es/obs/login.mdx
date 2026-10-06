@@ -1,0 +1,66 @@
+---
+title: "Iniciar sesión y añadir el filtro"
+sidebarTitle: "Iniciar sesión y añadir el filtro"
+icon: "right-to-bracket"
+iconType: "solid"
+description: "Inicia sesión en Facebetter y añade el filtro de belleza a una fuente de OBS."
+---
+
+Primero [instala en macOS](/es/obs/install) o [instala en Windows](/es/obs/install-windows). Después inicia sesión y añade el filtro a una fuente.
+
+El inicio de sesión, añadir el filtro y ajustar los efectos funcionan igual en macOS y en Windows. Las capturas de abajo son OBS en inglés en un Mac. En OBS en español, Filters es 「Filtros」, Sign in es 「Iniciar sesión」 y No filter yet es 「Sin filtro」. El nombre del filtro sigue siendo **Facebetter Beauty**.
+
+## Iniciar sesión
+
+Al abrir OBS, el panel Facebetter queda a la derecha. Si no lo ves, usa **Herramientas → Facebetter**. El panel puede quedarse acoplado junto al mezclador de audio.
+
+Antes de iniciar sesión, el centro del panel es la página de acceso.
+
+<Frame>
+  <img src="/images/obs/login.png" alt="Panel Facebetter a la derecha de OBS, antes de iniciar sesión" />
+</Frame>
+
+1. Pulsa **Sign in**. Si no tienes cuenta, pulsa **Sign up** debajo.
+2. El navegador del sistema abre la página de autorización de Facebetter. Si ya has iniciado sesión en el sitio, la página muestra esa cuenta y no vuelve a pedir la contraseña.
+3. Pulsa **Authorize OBS**. Para usar otra cuenta, pulsa **Use a different account**.
+
+<Frame>
+  <img src="/images/obs/login-auth.png" alt="Autorizar la cuenta actual para el plugin de OBS" />
+</Frame>
+
+Cuando termine la autorización, vuelve a OBS. El plan gratis incluye todos los efectos. La salida lleva una marca de agua `facebetter.net`.
+
+## Añadir el filtro a una fuente
+
+Iniciar sesión no embellece la imagen. Si arriba del panel dice **No filter yet**, los controles siguen bloqueados. Añade primero el filtro a una fuente.
+
+La fuente no tiene que ser una cámara. Una imagen, un vídeo o una fuente de medios funcionan igual.
+
+### Abrir Filtros de esa fuente
+
+En la lista de fuentes, haz clic derecho en el elemento que quieras tratar y elige **Filters**.
+
+<Frame>
+  <img src="/images/obs/add-filter.png" alt="Clic derecho en una fuente y elegir Filters" />
+</Frame>
+
+También hay un botón **Filters** debajo de la lista. Selecciona la fuente y pulsa ese botón.
+
+### Añadir Facebetter Beauty
+
+Abajo a la izquierda de la ventana de filtros, pulsa **+**, elige **Facebetter Beauty**, confirma el nombre y cierra la ventana.
+
+<Frame>
+  <img src="/images/obs/add-beauty.png" alt="Elegir Facebetter Beauty en la lista de filtros" />
+</Frame>
+
+Pasan dos cosas:
+
+- El panel Facebetter pasa al frente. Para abrirlo después, usa **Herramientas → Facebetter**.
+- El menú de fuente de arriba del panel deja de decir 「Sin filtro」 y pasa a esa fuente, o a **All sources**. Ya se pueden mover los controles.
+
+La ventana de filtros no es donde se ajusta el aspecto. Tiene una frase y un botón **Open Facebetter panel**. El suavizado, el aclarado y la forma del rostro se ajustan en el panel Facebetter de la derecha.
+
+Si una escena tiene varias imágenes, añade el filtro una vez en cada fuente que quieras tratar.
+
+Después mueve los controles en [Ajustar efectos](/es/obs/effects). Si un control está en gris, mira las [preguntas de macOS](/es/obs/faq) o las [preguntas de Windows](/es/obs/faq-windows).

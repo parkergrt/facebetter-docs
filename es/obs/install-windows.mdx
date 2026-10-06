@@ -1,0 +1,53 @@
+---
+title: "Instalar en Windows"
+sidebarTitle: "Instalar en Windows"
+icon: "windows"
+iconType: "brands"
+description: "Instala el plugin Facebetter para OBS en Windows."
+---
+
+Facebetter es un filtro de belleza en tiempo real para OBS Studio. Piel, forma del rostro, maquillaje, color, stickers, cuerpo y fondo se procesan en este ordenador.
+
+No se aplica solo a todo OBS. Añade **Facebetter Beauty** a la fuente que quieras tratar y los controles del panel derecho empiezan a funcionar. Sirve una cámara, una imagen o un vídeo. Los pasos de Mac están en [Instalar en Mac](/es/obs/install). Después de instalar, el inicio de sesión y los ajustes son iguales en los dos sistemas: [Iniciar sesión y añadir el filtro](/es/obs/login).
+
+Antes de empezar:
+
+- Windows 10 o Windows 11, de 64 bits.
+- OBS Studio 28 o posterior, de 64 bits.
+
+Descarga: [facebetter.net/es/obs](https://facebetter.net/es/obs)
+
+## Cerrar OBS y descomprimir
+
+Cierra OBS por completo. Si OBS está abierto mientras copias el plugin, esa sesión no lo cargará.
+
+Descarga el zip de Windows y descomprímelo. Dentro está la carpeta `obs-facebetter` completa y unas guías cortas en chino y en inglés. Copia esa carpeta. No saques una sola DLL.
+
+## Copiarla a la carpeta de plugins de OBS
+
+Copia toda la carpeta `obs-facebetter` a:
+
+```text
+C:\ProgramData\obs-studio\plugins\
+```
+
+Al terminar, la carpeta del plugin es:
+
+```text
+C:\ProgramData\obs-studio\plugins\obs-facebetter\
+```
+
+`ProgramData` está oculta por defecto. En el Explorador de archivos, abre Ver → Mostrar → Elementos ocultos. Si Windows pide permiso al copiar, acéptalo.
+
+Esta es la carpeta compartida de plugins de este PC. OBS carga los plugins desde aquí. No pongas la carpeta en `%APPDATA%\obs-studio\`. Ahí están las escenas y los registros, no los plugins.
+
+Estos dos archivos tienen que estar, con estos nombres:
+
+```text
+C:\ProgramData\obs-studio\plugins\obs-facebetter\bin\64bit\obs-facebetter.dll
+C:\ProgramData\obs-studio\plugins\obs-facebetter\bin\64bit\facebetter.dll
+```
+
+Deja la carpeta `data` junto a `bin`. Contiene los idiomas y los recursos.
+
+Abre OBS y sigue con [Iniciar sesión y añadir el filtro](/es/obs/login).

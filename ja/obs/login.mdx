@@ -1,0 +1,66 @@
+---
+title: "ログインしてフィルタを追加"
+sidebarTitle: "ログインしてフィルタを追加"
+icon: "right-to-bracket"
+iconType: "solid"
+description: "Facebetter にログインし、OBS のソースに美顔フィルタを追加します。"
+---
+
+先に [macOS にインストール](/ja/obs/install) するか、[Windows にインストール](/ja/obs/install-windows) してください。そのあとログインし、ソースにフィルタを付けます。
+
+ログイン、フィルタの追加、効果の調整は macOS と Windows で同じです。下の画面は Mac 上の英語 OBS です。日本語の OBS では、Filters は「フィルタ」、Facebetter Beauty は「Facebetter ビューティー」、Sign in は「ログイン」、No filter yet は「フィルター未追加」です。
+
+## ログイン
+
+OBS を開くと、Facebetter パネルはウィンドウの右側にあります。見えないときは **ツール → Facebetter** を使います。パネルはオーディオミキサーのようにドックできます。
+
+ログイン前は、パネルの中央がログインページです。
+
+<Frame>
+  <img src="/images/obs/login.png" alt="ログイン前の Facebetter パネル" />
+</Frame>
+
+1. **Sign in（ログイン）** を押します。アカウントがなければ下の **Sign up（登録）** を押します。
+2. システムのブラウザで Facebetter の認可ページが開きます。すでにウェブサイトにログインしているときは、そのアカウントが表示され、パスワードは再入力しません。
+3. **Authorize OBS** を押します。別のアカウントを使うときは **Use a different account** を押します。
+
+<Frame>
+  <img src="/images/obs/login-auth.png" alt="今のアカウントを OBS プラグインに認可する" />
+</Frame>
+
+認可が終わったら OBS に戻ります。無料プランではすべての効果が使え、出力には `facebetter.net` の透かしが入ります。
+
+## ソースにフィルタを追加
+
+ログインしただけでは美顔はかかりません。パネル上部が **No filter yet（フィルター未追加）** のとき、スライダーはロックされています。先にソースへフィルタを追加します。
+
+ソースはカメラに限りません。画像、動画、メディアソースでも同じです。
+
+### そのソースのフィルタを開く
+
+ソース一覧で処理したい項目を右クリックし、**Filters（フィルタ）** を選びます。
+
+<Frame>
+  <img src="/images/obs/add-filter.png" alt="ソースを右クリックして Filters を選ぶ" />
+</Frame>
+
+ソース一覧の下にも **Filters** ボタンがあります。ソースを選んでからそのボタンを押しても同じです。
+
+### Facebetter ビューティーを追加
+
+フィルタウィンドウの左下の **+** を押し、**Facebetter Beauty（Facebetter ビューティー）** を選んで名前を確認し、ウィンドウを閉じます。
+
+<Frame>
+  <img src="/images/obs/add-beauty.png" alt="フィルタ一覧で Facebetter Beauty を選ぶ" />
+</Frame>
+
+そのあと次のことが起きます。
+
+- Facebetter パネルが前に出ます。あとから開くときは **ツール → Facebetter** です。
+- パネル上部のソースが「フィルター未追加」からそのソース、または **All sources（すべてのソース）** に変わります。スライダーを動かせます。
+
+このフィルタウィンドウでは見た目を調整しません。説明が一行と、**Open Facebetter panel（Facebetter パネルを開く）** ボタンがあるだけです。スムージング、美白、輪郭は右の Facebetter パネルで調整します。
+
+シーンに複数の画面があるときは、処理したいソースごとにフィルタを一度ずつ追加します。
+
+次は [効果を調整](/ja/obs/effects) でスライダーを動かします。灰色で動かないときは、[macOS のよくある質問](/ja/obs/faq) または [Windows のよくある質問](/ja/obs/faq-windows) を見てください。

@@ -1,0 +1,53 @@
+---
+title: "Instalar no Windows"
+sidebarTitle: "Instalar no Windows"
+icon: "windows"
+iconType: "brands"
+description: "Instale o plugin Facebetter para OBS no Windows."
+---
+
+O Facebetter é um filtro de beleza em tempo real para o OBS Studio. Pele, formato do rosto, maquiagem, cor, adesivos, corpo e fundo são processados neste computador.
+
+Ele não entra sozinho em todo o OBS. Adicione **Facebetter Beauty** à fonte que você quer tratar e os controles do painel à direita passam a funcionar. Serve câmera, imagem ou vídeo. Os passos do Mac estão em [Instalar no Mac](/pt-BR/obs/install). Depois de instalar, o login e os ajustes são iguais nos dois sistemas: [Entrar e adicionar o filtro](/pt-BR/obs/login).
+
+Antes de começar:
+
+- Windows 10 ou Windows 11, 64 bits.
+- OBS Studio 28 ou posterior, 64 bits.
+
+Download: [facebetter.net/pt-BR/obs](https://facebetter.net/pt-BR/obs)
+
+## Fechar o OBS e descompactar
+
+Feche o OBS por completo. Se o OBS estiver aberto enquanto você copia o plugin, essa sessão não o carrega.
+
+Baixe o zip do Windows e descompacte. Dentro está a pasta `obs-facebetter` inteira e guias curtos em chinês e inglês. Copie essa pasta. Não retire uma única DLL.
+
+## Copiar para a pasta de plugins do OBS
+
+Copie a pasta `obs-facebetter` inteira para:
+
+```text
+C:\ProgramData\obs-studio\plugins\
+```
+
+Quando a cópia terminar, a pasta do plugin é:
+
+```text
+C:\ProgramData\obs-studio\plugins\obs-facebetter\
+```
+
+`ProgramData` fica oculta por padrão. No Explorador de Arquivos, abra Exibir → Mostrar → Itens ocultos. Se o Windows pedir permissão ao copiar, permita.
+
+Esta é a pasta compartilhada de plugins deste PC. O OBS carrega os plugins daqui. Não coloque a pasta em `%APPDATA%\obs-studio\`. Ali ficam cenas e registros, não plugins.
+
+Estes dois arquivos precisam estar presentes, com estes nomes:
+
+```text
+C:\ProgramData\obs-studio\plugins\obs-facebetter\bin\64bit\obs-facebetter.dll
+C:\ProgramData\obs-studio\plugins\obs-facebetter\bin\64bit\facebetter.dll
+```
+
+Mantenha a pasta `data` ao lado de `bin`. Ela guarda idiomas e recursos.
+
+Abra o OBS e siga para [Entrar e adicionar o filtro](/pt-BR/obs/login).

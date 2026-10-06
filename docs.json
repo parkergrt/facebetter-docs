@@ -189,6 +189,24 @@
                 "iconType": "solid"
               }
             ]
+          },
+          {
+            "tab": "OBS Plugin",
+            "groups": [
+              {
+                "group": "OBS Plugin",
+                "pages": [
+                  "obs/install",
+                  "obs/install-windows",
+                  "obs/login",
+                  "obs/effects",
+                  "obs/faq",
+                  "obs/faq-windows"
+                ],
+                "icon": "video",
+                "iconType": "solid"
+              }
+            ]
           }
         ],
         "navbar": {
@@ -339,6 +357,24 @@
                   "zh/effect-creator/face-makeup"
                 ],
                 "icon": "wand-magic-sparkles",
+                "iconType": "solid"
+              }
+            ]
+          },
+          {
+            "tab": "OBS 插件",
+            "groups": [
+              {
+                "group": "OBS 插件",
+                "pages": [
+                  "zh/obs/install",
+                  "zh/obs/install-windows",
+                  "zh/obs/login",
+                  "zh/obs/effects",
+                  "zh/obs/faq",
+                  "zh/obs/faq-windows"
+                ],
+                "icon": "video",
                 "iconType": "solid"
               }
             ]
@@ -495,6 +531,24 @@
                 "iconType": "solid"
               }
             ]
+          },
+          {
+            "tab": "OBS プラグイン",
+            "groups": [
+              {
+                "group": "OBS プラグイン",
+                "pages": [
+                  "ja/obs/install",
+                  "ja/obs/install-windows",
+                  "ja/obs/login",
+                  "ja/obs/effects",
+                  "ja/obs/faq",
+                  "ja/obs/faq-windows"
+                ],
+                "icon": "video",
+                "iconType": "solid"
+              }
+            ]
           }
         ],
         "navbar": {
@@ -645,6 +699,24 @@
                   "ko/effect-creator/face-makeup"
                 ],
                 "icon": "wand-magic-sparkles",
+                "iconType": "solid"
+              }
+            ]
+          },
+          {
+            "tab": "OBS 플러그인",
+            "groups": [
+              {
+                "group": "OBS 플러그인",
+                "pages": [
+                  "ko/obs/install",
+                  "ko/obs/install-windows",
+                  "ko/obs/login",
+                  "ko/obs/effects",
+                  "ko/obs/faq",
+                  "ko/obs/faq-windows"
+                ],
+                "icon": "video",
                 "iconType": "solid"
               }
             ]
@@ -801,6 +873,24 @@
                 "iconType": "solid"
               }
             ]
+          },
+          {
+            "tab": "Plugin de OBS",
+            "groups": [
+              {
+                "group": "Plugin de OBS",
+                "pages": [
+                  "es/obs/install",
+                  "es/obs/install-windows",
+                  "es/obs/login",
+                  "es/obs/effects",
+                  "es/obs/faq",
+                  "es/obs/faq-windows"
+                ],
+                "icon": "video",
+                "iconType": "solid"
+              }
+            ]
           }
         ],
         "navbar": {
@@ -951,6 +1041,24 @@
                   "pt-BR/effect-creator/face-makeup"
                 ],
                 "icon": "wand-magic-sparkles",
+                "iconType": "solid"
+              }
+            ]
+          },
+          {
+            "tab": "Plugin para OBS",
+            "groups": [
+              {
+                "group": "Plugin para OBS",
+                "pages": [
+                  "pt-BR/obs/install",
+                  "pt-BR/obs/install-windows",
+                  "pt-BR/obs/login",
+                  "pt-BR/obs/effects",
+                  "pt-BR/obs/faq",
+                  "pt-BR/obs/faq-windows"
+                ],
+                "icon": "video",
                 "iconType": "solid"
               }
             ]

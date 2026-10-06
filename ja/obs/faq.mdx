@@ -1,0 +1,33 @@
+---
+title: "よくある質問"
+sidebarTitle: "macOS のよくある質問"
+icon: "circle-question"
+iconType: "solid"
+description: "Mac で Facebetter OBS プラグインが出ない、スライダーが動かない、プレビューが変わらないときの対処です。"
+---
+
+## パネルにもフィルタ一覧にも Facebetter がない
+
+OBS を完全に終了してから開き直します。そのあと、プラグインがここにあるか確認します。
+
+```text
+~/Library/Application Support/obs-studio/plugins/facebetter.plugin
+```
+
+Intel Mac には Intel 版 OBS、Apple シリコンには Apple シリコン版 OBS が必要です。組み合わせが違うと OBS はプラグインを読み込みません。手順は [Mac にインストール](/ja/obs/install) です。
+
+## プラグインが破損していると言われる
+
+「ターミナル」を開き、次の行を貼り付けて Return を押し、OBS を開き直します。
+
+```bash
+xattr -dr com.apple.quarantine ~/Library/Application\ Support/obs-studio/plugins/facebetter.plugin
+```
+
+## スライダーが灰色で動かない
+
+ソースにフィルタがまだありません。パネルには、調整するにはフィルタを追加する、と出ます。ソースを右クリック → フィルタ → + → Facebetter ビューティー。ページの見出しは押して中身を見られます。スライダーはフィルタを追加してから動きます。手順は [ログインしてフィルタを追加](/ja/obs/login) です。
+
+## フィルタを追加したのにプレビューが変わらない
+
+パネル上部のスイッチがオンか、ソースメニューが今見ているソースかを確認します。スライダーがすべて 0 なら、映像は元のままに見えます。体型は人が画面の中で比較的大きく写っている必要があります。顔だけの映像では変化がほとんど分かりません。各ページの内容は [効果を調整](/ja/obs/effects) です。

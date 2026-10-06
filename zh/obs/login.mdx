@@ -1,0 +1,66 @@
+---
+title: "登录并添加滤镜"
+sidebarTitle: "登录并添加滤镜"
+icon: "right-to-bracket"
+iconType: "solid"
+description: "登录 Facebetter，并在 OBS 画面源上添加美颜滤镜。"
+---
+
+先完成 [macOS 安装](/zh/obs/install) 或 [Windows 安装](/zh/obs/install-windows)，再按这一页登录并把滤镜加到来源上。
+
+登录、添加滤镜和调节效果在 macOS 与 Windows 上相同。下面的截图来自 macOS 上的英文 OBS。
+
+## 登录
+
+打开 OBS 后，Facebetter 面板在窗口右侧。如果没看到，用菜单 **工具 → Facebetter** 打开。面板可以像音频混音器一样停在 OBS 里。
+
+还没登录时，面板中间是登录页。
+
+<Frame>
+  <img src="/images/obs/login.png" alt="OBS 右侧的 Facebetter 面板，尚未登录" />
+</Frame>
+
+1. 点 **Sign in（登录）**。没有账号就点下面的 **Sign up（注册）**。
+2. 系统浏览器会打开 Facebetter 的授权页。已经登录过网站时，页面会显示当前账号，不用再输入密码。
+3. 点 **Authorize OBS（授权 OBS）**。要用别的账号，点 **Use a different account**。
+
+<Frame>
+  <img src="/images/obs/login-auth.png" alt="在浏览器里授权当前账号给 OBS 插件" />
+</Frame>
+
+授权成功后回到 OBS。免费版可以使用全部效果，输出画面带 `facebetter.net` 水印。
+
+## 给画面源添加滤镜
+
+只登录还不会美颜。面板顶部如果显示 **No filter yet（未添加滤镜）**，下面的滑块是锁住的。需要先把滤镜加到来源上。
+
+来源不限于摄像头。图片、视频、媒体源同样可以加。
+
+### 打开这个来源的滤镜
+
+在来源列表里，右键要点处理的那一项，选 **Filters（滤镜）**。
+
+<Frame>
+  <img src="/images/obs/add-filter.png" alt="在来源上右键，选择 Filters" />
+</Frame>
+
+来源列表下方也有一个 **Filters** 按钮。先选中来源，再点它，效果一样。
+
+### 添加 Facebetter 美颜
+
+滤镜窗口左下角点 **+**，在列表里选 **Facebetter Beauty（Facebetter 美颜）**，确认名称后关闭窗口。
+
+<Frame>
+  <img src="/images/obs/add-beauty.png" alt="在滤镜列表中选择 Facebetter Beauty" />
+</Frame>
+
+加上之后会发生两件事：
+
+- Facebetter 面板会弹出来。之后想再打开，用 **工具 → Facebetter**。
+- 面板顶部的来源从「未添加滤镜」变成这个源，或 **All sources（全部源）**。滑块可以拖了。
+
+这个滤镜窗口本身不拿来调效果。里面只有一句说明和一个 **Open Facebetter panel（打开 Facebetter 面板）** 按钮。磨皮、美白、美型都在右侧 Facebetter 面板里调。
+
+一个场景里有多个画面时，每个要处理的源都要单独加一次滤镜。
+
+接下来在 [调节效果](/zh/obs/effects) 里拖滑块。滑块是灰的，看 [macOS 常见问题](/zh/obs/faq) 或 [Windows 常见问题](/zh/obs/faq-windows)。

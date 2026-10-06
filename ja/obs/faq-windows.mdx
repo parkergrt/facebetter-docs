@@ -1,0 +1,28 @@
+---
+title: "よくある質問"
+sidebarTitle: "Windows のよくある質問"
+icon: "circle-question"
+iconType: "solid"
+description: "Windows で Facebetter OBS プラグインが出ない、スライダーが動かない、プレビューが変わらないときの対処です。"
+---
+
+## パネルにもフィルタ一覧にも Facebetter がない
+
+64 ビットの OBS Studio 28 以降を使っているか確認します。フォルダをコピーしたあと、OBS を完全に終了してから開き直します。
+
+プラグインは `%APPDATA%\obs-studio\` には置きません。次の 2 つのファイルが、このファイル名のまま両方あるか確認します。
+
+```text
+C:\ProgramData\obs-studio\plugins\obs-facebetter\bin\64bit\obs-facebetter.dll
+C:\ProgramData\obs-studio\plugins\obs-facebetter\bin\64bit\facebetter.dll
+```
+
+`bin` の隣の `data` フォルダも残します。手順は [Windows にインストール](/ja/obs/install-windows) です。
+
+## スライダーが灰色で動かない
+
+ソースにフィルタがまだありません。パネルには、調整するにはフィルタを追加する、と出ます。ソースを右クリック → フィルタ → + → Facebetter ビューティー。ページの見出しは押して中身を見られます。スライダーはフィルタを追加してから動きます。手順は [ログインしてフィルタを追加](/ja/obs/login) です。
+
+## フィルタを追加したのにプレビューが変わらない
+
+パネル上部のスイッチがオンか、ソースメニューが今見ているソースかを確認します。スライダーがすべて 0 なら、映像は元のままに見えます。体型は人が画面の中で比較的大きく写っている必要があります。顔だけの映像では変化がほとんど分かりません。各ページの内容は [効果を調整](/ja/obs/effects) です。

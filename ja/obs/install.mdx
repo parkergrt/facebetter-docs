@@ -1,0 +1,76 @@
+---
+title: "Mac にインストール"
+sidebarTitle: "macOS にインストール"
+icon: "apple"
+iconType: "brands"
+description: "Mac に Facebetter OBS プラグインをインストールします。"
+---
+
+Facebetter は OBS Studio 用のリアルタイム美顔フィルタです。美肌、輪郭、メイク、色調、スタンプ、体型、背景は、このパソコン上で処理されます。
+
+OBS 全体には自動ではかかりません。処理したいソースに **Facebetter Beauty（Facebetter ビューティー）** を追加すると、右のパネルのスライダーが使えます。カメラ、画像、動画のいずれでも構いません。
+
+これらのページの OBS 画面は英語です。インストーラの画面は中国語の macOS です。各ボタンの日本語名は手順の中に書いてあります。
+
+始める前に確認してください。
+
+- macOS 13 以降。Intel Mac には Intel 版 OBS、Apple シリコンには Apple シリコン版 OBS を使います。
+- OBS Studio 28 以降、64 ビット。
+
+ダウンロード：[facebetter.net/ja/obs](https://facebetter.net/ja/obs)。Windows は [Windows にインストール](/ja/obs/install-windows) を見てください。
+
+## ダウンロードして解凍
+
+macOS の zip をダウンロードしてダブルクリックします。中にはインストーラ `Facebetter-OBS-*-macos-universal.pkg` と、短い説明 `README.zh.txt`、`README.en.txt` があります。
+
+<Frame>
+  <img src="/images/obs/pkg.png" alt="解凍したインストーラと説明ファイル" />
+</Frame>
+
+OBS が起動しているときは、メニューバーの OBS も含めて完全に終了してください。インストール中に OBS が開いていると、その起動では新しいプラグインは読み込まれません。
+
+## 「未打开」と出たとき
+
+このパッケージはまだ Apple の公証を受けていません。最初のダブルクリックで止められることがよくあります。ダイアログのタイトルは「未打开」（開けませんでした）で、ボタンの一つは「移到废纸篓」（ゴミ箱に入れる）です。
+
+<Frame>
+  <img src="/images/obs/gatekeeper.png" alt="macOS がパッケージを検証できない。ゴミ箱には入れない" />
+</Frame>
+
+<Warning>
+「完成」（完了）を押してください。「移到废纸篓」（ゴミ箱に入れる）は押さないでください。
+</Warning>
+
+そのあと：
+
+1. 「系统设置」→「隐私与安全性」（システム設定 → プライバシーとセキュリティ）を開きます。
+2. 「安全性」までスクロールし、Mac を保護するために Facebetter がブロックされた、という行を探します。
+3. 「仍要打开」（このまま開く）を押します。
+
+<Frame>
+  <img src="/images/obs/privacy.png" alt="プライバシーとセキュリティで「このまま開く」" />
+</Frame>
+
+確認するとインストーラが続きます。pkg を Control キーを押しながらクリックし、「開く」を選び、確認でもう一度「開く」を押す方法でも同じです。
+
+## インストーラを進める
+
+最初のページは紹介です。「继续」（続ける）を押します。
+
+<Frame>
+  <img src="/images/obs/install-intro.png" alt="インストーラの紹介" />
+</Frame>
+
+ディスクの確認でも「続ける」を押します。「安装类型」（インストールの種類）では初期設定のまま「安装」（インストール）を押します。「更改安装位置」（インストール場所を変更）は押さないでください。プラグインは今のユーザーだけに入ります。この Mac の他のアカウントには影響しません。
+
+<Frame>
+  <img src="/images/obs/install-type.png" alt="インストールの種類。インストールを押す" />
+</Frame>
+
+パスワードか Touch ID を求められることがあります。終わるとプラグインはここです。
+
+```text
+~/Library/Application Support/obs-studio/plugins/facebetter.plugin
+```
+
+OBS を開き、[ログインしてフィルタを追加](/ja/obs/login) に進みます。

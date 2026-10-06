@@ -8,7 +8,7 @@ Mintlify docs for the Facebetter realtime beauty SDK.
 - English pages at repo root (`intro/`, `android/`, …)
 - Localized pages under `zh/`, `ja/`, `ko/`, `es/`, `pt-BR/` with the same tree
 - Languages: en (default), zh, ja, ko, es, pt-BR
-- Top tabs: **SDK Docs** / **Effect Creator** (贴纸制作)
+- Top tabs: **SDK Docs** / **Effect Creator** (贴纸制作) / **OBS Plugin** (OBS 插件)
 - Platforms live in sidebar groups under SDK Docs
 - Images in `images/`
 
@@ -27,4 +27,4 @@ HarmonyOS docs were intentionally not migrated (hidden in the old site).
 - Keep platform guides self-contained: quick-start → implement → errors → API
 - Reshape / makeup / whitening / smoothing enums live in `intro/makeup.mdx` (and `zh/intro/makeup.mdx`). Platform API pages link there instead of duplicating tables.
 - This site documents **SDK 2.0 only**. Do not describe 1.x APIs (`setBeautyParam`, `licenseJson`, `registerFilter`, `ProcessMode`, `FBBeautyEffectEngine` singleton).
-- Version placeholders: **2.0.0**. Changelog: `intro/release-note.mdx`
+- Version placeholders: **2.0.0**. Changelog: `intro/release-note.mdx`（六语）+ GitHub `pixpark/facebetter-sdk` Release，见 `.cursor/rules/release-notes.mdc`

@@ -1,0 +1,28 @@
+---
+title: "Preguntas frecuentes"
+sidebarTitle: "Preguntas de Windows"
+icon: "circle-question"
+iconType: "solid"
+description: "Qué hacer en Windows si falta el plugin Facebetter para OBS, los controles no se mueven o la vista previa no cambia."
+---
+
+## Facebetter no está en el panel ni en la lista de filtros
+
+Usa OBS Studio 28 o posterior, de 64 bits. Después de copiar la carpeta, cierra OBS por completo y ábrelo otra vez.
+
+El plugin no va en `%APPDATA%\obs-studio\`. Confirma que existen estos dos archivos, con estos nombres:
+
+```text
+C:\ProgramData\obs-studio\plugins\obs-facebetter\bin\64bit\obs-facebetter.dll
+C:\ProgramData\obs-studio\plugins\obs-facebetter\bin\64bit\facebetter.dll
+```
+
+Deja la carpeta `data` junto a `bin`. Mira [Instalar en Windows](/es/obs/install-windows).
+
+## Los controles están en gris y no se mueven
+
+El filtro aún no está en una fuente. El panel dice que hay que añadir un filtro para poder ajustar. Clic derecho en la fuente → Filtros → + → Facebetter Beauty. Puedes pulsar los títulos de página para ver qué hay. Los controles se desbloquean al añadir el filtro. Mira [Iniciar sesión y añadir el filtro](/es/obs/login).
+
+## El filtro está añadido, pero la vista previa no cambia
+
+Comprueba que el interruptor de arriba del panel está encendido y que el menú de fuente es la fuente que estás viendo. Si todos los controles están en 0, la imagen parece la original. Los efectos de cuerpo necesitan que la persona ocupe más del cuadro. Un plano solo de cara apenas cambia. Lo que hace cada página está en [Ajustar efectos](/es/obs/effects).

@@ -1,0 +1,53 @@
+---
+title: "Windows에 설치"
+sidebarTitle: "Windows 설치"
+icon: "windows"
+iconType: "brands"
+description: "Windows에 Facebetter OBS 플러그인을 설치합니다."
+---
+
+Facebetter 는 OBS Studio 용 실시간 뷰티 필터입니다. 피부, 윤곽, 화장, 색 보정, 스티커, 바디, 배경은 이 컴퓨터에서 처리됩니다.
+
+OBS 전체에 자동으로 적용되지 않습니다. 처리할 소스에 **Facebetter Beauty(Facebetter 뷰티)** 를 추가해야 오른쪽 패널의 슬라이더를 쓸 수 있습니다. 카메라, 이미지, 비디오 모두 됩니다. Mac 절차는 [macOS 설치](/ko/obs/install) 입니다. 설치 뒤 로그인과 조절은 두 시스템에서 같습니다. [로그인하고 필터 추가](/ko/obs/login) 를 보세요.
+
+시작하기 전에 확인하세요.
+
+- Windows 10 또는 Windows 11, 64비트.
+- OBS Studio 28 이상, 64비트.
+
+다운로드: [facebetter.net/ko/obs](https://facebetter.net/ko/obs)
+
+## OBS 를 종료하고 압축 풀기
+
+먼저 OBS 를 완전히 종료합니다. 복사하는 동안 OBS 가 켜져 있으면 그 실행에서는 플러그인을 읽지 않습니다.
+
+Windows zip 을 받아 압축을 풉니다. 안에는 `obs-facebetter` 폴더 전체와 중국어, 영어 짧은 설명이 있습니다. 복사하는 것은 이 폴더입니다. 안의 DLL 하나만 꺼내지 마세요.
+
+## OBS 플러그인 폴더로 복사
+
+`obs-facebetter` 폴더 전체를 다음 위치에 복사합니다.
+
+```text
+C:\ProgramData\obs-studio\plugins\
+```
+
+복사가 끝나면 플러그인 위치는 다음과 같습니다.
+
+```text
+C:\ProgramData\obs-studio\plugins\obs-facebetter\
+```
+
+`ProgramData` 는 기본적으로 숨겨져 있습니다. 파일 탐색기에서 보기 → 표시 → 숨겨진 항목을 켭니다. 복사 중 권한을 물으면 허용합니다.
+
+이곳은 이 PC 의 공용 플러그인 폴더이며, OBS 는 여기서 플러그인을 읽습니다. `%APPDATA%\obs-studio\` 에 넣지 마세요. 그곳은 장면과 로그가 있는 곳입니다.
+
+다음 두 파일이 이 파일명 그대로 모두 있어야 합니다.
+
+```text
+C:\ProgramData\obs-studio\plugins\obs-facebetter\bin\64bit\obs-facebetter.dll
+C:\ProgramData\obs-studio\plugins\obs-facebetter\bin\64bit\facebetter.dll
+```
+
+`bin` 옆의 `data` 폴더도 남겨 둡니다. 언어 파일과 리소스가 들어 있습니다.
+
+OBS 를 연 다음 [로그인하고 필터 추가](/ko/obs/login) 로 이동합니다.

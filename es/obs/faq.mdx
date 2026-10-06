@@ -1,0 +1,33 @@
+---
+title: "Preguntas frecuentes"
+sidebarTitle: "Preguntas de macOS"
+icon: "circle-question"
+iconType: "solid"
+description: "Qué hacer en un Mac si falta el plugin Facebetter para OBS, los controles no se mueven o la vista previa no cambia."
+---
+
+## Facebetter no está en el panel ni en la lista de filtros
+
+Cierra OBS por completo y ábrelo otra vez. Después comprueba que el plugin está aquí:
+
+```text
+~/Library/Application Support/obs-studio/plugins/facebetter.plugin
+```
+
+Un Mac Intel necesita OBS para Intel. Apple silicon necesita OBS para Apple silicon. Si no coinciden, OBS no carga el plugin. Mira [Instalar en Mac](/es/obs/install).
+
+## macOS dice que el plugin está dañado
+
+Abre Terminal, pega esta línea, pulsa Retorno y abre OBS otra vez:
+
+```bash
+xattr -dr com.apple.quarantine ~/Library/Application\ Support/obs-studio/plugins/facebetter.plugin
+```
+
+## Los controles están en gris y no se mueven
+
+El filtro aún no está en una fuente. El panel dice que hay que añadir un filtro para poder ajustar. Clic derecho en la fuente → Filtros → + → Facebetter Beauty. Puedes pulsar los títulos de página para ver qué hay. Los controles se desbloquean al añadir el filtro. Mira [Iniciar sesión y añadir el filtro](/es/obs/login).
+
+## El filtro está añadido, pero la vista previa no cambia
+
+Comprueba que el interruptor de arriba del panel está encendido y que el menú de fuente es la fuente que estás viendo. Si todos los controles están en 0, la imagen parece la original. Los efectos de cuerpo necesitan que la persona ocupe más del cuadro. Un plano solo de cara apenas cambia. Lo que hace cada página está en [Ajustar efectos](/es/obs/effects).

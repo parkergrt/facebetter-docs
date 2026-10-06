@@ -1,0 +1,53 @@
+---
+title: "在 Windows 上安装"
+sidebarTitle: "Windows 安装"
+icon: "windows"
+iconType: "brands"
+description: "在 Windows 上安装 Facebetter OBS 插件。"
+---
+
+Facebetter 是 OBS Studio 的实时美颜滤镜。美肤、美型、美妆、滤镜、贴纸、美体和背景都在这台电脑上处理。
+
+它不会自动作用到整个 OBS。要在具体的画面源上加上 **Facebetter 美颜**，右侧面板里的滑块才会生效。摄像头、图片、视频都可以。Mac 上的安装见 [在 Mac 上安装](/zh/obs/install)。装好之后的登录和调节，两边相同，见 [登录并添加滤镜](/zh/obs/login)。
+
+开始之前确认：
+
+- Windows 10 或 Windows 11，64 位。
+- OBS Studio 28 或更高，并且是 64 位。
+
+下载页面：[facebetter.net/zh/obs](https://facebetter.net/zh/obs)
+
+## 退出 OBS 并解压
+
+如果 OBS 正在运行，先完全退出。装的时候 OBS 开着，这次启动不会加载新插件。
+
+下载 Windows 的 zip 并解压。里面是整个 `obs-facebetter` 文件夹，以及中英文说明。要复制的是这个文件夹，不要只把里面的某个 dll 单独拿出来。
+
+## 复制到 OBS 插件目录
+
+把整个 `obs-facebetter` 文件夹复制到：
+
+```text
+C:\ProgramData\obs-studio\plugins\
+```
+
+复制完成后，插件目录应是：
+
+```text
+C:\ProgramData\obs-studio\plugins\obs-facebetter\
+```
+
+`ProgramData` 默认是隐藏的。在资源管理器里打开「查看」→「显示」→「隐藏的项目」，才能看到这个文件夹。复制时如果系统询问权限，点允许。
+
+这是这台电脑的公共插件目录，OBS 从这里加载插件。不要把文件夹放到 `%APPDATA%\obs-studio\`，那里是场景和日志，不是插件目录。
+
+下面两个文件都要在，文件名不要改：
+
+```text
+C:\ProgramData\obs-studio\plugins\obs-facebetter\bin\64bit\obs-facebetter.dll
+C:\ProgramData\obs-studio\plugins\obs-facebetter\bin\64bit\facebetter.dll
+```
+
+`bin` 旁边的 `data` 目录也要留着，里面是语言文件和资源。
+
+复制完成后打开 OBS，然后 [登录并添加滤镜](/zh/obs/login)。

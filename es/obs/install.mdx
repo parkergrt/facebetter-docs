@@ -1,0 +1,76 @@
+---
+title: "Instalar en Mac"
+sidebarTitle: "Instalar en macOS"
+icon: "apple"
+iconType: "brands"
+description: "Instala el plugin Facebetter para OBS en un Mac."
+---
+
+Facebetter es un filtro de belleza en tiempo real para OBS Studio. Piel, forma del rostro, maquillaje, color, stickers, cuerpo y fondo se procesan en este ordenador.
+
+No se aplica solo a todo OBS. Añade **Facebetter Beauty** a la fuente que quieras tratar y los controles del panel derecho empiezan a funcionar. Sirve una cámara, una imagen o un vídeo.
+
+Las capturas de OBS de estas páginas están en inglés. Las del instalador están en macOS en chino. El nombre en español de cada botón aparece en los pasos.
+
+Antes de empezar:
+
+- macOS 13 o posterior. En un Mac Intel usa OBS para Intel; en Apple silicon, OBS para Apple silicon.
+- OBS Studio 28 o posterior, de 64 bits.
+
+Descarga: [facebetter.net/es/obs](https://facebetter.net/es/obs). Para Windows, ve a [Instalar en Windows](/es/obs/install-windows).
+
+## Descargar y descomprimir
+
+Descarga el zip de macOS y haz doble clic. Dentro están el instalador `Facebetter-OBS-*-macos-universal.pkg` y dos guías cortas, `README.zh.txt` y `README.en.txt`.
+
+<Frame>
+  <img src="/images/obs/pkg.png" alt="Instalador y archivos de ayuda descomprimidos" />
+</Frame>
+
+Cierra OBS por completo, incluido el icono de OBS en la barra de menús. Si OBS está abierto durante la instalación, esa sesión no cargará el plugin nuevo.
+
+## Si macOS dice que el paquete no se puede abrir
+
+El paquete aún no está notarizado. El primer doble clic suele bloquearse. El título del diálogo es 「未打开」 (no se abrió) y uno de los botones es 「移到废纸篓」 (Mover a la papelera).
+
+<Frame>
+  <img src="/images/obs/gatekeeper.png" alt="macOS no puede verificar el paquete. No lo muevas a la papelera." />
+</Frame>
+
+<Warning>
+Pulsa 「完成」 (Aceptar). No pulses 「移到废纸篓」 (Mover a la papelera).
+</Warning>
+
+Después:
+
+1. Abre 「系统设置」→「隐私与安全性」 (Ajustes del Sistema → Privacidad y seguridad).
+2. Baja hasta Seguridad y busca la fila que dice que Facebetter se bloqueó para proteger el Mac.
+3. Pulsa 「仍要打开」 (Abrir de todos modos).
+
+<Frame>
+  <img src="/images/obs/privacy.png" alt="Abrir de todos modos en Privacidad y seguridad" />
+</Frame>
+
+Al confirmar, el instalador continúa. También puedes hacer Control-clic en el pkg, elegir Abrir y pulsar Abrir otra vez en el diálogo.
+
+## Terminar el instalador
+
+La primera página es la introducción. Pulsa 「继续」 (Continuar).
+
+<Frame>
+  <img src="/images/obs/install-intro.png" alt="Introducción del instalador" />
+</Frame>
+
+En la confirmación del disco, pulsa Continuar otra vez. En 「安装类型」 (Tipo de instalación), deja el valor por defecto y pulsa 「安装」 (Instalar). No pulses 「更改安装位置」 (Cambiar ubicación de instalación). El plugin se instala solo para el usuario actual. Las demás cuentas de este Mac no cambian.
+
+<Frame>
+  <img src="/images/obs/install-type.png" alt="Tipo de instalación. Pulsa Instalar." />
+</Frame>
+
+macOS puede pedir la contraseña o Touch ID. Al terminar, el plugin está aquí:
+
+```text
+~/Library/Application Support/obs-studio/plugins/facebetter.plugin
+```
+
+Abre OBS y sigue con [Iniciar sesión y añadir el filtro](/es/obs/login).

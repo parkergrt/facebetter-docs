@@ -1,0 +1,28 @@
+---
+title: "FAQ"
+sidebarTitle: "Windows FAQ"
+icon: "circle-question"
+iconType: "solid"
+description: "What to do on Windows when the Facebetter OBS plugin is missing, sliders will not move, or the preview does not change."
+---
+
+## Facebetter is missing from the panel and from the filter list
+
+Use 64-bit OBS Studio 28 or later. After you copy the folder, quit OBS completely and open it again.
+
+The plugin does not belong in `%APPDATA%\obs-studio\`. Confirm both files exist, with these names:
+
+```text
+C:\ProgramData\obs-studio\plugins\obs-facebetter\bin\64bit\obs-facebetter.dll
+C:\ProgramData\obs-studio\plugins\obs-facebetter\bin\64bit\facebetter.dll
+```
+
+Keep the `data` folder next to `bin`. See [Install on Windows](/obs/install-windows).
+
+## Sliders are gray and will not move
+
+The filter is not on a source yet. The panel says you need to add a filter before the controls can be used. Right-click the source → Filters → + → Facebetter Beauty. You can still click the page titles to see what is there. The sliders unlock after the filter is added. See [Sign in and add the filter](/obs/login).
+
+## The filter is added, but the preview does not change
+
+Check that the switch at the top of the panel is on, and that the source menu is the source you are looking at. If every slider is at 0, the picture looks like the original. Body effects need more of the person in frame. A face-only shot barely changes. What each page does is in [Adjust effects](/obs/effects).

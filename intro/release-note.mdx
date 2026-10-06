@@ -3,217 +3,221 @@ title: "Changelog"
 description: "Facebetter SDK Release Note"
 ---
 
-This site documents **SDK 2.0**.
+This site documents **SDK 2.x**. Latest: **v2.1.0**.
+
+## v2.1.0
+
+2026-09-21
+
+1. Body reshape: slim, waist, legs, shoulders, arms, longer legs, bust, and more. See [Parameter enums](./makeup)
+2. 3D stickers (glasses, hats, and other mesh props)
+3. Optional resource packs for body reshape and 3D stickers. See [Optional resource packs](./resource-packs)
+
+## v2.0.1
+
+2026-09-15
+
+1. Faster processing on Web and Android
 
 ## v2.0.0
 
 2026-09-09
 
-1. **Auth**: Native uses `licenseToken` or `appId` + `appKey`. Web uses `licenseToken` only — fetch the token on your server; never put `appKey` in browser JS
-2. **Beauty**: `setSmoothing`, `setWhitening`, `setSharpening`, `setRosiness`, `setBeautySkinOnly`, plus style presets
-3. **Reshape**: 26 parameters (`FaceThin` … `BrowThickness`), intensity `[-1.0, 1.0]`
-4. **Body reshape**: 7 parameters (`BodySlim` … `BustEnhance`), intensity `[0.0, 1.0]`. Requires optional `resource_body.fbd` via `addResourcePack`. **Pro+**. See [Parameter enums](./makeup) and [Optional resource packs](./resource-packs)
-5. **Makeup**: intensity + Style (shape) + Color (tint). See [Parameter enums](./makeup)
-6. **Filter / sticker**: `setFilter` / `setSticker` with a `.fbd` path or bytes; 3D stickers use `set3DSticker` (needs `resource_3d.fbd`, **Pro+**). `clearFilter` / `clearSticker` / `clear3DSticker`
-7. **Virtual background**: blur, image replace, chroma key
-8. **Stats**: `getStats()` — FPS, average process time, session duration
-9. **Frame type**: `FrameType.Image` / `FrameType.Video`
-10. **Error codes**: `0` success, `-1` invalid argument, `-2` not initialized, `-3` license, `-4` unsupported, `-5` IO, `-6` no slot, `-7` process, `-8` OOM
-11. **Flutter**: `FBEngine.create(FBEngineConfig)`. Live video is processed natively via `FacebetterPlugin.processTexture`
-
-**Events** (`onEngineEvent` / Flutter `events`): `0` license OK, `1` license failed, `100` init complete, `101` init failed.
+1. New auth: native `licenseToken` or `appId` + `appKey`; Web uses `licenseToken` only (from your server)
+2. Skin beauty: smoothing, whitening, sharpening, rosiness, skin-only, plus style presets
+3. Face reshape (26 controls)
+4. Makeup: intensity, shape, and color. See [Parameter enums](./makeup)
+5. LUT filters and 2D stickers (`.fbd`)
+6. Virtual background: blur, image replace, chroma key
+7. Flutter SDK for Android and iOS
+8. Processing stats (`getStats()`)
 
 ## v1.5.1
 
 2026-08-03
 
-1. fix: with `SetSkinOnlyBeauty` enabled, processing images of varying resolutions could cause a memory out-of-bounds access (on Web: `memory access out of bounds`; only a full page reload recovered)
-2. improvement: inference performance
+1. Fixed a crash with skin-only beauty on images of different sizes
+2. Faster processing
 
 ## v1.5.0
 
 2026-07-30
 
-1. feature: offline license — download from the Dashboard and initialize with `licenseJson` (no network required; all platforms)
-2. docs: add [License & Auth](./license) guide for online and offline authentication
+1. Offline license from the Dashboard (no network required)
+2. Auth guide: [Auth & License](./license)
 
 ## v1.4.7
 
 2026-07-29
 
-1. feature: lipstick and blush style selection APIs
-2. improvement: plan renewals / upgrades take effect immediately on the next online auth
-3. fix: Web `SetSkinOnlyBeauty` crash
-4. fix: rare crashes and black-frame issues during image processing
+1. Lipstick and blush style selection
+2. Plan renewals and upgrades take effect on the next auth
+3. Fixed Web skin-only beauty crash
+4. Fixed occasional crashes and black frames
 
 ## v1.4.6
 
 2026-06-22
 
-1. improvement: more stable face tracking when the face moves quickly
+1. More stable tracking when the face moves quickly
 
 ## v1.4.5
 
 2026-06-09
 
-1. platform: Flutter SDK for Android and iOS
-2. docs: Flutter documentation
-3. fix: stickers could show a black screen in external texture mode
+1. Flutter SDK for Android and iOS
+2. Flutter docs
+3. Fixed sticker black screen in live video
 
 ## v1.4.4
 
 2026-06-02
 
-1. fix: filters and stickers not applying correctly in external texture mode
-2. fix: iOS RGBA texture output in external texture mode
+1. Fixed filters and stickers in live video
+2. Fixed iOS texture color output
 
 ## v1.4.3
 
 2026-05-04
 
-1. feature: lipstick and blush makeup effects
-2. feature: additional built-in stickers
-3. fix: remove-sticker API not taking effect in some cases
+1. Lipstick and blush makeup
+2. More built-in stickers
+3. Fixed removing stickers in some cases
 
 ## v1.4.2
 
 2026-04-23
 
-1. fix: Web license validation edge cases
+1. More reliable Web license checks
 
 ## v1.4.1
 
 2026-04-12
 
-1. platform: Windows SDK includes both 32-bit and 64-bit libraries
+1. Windows SDK includes 32-bit and 64-bit
 
 ## v1.4.0
 
 2026-03-24
 
-1. feature: skin segmentation — new `SetSkinOnlyBeauty` API to apply beauty only on skin areas
+1. Apply beauty on skin areas only
 
 ## v1.3.2
 
 2026-03-10
 
-1. improvement: free version displays watermark after 10 minutes
-2. platform: added Windows SDK and Linux SDK support
+1. Free plan shows a watermark after 10 minutes
+2. Windows and Linux SDK
 
 ## v1.3.1
 
 2026-03-03
 
-1. web: web npm version upgraded to 1.3.0
-2. improvement: added mirror interface documentation
-3. deprecation: deprecated enable beauty type interface
+1. Web npm 1.3.0
+2. Mirror docs
 
 ## v1.3.0
 
 2026-02-20
 
-1. improvement: optimized processing performance
-2. platform: Android supports Maven repository dependency
-3. platform: iOS and macOS Demo support CocoaPods installation
-4. feature: support style filters and stickers
-5. docs: updated filter and sticker development documentation
+1. Faster processing
+2. Android Maven
+3. iOS / macOS Demo via CocoaPods
+4. Style filters and stickers
 
 ## v1.2.5
 
 2026-01-15
 
-1. improvement: optimized authentication and reporting logic
-2. platform: support WebAssembly authentication and reporting
+1. More reliable authentication
 
 ## v1.2.2
 
 2026-01-08
 
-1. feature: free version limited to 5000 calls per month
-2. feature: support pay-as-you-go billing
+1. Updated subscription plans
 
 ## v1.2.1
 
 2025-12-20
 
-1. feature: added watermark filter
-2. improvement: network verification changed to async + callback notification
-3. price: price plan adjustment, added Ultra tier
+1. Watermark
+2. Auth runs in the background
+3. Updated pricing tiers
 
 ## v1.2.0
 
 2025-12-01
 
-1. platform: full platform support (Android, iOS, macOS, Windows, Linux, Web)
-2. feature: virtual background
-3. feature: style filters
-4. feature: sticker effects
-5. feature: online authentication upgrade
-6. improvement: optimized keypoint stability
+1. All platforms: Android, iOS, macOS, Windows, Linux, Web
+2. Virtual background
+3. Style filters
+4. Stickers
+5. Online auth upgrade
+6. More stable face tracking
 
 ## v1.1.3
 
 2025-11-10
 
-1. feature: free version limited to 5000 calls per month
-2. feature: pay-as-you-go billing
+1. Updated subscription plans
 
 ## v1.1.2
 
 2025-10-28
 
-1. improvement: optimized keypoint stability
-2. fix: fixed keypoint jitter issue
+1. More stable face tracking
+2. Fixed face jitter
 
 ## v1.1.1
 
 2025-10-15
 
-1. feature: LUT filter
-2. feature: face keypoint callback
-3. feature: green screen matting
-4. feature: support binding app ID
-5. feature: online authentication v2
-6. feature: multi-project support
+1. LUT filters
+2. Face keypoint callback
+3. Green-screen matting
+4. Bind app ID
+5. Online auth
+6. Multiple projects
 
 ## v1.1.0
 
 2025-09-20
 
-1. feature: support external texture processing
-2. improvement: optimized API usability
+1. Live video texture processing
+2. Easier APIs
 
 ## v1.0.6
 
 2025-09-05
 
-1. improvement: optimized Android, iOS and macOS Demo
-2. fix: fixed Android layout display issue
-3. platform: added Android camera permission check
+1. Better Android, iOS, and macOS demos
+2. Fixed Android layout
+3. Android camera permission check
 
 ## v1.0.5
 
 2025-08-18
 
-1. improvement: optimized beauty parameter adjustment
+1. Better beauty controls
 
 ## v1.0.4
 
 2025-08-01
 
-1. improvement: optimized face detection accuracy
-2. improvement: resource file size optimization
+1. More accurate face detection
+2. Smaller resource files
 
 ## v1.0.3
 
 2025-07-15
 
-1. fix: fixed makeup only applying to one face when multiple faces detected
+1. Makeup works on multiple faces
 
 ## v1.0.2
 
 2025-07-01
 
-1. feature: virtual background support
-2. web: Web Chinese and English documentation
-3. web: npm installation support
+1. Virtual background
+2. Web docs (English and Chinese)
+3. npm install
