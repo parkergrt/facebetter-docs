@@ -1,0 +1,33 @@
+---
+title: "Final Cut Pro 常见问题"
+sidebarTitle: "常见问题"
+icon: "circle-question"
+iconType: "solid"
+description: "系统拦截 App，或 Final Cut Pro 里找不到 Facebetter Beauty。"
+---
+
+## 系统提示 App 已损坏或无法打开
+
+安装包尚未签名公证，Gatekeeper 可能拦截。按下面顺序试：
+
+1. 右键 **Facebetter FCP Beauty.app** →「打开」→「打开」。
+2. 「系统设置」→「隐私与安全性」→「仍要打开」。
+3. 终端执行：
+
+```bash
+xattr -cr "/Applications/Facebetter FCP Beauty.app"
+```
+
+然后打开 App，点击「一键完成设置」。安装步骤见 [安装](/zh/fcp/install)。
+
+## Final Cut Pro 里找不到 Facebetter Beauty
+
+1. 打开 **Facebetter FCP Beauty.app**，完成「一键完成设置」。
+2. 完全退出 Final Cut Pro（不只是关掉工程窗口），再重新打开。
+3. 在效果浏览器中搜索 **Facebetter Beauty**。
+
+仍有问题可发邮件至 [hello@facebetter.net](mailto:hello@facebetter.net)。
+
+## 支持 Intel Mac 吗？
+
+不支持。Final Cut / Motion 插件目前仅支持 **Apple 芯片**。

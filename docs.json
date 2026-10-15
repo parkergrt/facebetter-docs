@@ -207,6 +207,28 @@
                 "iconType": "solid"
               }
             ]
+          },
+          {
+            "tab": "Edit Plugins",
+            "groups": [
+              {
+                "group": "Final Cut Pro",
+                "pages": [
+                  "fcp/install",
+                  "fcp/faq"
+                ],
+                "icon": "clapperboard",
+                "iconType": "solid"
+              },
+              {
+                "group": "After Effects",
+                "pages": [
+                  "ae/overview"
+                ],
+                "icon": "film",
+                "iconType": "solid"
+              }
+            ]
           }
         ],
         "navbar": {
@@ -375,6 +397,28 @@
                   "zh/obs/faq-windows"
                 ],
                 "icon": "video",
+                "iconType": "solid"
+              }
+            ]
+          },
+          {
+            "tab": "剪辑插件",
+            "groups": [
+              {
+                "group": "Final Cut Pro",
+                "pages": [
+                  "zh/fcp/install",
+                  "zh/fcp/faq"
+                ],
+                "icon": "clapperboard",
+                "iconType": "solid"
+              },
+              {
+                "group": "After Effects",
+                "pages": [
+                  "zh/ae/overview"
+                ],
+                "icon": "film",
                 "iconType": "solid"
               }
             ]
@@ -549,6 +593,28 @@
                 "iconType": "solid"
               }
             ]
+          },
+          {
+            "tab": "編集プラグイン",
+            "groups": [
+              {
+                "group": "Final Cut Pro",
+                "pages": [
+                  "ja/fcp/install",
+                  "ja/fcp/faq"
+                ],
+                "icon": "clapperboard",
+                "iconType": "solid"
+              },
+              {
+                "group": "After Effects",
+                "pages": [
+                  "ja/ae/overview"
+                ],
+                "icon": "film",
+                "iconType": "solid"
+              }
+            ]
           }
         ],
         "navbar": {
@@ -717,6 +783,28 @@
                   "ko/obs/faq-windows"
                 ],
                 "icon": "video",
+                "iconType": "solid"
+              }
+            ]
+          },
+          {
+            "tab": "편집 플러그인",
+            "groups": [
+              {
+                "group": "Final Cut Pro",
+                "pages": [
+                  "ko/fcp/install",
+                  "ko/fcp/faq"
+                ],
+                "icon": "clapperboard",
+                "iconType": "solid"
+              },
+              {
+                "group": "After Effects",
+                "pages": [
+                  "ko/ae/overview"
+                ],
+                "icon": "film",
                 "iconType": "solid"
               }
             ]
@@ -891,6 +979,28 @@
                 "iconType": "solid"
               }
             ]
+          },
+          {
+            "tab": "Plugins de edición",
+            "groups": [
+              {
+                "group": "Final Cut Pro",
+                "pages": [
+                  "es/fcp/install",
+                  "es/fcp/faq"
+                ],
+                "icon": "clapperboard",
+                "iconType": "solid"
+              },
+              {
+                "group": "After Effects",
+                "pages": [
+                  "es/ae/overview"
+                ],
+                "icon": "film",
+                "iconType": "solid"
+              }
+            ]
           }
         ],
         "navbar": {
@@ -1059,6 +1169,28 @@
                   "pt-BR/obs/faq-windows"
                 ],
                 "icon": "video",
+                "iconType": "solid"
+              }
+            ]
+          },
+          {
+            "tab": "Plugins de edição",
+            "groups": [
+              {
+                "group": "Final Cut Pro",
+                "pages": [
+                  "pt-BR/fcp/install",
+                  "pt-BR/fcp/faq"
+                ],
+                "icon": "clapperboard",
+                "iconType": "solid"
+              },
+              {
+                "group": "After Effects",
+                "pages": [
+                  "pt-BR/ae/overview"
+                ],
+                "icon": "film",
                 "iconType": "solid"
               }
             ]

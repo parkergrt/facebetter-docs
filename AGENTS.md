@@ -8,7 +8,7 @@ Mintlify docs for the Facebetter realtime beauty SDK.
 - English pages at repo root (`intro/`, `android/`, …)
 - Localized pages under `zh/`, `ja/`, `ko/`, `es/`, `pt-BR/` with the same tree
 - Languages: en (default), zh, ja, ko, es, pt-BR
-- Top tabs: **SDK Docs** / **Effect Creator** (贴纸制作) / **OBS Plugin** (OBS 插件)
+- Top tabs: **SDK Docs** / **Effect Creator** (贴纸制作) / **OBS Plugin** (OBS 插件) / **Edit Plugins** (剪辑插件：Final Cut Pro + After Effects 占位)
 - Platforms live in sidebar groups under SDK Docs
 - Images in `images/`
 

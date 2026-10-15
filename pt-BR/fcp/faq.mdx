@@ -1,0 +1,33 @@
+---
+title: "FAQ do Final Cut Pro"
+sidebarTitle: "FAQ"
+icon: "circle-question"
+iconType: "solid"
+description: "O macOS bloqueia o app, ou o Facebetter Beauty não aparece no Final Cut Pro."
+---
+
+## O macOS diz que o app está danificado ou não pode ser aberto
+
+O instalador ainda não está assinado nem notarizado. Tente nesta ordem:
+
+1. Clique com o botão direito em **Facebetter FCP Beauty.app** → **Abrir** → **Abrir**.
+2. **Ajustes do Sistema** → **Privacidade e segurança** → **Abrir mesmo assim**.
+3. No Terminal:
+
+```bash
+xattr -cr "/Applications/Facebetter FCP Beauty.app"
+```
+
+Depois abra o app e clique em **Set up for Final Cut**. Passos: [Instalar](/pt-BR/fcp/install).
+
+## Não encontro Facebetter Beauty no Final Cut Pro
+
+1. Abra **Facebetter FCP Beauty.app** e conclua **Set up for Final Cut**.
+2. Feche o Final Cut Pro por completo (não só o projeto) e abra de novo.
+3. No navegador de efeitos, pesquise **Facebetter Beauty**.
+
+Se continuar com problema, envie e-mail para [hello@facebetter.net](mailto:hello@facebetter.net).
+
+## Funciona em Mac Intel?
+
+Não. O plugin de Final Cut / Motion atualmente só suporta **Apple silicon**.

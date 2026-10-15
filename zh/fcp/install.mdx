@@ -1,0 +1,45 @@
+---
+title: "安装 Final Cut Pro 插件"
+sidebarTitle: "安装"
+icon: "download"
+iconType: "solid"
+description: "在 macOS Apple 芯片上安装 Facebetter Beauty（Final Cut Pro / Motion）。"
+---
+
+Facebetter Beauty 是面向 **Final Cut Pro** 与 **Motion** 的实时美颜效果，支持 macOS Apple 芯片。美肤、美型、美妆、滤镜、贴纸、美体和虚拟背景都在本机处理。
+
+下载页面：[facebetter.net/zh/edit](https://facebetter.net/zh/edit)。
+
+开始之前确认：
+
+- macOS **Apple 芯片**（M1 / M2 / M3 / M4）。
+- 已安装 Final Cut Pro（或 Motion）。
+
+## 安装步骤
+
+1. 下载 macOS zip 并解压。
+2. 将 **Facebetter FCP Beauty.app** 拖到「应用程序」（或 `~/Applications`）。
+3. 打开 App，点击「**一键完成设置**」（登记插件并安装 Motion 模板）。
+4. 完全退出并重新打开 Final Cut Pro，在效果浏览器中找到 **Facebetter Beauty**，拖到片段上即可。
+
+常规安装路径不需要管理员密码。
+
+<Tip>
+同一套设置也会安装 Motion 模板，可在 Motion 里使用该效果。
+</Tip>
+
+## 若系统提示「已损坏」或无法打开
+
+当前安装包尚未签名公证，Gatekeeper 可能误报「已损坏」「无法打开」或「无法验证」。
+
+1. 优先：右键 App →「打开」→ 再点「打开」。
+2. 或：「系统设置」→「隐私与安全性」→「仍要打开」。
+3. 或在终端执行（路径按实际调整）：
+
+```bash
+xattr -cr "/Applications/Facebetter FCP Beauty.app"
+```
+
+然后重新打开 App，完成「一键完成设置」。
+
+更多排错见 [常见问题](/zh/fcp/faq)。

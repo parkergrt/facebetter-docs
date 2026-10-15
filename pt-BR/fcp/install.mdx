@@ -1,0 +1,45 @@
+---
+title: "Instalar o plugin do Final Cut Pro"
+sidebarTitle: "Instalar"
+icon: "download"
+iconType: "solid"
+description: "Instale o Facebetter Beauty para Final Cut Pro e Motion no macOS Apple silicon."
+---
+
+Facebetter Beauty é um efeito de beleza em tempo real para **Final Cut Pro** e **Motion** no macOS Apple silicon. Pele, remodelagem, maquiagem, filtros de cor, stickers, corpo e fundo virtual são processados neste Mac.
+
+Download: [facebetter.net/pt-BR/edit](https://facebetter.net/pt-BR/edit).
+
+Antes de começar:
+
+- macOS em **Apple silicon** (M1 / M2 / M3 / M4).
+- Final Cut Pro (ou Motion) instalado.
+
+## Instalação
+
+1. Baixe o zip do macOS e descompacte.
+2. Mova **Facebetter FCP Beauty.app** para **Aplicativos** (ou `~/Applications`).
+3. Abra o app e clique em **Set up for Final Cut** (registra o plugin e instala o template do Motion).
+4. Feche totalmente o Final Cut Pro, abra de novo, encontre **Facebetter Beauty** em Efeitos e arraste para um clipe.
+
+No caminho usual não é necessária senha de administrador.
+
+<Tip>
+A mesma configuração também instala o template do Motion para usar o efeito no Motion.
+</Tip>
+
+## Se o macOS disser que o app está danificado
+
+Os builds ainda não estão assinados nem notarizados. O Gatekeeper pode mostrar «danificado», «não pode ser aberto» ou «não pode ser verificado».
+
+1. Preferível: clique com o botão direito no app → **Abrir** → **Abrir**.
+2. Ou: **Ajustes do Sistema** → **Privacidade e segurança** → **Abrir mesmo assim**.
+3. Ou no Terminal (ajuste o caminho se precisar):
+
+```bash
+xattr -cr "/Applications/Facebetter FCP Beauty.app"
+```
+
+Depois abra o app de novo e conclua **Set up for Final Cut**.
+
+Mais ajuda: [FAQ](/pt-BR/fcp/faq).
