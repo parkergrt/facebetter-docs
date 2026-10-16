@@ -20,6 +20,7 @@ OpenGL / `externalContext`、Web 服务端鉴权代理、`resource.fbd`、Direct
 
 ## 产品口径
 
+- 产品对外名：**Beauty Effect SDK**（中文：**美颜特效 SDK**）。不要写「Facebetter SDK」——Facebetter 是品牌，下有 SDK / OBS / 剪辑三款产品
 - 只文档 **SDK 2.0**，不要写 1.x 兼容或旧 API
 - 滤镜/贴纸是 **`.fbd`**，不要写 `.fbpack` / 预加载 / 热加载
 - 运行时关键点 **111**；鉴权见 `intro/license.mdx`

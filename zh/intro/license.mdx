@@ -1,6 +1,6 @@
 ---
 title: "授权与许可"
-description: "Facebetter SDK 2.0 在线鉴权与离线许可证"
+description: "美颜特效 SDK 2.0 在线鉴权与离线许可证"
 ---
 
 SDK **2.0** 使用 **license token** 鉴权。原生平台也可以用 `appId` + `appKey` 走在线鉴权。Web **禁止**在前端 JavaScript 里嵌入 `appKey`。
@@ -9,7 +9,7 @@ SDK **2.0** 使用 **license token** 鉴权。原生平台也可以用 `appId` +
 请先完成 [订阅服务](./enable-service)：在控制台绑定应用标识（Bundle ID / 包名 / 域名）并开通套餐。
 </Tip>
 
-## 原生（Android / iOS / macOS / Windows / Linux / Flutter）
+## 原生（Android / iOS / macOS / Windows）
 
 创建引擎时二选一：
 
@@ -21,7 +21,7 @@ SDK **2.0** 使用 **license token** 鉴权。原生平台也可以用 `appId` +
 **优先级**：`licenseToken` 非空时，SDK 本地校验该 token，**不会**再用 `appId` / `appKey` 请求网络。
 
 <Tip>
-推荐与 Web 相同：由**你的服务器**保管 `appId` / `appKey` 并换短时 `licenseToken`，再下发给 App。签名请求里的 `platform` 需与客户端一致（如 `ios` / `android` / `macos` / `windows` / `linux`），服务端示例见下方 [Web → 服务端代理](#server-proxy)。`appId` + `appKey` 直连与离线 `.lic` 仍可使用。
+推荐与 Web 相同：由**你的服务器**保管 `appId` / `appKey` 并换短时 `licenseToken`，再下发给 App。签名请求里的 `platform` 需与客户端一致（如 `ios` / `android` / `macos` / `windows`），服务端示例见下方 [Web → 服务端代理](#server-proxy)。`appId` + `appKey` 直连与离线 `.lic` 仍可使用。
 </Tip>
 
 **iOS / macOS**
@@ -40,7 +40,7 @@ config.licenseToken = "/* 许可证 token、{token} JSON，或 .lic 全文 */";
 mBeautyEngine = new BeautyEffectEngine(this, config);
 ```
 
-**C++（Windows / Linux）**
+**C++（Windows）**
 
 ```cpp
 facebetter::EngineConfig config;
@@ -49,13 +49,6 @@ config.resource_path = "/path/to/resource.fbd";
 auto engine = facebetter::BeautyEffectEngine::Create(config);
 ```
 
-**Flutter**
-
-```dart
-final engine = await FBEngine.create(
-  FBEngineConfig(licenseToken: '/* 许可证 token、{token} JSON，或 .lic 全文 */'),
-);
-```
 
 原生在线鉴权写法：
 
@@ -175,7 +168,7 @@ app.post('/api/facebetter/auth', async (req, res) => {
 
 ## 引擎事件
 
-通过 `onEngineEvent` / Flutter `engine.events` 监听授权和初始化结果：
+通过 `onEngineEvent` 监听授权和初始化结果：
 
 | 码 | 名称 | 含义 |
 | --- | --- | --- |

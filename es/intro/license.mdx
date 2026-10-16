@@ -9,7 +9,7 @@ El SDK **2.0** se autentica con un **token de licencia**. Las plataformas nativa
 Completa primero la [Suscripción](./enable-service): vincula los identificadores de tu app en la Consola (Bundle ID / nombre de paquete / dominio) y activa un plan.
 </Tip>
 
-## Nativo (Android / iOS / macOS / Windows / Linux / Flutter)
+## Nativo (Android / iOS / macOS / Windows)
 
 Pasa una de las siguientes opciones al crear el motor:
 
@@ -21,7 +21,7 @@ Pasa una de las siguientes opciones al crear el motor:
 **Prioridad**: si `licenseToken` no está vacío, el SDK valida ese token en local y **no** llama a la red con `appId` / `appKey`.
 
 <Tip>
-Recomendado (la misma idea que en Web): guarda `appId` / `appKey` en **tu servidor**, genera un `licenseToken` de corta duración y envíalo a la app. Establece `platform` en la petición firmada para que coincida con el cliente (`ios` / `android` / `macos` / `windows` / `linux`). Consulta [Web → Proxy del servidor](#server-proxy) más abajo. `appId` + `appKey` directo y `.lic` sin conexión siguen admitidos.
+Recomendado (la misma idea que en Web): guarda `appId` / `appKey` en **tu servidor**, genera un `licenseToken` de corta duración y envíalo a la app. Establece `platform` en la petición firmada para que coincida con el cliente (`ios` / `android` / `macos` / `windows`). Consulta [Web → Proxy del servidor](#server-proxy) más abajo. `appId` + `appKey` directo y `.lic` sin conexión siguen admitidos.
 </Tip>
 
 **iOS / macOS**
@@ -40,7 +40,7 @@ config.licenseToken = "/* license token, {token} JSON, or .lic contents */";
 mBeautyEngine = new BeautyEffectEngine(this, config);
 ```
 
-**C++ (Windows / Linux)**
+**C++ (Windows)**
 
 ```cpp
 facebetter::EngineConfig config;
@@ -49,13 +49,6 @@ config.resource_path = "/path/to/resource.fbd";
 auto engine = facebetter::BeautyEffectEngine::Create(config);
 ```
 
-**Flutter**
-
-```dart
-final engine = await FBEngine.create(
-  FBEngineConfig(licenseToken: '/* license token, {token} JSON, or .lic contents */'),
-);
-```
 
 Alternativa en línea en plataformas nativas:
 
@@ -175,7 +168,7 @@ Cuando recibas el archivo, pasa el **contenido completo** como `licenseToken` / 
 
 ## Eventos del motor
 
-Escucha los resultados de licencia e inicialización con `onEngineEvent` / Flutter `engine.events`:
+Escucha los resultados de licencia e inicialización con `onEngineEvent`:
 
 | Código | Nombre | Significado |
 | --- | --- | --- |

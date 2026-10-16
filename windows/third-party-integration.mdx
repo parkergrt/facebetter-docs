@@ -5,7 +5,7 @@ description: "Wire Facebetter beauty into TRTC, Agora, LiveKit, and other Window
 
 SDK **2.0.0**. Desktop differs from mobile: TRTC / Agora on **Windows usually deliver CPU buffers (I420 / YUV)**, not OpenGL `textureId`. Hook Facebetter in the vendor’s custom preprocess callback, run `ImageFrame::CreateWithI420` (or NV12) → `ProcessImage`, then write planes back.
 
-Shares the same C++ API as [Linux](/linux/third-party-integration). Basics: [Implement Beauty](/windows/implement-beauty). Room join / publish belong in the vendor’s docs.
+Shares the same C++ API as the C++ API. Basics: [Implement Beauty](/windows/implement-beauty). Room join / publish belong in the vendor’s docs.
 
 ```
 Third-party SDK (preprocess callback)
@@ -204,6 +204,5 @@ Exact type names vary by LiveKit client version — see [LiveKit docs](https://d
 ## Related
 
 - [Implement Beauty](/windows/implement-beauty)
-- [Linux · Third-party Integration](/linux/third-party-integration)
 - [Best Practices](/windows/best-practices)
 - [API Reference](/windows/api-reference)

@@ -24,7 +24,7 @@ SDK には、2D 美顔、メイク、フィルター、2D ステッカー向け�
 
 各 `.fbd` は別々の呼び出しで登録してください。パックファイルを連結しないでください。
 
-## デスクトップ（Windows / Linux / C++）
+## デスクトップ（Windows / macOS / C++）
 
 `resource_3d.fbd` および / または `resource_body.fbd` を `resource.fbd` と同じ場所に置きます。エンジンはその隣接ファイルを自動で読み込みます。`AddResourcePack` を明示的に呼ぶこともできます。
 
@@ -37,7 +37,7 @@ engine->AddResourcePack("resource/resource_body.fbd");
 engine->SetBodyReshape(BodyReshape::WaistSlim, 0.4f);
 ```
 
-## iOS / macOS / Android / Flutter / Web
+## iOS / macOS / Android / Web
 
 モバイルおよび Web SDK はこれらのオプションパックを**内蔵しません**。**アプリ側**でファイルをコピーまたは取得し、`addResourcePack`（パスまたはバイト）を呼び出してください。
 

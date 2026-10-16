@@ -1,6 +1,6 @@
 # Facebetter Docs
 
-Mintlify documentation for **Facebetter SDK 2.0**. This site does not document 1.x APIs.
+Mintlify documentation for **Beauty Effect SDK 2.0**. This site does not document 1.x APIs.
 
 ## Local preview
 
@@ -15,7 +15,7 @@ Open [http://localhost:3000](http://localhost:3000).
 
 - Languages: English / 简体中文
 - Tabs: **SDK Docs** | **Effect Creator** | **OBS Plugin**
-- Sidebar groups under SDK Docs: Introduction, Android, iOS, macOS, Windows, Linux, Web, Flutter
+- Sidebar groups under SDK Docs: Introduction, Android, iOS, macOS, Windows, Linux, Web
 
 ## Deploy
 

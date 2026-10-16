@@ -1,6 +1,6 @@
 ---
 title: "인증 및 라이선스"
-description: "Facebetter SDK 2.0 온라인 인증과 오프라인 라이선스"
+description: "Beauty Effect SDK 2.0 온라인 인증과 오프라인 라이선스"
 ---
 
 SDK **2.0**은 **라이선스 토큰**으로 인증합니다. 네이티브 플랫폼은 온라인 인증에 `appId` + `appKey`도 사용할 수 있습니다. Web에서는 프론트엔드 JavaScript에 `appKey`를 넣지 마세요.
@@ -9,7 +9,7 @@ SDK **2.0**은 **라이선스 토큰**으로 인증합니다. 네이티브 플�
 먼저 [구독](./enable-service)을 완료하세요. 대시보드에서 앱 식별자(Bundle ID / 패키지 이름 / 도메인)를 바인딩하고 요금제를 활성화합니다.
 </Tip>
 
-## 네이티브 (Android / iOS / macOS / Windows / Linux / Flutter)
+## 네이티브 (Android / iOS / macOS / Windows)
 
 엔진을 만들 때 다음 중 하나를 전달합니다.
 
@@ -21,7 +21,7 @@ SDK **2.0**은 **라이선스 토큰**으로 인증합니다. 네이티브 플�
 **우선순위**: `licenseToken`이 비어 있지 않으면 SDK는 해당 토큰을 로컬에서 검증하며, `appId` / `appKey`로 네트워크를 호출하지 **않습니다**.
 
 <Tip>
-권장 방식은 Web과 같습니다. `appId` / `appKey`는 **서버**에 두고, 수명이 짧은 `licenseToken`을 발급해 앱에 전달하세요. 서명 요청의 `platform`은 클라이언트와 일치해야 합니다(`ios` / `android` / `macos` / `windows` / `linux`). 아래 [Web → 서버 프록시](#server-proxy)를 참고하세요. `appId` + `appKey` 직접 전달과 오프라인 `.lic`도 계속 지원됩니다.
+권장 방식은 Web과 같습니다. `appId` / `appKey`는 **서버**에 두고, 수명이 짧은 `licenseToken`을 발급해 앱에 전달하세요. 서명 요청의 `platform`은 클라이언트와 일치해야 합니다(`ios` / `android` / `macos` / `windows`). 아래 [Web → 서버 프록시](#server-proxy)를 참고하세요. `appId` + `appKey` 직접 전달과 오프라인 `.lic`도 계속 지원됩니다.
 </Tip>
 
 **iOS / macOS**
@@ -40,7 +40,7 @@ config.licenseToken = "/* license token, {token} JSON, or .lic contents */";
 mBeautyEngine = new BeautyEffectEngine(this, config);
 ```
 
-**C++ (Windows / Linux)**
+**C++ (Windows)**
 
 ```cpp
 facebetter::EngineConfig config;
@@ -49,13 +49,6 @@ config.resource_path = "/path/to/resource.fbd";
 auto engine = facebetter::BeautyEffectEngine::Create(config);
 ```
 
-**Flutter**
-
-```dart
-final engine = await FBEngine.create(
-  FBEngineConfig(licenseToken: '/* license token, {token} JSON, or .lic contents */'),
-);
-```
 
 네이티브 플랫폼의 온라인 대안:
 
@@ -175,7 +168,7 @@ app.post('/api/facebetter/auth', async (req, res) => {
 
 ## 엔진 이벤트
 
-`onEngineEvent` / Flutter `engine.events`로 라이선스와 초기화 결과를 수신합니다.
+`onEngineEvent`로 라이선스와 초기화 결과를 수신합니다.
 
 | 코드 | 이름 | 의미 |
 | --- | --- | --- |

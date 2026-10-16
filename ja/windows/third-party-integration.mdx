@@ -5,7 +5,7 @@ description: "Windows 上で Facebetter 美顔を TRTC、Agora、LiveKit など�
 
 SDK **2.0.0**。デスクトップはモバイルと異なります。TRTC / Agora などは **Windows 上では多くが CPU バッファ（I420 / YUV）** であり、OpenGL の `textureId` はほとんど渡しません。Facebetter を相手のカスタム前処理コールバックに接続し、`ImageFrame::CreateWithI420`（または NV12）で `ProcessImage` を実行し、プレーンを相手のフレームへ書き戻します。
 
-[Linux](/ja/linux/third-party-integration) と同一の C++ API を共有します。基本的な使い方: [美顔の実装](/ja/windows/implement-beauty)。ルーム参加 / 配信はベンダーの公式ドキュメントに従ってください。
+the C++ API と同一の C++ API を共有します。基本的な使い方: [美顔の実装](/ja/windows/implement-beauty)。ルーム参加 / 配信はベンダーの公式ドキュメントに従ってください。
 
 ```
 Third-party SDK (preprocess callback)
@@ -204,6 +204,5 @@ class BeautyObserver : public agora::media::IVideoFrameObserver {
 ## 関連ドキュメント
 
 - [美顔の実装](/ja/windows/implement-beauty)
-- [Linux · サードパーティ連携](/ja/linux/third-party-integration)
 - [ベストプラクティス](/ja/windows/best-practices)
 - [API リファレンス](/ja/windows/api-reference)

@@ -69,12 +69,6 @@ const EN_PAGES = {
     "web/best-practices",
     "web/faq",
   ],
-  flutter: [
-    "flutter/quick-start",
-    "flutter/implement-beauty",
-    "flutter/third-party-integration",
-    "flutter/api-reference",
-  ],
   effect: [
     "effect-creator/introduction",
     "effect-creator/face-sticker",
@@ -157,7 +151,6 @@ const platforms = [
   ["windows", "Windows", "windows", "brands"],
   ["linux", "Linux", "linux", "brands"],
   ["web", "Web", "globe", "solid"],
-  ["flutter", "Flutter", "mobile", "solid"],
 ];
 
 function langNav(code) {

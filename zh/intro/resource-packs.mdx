@@ -24,7 +24,7 @@ SDK 默认随包提供核心运行时 `resource.fbd`（约 7 MB），覆盖 2D �
 
 每个 `.fbd` 单独调用一次接口登记。不要把多个包文件拼成一个文件。
 
-## 桌面（Windows / Linux / C++）
+## 桌面（Windows / macOS / C++）
 
 把 `resource_3d.fbd` 和/或 `resource_body.fbd` 放在 `resource.fbd` **同目录**，引擎会自动加载。也可以显式调用 `AddResourcePack`。
 
@@ -37,7 +37,7 @@ engine->AddResourcePack("resource/resource_body.fbd");
 engine->SetBodyReshape(BodyReshape::WaistSlim, 0.4f);
 ```
 
-## iOS / macOS / Android / Flutter / Web
+## iOS / macOS / Android / Web
 
 移动端和 Web SDK **不会**内置这些可选包。请在**你的应用**里拷贝或拉取文件，再调用 `addResourcePack`（路径或字节）。
 

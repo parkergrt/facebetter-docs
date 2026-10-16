@@ -160,17 +160,6 @@
                 ],
                 "icon": "globe",
                 "iconType": "solid"
-              },
-              {
-                "group": "Flutter",
-                "pages": [
-                  "flutter/quick-start",
-                  "flutter/implement-beauty",
-                  "flutter/third-party-integration",
-                  "flutter/api-reference"
-                ],
-                "icon": "mobile",
-                "iconType": "solid"
               }
             ]
           },
@@ -352,17 +341,6 @@
                   "zh/web/faq"
                 ],
                 "icon": "globe",
-                "iconType": "solid"
-              },
-              {
-                "group": "Flutter",
-                "pages": [
-                  "zh/flutter/quick-start",
-                  "zh/flutter/implement-beauty",
-                  "zh/flutter/third-party-integration",
-                  "zh/flutter/api-reference"
-                ],
-                "icon": "mobile",
                 "iconType": "solid"
               }
             ]
@@ -546,17 +524,6 @@
                 ],
                 "icon": "globe",
                 "iconType": "solid"
-              },
-              {
-                "group": "Flutter",
-                "pages": [
-                  "ja/flutter/quick-start",
-                  "ja/flutter/implement-beauty",
-                  "ja/flutter/third-party-integration",
-                  "ja/flutter/api-reference"
-                ],
-                "icon": "mobile",
-                "iconType": "solid"
               }
             ]
           },
@@ -738,17 +705,6 @@
                   "ko/web/faq"
                 ],
                 "icon": "globe",
-                "iconType": "solid"
-              },
-              {
-                "group": "Flutter",
-                "pages": [
-                  "ko/flutter/quick-start",
-                  "ko/flutter/implement-beauty",
-                  "ko/flutter/third-party-integration",
-                  "ko/flutter/api-reference"
-                ],
-                "icon": "mobile",
                 "iconType": "solid"
               }
             ]
@@ -932,17 +888,6 @@
                 ],
                 "icon": "globe",
                 "iconType": "solid"
-              },
-              {
-                "group": "Flutter",
-                "pages": [
-                  "es/flutter/quick-start",
-                  "es/flutter/implement-beauty",
-                  "es/flutter/third-party-integration",
-                  "es/flutter/api-reference"
-                ],
-                "icon": "mobile",
-                "iconType": "solid"
               }
             ]
           },
@@ -1124,17 +1069,6 @@
                   "pt-BR/web/faq"
                 ],
                 "icon": "globe",
-                "iconType": "solid"
-              },
-              {
-                "group": "Flutter",
-                "pages": [
-                  "pt-BR/flutter/quick-start",
-                  "pt-BR/flutter/implement-beauty",
-                  "pt-BR/flutter/third-party-integration",
-                  "pt-BR/flutter/api-reference"
-                ],
-                "icon": "mobile",
                 "iconType": "solid"
               }
             ]

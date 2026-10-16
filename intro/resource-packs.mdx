@@ -24,7 +24,7 @@ The engine searches the core pack plus every extra pack you add. Files are keyed
 
 Register each `.fbd` with a separate call. Do **not** concatenate pack files.
 
-## Desktop (Windows / Linux / C++)
+## Desktop (Windows / macOS / C++)
 
 Place `resource_3d.fbd` and/or `resource_body.fbd` next to `resource.fbd`. The engine loads those siblings automatically. You can still call `AddResourcePack` explicitly.
 
@@ -37,7 +37,7 @@ engine->AddResourcePack("resource/resource_body.fbd");
 engine->SetBodyReshape(BodyReshape::WaistSlim, 0.4f);
 ```
 
-## iOS / macOS / Android / Flutter / Web
+## iOS / macOS / Android / Web
 
 The mobile and Web SDKs do **not** embed these optional packs. Copy or fetch each file in **your** app, then call `addResourcePack` (path or bytes).
 

@@ -1,6 +1,6 @@
 ---
 title: "Autenticação e licença"
-description: "Autenticação online e licença offline do Facebetter SDK 2.0"
+description: "Autenticação online e licença offline do Beauty Effect SDK 2.0"
 ---
 
 O SDK **2.0** autentica com um **token de licença**. Plataformas nativas também podem usar `appId` + `appKey` para autenticação online. A Web nunca deve incorporar `appKey` no JavaScript do frontend.
@@ -9,7 +9,7 @@ O SDK **2.0** autentica com um **token de licença**. Plataformas nativas també
 Conclua primeiro a [Assinatura](/pt-BR/intro/enable-service): vincule os identificadores do app no Console (Bundle ID / nome do pacote / domínio) e ative um plano.
 </Tip>
 
-## Nativo (Android / iOS / macOS / Windows / Linux / Flutter)
+## Nativo (Android / iOS / macOS / Windows)
 
 Passe um dos seguintes ao criar o mecanismo:
 
@@ -21,7 +21,7 @@ Passe um dos seguintes ao criar o mecanismo:
 **Prioridade**: se `licenseToken` não estiver vazio, o SDK valida esse token localmente e **não** chama a rede com `appId` / `appKey`.
 
 <Tip>
-Recomendado (mesma ideia da Web): mantenha `appId` / `appKey` **no seu servidor**, gere um `licenseToken` de curta duração e entregue-o ao app. Defina `platform` na requisição assinada para corresponder ao cliente (`ios` / `android` / `macos` / `windows` / `linux`). Veja [Web → Proxy no servidor](#server-proxy) abaixo. `appId` + `appKey` direto e `.lic` offline continuam suportados.
+Recomendado (mesma ideia da Web): mantenha `appId` / `appKey` **no seu servidor**, gere um `licenseToken` de curta duração e entregue-o ao app. Defina `platform` na requisição assinada para corresponder ao cliente (`ios` / `android` / `macos` / `windows`). Veja [Web → Proxy no servidor](#server-proxy) abaixo. `appId` + `appKey` direto e `.lic` offline continuam suportados.
 </Tip>
 
 **iOS / macOS**
@@ -40,7 +40,7 @@ config.licenseToken = "/* license token, {token} JSON, or .lic contents */";
 mBeautyEngine = new BeautyEffectEngine(this, config);
 ```
 
-**C++ (Windows / Linux)**
+**C++ (Windows)**
 
 ```cpp
 facebetter::EngineConfig config;
@@ -49,13 +49,6 @@ config.resource_path = "/path/to/resource.fbd";
 auto engine = facebetter::BeautyEffectEngine::Create(config);
 ```
 
-**Flutter**
-
-```dart
-final engine = await FBEngine.create(
-  FBEngineConfig(licenseToken: '/* license token, {token} JSON, or .lic contents */'),
-);
-```
 
 Alternativa online nas plataformas nativas:
 
@@ -175,7 +168,7 @@ Depois de receber o arquivo, passe o **conteúdo inteiro** como `licenseToken` /
 
 ## Eventos do mecanismo
 
-Escute resultados de licença e inicialização via `onEngineEvent` / Flutter `engine.events`:
+Escute resultados de licença e inicialização via `onEngineEvent`:
 
 | Código | Nome | Significado |
 | --- | --- | --- |

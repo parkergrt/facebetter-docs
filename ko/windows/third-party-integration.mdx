@@ -5,7 +5,7 @@ description: "TRTC, Agora, LiveKit 및 기타 Windows 비디오 파이프라인�
 
 SDK **2.0.0**. 데스크톱은 모바일과 다릅니다. Windows의 TRTC / Agora는 보통 OpenGL `textureId`가 아니라 **CPU 버퍼(I420 / YUV)**를 제공합니다. 벤더의 커스텀 전처리 콜백에 Facebetter를 걸고, `ImageFrame::CreateWithI420`(또는 NV12) → `ProcessImage`를 실행한 뒤 평면을 다시 씁니다.
 
-[Linux](/ko/linux/third-party-integration)와 동일한 C++ API를 공유합니다. 기본: [뷰티 효과 적용](/ko/windows/implement-beauty). 방 입장 / 게시는 벤더 문서에 따릅니다.
+the C++ API와 동일한 C++ API를 공유합니다. 기본: [뷰티 효과 적용](/ko/windows/implement-beauty). 방 입장 / 게시는 벤더 문서에 따릅니다.
 
 ```
 Third-party SDK (preprocess callback)
@@ -204,6 +204,5 @@ class BeautyObserver : public agora::media::IVideoFrameObserver {
 ## 관련 문서
 
 - [뷰티 효과 적용](/ko/windows/implement-beauty)
-- [Linux · 서드파티 연동](/ko/linux/third-party-integration)
 - [권장 사항](/ko/windows/best-practices)
 - [API 레퍼런스](/ko/windows/api-reference)

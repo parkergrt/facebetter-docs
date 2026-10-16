@@ -5,7 +5,7 @@ description: "在 Windows 上将 Facebetter 美颜接入 TRTC、声网 Agora、L
 
 SDK **2.0.0**。桌面端与移动端不同：TRTC / 声网等在 **Windows 上多为 CPU 缓冲（I420 / YUV）**，很少给 OpenGL `textureId`。把 Facebetter 挂在对方的自定义前处理回调里，用 `ImageFrame::CreateWithI420`（或 NV12）跑 `ProcessImage`，再把平面写回对方帧。
 
-与 [Linux](/zh/linux/third-party-integration) 共用同一套 C++ API。基础用法见 [实现美颜](/zh/windows/implement-beauty)。对方进房 / 推流以其官方文档为准。
+与 the C++ API 共用同一套 C++ API。基础用法见 [实现美颜](/zh/windows/implement-beauty)。对方进房 / 推流以其官方文档为准。
 
 ```
 第三方 SDK（前处理回调）
@@ -204,6 +204,5 @@ class BeautyObserver : public agora::media::IVideoFrameObserver {
 ## 相关文档
 
 - [实现美颜](/zh/windows/implement-beauty)
-- [Linux · 第三方对接](/zh/linux/third-party-integration)
 - [最佳实践](/zh/windows/best-practices)
 - [API 参考](/zh/windows/api-reference)

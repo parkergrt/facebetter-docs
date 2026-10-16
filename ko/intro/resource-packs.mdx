@@ -24,7 +24,7 @@ SDK는 2D 뷰티, 메이크업, 필터, 2D 스티커용 핵심 런타임 팩 `re
 
 각 `.fbd`는 별도의 호출로 등록하세요. 팩 파일을 이어 붙이지 **마세요**.
 
-## 데스크톱 (Windows / Linux / C++)
+## 데스크톱 (Windows / macOS / C++)
 
 `resource_3d.fbd` 및/또는 `resource_body.fbd`를 `resource.fbd`와 같은 디렉터리에 두면 엔진이 자동으로 로드합니다. `AddResourcePack`을 명시적으로 호출해도 됩니다.
 
@@ -37,7 +37,7 @@ engine->AddResourcePack("resource/resource_body.fbd");
 engine->SetBodyReshape(BodyReshape::WaistSlim, 0.4f);
 ```
 
-## iOS / macOS / Android / Flutter / Web
+## iOS / macOS / Android / Web
 
 모바일과 Web SDK는 이러한 선택 팩을 **내장하지 않습니다**. **앱에서** 파일을 복사하거나 가져온 뒤 `addResourcePack`(경로 또는 바이트)을 호출하세요.
 

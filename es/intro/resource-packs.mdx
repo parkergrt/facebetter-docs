@@ -24,7 +24,7 @@ El motor busca en el paquete principal más cada paquete extra que añadas. Los 
 
 Registra cada `.fbd` con una llamada independiente. **No** concatenes archivos de paquete.
 
-## Escritorio (Windows / Linux / C++)
+## Escritorio (Windows / macOS / C++)
 
 Coloca `resource_3d.fbd` y/o `resource_body.fbd` junto a `resource.fbd`. El motor carga esos archivos hermanos automáticamente. Aun así puedes llamar a `AddResourcePack` de forma explícita.
 
@@ -37,7 +37,7 @@ engine->AddResourcePack("resource/resource_body.fbd");
 engine->SetBodyReshape(BodyReshape::WaistSlim, 0.4f);
 ```
 
-## iOS / macOS / Android / Flutter / Web
+## iOS / macOS / Android / Web
 
 Los SDK móviles y Web **no** incluyen estos paquetes opcionales. Copia u obtén cada archivo en **tu** app y llama a `addResourcePack` (ruta o bytes).
 

@@ -1,6 +1,6 @@
 ---
 title: "認証とライセンス"
-description: "Facebetter SDK 2.0 のオンライン認証とオフラインライセンス"
+description: "Beauty Effect SDK 2.0 のオンライン認証とオフラインライセンス"
 ---
 
 SDK **2.0** は **ライセンストークン** で認証します。ネイティブプラットフォームでは、オンライン認証に `appId` + `appKey` も使えます。Web では、フロントエンドの JavaScript に `appKey` を埋め込まないでください。
@@ -9,7 +9,7 @@ SDK **2.0** は **ライセンストークン** で認証します。ネイテ�
 先に [サブスクリプション](/ja/intro/enable-service) を完了してください。ダッシュボードでアプリ識別子（Bundle ID / パッケージ名 / ドメイン）をバインドし、プランを有効にします。
 </Tip>
 
-## ネイティブ（Android / iOS / macOS / Windows / Linux / Flutter）
+## ネイティブ（Android / iOS / macOS / Windows）
 
 エンジン作成時に、次のいずれか一方を渡します。
 
@@ -21,7 +21,7 @@ SDK **2.0** は **ライセンストークン** で認証します。ネイテ�
 **優先順位**: `licenseToken` が空でない場合、SDK はそのトークンをローカルで検証し、`appId` / `appKey` でネットワーク呼び出しは**行いません**。
 
 <Tip>
-推奨（Web と同じ考え方）: `appId` / `appKey` は**自社サーバー**に置き、短命の `licenseToken` を発行してアプリへ渡します。署名リクエストの `platform` はクライアントに合わせてください（`ios` / `android` / `macos` / `windows` / `linux`）。下記の [Web → サーバープロキシ](#server-proxy) を参照してください。直接の `appId` + `appKey` とオフライン `.lic` も引き続き利用できます。
+推奨（Web と同じ考え方）: `appId` / `appKey` は**自社サーバー**に置き、短命の `licenseToken` を発行してアプリへ渡します。署名リクエストの `platform` はクライアントに合わせてください（`ios` / `android` / `macos` / `windows`）。下記の [Web → サーバープロキシ](#server-proxy) を参照してください。直接の `appId` + `appKey` とオフライン `.lic` も引き続き利用できます。
 </Tip>
 
 **iOS / macOS**
@@ -40,7 +40,7 @@ config.licenseToken = "/* license token, {token} JSON, or .lic contents */";
 mBeautyEngine = new BeautyEffectEngine(this, config);
 ```
 
-**C++（Windows / Linux）**
+**C++（Windows）**
 
 ```cpp
 facebetter::EngineConfig config;
@@ -49,13 +49,6 @@ config.resource_path = "/path/to/resource.fbd";
 auto engine = facebetter::BeautyEffectEngine::Create(config);
 ```
 
-**Flutter**
-
-```dart
-final engine = await FBEngine.create(
-  FBEngineConfig(licenseToken: '/* license token, {token} JSON, or .lic contents */'),
-);
-```
 
 ネイティブでのオンライン代替:
 
@@ -175,7 +168,7 @@ app.post('/api/facebetter/auth', async (req, res) => {
 
 ## エンジンイベント
 
-ライセンスと初期化の結果は `onEngineEvent` / Flutter `engine.events` で購読します。
+ライセンスと初期化の結果は `onEngineEvent` で購読します。
 
 | コード | 名前 | 意味 |
 | --- | --- | --- |

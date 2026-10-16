@@ -1,6 +1,6 @@
 ---
 title: "Auth & License"
-description: "Facebetter SDK 2.0 online auth and offline license"
+description: "Beauty Effect SDK 2.0 online auth and offline license"
 ---
 
 SDK **2.0** authenticates with a **license token**. Native platforms can also use `appId` + `appKey` for online auth. Web must never embed `appKey` in frontend JavaScript.
@@ -9,7 +9,7 @@ SDK **2.0** authenticates with a **license token**. Native platforms can also us
 Complete [Subscription](./enable-service) first: bind your app identifiers in the Dashboard (Bundle ID / package name / domain) and enable a plan.
 </Tip>
 
-## Native (Android / iOS / macOS / Windows / Linux / Flutter)
+## Native (Android / iOS / macOS / Windows)
 
 Pass one of the following when creating the engine:
 
@@ -21,7 +21,7 @@ Pass one of the following when creating the engine:
 **Priority**: if `licenseToken` is non-empty, the SDK validates that token locally and does **not** call the network with `appId` / `appKey`.
 
 <Tip>
-Recommended (same idea as Web): keep `appId` / `appKey` on **your server**, mint a short-lived `licenseToken`, and deliver it to the app. Set `platform` in the signed request to match the client (`ios` / `android` / `macos` / `windows` / `linux`). See [Web → Server proxy](#server-proxy) below. Direct `appId` + `appKey` and offline `.lic` remain supported.
+Recommended (same idea as Web): keep `appId` / `appKey` on **your server**, mint a short-lived `licenseToken`, and deliver it to the app. Set `platform` in the signed request to match the client (`ios` / `android` / `macos` / `windows`). See [Web → Server proxy](#server-proxy) below. Direct `appId` + `appKey` and offline `.lic` remain supported.
 </Tip>
 
 **iOS / macOS**
@@ -40,7 +40,7 @@ config.licenseToken = "/* license token, {token} JSON, or .lic contents */";
 mBeautyEngine = new BeautyEffectEngine(this, config);
 ```
 
-**C++ (Windows / Linux)**
+**C++ (Windows)**
 
 ```cpp
 facebetter::EngineConfig config;
@@ -49,13 +49,6 @@ config.resource_path = "/path/to/resource.fbd";
 auto engine = facebetter::BeautyEffectEngine::Create(config);
 ```
 
-**Flutter**
-
-```dart
-final engine = await FBEngine.create(
-  FBEngineConfig(licenseToken: '/* license token, {token} JSON, or .lic contents */'),
-);
-```
 
 Online alternative on native platforms:
 
@@ -175,7 +168,7 @@ After you receive the file, pass the **entire contents** as `licenseToken` / `li
 
 ## Engine events
 
-Listen for license and init results via `onEngineEvent` / Flutter `engine.events`:
+Listen for license and init results via `onEngineEvent`:
 
 | Code | Name | Meaning |
 | --- | --- | --- |

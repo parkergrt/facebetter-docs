@@ -18,7 +18,7 @@ function rewrite(content, locale) {
   let next = content;
   // Absolute docs paths that are not already locale-prefixed.
   next = next.replace(
-    /(?<!:)(\/?)(\/)(intro|android|ios|macos|windows|linux|web|flutter|effect-creator)(\/[\w./-]*)/g,
+    /(?<!:)(\/?)(\/)(intro|android|ios|macos|windows|linux|web|effect-creator)(\/[\w./-]*)/g,
     (m, _a, slash, section, rest) => {
       if (m.includes(`/${locale}/`)) return m;
       return `${slash}${locale}/${section}${rest}`;
@@ -38,8 +38,6 @@ function rewrite(content, locale) {
   next = next.replaceAll('href="/linux/', `href="/${locale}/linux/`);
   next = next.replaceAll("](/web/", `](/${locale}/web/`);
   next = next.replaceAll('href="/web/', `href="/${locale}/web/`);
-  next = next.replaceAll("](/flutter/", `](/${locale}/flutter/`);
-  next = next.replaceAll('href="/flutter/', `href="/${locale}/flutter/`);
   next = next.replaceAll("](/effect-creator/", `](/${locale}/effect-creator/`);
   next = next.replaceAll(
     'href="/effect-creator/',
