@@ -26,5 +26,5 @@ HarmonyOS docs were intentionally not migrated (hidden in the old site).
 - Link marketing/dashboard pages with absolute `https://facebetter.net/...` URLs
 - Keep platform guides self-contained: quick-start → implement → errors → API
 - Reshape / makeup / whitening / smoothing enums live in `intro/makeup.mdx` (and `zh/intro/makeup.mdx`). Platform API pages link there instead of duplicating tables.
-- Supported SDK platforms: iOS, Android, Web, macOS, Windows, Linux (no Flutter / HarmonyOS docs). This site documents **SDK 2.0 only**. Do not describe 1.x APIs (`setBeautyParam`, `licenseJson`, `registerFilter`, `ProcessMode`, `FBBeautyEffectEngine` singleton).
+- Supported SDK platforms: iOS, Android, Web, macOS, Windows, Linux (officially **Ubuntu 22.04+**; keep the platform name Linux, clarify Ubuntu in requirements). No Flutter / HarmonyOS docs. This site documents **SDK 2.0 only**. Do not describe 1.x APIs (`setBeautyParam`, `licenseJson`, `registerFilter`, `ProcessMode`, `FBBeautyEffectEngine` singleton).
 - Version placeholders: **2.0.0**. Changelog: `intro/release-note.mdx`（六语）+ GitHub `pixpark/facebetter-sdk` Release，见 `.cursor/rules/release-notes.mdc`

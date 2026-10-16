@@ -65,7 +65,7 @@ description: >-
 - 虚拟背景：虚化 / 换图 / 色键；关键点运行时 **111**
 - 统计：`getStats()`；帧类型：`FrameType.Image` / `Video`
 - 错误码：`0` 成功，`-1` 参数，`-2` 未初始化，`-3` 授权，`-4` 不支持，`-5` IO，`-6` 槽位，`-7` 处理失败，`-8` 内存
-- 平台：iOS 12+、Android 7.0 API 24、macOS 10.15+；不要写 HarmonyOS / Flutter
+- 平台：iOS 12+、Android 7.0 API 24、macOS 10.15+、Windows 10+、Linux（官方支持 Ubuntu 22.04+，平台名仍写 Linux）；不要写 HarmonyOS / Flutter
 - 套餐与水印以 `intro/pricing.mdx` 为准，不要凭记忆改价格文案
 - **没有按量付费**。不要写 metered / pay-as-you-go / 资源包分钟数，也不要写「不开放新购、已有订阅继续」。计费只有月付和年付
 
