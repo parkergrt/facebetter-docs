@@ -48,7 +48,7 @@ description: >-
 
 这些不是八卦，客户不写就接不上：
 
-- 原生 OpenGL / `externalContext`
+- 原生 OpenGL：在持有纹理的那条 GL 线程上调用；没有 `externalContext` 配置
 - Web：`licenseToken`（create 前由你的服务器换好）；**不要**把 `appKey` 放进前端；可给服务端 HMAC 换 token 示例
 - 随包提供运行时资源（Web 由 SDK 在 `init()` 时加载；`onProgress` 为下载进度）
 - Android Direct `ByteBuffer`；混淆时保留 native 方法
