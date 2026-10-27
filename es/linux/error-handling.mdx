@@ -17,9 +17,8 @@ SDK **2.0.0**. Autenticación: [Autenticación y licencia](/es/intro/license).
 | `-3` | Licencia |
 | `-4` | No admitido |
 | `-5` | E/S |
-| `-6` | Sin slot |
-| `-7` | Fallo de proceso |
-| `-8` | Memoria insuficiente |
+| `-6` | Fallo de proceso |
+| `-7` | Memoria insuficiente |
 
 `Create()` devuelve `nullptr` si falla. `ProcessImage` puede devolver `nullptr`.
 
@@ -140,7 +139,7 @@ sudo apt install libgl1-mesa-dev libglu1-mesa-dev mesa-utils
 glxinfo | grep "OpenGL version"
 ```
 
-Hace falta OpenGL 3.0+. Los servidores headless pueden usar OSMesa (`libosmesa6-dev`) con `external_context` configurado para tu contexto offscreen.
+- Crea el motor y procesa en el hilo cuyo contexto GL es el actual. Las texturas de entrada y salida deben pertenecer a ese contexto. Los fotogramas de CPU no necesitan un contexto GL del llamador. La config no tiene un flag de contexto.
 
 ---
 

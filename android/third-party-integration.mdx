@@ -11,7 +11,6 @@ Full texture rules: [Implement Beauty · External texture](/android/implement-be
 Third-party SDK (GL thread)
   input textureId
        ↓
-BeautyEffectEngine (externalContext = true)
   ImageFrame.createWithTexture → processImage
        ↓
   output textureId → write back to vendor frame / callback
@@ -21,13 +20,12 @@ BeautyEffectEngine (externalContext = true)
 
 | Item | Requirement |
 | --- | --- |
-| Engine | `externalContext = true`, lazy-create on the **vendor GL callback thread** |
 | Input | `GL_TEXTURE_2D` (RGBA); `stride` is usually `width * 4` |
 | Frame type | `ImageFrame.FrameType.VIDEO` |
 | Output | SDK owns the output texture — do not `glDeleteTextures`. Always `ImageFrame.release()` |
 | Lifecycle | When the vendor destroys the GL context, `engine.release()`, then recreate on the new context |
 
-Facebetter **does not** accept `GL_TEXTURE_EXTERNAL_OES` for `createWithTexture`. If the vendor defaults to OES, switch to **Texture2D / RGB** per their docs, or blit to `GL_TEXTURE_2D` first.
+`createWithTexture` accepts `GL_TEXTURE_2D`, or `GL_TEXTURE_EXTERNAL_OES` when `externalOes` is true. For OES, pass the 16-float matrix from `SurfaceTexture.getTransformMatrix`. Blitting to `GL_TEXTURE_2D` is still fine.
 
 ### Shared helper
 
@@ -67,7 +65,6 @@ BeautyEffectEngine.EngineConfig config = new BeautyEffectEngine.EngineConfig();
 config.appId = "your appId";
 config.appKey = "your appKey";
 // or config.licenseToken = "...";
-config.externalContext = true;
 BeautyEffectEngine engine = new BeautyEffectEngine(context, config);
 engine.setSmoothing(0.5f);
 ```
@@ -258,7 +255,6 @@ You can also implement a custom `VideoCapturer`, run `processTexture` after capt
 | Symptom | Check |
 | --- | --- |
 | Black / no video | Engine created and `processImage` on the vendor **GL thread**; failed frames not dropped by mistake |
-| No beauty | `externalContext == true`; input is `GL_TEXTURE_2D` |
 | Intermittent crash | `release()` on GL destroy / capturer stop; never `glDeleteTextures` on the output |
 | Distortion | Width / height / rotation / mirror match the vendor frame; OES not converted to 2D |
 

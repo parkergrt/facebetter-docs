@@ -50,7 +50,6 @@ FBImageFrame *exportOut = [engine processImage:full];
 
 ## 1 つのエンジン、1 つのシリアルキュー
 
-`createEngineWithConfig:` が返すのは**インスタンス**であり、プロセス単位のシングルトンではありません。セッションごとにエンジンを 1 つ保持し、**シリアルキュー**上で呼び出します（`externalContext = YES` の場合は GL スレッド）。
 
 ```objc
 @interface BeautyEngineManager : NSObject
@@ -108,7 +107,6 @@ FBImageFrame *exportOut = [engine processImage:full];
 
 AppKit ビューがすでに GL コンテキストを持っている場合:
 
-1. `config.externalContext = YES` を設定します。
 2. **その GL スレッド**でエンジンを作成します。
 3. `createWithTexture:width:height:stride:` でテクスチャをラップします。
 4. 出力は `[output texture]` を使います。
@@ -143,7 +141,7 @@ NSLog(@"fps=%.1f avg=%.2fms session=%.1fs",
 ## macOS のキャプチャと表示
 
 - `createWithNV12:...`、`createWithBGRA:...`、または `createWithNSImage:` でフレームを作ります。
-- フロント / 自撮りプレビュー: `setMirror:@"horizontal"`。
+- フロント / 自撮りプレビュー: `setMirror:FBMirrorModeHorizontal`。
 - Retina: ポイントサイズではなくピクセルサイズで処理します（`backingScaleFactor`）。
 - カメラ: `NSCameraUsageDescription`。サンドボックスアプリのオンライン認証には **Outgoing Connections** が必要です。
 - ユーザーが選んだ `.fbd` / 背景画像: security-scoped URL を使います。

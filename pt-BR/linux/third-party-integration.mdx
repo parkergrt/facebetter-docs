@@ -11,7 +11,7 @@ Esta página cobre as diferenças exclusivas do Linux. Helpers compartilhados e 
 Third-party SDK (preprocess callback)
   I420 planes
        ↓
-BeautyEffectEngine (external_context = false)
+BeautyEffectEngine
   CreateWithI420 → ProcessImage → write back
 ```
 
@@ -21,7 +21,7 @@ BeautyEffectEngine (external_context = false)
 | --- | --- |
 | Biblioteca | `libfacebetter.so` + `facebetter/*.h` |
 | Link | Veja [Implementar beleza](/pt-BR/linux/implement-beauty); observe `LD_LIBRARY_PATH` / rpath em runtime |
-| GL | GL do sistema com display; headless via OSMesa / EGL ([Práticas recomendadas](/pt-BR/linux/best-practices)). O caminho de buffer ainda usa `external_context = false` na maioria dos casos |
+| GL | Crie o mecanismo e processe no thread cujo contexto GL é o atual. As texturas de entrada e saída devem pertencer a esse contexto. Quadros de CPU não precisam de um contexto GL do chamador. A config não tem um flag de contexto. |
 | `resource_path` | Precisa apontar para o **arquivo** `resource.fbd` |
 | Vinculação no Console | Nome do pacote / executável / processo — [Assinatura](/pt-BR/intro/enable-service) |
 
@@ -32,7 +32,6 @@ EngineConfig cfg;
 cfg.app_id = "your_app_id";
 cfg.app_key = "your_app_key";
 cfg.resource_path = "/opt/yourapp/resource/resource.fbd";
-cfg.external_context = false;
 auto engine = BeautyEffectEngine::Create(cfg);
 ```
 

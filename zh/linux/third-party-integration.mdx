@@ -11,7 +11,7 @@ SDK **2.0.0**。与 [Windows · 第三方对接](/zh/windows/third-party-integra
 第三方 SDK（前处理回调）
   I420 平面
        ↓
-BeautyEffectEngine（external_context = false）
+BeautyEffectEngine
   CreateWithI420 → ProcessImage → 写回缓冲
 ```
 
@@ -21,7 +21,7 @@ BeautyEffectEngine（external_context = false）
 | --- | --- |
 | 库 | `libfacebetter.so` + `facebetter/*.h` |
 | 链接 | 见 [实现美颜](/zh/linux/implement-beauty)；运行时注意 `LD_LIBRARY_PATH` / rpath |
-| GL | 有显示器时用系统 GL；无头环境可用 OSMesa / EGL（见 [最佳实践](/zh/linux/best-practices)）。缓冲路径一般仍 `external_context = false` |
+| GL | 在 GL 上下文为当前上下文的线程上创建引擎并处理。输入和输出纹理必须属于该上下文。CPU 帧不需要调用方提供 GL 上下文。配置里没有上下文开关。 |
 | `resource_path` | 必须指向 `resource.fbd` **文件** |
 | 控制台绑定 | 包名或可执行文件名 / 进程名，见 [订阅服务](/zh/intro/enable-service) |
 
@@ -32,7 +32,6 @@ EngineConfig cfg;
 cfg.app_id = "your_app_id";
 cfg.app_key = "your_app_key";
 cfg.resource_path = "/opt/yourapp/resource/resource.fbd";
-cfg.external_context = false;
 auto engine = BeautyEffectEngine::Create(cfg);
 ```
 

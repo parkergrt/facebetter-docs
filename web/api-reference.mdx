@@ -62,8 +62,13 @@ await engine.init({
 | `setSmoothingStyle(style)` | `SmoothingStyle` |
 | `setWhitening(value)` | `[0, 1]` |
 | `setWhiteningStyle(style)` | `WhiteningStyle` |
-| `setSharpening(value)` | `[0, 1]` |
 | `setRosiness(value)` | `[0, 1]` |
+| `setBrightness(value)` | `[-1, 1]` |
+| `setContrast(value)` | `[-1, 1]` |
+| `setSaturation(value)` | `[-1, 1]` |
+| `setColorTemperature(value)` | `[-1, 1]` |
+| `setColorTint(value)` | `[-1, 1]` |
+| `setClarity(value)` | `[0, 1]` |
 | `setBeautySkinOnly(enabled)` | `boolean` |
 
 ### Reshape
@@ -88,6 +93,7 @@ Intensity `[0, 1]`. Style / color enums: [Parameter enums](/intro/makeup).
 | `setEyebrow` | `setEyebrowStyle`, `setEyebrowColor` |
 | `setEyelash` | `setEyelashStyle`, `setEyelashColor` |
 | `setPupil` | `setPupilColor` |
+| `setTeethWhiten` | — |
 
 ### Filter / sticker
 
@@ -133,17 +139,18 @@ processImage(input, width, height, frameType = FrameType.Video, mirrorMode = Mir
 
 - `input`: `ImageData` \| `HTMLImageElement` \| `HTMLCanvasElement` \| `HTMLVideoElement` \| `Uint8ClampedArray`
 - `width` / `height` required only for `Uint8ClampedArray`
+- `mirrorMode` mirrors this CPU image before processing. Web has no rotate API. `processTexture` does not mirror or rotate.
 
 ```javascript
 processTexture(textureHandle, width, height, stride, frameType, mirrorMode) → number
 ```
 
-Returns an output `GL_TEXTURE_2D` handle. **Mirror is not applied on this path.** Prefer `processImage`.
+Returns an output `GL_TEXTURE_2D` handle. **This path does not mirror or rotate.** Prefer `processImage`.
 
 ### Stats
 
 ```javascript
-engine.getStats() → { fps, avgProcessTimeMs, sessionTimeS }
+engine.getStats() → { fps, avgProcessTimeMs, sessionTimeS, gpuLiveTextures, gpuLiveMeshes }
 ```
 
 ## Enums (JS)
@@ -179,4 +186,4 @@ class FacebetterError extends Error {
 }
 ```
 
-Numeric codes: `0`, `-1` … `-8`. See [Error handling](/web/error-handling).
+Numeric codes: `0`, `-1` … `-7`. See [Error handling](/web/error-handling).

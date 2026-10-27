@@ -77,7 +77,6 @@ Virtual background:
 
 ### `processImage:` returns `nil`
 
-Invalid frame, failed init, or `externalContext = YES` without a current GL context.
 
 ### Frame type
 
@@ -104,7 +103,7 @@ FBImageFrame *out = [engine processImage:frame];
 
 1. `AVCaptureVideoDataOutput` → `CVPixelBuffer`.
 2. `createWithNV12:...` or `createWithBGRA:...`.
-3. `type = FBFrameTypeVideo`, optional `setMirror:@"horizontal"`.
+3. `type = FBFrameTypeVideo`, optional `setMirror:FBMirrorModeHorizontal`.
 4. Display `[output data]` or `[output texture]` in an AppKit / OpenGL view.
 
 ## Performance

@@ -19,7 +19,9 @@ Distribuye `resource.fbd` junto a la app (o bajo un directorio de assets) y resu
 
 ## Un motor, `ProcessImage` serial
 
-`BeautyEffectEngine` se crea con `Create` y **no** es un singleton. Mantén una instancia para la sesión. `ImageFrame` y el motor no son thread-safe: serializa `ProcessImage` en un único worker (o el hilo GL cuando `external_context = true`).
+`Create` devuelve un motor para la sesión, no un singleton de proceso. `ImageFrame` y el motor no son thread-safe. Serializa `ProcessImage` y los setters que mutan en un solo hilo.
+
+- Crea el motor y procesa en el hilo cuyo contexto GL es el actual. Las texturas de entrada y salida deben pertenecer a ese contexto. Los fotogramas de CPU no necesitan un contexto GL del llamador. La config no tiene un flag de contexto.
 
 ```cpp
 // good: one engine, one processing thread
@@ -85,10 +87,8 @@ Apunta a `avg_process_time_ms` por debajo de tu presupuesto de fotograma (unos 3
 
 ## Contexto OpenGL
 
-| `external_context` | Cuándo |
-| --- | --- |
-| `false` (predeterminado) | El SDK gestiona OpenGL |
-| `true` | Ya tienes un contexto GL actual; llama a `ProcessImage` en ese hilo |
+- Crea el motor y procesa en el hilo cuyo contexto GL es el actual. Las texturas de entrada y salida deben pertenecer a ese contexto. Los fotogramas de CPU no necesitan un contexto GL del llamador. La config no tiene un flag de contexto.
+
 
 Coloca `facebetter.dll` junto al `.exe` (o en `PATH`). Enlaza `facebetter.lib` en tiempo de compilación.
 

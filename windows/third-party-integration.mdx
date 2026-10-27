@@ -11,7 +11,7 @@ Shares the same C++ API as the C++ API. Basics: [Implement Beauty](/windows/impl
 Third-party SDK (preprocess callback)
   I420 / YUV planes
        ↓
-BeautyEffectEngine (usually external_context = false)
+BeautyEffectEngine
   CreateWithI420 → ProcessImage
        ↓
   write back to vendor dst / in-place buffers
@@ -22,7 +22,7 @@ BeautyEffectEngine (usually external_context = false)
 | Item | Requirement |
 | --- | --- |
 | Engine | `BeautyEffectEngine::Create`; desktop must set `resource_path` to the `resource.fbd` **file** |
-| Context | Buffer path: `external_context = false`. Set `true` only when feeding `CreateWithTexture` on the vendor GL thread |
+| Context | Create the engine and call process on the thread whose GL context is current. Input and output textures must belong to that context. CPU frames do not need a caller GL context. There is no context flag on the config. |
 | Format | Prefer **I420** on PC (matches TRTC Buffer / Agora YUV420) |
 | Frame type | `FrameType::Video` |
 | Lifecycle | After removing callbacks, `engine.reset()`. Not a singleton |
@@ -77,7 +77,6 @@ EngineConfig cfg;
 cfg.app_id = "your_app_id";
 cfg.app_key = "your_app_key";
 cfg.resource_path = "resource/resource.fbd";
-cfg.external_context = false;
 auto engine = BeautyEffectEngine::Create(cfg);
 if (!engine) {
   return;

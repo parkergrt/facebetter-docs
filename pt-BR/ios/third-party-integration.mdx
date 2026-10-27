@@ -21,9 +21,7 @@ FBBeautyEffectEngine
 
 | Item | Requisito |
 | --- | --- |
-| Caminho de textura | `externalContext = YES`, `createEngineWithConfig:` lazy no **thread do callback GL do fornecedor** |
 | Textura de entrada | `GL_TEXTURE_2D` (RGBA); `stride` costuma ser `width * 4` |
-| Caminho de pixel-buffer | Use `createWithNV12:` / `createWithBGRA:` etc.; em geral **`externalContext = NO`** para o Facebetter ser dono do GL |
 | Tipo de quadro | `FBFrameTypeVideo` |
 | Saída | O SDK é dono das texturas de saída — não chame `glDeleteTextures`. Mantenha uma ref strong do mecanismo; atribua `nil` quando a sessão terminar |
 | Ciclo de vida | Quando o fornecedor destruir o contexto GL, atribua nil ao mecanismo e, em seguida, recrie no novo contexto |
@@ -66,7 +64,6 @@ FBEngineConfig *config = [[FBEngineConfig alloc] init];
 config.appId = @"your appId";
 config.appKey = @"your appKey";
 // or config.licenseToken = @"...";
-config.externalContext = YES;
 self.beautyEngine = [FBBeautyEffectEngine createEngineWithConfig:config];
 [self.beautyEngine setSmoothing:0.5f];
 ```
@@ -100,7 +97,6 @@ static FBImageFrame *FBFrameFromNV12PixelBuffer(CVPixelBufferRef pb) {
 }
 ```
 
-No caminho de pixel-buffer, crie o mecanismo com `externalContext = NO`. Credenciais: [Assinatura](/pt-BR/intro/enable-service), [Autenticação e licença](/pt-BR/intro/license).
 
 ---
 
@@ -124,7 +120,6 @@ Implemente `TRTCVideoFrameDelegate`: crie o mecanismo em `onGLContextCreated`; d
   FBEngineConfig *config = [[FBEngineConfig alloc] init];
   config.appId = @"your appId";
   config.appKey = @"your appKey";
-  config.externalContext = YES;
   self.beautyEngine = [FBBeautyEffectEngine createEngineWithConfig:config];
   [self.beautyEngine setSmoothing:0.5f];
 }
@@ -191,7 +186,6 @@ Você precisa:
     FBEngineConfig *config = [[FBEngineConfig alloc] init];
     config.appId = @"your appId";
     config.appKey = @"your appKey";
-    config.externalContext = NO; // pixel-buffer path
     self.beautyEngine = [FBBeautyEffectEngine createEngineWithConfig:config];
   }
 
@@ -245,7 +239,6 @@ final class FacebetterVideoProcessor: VideoProcessor {
       let config = FBEngineConfig()
       config.appId = "your appId"
       config.appKey = "your appKey"
-      config.externalContext = false
       beautyEngine = FBBeautyEffectEngine.createEngine(with: config)
       beautyEngine?.setSmoothing(0.5)
     }
@@ -272,7 +265,6 @@ Os processadores de exemplo oficiais (por exemplo desfoque de fundo) vêm como `
 | Sintoma | Verifique |
 | --- | --- |
 | Preto / sem vídeo | Caminho de textura: mecanismo no **thread GL** do fornecedor. Caminho de pixel: lock/unlock do `CVPixelBuffer` |
-| Sem beleza | `externalContext` corresponde ao caminho (YES para textura / em geral NO para pixels); o formato é NV12/BGRA/`GL_TEXTURE_2D` |
 | Crash intermitente | Atribuir nil ao mecanismo em `onGLContextDestory`; nunca excluir texturas de saída |
 | Distorção | Largura / altura / rotação / espelhamento correspondem ao quadro do fornecedor; strides usam `BytesPerRow` |
 

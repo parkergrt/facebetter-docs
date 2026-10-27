@@ -50,7 +50,6 @@ FBImageFrame *exportOut = [engine processImage:full];
 
 ## 엔진 하나, 직렬 큐 하나
 
-`createEngineWithConfig:`는 프로세스 전역 싱글톤이 아니라 **인스턴스**를 반환합니다. 세션당 엔진 하나를 유지하고 **직렬** 큐에서 호출하세요(`externalContext = YES`이면 GL 스레드).
 
 ```objc
 @interface BeautyEngineManager : NSObject
@@ -108,7 +107,6 @@ FBImageFrame *exportOut = [engine processImage:full];
 
 AppKit 뷰가 이미 GL 컨텍스트를 소유할 때:
 
-1. `config.externalContext = YES`를 설정합니다.
 2. **해당 GL 스레드**에서 엔진을 만듭니다.
 3. `createWithTexture:width:height:stride:`로 텍스처를 감쌉니다.
 4. `[output texture]`로 출력을 읽습니다.
@@ -143,7 +141,7 @@ NSLog(@"fps=%.1f avg=%.2fms session=%.1fs",
 ## macOS 캡처와 표시
 
 - `createWithNV12:...`, `createWithBGRA:...`, 또는 `createWithNSImage:`로 프레임을 만드세요.
-- 전면 카메라 / 사용자 향 미리보기: `setMirror:@"horizontal"`.
+- 전면 카메라 / 사용자 향 미리보기: `setMirror:FBMirrorModeHorizontal`.
 - Retina: 포인트 크기가 아니라 픽셀 크기(`backingScaleFactor`)로 처리하세요.
 - 카메라: `NSCameraUsageDescription`. 샌드박스 앱의 온라인 인증에는 **Outgoing Connections**가 필요합니다.
 - 사용자가 고른 `.fbd` / 배경 이미지: security-scoped URL.

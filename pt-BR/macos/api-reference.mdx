@@ -54,7 +54,6 @@ Chame `+[FBBeautyEffectEngine setLogConfig:]` **antes** de `createEngineWithConf
 | `appId` | `NSString *` | App ID do Console (autenticação online) |
 | `appKey` | `NSString *` | App Key do Console (autenticação online) |
 | `licenseToken` | `NSString *` | String do token de licença, JSON `{token}` ou conteúdo de `.lic` nativo |
-| `externalContext` | `BOOL` | Padrão `NO`. `YES`: usar o contexto OpenGL ES do chamador; o SDK não cria um |
 
 **Prioridade de autenticação:** se `licenseToken` não estiver vazio, valide esse token localmente e pule `/facebetter/v2/auth`. Caso contrário, use `appId` + `appKey` para autenticação online. Vincule o **Bundle ID** do app no Console.
 
@@ -63,7 +62,6 @@ FB_OBJC_API @interface FBEngineConfig : NSObject
 @property(nonatomic, copy) NSString *appId;
 @property(nonatomic, copy) NSString *appKey;
 @property(nonatomic, copy, nullable) NSString *licenseToken;
-@property(nonatomic, assign) BOOL externalContext;
 - (instancetype)init;
 @end
 ```
@@ -91,8 +89,13 @@ FB_OBJC_API @interface FBBeautyEffectEngine : NSObject
 - (int)setSmoothingStyle:(FBSmoothingStyle)style;
 - (int)setWhitening:(float)intensity;
 - (int)setWhiteningStyle:(FBWhiteningStyle)style;
-- (int)setSharpening:(float)intensity;
 - (int)setRosiness:(float)intensity;
+- (int)setBrightness:(float)intensity;
+- (int)setContrast:(float)intensity;
+- (int)setSaturation:(float)intensity;
+- (int)setColorTemperature:(float)intensity;
+- (int)setColorTint:(float)intensity;
+- (int)setClarity:(float)intensity;
 - (int)setReshape:(FBReshape)param intensity:(float)value;
 - (int)setBodyReshape:(FBBodyReshape)param intensity:(float)value;
 - (int)setBeautySkinOnly:(BOOL)enabled;
@@ -118,6 +121,7 @@ FB_OBJC_API @interface FBBeautyEffectEngine : NSObject
 - (int)setEyelashColor:(FBEyelashColor)color;
 - (int)setPupil:(float)intensity;
 - (int)setPupilColor:(FBPupilColor)color;
+- (int)setTeethWhiten:(float)intensity;
 
 - (int)setChromaKey:(FBChromaKeyColor)color;
 - (int)clearChromaKey;
@@ -159,8 +163,13 @@ FB_OBJC_API @interface FBBeautyEffectEngine : NSObject
 | `setSmoothingStyle:` | Estilo; a intensidade continua vindo de `setSmoothing:` |
 | `setWhitening:` | `[0, 1]` |
 | `setWhiteningStyle:` | Troca o LUT de clareamento |
-| `setSharpening:` | `[0, 1]` |
 | `setRosiness:` | `[0, 1]` |
+| `setBrightness:` | `[-1, 1]`, `0` neutral |
+| `setContrast:` | `[-1, 1]`, `0` neutral |
+| `setSaturation:` | `[-1, 1]`, `0` neutral |
+| `setColorTemperature:` | `[-1, 1]`, `0` neutral |
+| `setColorTint:` | `[-1, 1]`, `0` neutral |
+| `setClarity:` | `[0, 1]` |
 | `setBeautySkinOnly:` | `YES` = apenas regiões de pele |
 
 ### Remodelagem
@@ -233,6 +242,7 @@ Os métodos de intensidade recebem `[0, 1]`. Tipos de formato / cor: [Enums de p
 | `setEyebrow:` | `setEyebrowStyle:` | `setEyebrowColor:` |
 | `setEyelash:` | `setEyelashStyle:` | `setEyelashColor:` |
 | `setPupil:` | — | `setPupilColor:` |
+| `setTeethWhiten:` | — | — |
 
 ### Fundo virtual e chroma key
 
@@ -295,9 +305,8 @@ typedef NS_ENUM(NSInteger, FBErrorCode) {
   FBErrorCode_License = -3,
   FBErrorCode_Unsupported = -4,
   FBErrorCode_IO = -5,
-  FBErrorCode_NoSlot = -6,
-  FBErrorCode_Process = -7,
-  FBErrorCode_OutOfMemory = -8,
+  FBErrorCode_Process = -6,
+  FBErrorCode_OutOfMemory = -7,
 };
 ```
 
@@ -312,6 +321,8 @@ typedef NS_ENUM(NSInteger, FBErrorCode) {
 | `fps` | `double` | Quadros por segundo |
 | `avgProcessTimeMs` | `double` | Tempo médio de `processImage:` (ms) |
 | `sessionTimeS` | `double` | Duração da sessão (segundos) |
+| `gpuLiveTextures` | `NSUInteger` | Texturas GPU vivas (depurar vazamentos) |
+| `gpuLiveMeshes` | `NSUInteger` | Malhas GPU vivas (depurar vazamentos) |
 
 ```objc
 - (FBEngineStats *)getStats;
@@ -382,6 +393,8 @@ FB_OBJC_API @interface FBFaceDetectionResult : NSObject
 | `createWithNV21:...` | Y + VU |
 | `createWithFile:` | Caminho png / jpg |
 | `createWithTexture:width:height:stride:` | `GL_TEXTURE_2D` no contexto atual; `stride` costuma ser `width * 4` |
+| `setGlRenderTarget:` | Alvo `GL_TEXTURE_2D` opcional no contexto atual. Emprestado |
+| `setMetalRenderTarget:` | Saída `MTLTexture` opcional no mesmo device. Emprestada |
 | `createWithNSImage:` | **Somente macOS** |
 
 ### Operações
@@ -389,11 +402,13 @@ FB_OBJC_API @interface FBFaceDetectionResult : NSObject
 | Método | Descrição |
 | --- | --- |
 | `rotate:` | `FBImageRotation`; retorna `FBErrorCode` |
-| `mirror:` | `"horizontal"` / `"vertical"` / `"both"` (sem diferenciar maiúsculas); muta os pixels |
-| `setMirror:` | Flag para `processImage:` (evita conversões extras). `nil` / `@""` limpa |
+| `mirror:` | `FBMirrorModeHorizontal` / `Vertical` / `Both`; muta os pixels. `None` não altera |
+| `setMirror:` | Flag para `processImage:` (evita conversões extras). `FBMirrorModeNone` limpa |
 | `convert:` | Retorna um novo quadro no `FBImageFormat` de destino |
 | `toFile:quality:` | qualidade `0`–`100` |
 | `toFile:` | qualidade `90` |
+
+`rotate:`, `mirror:` e `setMirror:` alteram apenas quadros de pixels na CPU (RGBA, RGB, YUV e arquivos de imagem). Não transformam uma textura OpenGL, um CVPixelBuffer nem uma textura Metal. Entregue essas imagens já na orientação correta.
 
 ### Propriedades e acessores
 

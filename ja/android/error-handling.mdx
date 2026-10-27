@@ -15,9 +15,8 @@ public final class ErrorCode {
   public static final int LICENSE = -3;
   public static final int UNSUPPORTED = -4;
   public static final int IO = -5;
-  public static final int NO_SLOT = -6;
-  public static final int PROCESS = -7;
-  public static final int OUT_OF_MEMORY = -8;
+  public static final int PROCESS = -6;
+  public static final int OUT_OF_MEMORY = -7;
 }
 ```
 
@@ -29,9 +28,8 @@ public final class ErrorCode {
 | `-3` | `LICENSE` | トークン / オンライン認証が拒否された |
 | `-4` | `UNSUPPORTED` | フォーマットまたは機能が利用できない |
 | `-5` | `IO` | `.fbd` が見つからない、画像が読めない、ログファイルパス |
-| `-6` | `NO_SLOT` | リソース上限に達した |
-| `-7` | `PROCESS` | フレーム処理に失敗 |
-| `-8` | `OUT_OF_MEMORY` | メモリ不足 |
+| `-6` | `PROCESS` | フレーム処理に失敗 |
+| `-7` | `OUT_OF_MEMORY` | メモリ不足 |
 
 <Note>
 **`-1` は引数不正です。`-2` は未初期化です。**

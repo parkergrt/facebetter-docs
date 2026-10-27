@@ -74,7 +74,6 @@ public static void setLogConfig(LogConfig config);
 | `appId` | `String` | — | Dashboard App ID |
 | `appKey` | `String` | — | Dashboard App Key |
 | `licenseToken` | `String` | — | 라이선스 토큰 문자열, `{token}` JSON, 또는 오프라인 `.lic` 내용 |
-| `externalContext` | `boolean` | `false` | `true` = 호출 측 OpenGL ES 컨텍스트; `false` = SDK가 소유한 컨텍스트 |
 
 **인증 우선순위:** `licenseToken`이 비어 있지 않으면 SDK가 해당 토큰을 로컬에서 검증합니다. 그렇지 않으면 `appId` + `appKey`가 필요하고 SDK가 `/facebetter/v2/auth`를 호출합니다. 세부 사항: [인증 및 라이선스](/ko/intro/license).
 
@@ -83,7 +82,6 @@ public static class EngineConfig {
   public String appId;
   public String appKey;
   public String licenseToken;
-  public boolean externalContext = false;
 
   public EngineConfig();
   public EngineConfig(String appId, String appKey);
@@ -135,8 +133,13 @@ public int setSmoothing(float value);
 public int setSmoothingStyle(SmoothingStyle style);
 public int setWhitening(float value);
 public int setWhiteningStyle(WhiteningStyle style);
-public int setSharpening(float value);
 public int setRosiness(float value);
+public int setBrightness(float value);
+public int setContrast(float value);
+public int setSaturation(float value);
+public int setColorTemperature(float value);
+public int setColorTint(float value);
+public int setClarity(float value);
 public int setBeautySkinOnly(boolean enabled);
 ```
 
@@ -146,8 +149,13 @@ public int setBeautySkinOnly(boolean enabled);
 | `setSmoothingStyle` | 스무딩 룩(`NATURAL`, `TEXTURE`, `SMOOTH`) |
 | `setWhitening` | 화이트닝 강도 |
 | `setWhiteningStyle` | 화이트닝 LUT(`COLD_WHITE`, `PINK_WHITE`, `WARM_WHITE`, `WHEAT`, `TAN`) |
-| `setSharpening` | 샤프닝 강도 |
 | `setRosiness` | 로지 톤 강도 |
+| `setBrightness` | 전체 화면 밝기, `[-1, 1]`, `0`은 중립 |
+| `setContrast` | 전체 화면 대비, `[-1, 1]`, `0`은 중립 |
+| `setSaturation` | 전체 화면 채도, `[-1, 1]`, `0`은 중립 |
+| `setColorTemperature` | 전체 화면 색온도, `[-1, 1]`, `0`은 중립 |
+| `setColorTint` | 전체 화면 틴트, `[-1, 1]`, `0`은 중립 |
+| `setClarity` | 전체 화면 선명도, `[0, 1]`, `0`은 꺼짐 |
 | `setBeautySkinOnly` | `true` = 감지된 피부에만 피부 뷰티; `false` = 전체 프레임 |
 
 스타일 열거형: [파라미터 열거형](/ko/intro/makeup).
@@ -224,6 +232,7 @@ public int setEyelashColor(EyelashColor color);
 
 public int setPupil(float value);
 public int setPupilColor(PupilColor color);
+public int setTeethWhiten(float value);
 ```
 
 프리셋 이름은 `BeautyParams.*`에 있습니다. 전체 표: [파라미터 열거형](/ko/intro/makeup).
@@ -316,9 +325,12 @@ public class EngineStats {
   public double fps;
   public double avgProcessTimeMs;
   public double sessionTimeS;
+  public int gpuLiveTextures;
+  public int gpuLiveMeshes;
 
   public EngineStats();
-  public EngineStats(double fps, double avgProcessTimeMs, double sessionTimeS);
+  public EngineStats(double fps, double avgProcessTimeMs, double sessionTimeS,
+      int gpuLiveTextures, int gpuLiveMeshes);
 }
 ```
 
@@ -392,9 +404,8 @@ public final class ErrorCode {
   public static final int LICENSE = -3;
   public static final int UNSUPPORTED = -4;
   public static final int IO = -5;
-  public static final int NO_SLOT = -6;
-  public static final int PROCESS = -7;
-  public static final int OUT_OF_MEMORY = -8;
+  public static final int PROCESS = -6;
+  public static final int OUT_OF_MEMORY = -7;
 }
 ```
 
@@ -406,9 +417,8 @@ public final class ErrorCode {
 | `-3` | `LICENSE` | 라이선스 / 인증 실패 |
 | `-4` | `UNSUPPORTED` | 기능 또는 형식 미지원 |
 | `-5` | `IO` | 파일 또는 리소스 I/O 실패 |
-| `-6` | `NO_SLOT` | 리소스 슬롯 소진 |
-| `-7` | `PROCESS` | 프레임 처리 실패 |
-| `-8` | `OUT_OF_MEMORY` | 할당 실패 |
+| `-6` | `PROCESS` | 프레임 처리 실패 |
+| `-7` | `OUT_OF_MEMORY` | 할당 실패 |
 
 <Note>
 **`-1`은 잘못된 인자입니다. `-2`는 초기화되지 않음입니다.**
@@ -437,6 +447,9 @@ public static ImageFrame createWithAndroid420(int width, int height,
     ByteBuffer yBuffer, int strideY, ByteBuffer uBuffer, int strideU,
     ByteBuffer vBuffer, int strideV, int pixelStrideUV);
 public static ImageFrame createWithTexture(int texture, int width, int height, int stride);
+public static ImageFrame createWithTexture(int texture, int width, int height, int stride, boolean externalOes);
+public static ImageFrame createWithTexture(int texture, int width, int height, int stride, boolean externalOes, float[] texMatrix);
+public void setGlRenderTarget(int texture);
 public static ImageFrame createWithBitmap(Bitmap bitmap);
 ```
 
@@ -445,6 +458,7 @@ public static ImageFrame createWithBitmap(Bitmap bitmap);
 | `createWithFile` | PNG / JPG 경로 |
 | `createWithAndroid420` | Camera2 `YUV_420_888` |
 | `createWithTexture` | **현재** GL 컨텍스트의 `GL_TEXTURE_2D`; `stride`는 보통 `width * 4` |
+| `setGlRenderTarget` | 현재 컨텍스트의 선택적 `GL_TEXTURE_2D` 렌더 타깃. 빌리며 소유하지 않음 |
 | `createWithBitmap` | `ARGB_8888` 픽셀을 RGBA 프레임으로 복사 |
 
 실패 시 `null`을 반환합니다(잘못된 비트맵, 네이티브 할당 실패 등). packed / planar 팩토리에는 `ByteBuffer.allocateDirect`를 권장합니다.
@@ -455,8 +469,8 @@ public static ImageFrame createWithBitmap(Bitmap bitmap);
 public FrameType type = FrameType.VIDEO;
 
 public int rotate(Rotation rotation);
-public int mirror(String mode);
-public void setMirror(String mode);
+public int mirror(MirrorMode mode);
+public void setMirror(MirrorMode mode);
 public ImageFrame convert(Format format);
 public int toFile(String path, int quality);
 public int toFile(String path);
@@ -468,11 +482,13 @@ public void release();
 | 메서드 | 설명 |
 | --- | --- |
 | `rotate` | 제자리 회전. 성공 시 `0` 반환 |
-| `mirror` | 즉시 미러. `mode`: `"horizontal"`, `"vertical"`, `"both"`(대소문자 무시) |
-| `setMirror` | **`processImage` 안에서** 적용되는 플래그(추가 변환을 피함). `""` / `null`은 지움 |
+| `mirror` | 즉시 미러. `MirrorMode.HORIZONTAL` / `VERTICAL` / `BOTH`. `NONE`은 픽셀을 바꾸지 않음 |
+| `setMirror` | **`processImage` 안에서** 적용되는 플래그(추가 변환을 피함). `MirrorMode.NONE`은 지움 |
 | `convert` | `format`의 **새** 프레임을 반환; 호출자가 `release()`해야 함 |
 | `toFile` | PNG/JPG 기록. Quality `1`–`100`; 오버로드 기본값은 `90` |
 | `toBitmap` | `ARGB_8888` `Bitmap`(필요하면 먼저 RGBA로 변환) |
+
+`rotate`, `mirror`, `setMirror`는 CPU 픽셀 프레임만 바꿉니다(RGBA, RGB, YUV, 이미지 파일). OpenGL 텍스처는 변환하지 않습니다. 텍스처는 먼저 똑바로 만든 뒤 넘기세요.
 
 ### 접근자
 

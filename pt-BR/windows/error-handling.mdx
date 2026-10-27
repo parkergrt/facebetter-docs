@@ -19,9 +19,8 @@ A maioria dos setters retorna `int`:
 | `-3` | Licença |
 | `-4` | Não suportado |
 | `-5` | I/O |
-| `-6` | Sem slot |
-| `-7` | Falha no processamento |
-| `-8` | Sem memória |
+| `-6` | Falha no processamento |
+| `-7` | Sem memória |
 
 `BeautyEffectEngine::Create()` retorna `std::shared_ptr`; a falha é `nullptr`. `ProcessImage` pode retornar `nullptr` em caso de falha.
 
@@ -106,7 +105,7 @@ Ou reconstrua para o CMake copiá-la para ao lado do executável.
 
 ### 3. `ProcessImage` retorna `nullptr`
 
-Verifique o quadro de entrada, o ponteiro do mecanismo e os logs (`-7` processamento / `-8` OOM nos setters).
+Verifique o quadro de entrada, o ponteiro do mecanismo e os logs (`-6` processamento / `-7` OOM nos setters).
 
 ```cpp
 auto input = ImageFrame::CreateWithFile("input.jpg");
@@ -149,7 +148,7 @@ glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
 glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
 ```
 
-Se o seu app já é dono do contexto GL, defina `EngineConfig::external_context = true` e chame `ProcessImage` nesse thread.
+- Crie o mecanismo e processe no thread cujo contexto GL é o atual. As texturas de entrada e saída devem pertencer a esse contexto. Quadros de CPU não precisam de um contexto GL do chamador. A config não tem um flag de contexto.
 
 ---
 

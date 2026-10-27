@@ -19,7 +19,9 @@ cfg.resource_path = "C:/app/assets/resource.fbd";
 
 ## 1 つのエンジン、シリアルな `ProcessImage`
 
-`Create` でインスタンスを取得します。**シングルトンではありません**。セッション中はエンジンを 1 つ保持します。`ImageFrame` とエンジンはスレッドセーフではありません。`ProcessImage` はワーカースレッドへシリアル化します（`external_context = true` の場合は、GL コンテキストを持つスレッドで呼び出す必要があります）。
+`Create` はセッションにつきエンジンを 1 つ返します。プロセス全体のシングルトンではありません。`ImageFrame` とエンジンはスレッドセーフではありません。`ProcessImage` と状態を変える呼び出しは同一スレッドへ直列化してください。
+
+- GL コンテキストがカレントなスレッドでエンジンを作成して処理します。入出力テクスチャはそのコンテキストに属している必要があります。CPU フレームに呼び出し側の GL コンテキストは不要です。設定にコンテキスト用のフラグはありません。
 
 ```cpp
 std::shared_ptr<BeautyEffectEngine> engine = BeautyEffectEngine::Create(cfg);
@@ -85,10 +87,8 @@ if (s.avg_process_time_ms > 33.0) {
 
 ## OpenGL コンテキスト
 
-| `external_context` | 場面 |
-| --- | --- |
-| `false`（デフォルト） | SDK が OpenGL を管理 |
-| `true` | 呼び出し側にカレント GL コンテキストがあり、そのスレッドで `ProcessImage` を呼ぶ |
+- GL コンテキストがカレントなスレッドでエンジンを作成して処理します。入出力テクスチャはそのコンテキストに属している必要があります。CPU フレームに呼び出し側の GL コンテキストは不要です。設定にコンテキスト用のフラグはありません。
+
 
 `facebetter.dll` を `.exe` の隣に置きます（または `PATH` に追加）。リンク時は `facebetter.lib` を使います。
 

@@ -30,7 +30,7 @@ Añade `include/` del SDK a la ruta de include. Enlaza `libfacebetter.so`. Confi
 
 ### Falta `SetRenderView`
 
-Solo iOS / macOS. En Linux, copia la salida de `ProcessImage` a tu textura GL.
+El SDK no tiene `SetRenderView`. Dibuja tú la salida de `ProcessImage`.
 
 ## Efectos
 
@@ -66,7 +66,7 @@ Instala `libgl1-mesa-dev` / `mesa-libGL-devel` y reconfigura.
 
 ### Servidor headless
 
-Usa OSMesa o EGL + `external_context = true`. Sigue haciendo falta `resource.fbd` y una licencia válida.
+- Crea el motor y procesa en el hilo cuyo contexto GL es el actual. Las texturas de entrada y salida deben pertenecer a ese contexto. Los fotogramas de CPU no necesitan un contexto GL del llamador. La config no tiene un flag de contexto.
 
 ## Autenticación
 

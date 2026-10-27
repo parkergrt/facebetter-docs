@@ -52,7 +52,6 @@ struct LogConfig {
 | `app_key` | Dashboard app key |
 | `resource_path` | **Path to the `resource.fbd` file** (required on desktop) |
 | `license_token` | License token string, `{token}` JSON, or offline `.lic` contents |
-| `external_context` | `false`: SDK-managed OpenGL context. `true`: caller’s current context |
 
 **Auth priority:** if `license_token` is non-empty, validate that token locally and skip `app_id` + `app_key` network auth. Otherwise use `app_id` + `app_key` against `/facebetter/v2/auth`.
 
@@ -62,7 +61,6 @@ struct EngineConfig {
   std::string app_key;
   std::string resource_path;
   std::string license_token;
-  bool external_context = false;
 };
 ```
 
@@ -105,8 +103,13 @@ virtual int SetSmoothing(float intensity) = 0;
 virtual int SetSmoothingStyle(beauty_params::SmoothingStyle style) = 0;
 virtual int SetWhitening(float intensity) = 0;
 virtual int SetWhiteningStyle(beauty_params::WhiteningStyle style) = 0;
-virtual int SetSharpening(float intensity) = 0;
 virtual int SetRosiness(float intensity) = 0;
+virtual int SetBrightness(float intensity) = 0;
+virtual int SetContrast(float intensity) = 0;
+virtual int SetSaturation(float intensity) = 0;
+virtual int SetColorTemperature(float intensity) = 0;
+virtual int SetColorTint(float intensity) = 0;
+virtual int SetClarity(float intensity) = 0;
 virtual int SetBeautySkinOnly(bool enabled) = 0;
 ```
 
@@ -250,6 +253,8 @@ struct EngineStats {
   double fps = 0.0;
   double avg_process_time_ms = 0.0;
   double session_time_s = 0.0;
+  size_t gpu_live_textures = 0;
+  size_t gpu_live_meshes = 0;
 };
 ```
 
@@ -346,7 +351,9 @@ static std::shared_ptr<ImageFrame> CreateWithNV21(
     const uint8_t* dataY, int strideY,
     const uint8_t* dataUV, int strideUV);
 static std::shared_ptr<ImageFrame> CreateWithTexture(
-    uint32_t texture, int width, int height, int stride);
+    uint32_t texture, int width, int height, int stride,
+    bool external_oes = false, const float* tex_matrix_4x4 = nullptr);
+void SetGlRenderTarget(uint32_t texture);
 ```
 
 Prefer dedicated YUV factories over `Create` for multi-plane formats.
@@ -355,13 +362,15 @@ Prefer dedicated YUV factories over `Create` for multi-plane formats.
 
 ```cpp
 int Rotate(Rotation rotation);
-int Mirror(const std::string& mode);       // "horizontal" | "vertical" | "both"
-void SetMirror(const std::string& mode);   // applied inside ProcessImage; "" clears
+int Mirror(MirrorMode mode);                   // Horizontal | Vertical | Both
+void SetMirror(MirrorMode mode);               // inside ProcessImage; None clears
 std::shared_ptr<ImageFrame> Convert(Format format) const;
 int ToFile(const std::string& path, int quality = 90) const;
 ```
 
-**Accessors:** `Width()`, `Height()`, `Stride()`, `Size()`, `GetFormat()`, `Data()`, `DataY/U/V()`, `StrideY/U/V()`, `DataUV()`, `StrideUV()`, `Texture()`, `Buffer()`, `MirrorHorizontal()`, `MirrorVertical()`.
+`Rotate`, `Mirror`, and `SetMirror` change CPU pixel frames only (RGBA, RGB, YUV, and image files). They do not transform an OpenGL texture or a D3D11 texture. Supply those already upright.
+
+**Accessors:** `Width()`, `Height()`, `Stride()`, `Size()`, `GetFormat()`, `Data()`, `DataY/U/V()`, `StrideY/U/V()`, `DataUV()`, `StrideUV()`, `Texture()`.
 
 Public field: `FrameType type = FrameType::Video`.
 
@@ -399,16 +408,14 @@ Typical `int` returns:
 | `-3` | License |
 | `-4` | Unsupported |
 | `-5` | I/O |
-| `-6` | No slot |
-| `-7` | Process |
-| `-8` | Out of memory |
+| `-6` | Process |
+| `-7` | Out of memory |
 
 ---
 
 ## Notes
 
-- **Thread safety:** serialize `ProcessImage` and mutating calls on one thread (or the GL thread if `external_context`).
+- Create the engine and call process on the thread whose GL context is current. Input and output textures must belong to that context. CPU frames do not need a caller GL context. There is no context flag on the config.
 - **Lifetime:** factory methods return `std::shared_ptr`.
 - **Pixel pointers** from `Data()` are `const` — do not write through them.
-- **`SetRenderView`** is iOS / macOS only.
-- **Windows binary:** link `facebetter.lib`, load `facebetter.dll` at runtime.
+- The SDK has no `SetRenderView`. Draw the `ProcessImage` output in your own view.

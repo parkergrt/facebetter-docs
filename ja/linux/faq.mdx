@@ -30,7 +30,7 @@ SDK の `include/` をインクルードパスに追加します。`libfacebette
 
 ### `SetRenderView` がない
 
-iOS / macOS のみです。Linux では `ProcessImage` の出力を自分の GL テクスチャへ貼ります。
+SDK に `SetRenderView` はありません。`ProcessImage` の出力はアプリ側で描画してください。
 
 ## 効果
 
@@ -66,7 +66,7 @@ iOS / macOS のみです。Linux では `ProcessImage` の出力を自分の GL 
 
 ### ヘッドレスサーバー
 
-OSMesa または EGL を使い、`external_context = true` を設定します。`resource.fbd` と有効な認証は依然として必要です。
+- GL コンテキストがカレントなスレッドでエンジンを作成して処理します。入出力テクスチャはそのコンテキストに属している必要があります。CPU フレームに呼び出し側の GL コンテキストは不要です。設定にコンテキスト用のフラグはありません。
 
 ## 認証
 

@@ -17,9 +17,8 @@ SDK **2.0.0**. Auth: [Auth & License](/intro/license).
 | `-3` | License |
 | `-4` | Unsupported |
 | `-5` | I/O |
-| `-6` | No slot |
-| `-7` | Process failed |
-| `-8` | Out of memory |
+| `-6` | Process failed |
+| `-7` | Out of memory |
 
 `Create()` returns `nullptr` on failure. `ProcessImage` may return `nullptr`.
 
@@ -140,7 +139,7 @@ sudo apt install libgl1-mesa-dev libglu1-mesa-dev mesa-utils
 glxinfo | grep "OpenGL version"
 ```
 
-Need OpenGL 3.0+. Headless servers can use OSMesa (`libosmesa6-dev`) with `external_context` set for your offscreen context.
+- Create the engine and call process on the thread whose GL context is current. Input and output textures must belong to that context. CPU frames do not need a caller GL context. There is no context flag on the config.
 
 ---
 

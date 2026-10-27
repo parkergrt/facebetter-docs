@@ -11,7 +11,7 @@ the C++ API と同一の C++ API を共有します。基本的な使い方: [�
 Third-party SDK (preprocess callback)
   I420 / YUV planes
        ↓
-BeautyEffectEngine (usually external_context = false)
+BeautyEffectEngine
   CreateWithI420 → ProcessImage
        ↓
   Write back to dst buffer / in-place
@@ -22,7 +22,7 @@ BeautyEffectEngine (usually external_context = false)
 | 項目 | 要件 |
 | --- | --- |
 | エンジン | `BeautyEffectEngine::Create`。デスクトップでは `resource_path` を `resource.fbd` **ファイル**に設定する必要があります |
-| コンテキスト | バッファ経路では通常 `external_context = false`。相手の GL スレッドで `CreateWithTexture` を渡すときだけ `true` |
+| コンテキスト | GL コンテキストがカレントなスレッドでエンジンを作成して処理します。入出力テクスチャはそのコンテキストに属している必要があります。CPU フレームに呼び出し側の GL コンテキストは不要です。設定にコンテキスト用のフラグはありません。 |
 | 形式 | PC 側は **I420** を優先（TRTC Buffer / Agora YUV420 に合わせます） |
 | フレームタイプ | `FrameType::Video` |
 | ライフサイクル | コールバック解除後に `engine.reset()`。エンジンはシングルトンではありません |
@@ -77,7 +77,6 @@ EngineConfig cfg;
 cfg.app_id = "your_app_id";
 cfg.app_key = "your_app_key";
 cfg.resource_path = "resource/resource.fbd";
-cfg.external_context = false;
 auto engine = BeautyEffectEngine::Create(cfg);
 if (!engine) {
   return;

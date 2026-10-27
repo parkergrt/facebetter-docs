@@ -11,7 +11,6 @@ SDK **2.0.0**。Facebetter をサードパーティ SDK の**カスタム動画�
 Third-party SDK (GL thread)
   input textureId
        ↓
-BeautyEffectEngine (externalContext = true)
   ImageFrame.createWithTexture → processImage
        ↓
   output textureId → write back to vendor frame / callback
@@ -21,13 +20,12 @@ BeautyEffectEngine (externalContext = true)
 
 | 項目 | 要件 |
 | --- | --- |
-| エンジン | `externalContext = true`。**ベンダー GL コールバックスレッド**で遅延作成 |
 | 入力 | `GL_TEXTURE_2D`（RGBA）。`stride` は通常 `width * 4` |
 | フレームタイプ | `ImageFrame.FrameType.VIDEO` |
 | 出力 | SDK が出力テクスチャを所有します。`glDeleteTextures` しないでください。必ず `ImageFrame.release()` |
 | ライフサイクル | ベンダーが GL コンテキストを破棄したら `engine.release()` し、新しいコンテキストで再作成 |
 
-Facebetter は `createWithTexture` に `GL_TEXTURE_EXTERNAL_OES` を**受け付けません**。ベンダーが OES をデフォルトにする場合は、ドキュメントに従い **Texture2D / RGB** に切り替えるか、先に `GL_TEXTURE_2D` へ blit してください。
+`createWithTexture` は `GL_TEXTURE_2D` を受けます。`externalOes` が true のときは `GL_TEXTURE_EXTERNAL_OES` も受けます。OES では `SurfaceTexture.getTransformMatrix` の 16 float を渡してください。先に `GL_TEXTURE_2D` へ blit しても構いません。
 
 ### 共通ヘルパー
 
@@ -67,7 +65,6 @@ BeautyEffectEngine.EngineConfig config = new BeautyEffectEngine.EngineConfig();
 config.appId = "your appId";
 config.appKey = "your appKey";
 // or config.licenseToken = "...";
-config.externalContext = true;
 BeautyEffectEngine engine = new BeautyEffectEngine(context, config);
 engine.setSmoothing(0.5f);
 ```
@@ -258,7 +255,6 @@ room.localParticipant.publishVideoTrack(videoTrack)
 | 症状 | 確認 |
 | --- | --- |
 | 黒画面 / 映像なし | エンジン作成と `processImage` がベンダーの **GL スレッド**上か。失敗フレームを誤って捨てていないか |
-| 美顔なし | `externalContext == true`。入力が `GL_TEXTURE_2D` |
 | 断続的なクラッシュ | GL destroy / capturer stop で `release()`。出力に `glDeleteTextures` しない |
 | 歪み | 幅 / 高さ / 回転 / ミラーがベンダーフレームと一致。OES が 2D に変換されていない |
 

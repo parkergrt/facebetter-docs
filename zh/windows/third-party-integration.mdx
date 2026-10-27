@@ -11,7 +11,7 @@ SDK **2.0.0**。桌面端与移动端不同：TRTC / 声网等在 **Windows 上�
 第三方 SDK（前处理回调）
   I420 / YUV 平面
        ↓
-BeautyEffectEngine（通常 external_context = false）
+BeautyEffectEngine
   CreateWithI420 → ProcessImage
        ↓
   写回对方 dst 缓冲 / 原位修改
@@ -22,7 +22,7 @@ BeautyEffectEngine（通常 external_context = false）
 | 项 | 要求 |
 | --- | --- |
 | 引擎 | `BeautyEffectEngine::Create`；桌面必须设 `resource_path` 指向 `resource.fbd` **文件** |
-| 上下文 | 缓冲路径一般用 `external_context = false`；仅当你在对方 GL 线程喂 `CreateWithTexture` 时才设 `true` |
+| 上下文 | 在 GL 上下文为当前上下文的线程上创建引擎并处理。输入和输出纹理必须属于该上下文。CPU 帧不需要调用方提供 GL 上下文。配置里没有上下文开关。 |
 | 格式 | PC 侧优先 **I420**（与 TRTC Buffer / 声网 YUV420 对齐） |
 | 帧类型 | `FrameType::Video` |
 | 生命周期 | 取消回调后 `engine.reset()`；引擎不是单例 |
@@ -77,7 +77,6 @@ EngineConfig cfg;
 cfg.app_id = "your_app_id";
 cfg.app_key = "your_app_key";
 cfg.resource_path = "resource/resource.fbd";
-cfg.external_context = false;
 auto engine = BeautyEffectEngine::Create(cfg);
 if (!engine) {
   return;

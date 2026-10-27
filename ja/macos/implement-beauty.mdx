@@ -83,7 +83,6 @@ FBEngineConfig *engineConfig = [[FBEngineConfig alloc] init];
 engineConfig.appId = @"your appId";
 engineConfig.appKey = @"your appKey";
 // engineConfig.licenseToken = @"your license token";
-engineConfig.externalContext = NO;  // YES only when you own the GL context
 
 self.beautyEffectEngine = [FBBeautyEffectEngine createEngineWithConfig:engineConfig];
 if (self.beautyEffectEngine == nil) {
@@ -103,8 +102,9 @@ if (self.beautyEffectEngine == nil) {
 [self.beautyEffectEngine setSmoothingStyle:FBSmoothingStyle_Natural];
 [self.beautyEffectEngine setWhitening:0.3f];
 [self.beautyEffectEngine setWhiteningStyle:FBWhiteningStyle_ColdWhite];
-[self.beautyEffectEngine setSharpening:0.2f];
 [self.beautyEffectEngine setRosiness:0.15f];
+[self.beautyEffectEngine setBrightness:0.1f];
+[self.beautyEffectEngine setClarity:0.2f];
 ```
 
 ### 肌領域のみ
@@ -265,11 +265,11 @@ FBImageFrame *output = [self.beautyEffectEngine processImage:input];
 `FBFrameTypeVideo` はリアルタイムストリーム、`FBFrameTypeImage` は静止画と `NSImage` 向けです。
 </Tip>
 
-回転 / ミラー / 変換 / 保存:
+回転とミラーは CPU ピクセルだけを変えます。OpenGL テクスチャ、CVPixelBuffer、Metal テクスチャは変換しません。
 
 ```objc
 [input rotate:FBImageRotation90];
-[input setMirror:@"horizontal"];  // applied during processImage:
+[input setMirror:FBMirrorModeHorizontal];  // applied during processImage:
 FBImageFrame *rgba = [output convert:FBImageFormatRGBA];
 const uint8_t *bytes = [rgba data];
 [output toFile:@"/path/out.jpg" quality:90];
@@ -280,14 +280,13 @@ YUV プレーン: `dataY`、`dataU`、`dataV`、`dataUV`、および `strideY` /
 ## 外部テクスチャ
 
 <Warning>
-OpenGL スレッドでエンジンを作成し、`externalContext = YES` を設定してください。入力と出力のテクスチャはそのコンテキストを共有する必要があります。
+GL コンテキストがカレントなスレッドでエンジンを作成して処理します。入出力テクスチャはそのコンテキストに属している必要があります。CPU フレームに呼び出し側の GL コンテキストは不要です。設定にコンテキスト用のフラグはありません。
 </Warning>
 
 ```objc
 FBEngineConfig *config = [[FBEngineConfig alloc] init];
 config.appId = @"your appId";
 config.appKey = @"your appKey";
-config.externalContext = YES;
 self.engine = [FBBeautyEffectEngine createEngineWithConfig:config];
 
 FBImageFrame *inputFrame = [FBImageFrame createWithTexture:textureId

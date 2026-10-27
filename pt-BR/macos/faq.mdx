@@ -76,7 +76,6 @@ Fundo virtual:
 
 ### `processImage:` retorna `nil`
 
-Quadro inválido, init falho, ou `externalContext = YES` sem um contexto GL atual.
 
 ### Tipo de quadro
 
@@ -103,7 +102,7 @@ FBImageFrame *out = [engine processImage:frame];
 
 1. `AVCaptureVideoDataOutput` → `CVPixelBuffer`.
 2. `createWithNV12:...` ou `createWithBGRA:...`.
-3. `type = FBFrameTypeVideo`, opcionalmente `setMirror:@"horizontal"`.
+3. `type = FBFrameTypeVideo`, opcionalmente `setMirror:FBMirrorModeHorizontal`.
 4. Exiba `[output data]` ou `[output texture]` em uma view AppKit / OpenGL.
 
 ## Desempenho

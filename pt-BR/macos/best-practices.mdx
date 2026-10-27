@@ -50,7 +50,6 @@ Comece baixo no vídeo ao vivo. Significados completos dos enums: [Enums de par�
 
 ## Um mecanismo, uma fila serial
 
-`createEngineWithConfig:` retorna uma **instância**, não um singleton de processo. Mantenha um mecanismo por sessão e chame-o a partir de uma fila **serial** (ou do thread GL quando `externalContext = YES`).
 
 ```objc
 @interface BeautyEngineManager : NSObject
@@ -108,7 +107,6 @@ Não processe quadros no thread principal, exceto stills minúsculos. Não compa
 
 Quando a view AppKit já for dona de um contexto GL:
 
-1. Defina `config.externalContext = YES`.
 2. Crie o mecanismo **nesse thread GL**.
 3. Encapsule a textura com `createWithTexture:width:height:stride:`.
 4. Leia a saída com `[output texture]`.
@@ -143,7 +141,7 @@ Use `__weak` nos blocos de `FBEngineCallbacks`.
 ## Captura e exibição no macOS
 
 - Monte os quadros com `createWithNV12:...`, `createWithBGRA:...` ou `createWithNSImage:`.
-- Câmera frontal / prévia voltada para o usuário: `setMirror:@"horizontal"`.
+- Câmera frontal / prévia voltada para o usuário: `setMirror:FBMirrorModeHorizontal`.
 - Retina: processe no tamanho em pixels (`backingScaleFactor`), não no tamanho em pontos.
 - Câmera: `NSCameraUsageDescription`. Apps no sandbox precisam de **Outgoing Connections** para autenticação online.
 - `.fbd` / imagens de fundo escolhidos pelo usuário: URLs com security scope.

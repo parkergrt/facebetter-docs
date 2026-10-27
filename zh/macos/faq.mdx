@@ -77,7 +77,6 @@ description: "macOS 美颜特效 SDK 2.0 常见问题"
 
 ### `processImage:` 返回 `nil`
 
-帧无效、初始化失败，或 `externalContext = YES` 但当前没有 GL 上下文。
 
 ### 帧类型
 
@@ -104,7 +103,7 @@ FBImageFrame *out = [engine processImage:frame];
 
 1. `AVCaptureVideoDataOutput` → `CVPixelBuffer`。
 2. `createWithNV12:...` 或 `createWithBGRA:...`。
-3. `type = FBFrameTypeVideo`，可选 `setMirror:@"horizontal"`。
+3. `type = FBFrameTypeVideo`，可选 `setMirror:FBMirrorModeHorizontal`。
 4. 在 AppKit / OpenGL 视图中显示 `[output data]` 或 `[output texture]`。
 
 ## 性能

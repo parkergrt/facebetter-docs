@@ -30,7 +30,7 @@ SDK **2.0.0**。与 Windows 共用 C++ API。[参数枚举](/zh/intro/makeup) ·
 
 ### 没有 `SetRenderView`
 
-仅 iOS / macOS 提供。Linux 需把 `ProcessImage` 输出贴到自己的 GL 纹理。
+SDK 没有 `SetRenderView`。请自行绘制 `ProcessImage` 的输出。
 
 ## 效果
 
@@ -66,7 +66,7 @@ SDK **2.0.0**。与 Windows 共用 C++ API。[参数枚举](/zh/intro/makeup) ·
 
 ### 无头服务器
 
-使用 OSMesa 或 EGL，并设置 `external_context = true`。仍需要 `resource.fbd` 和有效授权。
+- 在 GL 上下文为当前上下文的线程上创建引擎并处理。输入和输出纹理必须属于该上下文。CPU 帧不需要调用方提供 GL 上下文。配置里没有上下文开关。
 
 ## 授权
 

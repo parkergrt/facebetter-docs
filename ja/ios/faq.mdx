@@ -91,7 +91,6 @@ description: "iOS Beauty Effect SDK 2.0 のよくある質問"
 
 - エンジンが `nil`、または初期化失敗（`-2` / イベント `101`）。
 - フレームが無効（サイズ 0、非対応フォーマット）。
-- `externalContext = YES` だが、現在のスレッドに GL コンテキストがない。
 - 処理失敗（`FBErrorCode_Process`）として扱ってください。
 
 ### フレームタイプ
@@ -121,7 +120,7 @@ FBImageFrame *out = [engine processImage:frame];
 
 1. `AVCaptureVideoDataOutput` から `CVPixelBuffer` を取得します。
 2. `createWithNV12:...` または `createWithBGRA:...` で `FBImageFrame` を作成します。
-3. `type = FBFrameTypeVideo` を設定し、任意で `setMirror:@"horizontal"`。
+3. `type = FBFrameTypeVideo` を設定し、任意で `setMirror:FBMirrorModeHorizontal`。
 4. `processImage:` のあと `[output data]` または `[output texture]` を表示します。
 
 ## パフォーマンスとメモリ
@@ -153,5 +152,4 @@ logConfig.fileName = logPath;
 ## スレッド
 
 - デフォルトエンジン: すべての `processImage:` と、GL リソースに触れる setter はシリアルキューで実行します。
-- `externalContext = YES`: GL スレッドで作成して処理します。
 - UI の更新はメインキューのみです。

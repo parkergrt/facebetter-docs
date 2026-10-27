@@ -19,9 +19,8 @@ SDK **2.0.0**。鉴权见 [授权与许可](/zh/intro/license)。
 | `-3` | 授权 |
 | `-4` | 不支持 |
 | `-5` | I/O |
-| `-6` | 无空闲槽位（背压） |
-| `-7` | 处理失败 |
-| `-8` | 内存不足 |
+| `-6` | 处理失败 |
+| `-7` | 内存不足 |
 
 `BeautyEffectEngine::Create()` 返回 `std::shared_ptr`，失败为 `nullptr`。`ProcessImage` 失败也可能返回空指针。
 
@@ -106,7 +105,7 @@ copy sdk\lib\facebetter.dll build\
 
 ### 3. `ProcessImage` 返回 `nullptr`
 
-检查输入帧、引擎指针和日志（setter 上的 `-7` 处理失败 / `-8` 内存不足）。
+检查输入帧、引擎指针和日志（setter 上的 `-6` 处理失败 / `-7` 内存不足）。
 
 ```cpp
 auto input = ImageFrame::CreateWithFile("input.jpg");
@@ -149,7 +148,7 @@ glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
 glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
 ```
 
-若应用已持有 GL 上下文，设置 `EngineConfig::external_context = true`，并在该线程调用 `ProcessImage`。
+- 在 GL 上下文为当前上下文的线程上创建引擎并处理。输入和输出纹理必须属于该上下文。CPU 帧不需要调用方提供 GL 上下文。配置里没有上下文开关。
 
 ---
 

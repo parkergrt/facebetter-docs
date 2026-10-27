@@ -11,7 +11,6 @@ Regras completas de textura: [Implementar beleza · Textura externa](/pt-BR/andr
 Third-party SDK (GL thread)
   input textureId
        ↓
-BeautyEffectEngine (externalContext = true)
   ImageFrame.createWithTexture → processImage
        ↓
   output textureId → write back to vendor frame / callback
@@ -21,13 +20,12 @@ BeautyEffectEngine (externalContext = true)
 
 | Item | Requisito |
 | --- | --- |
-| Mecanismo | `externalContext = true`, criação lazy no **thread do callback GL do fornecedor** |
 | Entrada | `GL_TEXTURE_2D` (RGBA); `stride` costuma ser `width * 4` |
 | Tipo de quadro | `ImageFrame.FrameType.VIDEO` |
 | Saída | O SDK é dono da textura de saída — não chame `glDeleteTextures`. Sempre `ImageFrame.release()` |
 | Ciclo de vida | Quando o fornecedor destruir o contexto GL, `engine.release()` e, em seguida, recrie no novo contexto |
 
-O Facebetter **não** aceita `GL_TEXTURE_EXTERNAL_OES` em `createWithTexture`. Se o fornecedor usar OES por padrão, mude para **Texture2D / RGB** conforme a documentação dele, ou faça blit para `GL_TEXTURE_2D` primeiro.
+`createWithTexture` aceita `GL_TEXTURE_2D`, ou `GL_TEXTURE_EXTERNAL_OES` quando `externalOes` é true. Para OES, passe os 16 floats de `SurfaceTexture.getTransformMatrix`. O blit para `GL_TEXTURE_2D` continua válido.
 
 ### Helper compartilhado
 
@@ -67,7 +65,6 @@ BeautyEffectEngine.EngineConfig config = new BeautyEffectEngine.EngineConfig();
 config.appId = "your appId";
 config.appKey = "your appKey";
 // or config.licenseToken = "...";
-config.externalContext = true;
 BeautyEffectEngine engine = new BeautyEffectEngine(context, config);
 engine.setSmoothing(0.5f);
 ```
@@ -258,7 +255,6 @@ Você também pode implementar um `VideoCapturer` personalizado, executar `proce
 | Sintoma | Verifique |
 | --- | --- |
 | Preto / sem vídeo | Mecanismo criado e `processImage` no **thread GL** do fornecedor; quadros com falha não descartados por engano |
-| Sem beleza | `externalContext == true`; a entrada é `GL_TEXTURE_2D` |
 | Crash intermitente | `release()` na destruição GL / parada do capturer; nunca `glDeleteTextures` na saída |
 | Distorção | Largura / altura / rotação / espelhamento correspondem ao quadro do fornecedor; OES não convertido para 2D |
 

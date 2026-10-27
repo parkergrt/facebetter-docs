@@ -54,7 +54,6 @@ FB_OBJC_API @interface FBLogConfig : NSObject
 | `appId` | `NSString *` | Dashboard App ID(온라인 인증) |
 | `appKey` | `NSString *` | Dashboard App Key(온라인 인증) |
 | `licenseToken` | `NSString *` | 라이선스 토큰 문자열, `{token}` JSON, 또는 네이티브 `.lic` 내용 |
-| `externalContext` | `BOOL` | 기본 `NO`. `YES`: 호출 측 OpenGL 컨텍스트를 사용 |
 
 **인증 우선순위:** `licenseToken`이 비어 있지 않으면 해당 토큰을 로컬에서 검증하고 `/facebetter/v2/auth`를 건너뜁니다. 그렇지 않으면 `appId` + `appKey`로 온라인 인증합니다. Dashboard에서 앱 **Bundle ID**를 바인딩하세요. 번들이 없는 커맨드라인 도구는 프로세스 이름을 바인딩하세요.
 
@@ -63,7 +62,6 @@ FB_OBJC_API @interface FBEngineConfig : NSObject
 @property(nonatomic, copy) NSString *appId;
 @property(nonatomic, copy) NSString *appKey;
 @property(nonatomic, copy, nullable) NSString *licenseToken;
-@property(nonatomic, assign) BOOL externalContext;
 - (instancetype)init;
 @end
 ```
@@ -91,8 +89,13 @@ FB_OBJC_API @interface FBBeautyEffectEngine : NSObject
 - (int)setSmoothingStyle:(FBSmoothingStyle)style;
 - (int)setWhitening:(float)intensity;
 - (int)setWhiteningStyle:(FBWhiteningStyle)style;
-- (int)setSharpening:(float)intensity;
 - (int)setRosiness:(float)intensity;
+- (int)setBrightness:(float)intensity;
+- (int)setContrast:(float)intensity;
+- (int)setSaturation:(float)intensity;
+- (int)setColorTemperature:(float)intensity;
+- (int)setColorTint:(float)intensity;
+- (int)setClarity:(float)intensity;
 - (int)setReshape:(FBReshape)param intensity:(float)value;
 - (int)setBodyReshape:(FBBodyReshape)param intensity:(float)value;
 - (int)setBeautySkinOnly:(BOOL)enabled;
@@ -118,6 +121,7 @@ FB_OBJC_API @interface FBBeautyEffectEngine : NSObject
 - (int)setEyelashColor:(FBEyelashColor)color;
 - (int)setPupil:(float)intensity;
 - (int)setPupilColor:(FBPupilColor)color;
+- (int)setTeethWhiten:(float)intensity;
 
 - (int)setChromaKey:(FBChromaKeyColor)color;
 - (int)clearChromaKey;
@@ -159,8 +163,13 @@ FB_OBJC_API @interface FBBeautyEffectEngine : NSObject
 | `setSmoothingStyle:` | 스타일; 강도는 여전히 `setSmoothing:`에서 |
 | `setWhitening:` | `[0, 1]` |
 | `setWhiteningStyle:` | 화이트닝 LUT를 바꿈 |
-| `setSharpening:` | `[0, 1]` |
 | `setRosiness:` | `[0, 1]` |
+| `setBrightness:` | `[-1, 1]`, `0` neutral |
+| `setContrast:` | `[-1, 1]`, `0` neutral |
+| `setSaturation:` | `[-1, 1]`, `0` neutral |
+| `setColorTemperature:` | `[-1, 1]`, `0` neutral |
+| `setColorTint:` | `[-1, 1]`, `0` neutral |
+| `setClarity:` | `[0, 1]` |
 | `setBeautySkinOnly:` | `YES` = 피부 영역만 |
 
 ### 리셰이프
@@ -233,6 +242,7 @@ typedef NS_ENUM(NSInteger, FBBodyReshape) {
 | `setEyebrow:` | `setEyebrowStyle:` | `setEyebrowColor:` |
 | `setEyelash:` | `setEyelashStyle:` | `setEyelashColor:` |
 | `setPupil:` | — | `setPupilColor:` |
+| `setTeethWhiten:` | — | — |
 
 ### 가상 배경과 크로마키
 
@@ -295,9 +305,8 @@ typedef NS_ENUM(NSInteger, FBErrorCode) {
   FBErrorCode_License = -3,
   FBErrorCode_Unsupported = -4,
   FBErrorCode_IO = -5,
-  FBErrorCode_NoSlot = -6,
-  FBErrorCode_Process = -7,
-  FBErrorCode_OutOfMemory = -8,
+  FBErrorCode_Process = -6,
+  FBErrorCode_OutOfMemory = -7,
 };
 ```
 
@@ -312,6 +321,8 @@ typedef NS_ENUM(NSInteger, FBErrorCode) {
 | `fps` | `double` | 초당 프레임 |
 | `avgProcessTimeMs` | `double` | 평균 `processImage:` 시간(ms) |
 | `sessionTimeS` | `double` | 세션 시간(초) |
+| `gpuLiveTextures` | `NSUInteger` | 현재 GPU 텍스처 수(누수 조사) |
+| `gpuLiveMeshes` | `NSUInteger` | 현재 GPU 메시 수(누수 조사) |
 
 ```objc
 - (FBEngineStats *)getStats;
@@ -382,6 +393,8 @@ FB_OBJC_API @interface FBFaceDetectionResult : NSObject
 | `createWithNV21:...` | Y + VU |
 | `createWithFile:` | png / jpg 경로 |
 | `createWithTexture:width:height:stride:` | 현재 컨텍스트의 `GL_TEXTURE_2D`; `stride`는 보통 `width * 4` |
+| `setGlRenderTarget:` | 현재 컨텍스트의 선택적 `GL_TEXTURE_2D` 렌더 타깃. 빌림 |
+| `setMetalRenderTarget:` | 같은 기기의 선택적 `MTLTexture` 출력. 빌림 |
 | `createWithNSImage:` | **macOS 전용** |
 
 ### 작업
@@ -389,11 +402,13 @@ FB_OBJC_API @interface FBFaceDetectionResult : NSObject
 | 메서드 | 설명 |
 | --- | --- |
 | `rotate:` | `FBImageRotation`; `FBErrorCode` 반환 |
-| `mirror:` | `"horizontal"` / `"vertical"` / `"both"`(대소문자 무시); 픽셀을 변경 |
-| `setMirror:` | `processImage:`용 플래그(추가 변환을 피함). `nil` / `@""`는 지움 |
+| `mirror:` | `FBMirrorModeHorizontal` / `Vertical` / `Both`. 픽셀을 변경. `None`은 픽셀을 바꾸지 않음 |
+| `setMirror:` | `processImage:`용 플래그(추가 변환을 피함). `FBMirrorModeNone`는 지움 |
 | `convert:` | 대상 `FBImageFormat`의 새 프레임을 반환 |
 | `toFile:quality:` | quality `0`–`100` |
 | `toFile:` | quality `90` |
+
+`rotate:`, `mirror:`, `setMirror:`는 CPU 픽셀 프레임만 바꿉니다(RGBA, RGB, YUV, 이미지 파일). OpenGL 텍스처, CVPixelBuffer, Metal 텍스처는 변환하지 않습니다. 이런 입력은 먼저 똑바로 만든 뒤 프레임을 만드세요.
 
 ### 속성과 접근자
 

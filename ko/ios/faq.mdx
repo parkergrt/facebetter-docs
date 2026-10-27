@@ -93,7 +93,6 @@ description: "iOS Beauty Effect SDK 2.0 자주 묻는 질문"
 
 - 엔진이 `nil`이거나 초기화가 실패했습니다(`-2` / 이벤트 `101`).
 - 잘못된 프레임(크기 0, 미지원 형식).
-- `externalContext = YES`이지만 현재 스레드에 GL 컨텍스트가 없습니다.
 - 처리 실패(`FBErrorCode_Process`)로 다루세요.
 
 ### 프레임 유형
@@ -123,7 +122,7 @@ FBImageFrame *out = [engine processImage:frame];
 
 1. `AVCaptureVideoDataOutput`에서 `CVPixelBuffer`를 읽습니다.
 2. `createWithNV12:...` 또는 `createWithBGRA:...`로 `FBImageFrame`을 만듭니다.
-3. `type = FBFrameTypeVideo`를 설정하고, 선택적으로 `setMirror:@"horizontal"`을 호출합니다.
+3. `type = FBFrameTypeVideo`를 설정하고, 선택적으로 `setMirror:FBMirrorModeHorizontal`을 호출합니다.
 4. `processImage:` 후 `[output data]` 또는 `[output texture]`를 표시합니다.
 
 ## 성능과 메모리
@@ -155,5 +154,4 @@ logConfig.fileName = logPath;
 ## 스레딩
 
 - 기본 엔진: 모든 `processImage:`와 GL 리소스를 건드리는 setter는 직렬 큐입니다.
-- `externalContext = YES`: GL 스레드에서 생성 + 처리합니다.
 - UI는 메인 큐에서만 업데이트하세요.

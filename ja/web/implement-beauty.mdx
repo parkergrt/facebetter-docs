@@ -76,13 +76,12 @@ engine.setSmoothing(0.8);
 engine.setSmoothingStyle(SmoothingStyle.Natural);
 engine.setWhitening(0.5);
 engine.setWhiteningStyle(WhiteningStyle.ColdWhite);
-engine.setSharpening(0.3);
 engine.setRosiness(0.2);
 engine.setBeautySkinOnly(true);
 ```
 
 <Tip>
-`setBeautySkinOnly(true)` のあと、スムージング / 美白 / シャープニング / 血色は検出された肌にのみ適用され、衣服と背景は影響を受けません。
+`setBeautySkinOnly(true)` のあと、スムージング / 美白 / 血色は検出された肌にのみ適用され、衣服と背景は影響を受けません。
 </Tip>
 
 スタイル列挙: [パラメータ列挙](/ja/intro/makeup)。
@@ -257,7 +256,7 @@ loop();
 - `FrameType.Video` — カメラ / ライブ（時間方向の平滑化あり）
 - `FrameType.Image` — 静止画
 
-`processTexture(textureHandle, width, height, stride, frameType, mirrorMode)` はカスタム GPU テクスチャ入力向けです。**この経路はミラーを適用しません。** 通常の Web アプリでは `processImage` を使ってください。
+`processTexture(textureHandle, width, height, stride, frameType, mirrorMode)` はカスタム GPU テクスチャ入力向けです。**この経路はミラーも回転もしません。** 通常の Web アプリでは `processImage` を使ってください。
 
 ## パフォーマンス統計
 

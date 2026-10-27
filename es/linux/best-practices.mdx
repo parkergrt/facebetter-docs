@@ -19,7 +19,9 @@ Resuelve una ruta absoluta al arrancar para que los cambios de cwd no rompan `fo
 
 ## Un motor, `ProcessImage` serial
 
-`Create` devuelve un `shared_ptr`. El motor **no** es un singleton. Serializa `ProcessImage` (y los setters que mutan) en un solo hilo. Si `external_context = true`, ese hilo debe tener un contexto GL actual.
+`Create` devuelve un motor para la sesión, no un singleton de proceso. `ImageFrame` y el motor no son thread-safe. Serializa `ProcessImage` y los setters que mutan en un solo hilo.
+
+- Crea el motor y procesa en el hilo cuyo contexto GL es el actual. Las texturas de entrada y salida deben pertenecer a ese contexto. Los fotogramas de CPU no necesitan un contexto GL del llamador. La config no tiene un flag de contexto.
 
 ## `FrameType` en el fotograma
 
@@ -67,7 +69,7 @@ if (s.avg_process_time_ms > 33.0) {
 
 ## OpenGL
 
-El valor predeterminado `external_context = false` usa un contexto OpenGL gestionado por el SDK. Si GLFW / EGL ya posee el contexto, pon `true` y procesa en ese hilo. Hace falta un driver Mesa/NVIDIA/AMD que funcione; `glxinfo` debe informar 3.0+.
+- Crea el motor y procesa en el hilo cuyo contexto GL es el actual. Las texturas de entrada y salida deben pertenecer a ese contexto. Los fotogramas de CPU no necesitan un contexto GL del llamador. La config no tiene un flag de contexto.
 
 ## Pausar cuando está inactivo
 

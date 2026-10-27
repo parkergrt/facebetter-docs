@@ -12,8 +12,7 @@ SDK **2.0.0**。名前空間は `facebetter`。[Windows](/ja/windows/api-referen
 - `libfacebetter.so` を配布します。`LD_LIBRARY_PATH`、rpath、または `ldconfig` を設定してください。
 - SDK のビルドは `./scripts/build_linux.sh`（成果物は `build/linux/release`）、または CMake です。
 - `resource_path` は **`resource.fbd` ファイル**である必要があります。
-- `SetRenderView` はありません。
-- `external_context = true` は呼び出しスレッドの現在の GL コンテキスト（GLFW / EGL / OSMesa）を使用します。
+- GL コンテキストがカレントなスレッドでエンジンを作成して処理します。入出力テクスチャはそのコンテキストに属している必要があります。CPU フレームに呼び出し側の GL コンテキストは不要です。設定にコンテキスト用のフラグはありません。
 
 ```cmake
 target_include_directories(app PRIVATE /path/to/sdk/include)
@@ -50,7 +49,6 @@ static int BeautyEffectEngine::SetLogConfig(const LogConfig& config);
 | `app_id` / `app_key` | ネイティブのオンライン v2 認証 |
 | `resource_path` | `resource.fbd` ファイルパス（ディレクトリではありません） |
 | `license_token` | トークン / `{token}` JSON / `.lic` — 空でなければ優先 |
-| `external_context` | `false`: SDK が OpenGL を管理。`true`: 呼び出し側のコンテキスト |
 
 ```cpp
 struct EngineConfig {
@@ -58,7 +56,6 @@ struct EngineConfig {
   std::string app_key;
   std::string resource_path;
   std::string license_token;
-  bool external_context = false;
 };
 
 static std::shared_ptr<BeautyEffectEngine> BeautyEffectEngine::Create(
@@ -74,8 +71,13 @@ int SetSmoothing(float intensity);          // [0, 1]
 int SetSmoothingStyle(SmoothingStyle style);
 int SetWhitening(float intensity);
 int SetWhiteningStyle(WhiteningStyle style);
-int SetSharpening(float intensity);
 int SetRosiness(float intensity);
+int SetBrightness(float intensity);       // [-1, 1], 0 neutral
+int SetContrast(float intensity);
+int SetSaturation(float intensity);
+int SetColorTemperature(float intensity);
+int SetColorTint(float intensity);
+int SetClarity(float intensity);          // [0, 1]
 int SetBeautySkinOnly(bool enabled);
 ```
 
@@ -167,6 +169,8 @@ struct EngineStats {
   double fps = 0.0;
   double avg_process_time_ms = 0.0;
   double session_time_s = 0.0;
+  size_t gpu_live_textures = 0;
+  size_t gpu_live_meshes = 0;
 };
 ```
 
@@ -200,9 +204,11 @@ enum class FrameType { Image = 0, Video = 1 };
 
 **ファクトリ:** `CreateWithFile`、`Create`、`CreateWithRGBA/BGRA/RGB/BGR`、`CreateWithI420/NV12/NV21`、`CreateWithTexture`。
 
-**操作:** `Rotate`、`Mirror("horizontal"|"vertical"|"both")`、`SetMirror`、`Convert`、`ToFile`。
+**操作:** `Rotate`、`Mirror(MirrorMode::Horizontal|Vertical|Both)`、`SetMirror`、`Convert`、`ToFile`。
 
-**アクセサ:** `Width/Height/Stride/Size/GetFormat/Data`、YUV プレーン、`Texture()`、`Buffer()`。フィールド: `FrameType type`。
+`Rotate`、`Mirror`、`SetMirror` が変えるのは CPU ピクセルフレームだけです（RGBA、RGB、YUV、画像ファイル）。OpenGL テクスチャは変換しません。テクスチャは正立にしてから渡してください。
+
+**アクセサ:** `Width/Height/Stride/Size/GetFormat/Data`、YUV プレーン、`Texture()`。フィールド: `FrameType type`。
 
 ```cpp
 struct FaceDetectionResult {
@@ -227,8 +233,7 @@ struct FaceDetectionResult {
 | `-3` | 認証 |
 | `-4` | 非対応 |
 | `-5` | I/O |
-| `-6` | スロットなし |
-| `-7` | 処理失敗 |
-| `-8` | メモリ不足 |
+| `-6` | 処理失敗 |
+| `-7` | メモリ不足 |
 
 `ProcessImage` は同一スレッドへ直列化してください。`Data()` のピクセルポインタは読み取り専用です。

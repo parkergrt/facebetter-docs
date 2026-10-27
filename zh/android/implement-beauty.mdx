@@ -116,7 +116,6 @@ BeautyEffectEngine.EngineConfig config = new BeautyEffectEngine.EngineConfig();
 config.appId = "your appId";
 config.appKey = "your appKey";
 // config.licenseToken = "/* 许可证 token、{token} JSON，或 .lic 全文 */";
-// config.externalContext = false;
 
 BeautyEffectEngine engine;
 try {
@@ -138,13 +137,14 @@ engine.setSmoothing(0.5f);
 engine.setSmoothingStyle(SmoothingStyle.NATURAL);
 engine.setWhitening(0.3f);
 engine.setWhiteningStyle(WhiteningStyle.COLD_WHITE);
-engine.setSharpening(0.2f);
 engine.setRosiness(0.15f);
+engine.setBrightness(0.1f);
+engine.setClarity(0.2f);
 engine.setBeautySkinOnly(true);
 ```
 
 <Tip>
-开启 `setBeautySkinOnly(true)` 后，磨皮 / 美白 / 锐化 / 红润只作用于检测到的皮肤，衣服和背景不受影响。
+开启 `setBeautySkinOnly(true)` 后，磨皮 / 美白 / 红润只作用于检测到的皮肤，衣服和背景不受影响。
 </Tip>
 
 风格枚举见 [参数枚举](/zh/intro/makeup)。
@@ -331,11 +331,11 @@ ImageFrame output = engine.processImage(input);
 Bitmap preview = output.toBitmap();
 ```
 
-相机传感器有旋转时，处理前先旋转 / 镜像：
+相机传感器有旋转时，处理前先旋转 / 镜像。这两个调用只改 CPU 像素，不会变换 OpenGL 纹理：
 
 ```java
 input.rotate(ImageFrame.Rotation.ROTATION_90);
-input.mirror("horizontal");
+input.mirror(ImageFrame.MirrorMode.HORIZONTAL);
 ```
 
 <Tip>
@@ -377,7 +377,7 @@ if (input == null) {
 }
 if (isFrontCamera) {
     input.rotate(ImageFrame.Rotation.ROTATION_270);
-    input.mirror("horizontal");
+    input.mirror(ImageFrame.MirrorMode.HORIZONTAL);
 } else {
     input.rotate(ImageFrame.Rotation.ROTATION_90);
 }
@@ -389,7 +389,7 @@ image.close();
 ## 外部纹理（OpenGL ES）
 
 <Warning>
-必须在 GL 线程上以 `externalContext = true` 创建引擎。输入、输出纹理须属于同一上下文。
+在 GL 上下文为当前上下文的线程上创建引擎并处理。输入和输出纹理必须属于该上下文。CPU 帧不需要调用方提供 GL 上下文。配置里没有上下文开关。
 </Warning>
 
 适合应用已用 OpenGL ES 渲染、希望避免 CPU 往返拷贝的场景。
@@ -398,7 +398,6 @@ image.close();
 BeautyEffectEngine.EngineConfig config = new BeautyEffectEngine.EngineConfig();
 config.appId = "your appId";
 config.appKey = "your appKey";
-config.externalContext = true;
 BeautyEffectEngine engine = new BeautyEffectEngine(context, config);
 engine.setSmoothing(0.5f);
 ```

@@ -21,9 +21,7 @@ FBBeautyEffectEngine
 
 | 항목 | 요구 사항 |
 | --- | --- |
-| 텍스처 경로 | `externalContext = YES`, **벤더 GL 콜백 스레드**에서 지연 `createEngineWithConfig:` |
 | 입력 텍스처 | `GL_TEXTURE_2D`(RGBA); `stride`는 보통 `width * 4` |
-| 픽셀 버퍼 경로 | `createWithNV12:` / `createWithBGRA:` 등; 보통 **`externalContext = NO`** |
 | 프레임 유형 | `FBFrameTypeVideo` |
 | 출력 | 출력에 `glDeleteTextures`를 호출하지 마세요. 엔진 strong 참조를 유지하고 세션이 끝나면 nil |
 | 샌드박스 | 온라인 인증은 **Outgoing Connections** 필요; 오프라인은 `licenseToken` / `.lic` |
@@ -63,7 +61,6 @@ static GLuint FBProcessTexture(FBBeautyEffectEngine *engine,
 FBEngineConfig *config = [[FBEngineConfig alloc] init];
 config.appId = @"your appId";
 config.appKey = @"your appKey";
-config.externalContext = YES;
 self.beautyEngine = [FBBeautyEffectEngine createEngineWithConfig:config];
 [self.beautyEngine setSmoothing:0.5f];
 ```
@@ -95,7 +92,6 @@ static FBImageFrame *FBFrameFromNV12PixelBuffer(CVPixelBufferRef pb) {
 }
 ```
 
-픽셀 버퍼 경로에는 `externalContext = NO`를 사용하세요. 자격 증명: [구독](/ko/intro/enable-service), [인증 및 라이선스](/ko/intro/license). Bundle ID가 없는 CLI 도구는 Dashboard에서 **프로세스 이름**을 바인딩하세요.
 
 ---
 
@@ -117,7 +113,6 @@ static FBImageFrame *FBFrameFromNV12PixelBuffer(CVPixelBufferRef pb) {
   FBEngineConfig *config = [[FBEngineConfig alloc] init];
   config.appId = @"your appId";
   config.appKey = @"your appKey";
-  config.externalContext = YES;
   self.beautyEngine = [FBBeautyEffectEngine createEngineWithConfig:config];
   [self.beautyEngine setSmoothing:0.5f];
 }
@@ -176,7 +171,6 @@ BeautyProcessDelegate *delegate = [[BeautyProcessDelegate alloc] init];
     FBEngineConfig *config = [[FBEngineConfig alloc] init];
     config.appId = @"your appId";
     config.appKey = @"your appKey";
-    config.externalContext = NO;
     self.beautyEngine = [FBBeautyEffectEngine createEngineWithConfig:config];
   }
 
@@ -227,7 +221,6 @@ final class FacebetterVideoProcessor: VideoProcessor {
       let config = FBEngineConfig()
       config.appId = "your appId"
       config.appKey = "your appKey"
-      config.externalContext = false
       beautyEngine = FBBeautyEffectEngine.createEngine(with: config)
       beautyEngine?.setSmoothing(0.5)
     }
@@ -251,7 +244,6 @@ try await room.localParticipant.publish(track: track)
 | 증상 | 확인 |
 | --- | --- |
 | 검은 화면 / 영상 없음 | 벤더 **GL 스레드**에서 엔진 생성; 샌드박스가 온라인 인증을 막지 않는지 |
-| 뷰티 없음 | `externalContext`가 경로와 일치하는지; 형식이 NV12/BGRA인지 |
 | 간헐적 크래시 | `onGLContextDestory`에서 엔진을 nil로 두었는지 |
 | 왜곡 | Width / height / rotation / `BytesPerRow` stride |
 

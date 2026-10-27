@@ -50,7 +50,6 @@ Start low on live video. Full enum meanings: [Parameter enums](/intro/makeup).
 
 ## One engine, one serial queue
 
-`createEngineWithConfig:` returns an **instance**, not a process-wide singleton. Keep one engine per session and call it from a **serial** queue (or the GL thread when `externalContext = YES`).
 
 ```objc
 @interface BeautyEngineManager : NSObject
@@ -108,7 +107,6 @@ Do not process frames on the main thread except for tiny stills. Do not share on
 
 When the app already owns a GL context:
 
-1. Set `config.externalContext = YES`.
 2. Create the engine **on that GL thread**.
 3. Wrap the texture with `createWithTexture:width:height:stride:`.
 4. Read the output with `[output texture]`.
@@ -147,7 +145,7 @@ Use `__weak` in `FBEngineCallbacks` blocks to avoid retain cycles.
 ## iOS capture
 
 - Camera preview is usually `kCVPixelFormatType_420YpCbCr8BiPlanarFullRange` (NV12) or BGRA. Create `FBImageFrame` with `createWithNV12:...` or `createWithBGRA:...` instead of converting to RGBA on the CPU.
-- Front camera: `setMirror:@"horizontal"` on the frame (or `mirror:` if you need the pixels flipped before the engine).
+- Front camera: `setMirror:FBMirrorModeHorizontal` on the frame (or `mirror:` if you need the pixels flipped before the engine).
 - Camera permission: `NSCameraUsageDescription` in `Info.plist`. Photo library: `NSPhotoLibraryUsageDescription` if you pick stills.
 
 ## Testing

@@ -11,7 +11,7 @@ Compartilha a mesma API C++ de the C++ API. Básico: [Implementar beleza](/pt-BR
 Third-party SDK (preprocess callback)
   I420 / YUV planes
        ↓
-BeautyEffectEngine (usually external_context = false)
+BeautyEffectEngine
   CreateWithI420 → ProcessImage
        ↓
   write back to vendor dst / in-place buffers
@@ -22,7 +22,7 @@ BeautyEffectEngine (usually external_context = false)
 | Item | Requisito |
 | --- | --- |
 | Mecanismo | `BeautyEffectEngine::Create`; o desktop precisa definir `resource_path` como o **arquivo** `resource.fbd` |
-| Contexto | Caminho de buffer: `external_context = false`. Defina `true` somente ao alimentar `CreateWithTexture` no thread GL do fornecedor |
+| Contexto | Crie o mecanismo e processe no thread cujo contexto GL é o atual. As texturas de entrada e saída devem pertencer a esse contexto. Quadros de CPU não precisam de um contexto GL do chamador. A config não tem um flag de contexto. |
 | Formato | Prefira **I420** no PC (corresponde a TRTC Buffer / Agora YUV420) |
 | Tipo de quadro | `FrameType::Video` |
 | Ciclo de vida | Depois de remover os callbacks, `engine.reset()`. Não é um singleton |
@@ -77,7 +77,6 @@ EngineConfig cfg;
 cfg.app_id = "your_app_id";
 cfg.app_key = "your_app_key";
 cfg.resource_path = "resource/resource.fbd";
-cfg.external_context = false;
 auto engine = BeautyEffectEngine::Create(cfg);
 if (!engine) {
   return;

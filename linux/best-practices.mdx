@@ -19,7 +19,9 @@ Resolve an absolute path at startup so cwd changes do not break `fopen`.
 
 ## One engine, serial `ProcessImage`
 
-`Create` returns a `shared_ptr`. The engine is **not** a singleton. Serialize `ProcessImage` (and mutating setters) on one thread. If `external_context = true`, that thread must have a current GL context.
+`Create` returns one engine for the session, not a process-wide singleton. `ImageFrame` and the engine are not thread-safe. Serialize `ProcessImage` and mutating setters on one thread.
+
+- Create the engine and call process on the thread whose GL context is current. Input and output textures must belong to that context. CPU frames do not need a caller GL context. There is no context flag on the config.
 
 ## `FrameType` on the frame
 
@@ -67,7 +69,7 @@ if (s.avg_process_time_ms > 33.0) {
 
 ## OpenGL
 
-Default `external_context = false` uses an SDK-managed OpenGL context. If GLFW / EGL already owns the context, set `true` and process on that thread. Need a working Mesa/NVIDIA/AMD driver; `glxinfo` should report 3.0+.
+- Create the engine and call process on the thread whose GL context is current. Input and output textures must belong to that context. CPU frames do not need a caller GL context. There is no context flag on the config.
 
 ## Pause when idle
 

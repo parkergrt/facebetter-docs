@@ -50,7 +50,6 @@ FBImageFrame *exportOut = [engine processImage:full];
 
 ## 1 つのエンジン、1 つのシリアルキュー
 
-`createEngineWithConfig:` が返すのは**インスタンス**であり、プロセス単位のシングルトンではありません。セッションごとにエンジンを 1 つ保持し、**シリアルキュー**上で呼び出します（`externalContext = YES` の場合は GL スレッド）。
 
 ```objc
 @interface BeautyEngineManager : NSObject
@@ -108,7 +107,6 @@ FBImageFrame *exportOut = [engine processImage:full];
 
 アプリがすでに GL コンテキストを持っている場合:
 
-1. `config.externalContext = YES` を設定します。
 2. **その GL スレッド**でエンジンを作成します。
 3. `createWithTexture:width:height:stride:` でテクスチャをラップします。
 4. 出力は `[output texture]` を使います。
@@ -147,7 +145,7 @@ NSLog(@"fps=%.1f avg=%.2fms session=%.1fs",
 ## iOS キャプチャ
 
 - プレビューは多くが NV12 または BGRA です。`createWithNV12:...` / `createWithBGRA:...` を使います。
-- フロントカメラ: フレームに `setMirror:@"horizontal"`（ピクセルを先に反転する必要がある場合は `mirror:`）。
+- フロントカメラ: フレームに `setMirror:FBMirrorModeHorizontal`（ピクセルを先に反転する必要がある場合は `mirror:`）。
 - カメラ権限: `Info.plist` の `NSCameraUsageDescription`。フォトライブラリ: `NSPhotoLibraryUsageDescription`。
 
 ## テスト

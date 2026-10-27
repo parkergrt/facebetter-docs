@@ -21,9 +21,7 @@ FBBeautyEffectEngine
 
 | 项 | 要求 |
 | --- | --- |
-| 纹理路径 | `externalContext = YES`，在**对方 GL 回调线程**惰性 `createEngineWithConfig:` |
 | 输入纹理 | `GL_TEXTURE_2D`（RGBA）；`stride` 一般为 `width * 4` |
-| 像素缓冲路径 | 可用 `createWithNV12:` / `createWithBGRA:` 等；此时通常 **`externalContext = NO`**，由 Facebetter 自管 GL |
 | 帧类型 | `FBFrameTypeVideo` |
 | 输出 | 输出纹理由 SDK 持有，不要 `glDeleteTextures`；引擎用 strong 引用，会话结束置 `nil` |
 | 生命周期 | 对方销毁 GL 上下文时先将引擎置 `nil`，再在新上下文重建 |
@@ -66,7 +64,6 @@ FBEngineConfig *config = [[FBEngineConfig alloc] init];
 config.appId = @"your appId";
 config.appKey = @"your appKey";
 // 或 config.licenseToken = @"...";
-config.externalContext = YES;
 self.beautyEngine = [FBBeautyEffectEngine createEngineWithConfig:config];
 [self.beautyEngine setSmoothing:0.5f];
 ```
@@ -100,7 +97,6 @@ static FBImageFrame *FBFrameFromNV12PixelBuffer(CVPixelBufferRef pb) {
 }
 ```
 
-像素缓冲路径下创建引擎时设 `externalContext = NO`。凭证：[订阅服务](/zh/intro/enable-service)、[授权与许可](/zh/intro/license)。
 
 ---
 
@@ -124,7 +120,6 @@ static FBImageFrame *FBFrameFromNV12PixelBuffer(CVPixelBufferRef pb) {
   FBEngineConfig *config = [[FBEngineConfig alloc] init];
   config.appId = @"your appId";
   config.appKey = @"your appKey";
-  config.externalContext = YES;
   self.beautyEngine = [FBBeautyEffectEngine createEngineWithConfig:config];
   [self.beautyEngine setSmoothing:0.5f];
 }
@@ -191,7 +186,6 @@ BeautyProcessDelegate *delegate = [[BeautyProcessDelegate alloc] init];
     FBEngineConfig *config = [[FBEngineConfig alloc] init];
     config.appId = @"your appId";
     config.appKey = @"your appKey";
-    config.externalContext = NO; // 像素缓冲路径
     self.beautyEngine = [FBBeautyEffectEngine createEngineWithConfig:config];
   }
 
@@ -245,7 +239,6 @@ final class FacebetterVideoProcessor: VideoProcessor {
       let config = FBEngineConfig()
       config.appId = "your appId"
       config.appKey = "your appKey"
-      config.externalContext = false
       beautyEngine = FBBeautyEffectEngine.createEngine(with: config)
       beautyEngine?.setSmoothing(0.5)
     }
@@ -272,7 +265,6 @@ try await room.localParticipant.publish(track: track)
 | 现象 | 排查 |
 | --- | --- |
 | 黑屏 / 无画面 | 纹理路径是否在对方 **GL 线程**创建引擎；像素路径是否锁/解锁 `CVPixelBuffer` |
-| 美颜不生效 | `externalContext` 是否与路径匹配（纹理 YES / 像素常 NO）；格式是否 NV12/BGRA/`GL_TEXTURE_2D` |
 | 偶发闪退 | `onGLContextDestory` 是否置 `nil`；是否误删输出纹理 |
 | 花屏 / 拉伸 | 宽高、旋转、镜像是否与对方帧一致；stride 是否用 `BytesPerRow` |
 

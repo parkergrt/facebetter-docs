@@ -76,7 +76,6 @@ description: "macOS Beauty Effect SDK 2.0 자주 묻는 질문"
 
 ### `processImage:`가 `nil`을 반환함
 
-잘못된 프레임, 초기화 실패, 또는 `externalContext = YES`인데 현재 GL 컨텍스트가 없는 경우입니다.
 
 ### 프레임 유형
 
@@ -103,7 +102,7 @@ FBImageFrame *out = [engine processImage:frame];
 
 1. `AVCaptureVideoDataOutput` → `CVPixelBuffer`.
 2. `createWithNV12:...` 또는 `createWithBGRA:...`.
-3. `type = FBFrameTypeVideo`, 선택적으로 `setMirror:@"horizontal"`.
+3. `type = FBFrameTypeVideo`, 선택적으로 `setMirror:FBMirrorModeHorizontal`.
 4. AppKit / OpenGL 뷰에서 `[output data]` 또는 `[output texture]`를 표시합니다.
 
 ## 성능

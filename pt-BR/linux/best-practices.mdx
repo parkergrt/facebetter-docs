@@ -19,7 +19,9 @@ Resolva um caminho absoluto na inicialização para que mudanças de cwd não qu
 
 ## Um mecanismo, `ProcessImage` serial
 
-`Create` retorna um `shared_ptr`. O mecanismo **não** é um singleton. Serialize `ProcessImage` (e setters que mutam) em um thread. Se `external_context = true`, esse thread precisa ter um contexto GL atual.
+`Create` devolve um mecanismo para a sessão, não um singleton de processo. `ImageFrame` e o mecanismo não são thread-safe. Serialize `ProcessImage` e os setters que mutam em um único thread.
+
+- Crie o mecanismo e processe no thread cujo contexto GL é o atual. As texturas de entrada e saída devem pertencer a esse contexto. Quadros de CPU não precisam de um contexto GL do chamador. A config não tem um flag de contexto.
 
 ## `FrameType` no quadro
 
@@ -67,7 +69,7 @@ if (s.avg_process_time_ms > 33.0) {
 
 ## OpenGL
 
-O padrão `external_context = false` usa um contexto OpenGL gerenciado pelo SDK. Se GLFW / EGL já for dono do contexto, defina `true` e processe nesse thread. É necessário um driver Mesa/NVIDIA/AMD funcionando; `glxinfo` deve reportar 3.0+.
+- Crie o mecanismo e processe no thread cujo contexto GL é o atual. As texturas de entrada e saída devem pertencer a esse contexto. Quadros de CPU não precisam de um contexto GL do chamador. A config não tem um flag de contexto.
 
 ## Pausar quando ocioso
 

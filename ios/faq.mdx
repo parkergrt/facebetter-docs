@@ -94,7 +94,6 @@ Chroma key is the **mask**; fill is still blur or image:
 
 - Engine is `nil` or init failed (`-2` / event `101`).
 - Invalid frame (zero size, unsupported format).
-- `externalContext = YES` but the current thread has no GL context.
 - Treat as process failure (`FBErrorCode_Process`).
 
 ### Frame type
@@ -124,7 +123,7 @@ FBImageFrame *out = [engine processImage:frame];
 
 1. Read `CVPixelBuffer` from `AVCaptureVideoDataOutput`.
 2. Build `FBImageFrame` with `createWithNV12:...` or `createWithBGRA:...`.
-3. Set `type = FBFrameTypeVideo`, optional `setMirror:@"horizontal"`.
+3. Set `type = FBFrameTypeVideo`, optional `setMirror:FBMirrorModeHorizontal`.
 4. `processImage:` then display `[output data]` or `[output texture]`.
 
 ## Performance and memory
@@ -156,5 +155,4 @@ Return codes: `0` success, `-1` invalid argument, `-2` not initialized. Full lis
 ## Threading
 
 - Default engine: serial queue for all `processImage:` and setters that touch GL resources.
-- `externalContext = YES`: create + process on the GL thread.
 - Update UI on the main queue only.

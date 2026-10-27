@@ -74,7 +74,6 @@ public static void setLogConfig(LogConfig config);
 | `appId` | `String` | — | ダッシュボードの App ID |
 | `appKey` | `String` | — | ダッシュボードの App Key |
 | `licenseToken` | `String` | — | ライセンストークン文字列、`{token}` JSON、またはオフライン `.lic` の内容 |
-| `externalContext` | `boolean` | `false` | `true` = 呼び出し側の OpenGL ES コンテキストを使用。`false` = SDK 所有のコンテキスト |
 
 **認証の優先順位:** `licenseToken` が空でない場合、SDK はそのトークンをローカルで検証します。それ以外は `appId` + `appKey` が必須で、SDK は `/facebetter/v2/auth` を呼び出します。詳細: [認証とライセンス](/ja/intro/license)。
 
@@ -83,7 +82,6 @@ public static class EngineConfig {
   public String appId;
   public String appKey;
   public String licenseToken;
-  public boolean externalContext = false;
 
   public EngineConfig();
   public EngineConfig(String appId, String appKey);
@@ -135,8 +133,13 @@ public int setSmoothing(float value);
 public int setSmoothingStyle(SmoothingStyle style);
 public int setWhitening(float value);
 public int setWhiteningStyle(WhiteningStyle style);
-public int setSharpening(float value);
 public int setRosiness(float value);
+public int setBrightness(float value);
+public int setContrast(float value);
+public int setSaturation(float value);
+public int setColorTemperature(float value);
+public int setColorTint(float value);
+public int setClarity(float value);
 public int setBeautySkinOnly(boolean enabled);
 ```
 
@@ -146,8 +149,13 @@ public int setBeautySkinOnly(boolean enabled);
 | `setSmoothingStyle` | スムージングの見た目（`NATURAL`、`TEXTURE`、`SMOOTH`） |
 | `setWhitening` | 美白強度 |
 | `setWhiteningStyle` | 美白 LUT（`COLD_WHITE`、`PINK_WHITE`、`WARM_WHITE`、`WHEAT`、`TAN`） |
-| `setSharpening` | シャープニング強度 |
 | `setRosiness` | 血色強度 |
+| `setBrightness` | 全画面の明るさ。`[-1, 1]`、`0` はニュートラル |
+| `setContrast` | 全画面のコントラスト。`[-1, 1]`、`0` はニュートラル |
+| `setSaturation` | 全画面の彩度。`[-1, 1]`、`0` はニュートラル |
+| `setColorTemperature` | 全画面の色温度。`[-1, 1]`、`0` はニュートラル |
+| `setColorTint` | 全画面のティント。`[-1, 1]`、`0` はニュートラル |
+| `setClarity` | 全画面のクリア。`[0, 1]`、`0` はオフ |
 | `setBeautySkinOnly` | `true` = 検出された肌にのみ美肌を適用。`false` = フレーム全体 |
 
 スタイル列挙: [パラメータ列挙](/ja/intro/makeup)。
@@ -224,6 +232,7 @@ public int setEyelashColor(EyelashColor color);
 
 public int setPupil(float value);
 public int setPupilColor(PupilColor color);
+public int setTeethWhiten(float value);
 ```
 
 プリセット名は `BeautyParams.*` にあります。完全な表: [パラメータ列挙](/ja/intro/makeup)。
@@ -316,9 +325,12 @@ public class EngineStats {
   public double fps;
   public double avgProcessTimeMs;
   public double sessionTimeS;
+  public int gpuLiveTextures;
+  public int gpuLiveMeshes;
 
   public EngineStats();
-  public EngineStats(double fps, double avgProcessTimeMs, double sessionTimeS);
+  public EngineStats(double fps, double avgProcessTimeMs, double sessionTimeS,
+      int gpuLiveTextures, int gpuLiveMeshes);
 }
 ```
 
@@ -392,9 +404,8 @@ public final class ErrorCode {
   public static final int LICENSE = -3;
   public static final int UNSUPPORTED = -4;
   public static final int IO = -5;
-  public static final int NO_SLOT = -6;
-  public static final int PROCESS = -7;
-  public static final int OUT_OF_MEMORY = -8;
+  public static final int PROCESS = -6;
+  public static final int OUT_OF_MEMORY = -7;
 }
 ```
 
@@ -406,9 +417,8 @@ public final class ErrorCode {
 | `-3` | `LICENSE` | ライセンス / 認証失敗 |
 | `-4` | `UNSUPPORTED` | 機能またはフォーマット非対応 |
 | `-5` | `IO` | ファイルまたはリソース I/O 失敗 |
-| `-6` | `NO_SLOT` | リソーススロット枯渇 |
-| `-7` | `PROCESS` | フレーム処理失敗 |
-| `-8` | `OUT_OF_MEMORY` | 割り当て失敗 |
+| `-6` | `PROCESS` | フレーム処理失敗 |
+| `-7` | `OUT_OF_MEMORY` | 割り当て失敗 |
 
 <Note>
 **`-1` は引数不正です。`-2` は未初期化です。**
@@ -437,6 +447,9 @@ public static ImageFrame createWithAndroid420(int width, int height,
     ByteBuffer yBuffer, int strideY, ByteBuffer uBuffer, int strideU,
     ByteBuffer vBuffer, int strideV, int pixelStrideUV);
 public static ImageFrame createWithTexture(int texture, int width, int height, int stride);
+public static ImageFrame createWithTexture(int texture, int width, int height, int stride, boolean externalOes);
+public static ImageFrame createWithTexture(int texture, int width, int height, int stride, boolean externalOes, float[] texMatrix);
+public void setGlRenderTarget(int texture);
 public static ImageFrame createWithBitmap(Bitmap bitmap);
 ```
 
@@ -445,6 +458,7 @@ public static ImageFrame createWithBitmap(Bitmap bitmap);
 | `createWithFile` | PNG / JPG パス |
 | `createWithAndroid420` | Camera2 `YUV_420_888` |
 | `createWithTexture` | **カレント** GL コンテキスト内の `GL_TEXTURE_2D`。`stride` は通常 `width * 4` |
+| `setGlRenderTarget` | 現在のコンテキスト上の任意 `GL_TEXTURE_2D` レンダーターゲット。借用であり、所有しない |
 | `createWithBitmap` | `ARGB_8888` ピクセルを RGBA フレームへコピー |
 
 失敗時は `null` を返します（無効な bitmap、ネイティブ割り当て失敗など）。パックド / プレーナーファクトリでは `ByteBuffer.allocateDirect` を推奨します。
@@ -455,8 +469,8 @@ public static ImageFrame createWithBitmap(Bitmap bitmap);
 public FrameType type = FrameType.VIDEO;
 
 public int rotate(Rotation rotation);
-public int mirror(String mode);
-public void setMirror(String mode);
+public int mirror(MirrorMode mode);
+public void setMirror(MirrorMode mode);
 public ImageFrame convert(Format format);
 public int toFile(String path, int quality);
 public int toFile(String path);
@@ -468,11 +482,13 @@ public void release();
 | メソッド | 説明 |
 | --- | --- |
 | `rotate` | その場で回転。成功時は `0` |
-| `mirror` | 即時ミラー。`mode`: `"horizontal"`、`"vertical"`、`"both"`（大文字小文字無視） |
-| `setMirror` | **`processImage` 内部**で適用されるフラグ（余分な変換を避ける）。`""` / `null` でクリア |
+| `mirror` | 即時ミラー。`MirrorMode.HORIZONTAL` / `VERTICAL` / `BOTH`。`NONE` はピクセルを変えません |
+| `setMirror` | **`processImage` 内部**で適用されるフラグ（余分な変換を避ける）。`MirrorMode.NONE` でクリア |
 | `convert` | `format` の**新しい**フレームを返す。呼び出し側が `release()` する |
 | `toFile` | PNG/JPG を書き出す。品質 `1`–`100`。オーバーロードのデフォルトは `90` |
 | `toBitmap` | `ARGB_8888` の `Bitmap`（必要なら先に RGBA へ変換） |
+
+`rotate`、`mirror`、`setMirror` が変えるのは CPU ピクセルフレームだけです（RGBA、RGB、YUV、画像ファイル）。OpenGL テクスチャは変換しません。テクスチャは正立にしてから渡してください。
 
 ### アクセサ
 

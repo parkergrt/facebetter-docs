@@ -50,7 +50,6 @@ Empieza bajo en vídeo en directo. Significados de las enumeraciones: [Enumeraci
 
 ## Un motor, una cola serial
 
-`createEngineWithConfig:` devuelve una **instancia**, no un singleton de proceso. Mantén un motor por sesión y llámalo desde una cola **serial** (o el hilo GL cuando `externalContext = YES`).
 
 ```objc
 @interface BeautyEngineManager : NSObject
@@ -108,7 +107,6 @@ No proceses fotogramas en el hilo principal salvo estáticos muy pequeños. No c
 
 Cuando la app ya posee un contexto GL:
 
-1. Configura `config.externalContext = YES`.
 2. Crea el motor **en ese hilo GL**.
 3. Envuelve la textura con `createWithTexture:width:height:stride:`.
 4. Lee la salida con `[output texture]`.
@@ -147,7 +145,7 @@ Usa `__weak` en los bloques de `FBEngineCallbacks` para evitar ciclos de retenci
 ## Captura en iOS
 
 - La vista previa de cámara suele ser `kCVPixelFormatType_420YpCbCr8BiPlanarFullRange` (NV12) o BGRA. Crea `FBImageFrame` con `createWithNV12:...` o `createWithBGRA:...` en lugar de convertir a RGBA en CPU.
-- Cámara frontal: `setMirror:@"horizontal"` en el fotograma (o `mirror:` si necesitas voltear los píxeles antes del motor).
+- Cámara frontal: `setMirror:FBMirrorModeHorizontal` en el fotograma (o `mirror:` si necesitas voltear los píxeles antes del motor).
 - Permiso de cámara: `NSCameraUsageDescription` en `Info.plist`. Fototeca: `NSPhotoLibraryUsageDescription` si eliges estáticos.
 
 ## Pruebas

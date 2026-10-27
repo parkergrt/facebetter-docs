@@ -74,7 +74,6 @@ public static void setLogConfig(LogConfig config);
 | `appId` | `String` | — | 控制台 App ID |
 | `appKey` | `String` | — | 控制台 App Key |
 | `licenseToken` | `String` | — | 许可证 token、`{token}` JSON，或离线 `.lic` 全文 |
-| `externalContext` | `boolean` | `false` | `true` = 使用调用方 OpenGL ES 上下文；`false` = SDK 自建上下文 |
 
 **鉴权优先级：** `licenseToken` 非空时，SDK 在本地校验该 token。否则必须提供 `appId` + `appKey`，SDK 请求 `/facebetter/v2/auth`。详见 [授权与许可](/zh/intro/license)。
 
@@ -83,7 +82,6 @@ public static class EngineConfig {
   public String appId;
   public String appKey;
   public String licenseToken;
-  public boolean externalContext = false;
 
   public EngineConfig();
   public EngineConfig(String appId, String appKey);
@@ -135,8 +133,13 @@ public int setSmoothing(float value);
 public int setSmoothingStyle(SmoothingStyle style);
 public int setWhitening(float value);
 public int setWhiteningStyle(WhiteningStyle style);
-public int setSharpening(float value);
 public int setRosiness(float value);
+public int setBrightness(float value);
+public int setContrast(float value);
+public int setSaturation(float value);
+public int setColorTemperature(float value);
+public int setColorTint(float value);
+public int setClarity(float value);
 public int setBeautySkinOnly(boolean enabled);
 ```
 
@@ -146,8 +149,13 @@ public int setBeautySkinOnly(boolean enabled);
 | `setSmoothingStyle` | 磨皮风格（`NATURAL`、`TEXTURE`、`SMOOTH`） |
 | `setWhitening` | 美白强度 |
 | `setWhiteningStyle` | 美白 LUT（`COLD_WHITE`、`PINK_WHITE`、`WARM_WHITE`、`WHEAT`、`TAN`） |
-| `setSharpening` | 锐化强度 |
 | `setRosiness` | 红润强度 |
+| `setBrightness` | 全画面亮度，`[-1, 1]`，`0` 为中性 |
+| `setContrast` | 全画面对比度，`[-1, 1]`，`0` 为中性 |
+| `setSaturation` | 全画面饱和度，`[-1, 1]`，`0` 为中性 |
+| `setColorTemperature` | 全画面色温，`[-1, 1]`，`0` 为中性 |
+| `setColorTint` | 全画面色调，`[-1, 1]`，`0` 为中性 |
+| `setClarity` | 全画面清晰度，`[0, 1]`，`0` 关闭 |
 | `setBeautySkinOnly` | `true` = 仅在检测到的皮肤区域生效；`false` = 整帧 |
 
 风格枚举见 [参数枚举](/zh/intro/makeup)。
@@ -224,6 +232,7 @@ public int setEyelashColor(EyelashColor color);
 
 public int setPupil(float value);
 public int setPupilColor(PupilColor color);
+public int setTeethWhiten(float value);
 ```
 
 预设名在 `BeautyParams.*`。完整表格见 [参数枚举](/zh/intro/makeup)。
@@ -316,9 +325,12 @@ public class EngineStats {
   public double fps;
   public double avgProcessTimeMs;
   public double sessionTimeS;
+  public int gpuLiveTextures;
+  public int gpuLiveMeshes;
 
   public EngineStats();
-  public EngineStats(double fps, double avgProcessTimeMs, double sessionTimeS);
+  public EngineStats(double fps, double avgProcessTimeMs, double sessionTimeS,
+      int gpuLiveTextures, int gpuLiveMeshes);
 }
 ```
 
@@ -392,9 +404,8 @@ public final class ErrorCode {
   public static final int LICENSE = -3;
   public static final int UNSUPPORTED = -4;
   public static final int IO = -5;
-  public static final int NO_SLOT = -6;
-  public static final int PROCESS = -7;
-  public static final int OUT_OF_MEMORY = -8;
+  public static final int PROCESS = -6;
+  public static final int OUT_OF_MEMORY = -7;
 }
 ```
 
@@ -406,9 +417,8 @@ public final class ErrorCode {
 | `-3` | `LICENSE` | 授权 / 鉴权失败 |
 | `-4` | `UNSUPPORTED` | 功能或格式不支持 |
 | `-5` | `IO` | 文件或资源读写失败 |
-| `-6` | `NO_SLOT` | 资源槽已满 |
-| `-7` | `PROCESS` | 帧处理失败 |
-| `-8` | `OUT_OF_MEMORY` | 内存分配失败 |
+| `-6` | `PROCESS` | 帧处理失败 |
+| `-7` | `OUT_OF_MEMORY` | 内存分配失败 |
 
 <Note>
 **`-1` 表示参数无效。`-2` 表示引擎未初始化。**
@@ -437,6 +447,9 @@ public static ImageFrame createWithAndroid420(int width, int height,
     ByteBuffer yBuffer, int strideY, ByteBuffer uBuffer, int strideU,
     ByteBuffer vBuffer, int strideV, int pixelStrideUV);
 public static ImageFrame createWithTexture(int texture, int width, int height, int stride);
+public static ImageFrame createWithTexture(int texture, int width, int height, int stride, boolean externalOes);
+public static ImageFrame createWithTexture(int texture, int width, int height, int stride, boolean externalOes, float[] texMatrix);
+public void setGlRenderTarget(int texture);
 public static ImageFrame createWithBitmap(Bitmap bitmap);
 ```
 
@@ -445,6 +458,7 @@ public static ImageFrame createWithBitmap(Bitmap bitmap);
 | `createWithFile` | PNG / JPG 路径 |
 | `createWithAndroid420` | Camera2 `YUV_420_888` |
 | `createWithTexture` | 当前 GL 上下文中的 `GL_TEXTURE_2D`；`stride` 通常为 `width * 4` |
+| `setGlRenderTarget` | 当前上下文上的可选 `GL_TEXTURE_2D` 渲染目标。借用，不持有 |
 | `createWithBitmap` | 将 `ARGB_8888` 像素拷入 RGBA 帧 |
 
 失败返回 `null`（无效 Bitmap、原生分配失败等）。打包 / 平面格式建议使用 `ByteBuffer.allocateDirect`。
@@ -455,8 +469,8 @@ public static ImageFrame createWithBitmap(Bitmap bitmap);
 public FrameType type = FrameType.VIDEO;
 
 public int rotate(Rotation rotation);
-public int mirror(String mode);
-public void setMirror(String mode);
+public int mirror(MirrorMode mode);
+public void setMirror(MirrorMode mode);
 public ImageFrame convert(Format format);
 public int toFile(String path, int quality);
 public int toFile(String path);
@@ -468,11 +482,13 @@ public void release();
 | 方法 | 说明 |
 | --- | --- |
 | `rotate` | 原地旋转，成功返回 `0` |
-| `mirror` | 立即镜像。`mode`：`"horizontal"`、`"vertical"`、`"both"`（忽略大小写） |
-| `setMirror` | 在 **`processImage` 内部** 应用镜像（避免额外格式转换）。`""` / `null` 清除 |
+| `mirror` | 立即镜像。`MirrorMode.HORIZONTAL` / `VERTICAL` / `BOTH`。`NONE` 不改像素 |
+| `setMirror` | 在 **`processImage` 内部** 应用镜像（避免额外格式转换）。`MirrorMode.NONE` 清除 |
 | `convert` | 返回 **新** 帧；调用方必须 `release()` |
 | `toFile` | 写出 PNG/JPG。质量 `1`–`100`；重载默认 `90` |
 | `toBitmap` | `ARGB_8888` `Bitmap`（必要时先转 RGBA） |
+
+`rotate`、`mirror`、`setMirror` 只改 CPU 像素帧（RGBA、RGB、YUV 和图片文件）。它们不会变换 OpenGL 纹理。纹理请先转正再传入。
 
 ### 访问器
 

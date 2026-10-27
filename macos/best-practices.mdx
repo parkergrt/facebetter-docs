@@ -50,7 +50,6 @@ Start low on live video. Full enum meanings: [Parameter enums](/intro/makeup).
 
 ## One engine, one serial queue
 
-`createEngineWithConfig:` returns an **instance**, not a process-wide singleton. Keep one engine per session and call it from a **serial** queue (or the GL thread when `externalContext = YES`).
 
 ```objc
 @interface BeautyEngineManager : NSObject
@@ -108,7 +107,6 @@ Do not process frames on the main thread except for tiny stills. Do not share on
 
 When the AppKit view already owns a **desktop OpenGL 3.2 Core** context (`NSOpenGLContext` / CGL):
 
-1. Set `config.externalContext = YES`.
 2. Create the engine **on that GL thread** (reuse the caller’s current context; do not create a second one).
 3. Wrap a `GL_TEXTURE_2D` with `createWithTexture:width:height:stride:`.
 4. Read the output with `[output texture]`.
@@ -145,7 +143,7 @@ Use `__weak` in `FBEngineCallbacks` blocks.
 ## macOS capture and display
 
 - Build frames with `createWithNV12:...`, `createWithBGRA:...`, or `createWithNSImage:`.
-- Front camera / user-facing preview: `setMirror:@"horizontal"`.
+- Front camera / user-facing preview: `setMirror:FBMirrorModeHorizontal`.
 - Retina: process in pixel size (`backingScaleFactor`), not point size.
 - Camera: `NSCameraUsageDescription`. Sandboxed apps need **Outgoing Connections** for online auth.
 - User-picked `.fbd` / background images: security-scoped URLs.

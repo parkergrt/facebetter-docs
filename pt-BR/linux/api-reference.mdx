@@ -12,8 +12,7 @@ SDK **2.0.0**. Namespace `facebetter`. A mesma API C++ pública de [Windows](/pt
 - Envie `libfacebetter.so`. Defina `LD_LIBRARY_PATH`, rpath ou `ldconfig`.
 - Compile o SDK com `./scripts/build_linux.sh` (saída `build/linux/release`) ou CMake.
 - `resource_path` precisa ser o **arquivo `resource.fbd`**.
-- `SetRenderView` não está disponível.
-- `external_context = true` usa o contexto GL atual do thread chamador (GLFW / EGL / OSMesa).
+- Crie o mecanismo e processe no thread cujo contexto GL é o atual. As texturas de entrada e saída devem pertencer a esse contexto. Quadros de CPU não precisam de um contexto GL do chamador. A config não tem um flag de contexto.
 
 ```cmake
 target_include_directories(app PRIVATE /path/to/sdk/include)
@@ -50,7 +49,6 @@ Chame `SetLogConfig` **antes** de `Create`.
 | `app_id` / `app_key` | Autenticação online v2 nativa |
 | `resource_path` | Caminho para `resource.fbd` (arquivo, não diretório) |
 | `license_token` | token / JSON `{token}` / `.lic` — não vazio tem prioridade |
-| `external_context` | `false`: OpenGL gerenciado pelo SDK; `true`: contexto do chamador |
 
 ```cpp
 struct EngineConfig {
@@ -58,7 +56,6 @@ struct EngineConfig {
   std::string app_key;
   std::string resource_path;
   std::string license_token;
-  bool external_context = false;
 };
 
 static std::shared_ptr<BeautyEffectEngine> BeautyEffectEngine::Create(
@@ -74,8 +71,13 @@ int SetSmoothing(float intensity);          // [0, 1]
 int SetSmoothingStyle(SmoothingStyle style);
 int SetWhitening(float intensity);
 int SetWhiteningStyle(WhiteningStyle style);
-int SetSharpening(float intensity);
 int SetRosiness(float intensity);
+int SetBrightness(float intensity);       // [-1, 1], 0 neutral
+int SetContrast(float intensity);
+int SetSaturation(float intensity);
+int SetColorTemperature(float intensity);
+int SetColorTint(float intensity);
+int SetClarity(float intensity);          // [0, 1]
 int SetBeautySkinOnly(bool enabled);
 ```
 
@@ -167,6 +169,8 @@ struct EngineStats {
   double fps = 0.0;
   double avg_process_time_ms = 0.0;
   double session_time_s = 0.0;
+  size_t gpu_live_textures = 0;
+  size_t gpu_live_meshes = 0;
 };
 ```
 
@@ -200,9 +204,11 @@ enum class FrameType { Image = 0, Video = 1 };
 
 **Factories:** `CreateWithFile`, `Create`, `CreateWithRGBA/BGRA/RGB/BGR`, `CreateWithI420/NV12/NV21`, `CreateWithTexture`.
 
-**Ops:** `Rotate`, `Mirror("horizontal"|"vertical"|"both")`, `SetMirror`, `Convert`, `ToFile`.
+**Ops:** `Rotate`, `Mirror(MirrorMode::Horizontal|Vertical|Both)`, `SetMirror`, `Convert`, `ToFile`.
 
-**Acessores:** `Width/Height/Stride/Size/GetFormat/Data`, planos YUV, `Texture()`, `Buffer()`. Campo: `FrameType type`.
+`Rotate`, `Mirror` e `SetMirror` alteram apenas quadros de pixels na CPU (RGBA, RGB, YUV e arquivos de imagem). Não transformam uma textura OpenGL. Entregue a textura já na orientação correta.
+
+**Acessores:** `Width/Height/Stride/Size/GetFormat/Data`, planos YUV, `Texture()`. Campo: `FrameType type`.
 
 ```cpp
 struct FaceDetectionResult {
@@ -227,8 +233,7 @@ struct FaceDetectionResult {
 | `-3` | Licença |
 | `-4` | Não suportado |
 | `-5` | I/O |
-| `-6` | Sem slot |
-| `-7` | Processamento |
-| `-8` | Sem memória |
+| `-6` | Processamento |
+| `-7` | Sem memória |
 
 Serialize `ProcessImage` em um thread. Os ponteiros de `Data()` dos pixels são somente leitura.

@@ -11,7 +11,6 @@ Reglas completas de textura: [Implementar belleza · Textura externa](/es/androi
 Third-party SDK (GL thread)
   input textureId
        ↓
-BeautyEffectEngine (externalContext = true)
   ImageFrame.createWithTexture → processImage
        ↓
   output textureId → write back to vendor frame / callback
@@ -21,13 +20,12 @@ BeautyEffectEngine (externalContext = true)
 
 | Elemento | Requisito |
 | --- | --- |
-| Motor | `externalContext = true`, creación diferida en el **hilo de callback GL del vendor** |
 | Entrada | `GL_TEXTURE_2D` (RGBA); `stride` suele ser `width * 4` |
 | Tipo de fotograma | `ImageFrame.FrameType.VIDEO` |
 | Salida | El SDK posee la textura de salida: no hagas `glDeleteTextures`. Siempre `ImageFrame.release()` |
 | Ciclo de vida | Cuando el vendor destruye el contexto GL, `engine.release()` y recréalo en el nuevo contexto |
 
-Facebetter **no** acepta `GL_TEXTURE_EXTERNAL_OES` para `createWithTexture`. Si el vendor usa OES por defecto, cambia a **Texture2D / RGB** según su documentación, o haz blit a `GL_TEXTURE_2D` primero.
+`createWithTexture` acepta `GL_TEXTURE_2D`, o `GL_TEXTURE_EXTERNAL_OES` si `externalOes` es true. Para OES, pasa los 16 float de `SurfaceTexture.getTransformMatrix`. También puedes hacer blit a `GL_TEXTURE_2D`.
 
 ### Función auxiliar compartida
 
@@ -67,7 +65,6 @@ BeautyEffectEngine.EngineConfig config = new BeautyEffectEngine.EngineConfig();
 config.appId = "your appId";
 config.appKey = "your appKey";
 // or config.licenseToken = "...";
-config.externalContext = true;
 BeautyEffectEngine engine = new BeautyEffectEngine(context, config);
 engine.setSmoothing(0.5f);
 ```
@@ -258,7 +255,6 @@ También puedes implementar un `VideoCapturer` personalizado, ejecutar `processT
 | Síntoma | Comprueba |
 | --- | --- |
 | Negro / sin vídeo | Motor creado y `processImage` en el **hilo GL** del vendor; no descartes por error fotogramas fallidos |
-| Sin belleza | `externalContext == true`; la entrada es `GL_TEXTURE_2D` |
 | Crash intermitente | `release()` al destruir GL / detener el capturador; nunca `glDeleteTextures` en la salida |
 | Distorsión | Ancho / alto / rotación / espejo coinciden con el fotograma del vendor; OES no convertido a 2D |
 

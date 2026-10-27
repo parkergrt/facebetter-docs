@@ -80,7 +80,6 @@ FBEngineConfig *engineConfig = [[FBEngineConfig alloc] init];
 engineConfig.appId = @"your appId";
 engineConfig.appKey = @"your appKey";
 // engineConfig.licenseToken = @"your license token";
-engineConfig.externalContext = NO;  // YES only when you own the GL context
 
 self.beautyEffectEngine = [FBBeautyEffectEngine createEngineWithConfig:engineConfig];
 if (self.beautyEffectEngine == nil) {
@@ -100,8 +99,9 @@ Intensity is typically `[0.0, 1.0]`. Style enums: [Parameter enums](/intro/makeu
 [self.beautyEffectEngine setSmoothingStyle:FBSmoothingStyle_Natural];
 [self.beautyEffectEngine setWhitening:0.3f];
 [self.beautyEffectEngine setWhiteningStyle:FBWhiteningStyle_ColdWhite];
-[self.beautyEffectEngine setSharpening:0.2f];
 [self.beautyEffectEngine setRosiness:0.15f];
+[self.beautyEffectEngine setBrightness:0.1f];
+[self.beautyEffectEngine setClarity:0.2f];
 ```
 
 ### Skin-only
@@ -262,11 +262,11 @@ FBImageFrame *output = [self.beautyEffectEngine processImage:input];
 `FBFrameTypeVideo` is for live streams; `FBFrameTypeImage` is for stills.
 </Tip>
 
-Rotate / mirror / convert / save:
+Rotate / mirror / convert / save. `rotate:` and `setMirror:` change CPU pixels only. They do not transform an OpenGL texture, a CVPixelBuffer, or a Metal texture:
 
 ```objc
 [input rotate:FBImageRotation90];
-[input setMirror:@"horizontal"];  // applied during processImage:
+[input setMirror:FBMirrorModeHorizontal];  // applied during processImage:
 FBImageFrame *rgba = [output convert:FBImageFormatRGBA];
 const uint8_t *bytes = [rgba data];
 [output toFile:@"/path/out.jpg" quality:90];
@@ -277,14 +277,13 @@ YUV planes: `dataY`, `dataU`, `dataV`, `dataUV` and `strideY` / `strideU` / `str
 ## External texture
 
 <Warning>
-Create the engine on the OpenGL ES thread and set `externalContext = YES`. Input and output textures must share that context.
+Create the engine and call process on the thread whose GL context is current. Input and output textures must belong to that context. CPU frames do not need a caller GL context. There is no context flag on the config.
 </Warning>
 
 ```objc
 FBEngineConfig *config = [[FBEngineConfig alloc] init];
 config.appId = @"your appId";
 config.appKey = @"your appKey";
-config.externalContext = YES;
 self.engine = [FBBeautyEffectEngine createEngineWithConfig:config];
 
 FBImageFrame *inputFrame = [FBImageFrame createWithTexture:textureId

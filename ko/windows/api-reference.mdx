@@ -52,7 +52,6 @@ struct LogConfig {
 | `app_key` | 대시보드 앱 키 |
 | `resource_path` | **`resource.fbd` 파일 경로**(데스크톱에서 필수) |
 | `license_token` | 라이선스 토큰 문자열, `{token}` JSON, 또는 오프라인 `.lic` 내용 |
-| `external_context` | `false`: SDK가 OpenGL 컨텍스트 관리. `true`: 호출 측 현재 컨텍스트 |
 
 **인증 우선순위:** `license_token`이 비어 있지 않으면 해당 토큰을 로컬에서 검증하고 `app_id` + `app_key` 네트워크 인증을 건너뜁니다. 그렇지 않으면 `app_id` + `app_key`로 `/facebetter/v2/auth`를 사용합니다.
 
@@ -62,7 +61,6 @@ struct EngineConfig {
   std::string app_key;
   std::string resource_path;
   std::string license_token;
-  bool external_context = false;
 };
 ```
 
@@ -105,8 +103,13 @@ virtual int SetSmoothing(float intensity) = 0;
 virtual int SetSmoothingStyle(beauty_params::SmoothingStyle style) = 0;
 virtual int SetWhitening(float intensity) = 0;
 virtual int SetWhiteningStyle(beauty_params::WhiteningStyle style) = 0;
-virtual int SetSharpening(float intensity) = 0;
 virtual int SetRosiness(float intensity) = 0;
+virtual int SetBrightness(float intensity) = 0;
+virtual int SetContrast(float intensity) = 0;
+virtual int SetSaturation(float intensity) = 0;
+virtual int SetColorTemperature(float intensity) = 0;
+virtual int SetColorTint(float intensity) = 0;
+virtual int SetClarity(float intensity) = 0;
 virtual int SetBeautySkinOnly(bool enabled) = 0;
 ```
 
@@ -250,6 +253,8 @@ struct EngineStats {
   double fps = 0.0;
   double avg_process_time_ms = 0.0;
   double session_time_s = 0.0;
+  size_t gpu_live_textures = 0;
+  size_t gpu_live_meshes = 0;
 };
 ```
 
@@ -346,7 +351,9 @@ static std::shared_ptr<ImageFrame> CreateWithNV21(
     const uint8_t* dataY, int strideY,
     const uint8_t* dataUV, int strideUV);
 static std::shared_ptr<ImageFrame> CreateWithTexture(
-    uint32_t texture, int width, int height, int stride);
+    uint32_t texture, int width, int height, int stride,
+    bool external_oes = false, const float* tex_matrix_4x4 = nullptr);
+void SetGlRenderTarget(uint32_t texture);
 ```
 
 다중 평면 형식에는 `Create`보다 전용 YUV 팩토리를 권장합니다.
@@ -355,13 +362,15 @@ static std::shared_ptr<ImageFrame> CreateWithTexture(
 
 ```cpp
 int Rotate(Rotation rotation);
-int Mirror(const std::string& mode);       // "horizontal" | "vertical" | "both"
-void SetMirror(const std::string& mode);   // applied inside ProcessImage; "" clears
+int Mirror(MirrorMode mode);                   // Horizontal | Vertical | Both
+void SetMirror(MirrorMode mode);               // inside ProcessImage; None clears
 std::shared_ptr<ImageFrame> Convert(Format format) const;
 int ToFile(const std::string& path, int quality = 90) const;
 ```
 
-**접근자:** `Width()`, `Height()`, `Stride()`, `Size()`, `GetFormat()`, `Data()`, `DataY/U/V()`, `StrideY/U/V()`, `DataUV()`, `StrideUV()`, `Texture()`, `Buffer()`, `MirrorHorizontal()`, `MirrorVertical()`.
+`Rotate`, `Mirror`, `SetMirror`는 CPU 픽셀 프레임만 바꿉니다(RGBA, RGB, YUV, 이미지 파일). OpenGL 텍스처와 D3D11 텍스처는 변환하지 않습니다. 이런 입력은 먼저 똑바로 만든 뒤 프레임을 만드세요.
+
+**접근자:** `Width()`, `Height()`, `Stride()`, `Size()`, `GetFormat()`, `Data()`, `DataY/U/V()`, `StrideY/U/V()`, `DataUV()`, `StrideUV()`, `Texture()`.
 
 공개 필드: `FrameType type = FrameType::Video`.
 
@@ -399,16 +408,14 @@ struct FaceDetectionResult {
 | `-3` | 라이선스 |
 | `-4` | 미지원 |
 | `-5` | I/O |
-| `-6` | 슬롯 없음 |
-| `-7` | 처리 |
-| `-8` | 메모리 부족 |
+| `-6` | 처리 |
+| `-7` | 메모리 부족 |
 
 ---
 
 ## 참고
 
-- **스레드 안전:** `ProcessImage`와 상태를 바꾸는 호출을 한 스레드에서 직렬화하세요(`external_context`이면 GL 스레드).
+- GL 컨텍스트가 현재인 스레드에서 엔진을 만들고 처리하세요. 입력과 출력 텍스처는 그 컨텍스트에 속해야 합니다. CPU 프레임에는 호출 측 GL 컨텍스트가 필요 없습니다. 설정에 컨텍스트 플래그는 없습니다.
 - **수명:** 팩토리 메서드는 `std::shared_ptr`를 반환합니다.
 - **`Data()`의 픽셀 포인터**는 `const`입니다. 통해 쓰지 마세요.
-- **`SetRenderView`**는 iOS / macOS 전용입니다.
-- **Windows 바이너리:** `facebetter.lib`를 링크하고 런타임에 `facebetter.dll`을 로드합니다.
+- SDK에는 `SetRenderView`가 없습니다. `ProcessImage` 출력은 앱에서 직접 그리세요.

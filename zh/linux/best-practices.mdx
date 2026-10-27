@@ -19,7 +19,9 @@ cfg.resource_path = "/opt/facebetter/resource.fbd";
 
 ## 一个引擎，串行 `ProcessImage`
 
-`Create` 返回 `shared_ptr`。引擎 **不是**单例。将 `ProcessImage`（以及会改状态的 setter）串行化到同一线程。若 `external_context = true`，该线程必须持有当前 GL 上下文。
+`Create` 在会话里保持一个引擎，不是进程级单例。`ImageFrame` 和引擎都不是线程安全的。把 `ProcessImage` 和会改状态的调用串行到同一线程。
+
+- 在 GL 上下文为当前上下文的线程上创建引擎并处理。输入和输出纹理必须属于该上下文。CPU 帧不需要调用方提供 GL 上下文。配置里没有上下文开关。
 
 ## 在帧上设置 `FrameType`
 
@@ -67,7 +69,7 @@ if (s.avg_process_time_ms > 33.0) {
 
 ## OpenGL
 
-默认 `external_context = false` 由 SDK 管理 OpenGL 上下文。若 GLFW / EGL 已持有上下文，设为 `true` 并在该线程处理。需要可用的 Mesa / NVIDIA / AMD 驱动；`glxinfo` 应报告 3.0+。
+- 在 GL 上下文为当前上下文的线程上创建引擎并处理。输入和输出纹理必须属于该上下文。CPU 帧不需要调用方提供 GL 上下文。配置里没有上下文开关。
 
 ## 空闲时暂停
 

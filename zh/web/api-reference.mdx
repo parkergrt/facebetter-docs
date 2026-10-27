@@ -62,8 +62,13 @@ await engine.init({
 | `setSmoothingStyle(style)` | `SmoothingStyle` |
 | `setWhitening(value)` | `[0, 1]` |
 | `setWhiteningStyle(style)` | `WhiteningStyle` |
-| `setSharpening(value)` | `[0, 1]` |
 | `setRosiness(value)` | `[0, 1]` |
+| `setBrightness(value)` | `[-1, 1]` |
+| `setContrast(value)` | `[-1, 1]` |
+| `setSaturation(value)` | `[-1, 1]` |
+| `setColorTemperature(value)` | `[-1, 1]` |
+| `setColorTint(value)` | `[-1, 1]` |
+| `setClarity(value)` | `[0, 1]` |
 | `setBeautySkinOnly(enabled)` | `boolean` |
 
 ### 美型
@@ -88,6 +93,7 @@ await engine.init({
 | `setEyebrow` | `setEyebrowStyle`、`setEyebrowColor` |
 | `setEyelash` | `setEyelashStyle`、`setEyelashColor` |
 | `setPupil` | `setPupilColor` |
+| `setTeethWhiten` | — |
 
 ### 滤镜 / 贴纸
 
@@ -133,17 +139,18 @@ processImage(input, width, height, frameType = FrameType.Video, mirrorMode = Mir
 
 - `input`：`ImageData` \| `HTMLImageElement` \| `HTMLCanvasElement` \| `HTMLVideoElement` \| `Uint8ClampedArray`
 - 仅 `Uint8ClampedArray` 时必须传 `width` / `height`
+- `mirrorMode` 会在处理前镜像这份 CPU 图像。Web 没有旋转接口。`processTexture` 不镜像，也不旋转。
 
 ```javascript
 processTexture(textureHandle, width, height, stride, frameType, mirrorMode) → number
 ```
 
-返回输出 `GL_TEXTURE_2D` 句柄。**该路径不应用镜像。** 请优先使用 `processImage`。
+返回输出 `GL_TEXTURE_2D` 句柄。**该路径不镜像，也不旋转。** 请优先使用 `processImage`。
 
 ### 统计
 
 ```javascript
-engine.getStats() → { fps, avgProcessTimeMs, sessionTimeS }
+engine.getStats() → { fps, avgProcessTimeMs, sessionTimeS, gpuLiveTextures, gpuLiveMeshes }
 ```
 
 ## 枚举（JS）
@@ -179,4 +186,4 @@ class FacebetterError extends Error {
 }
 ```
 
-数值码：`0`、`-1` … `-8`。见 [错误处理](/zh/web/error-handling)。
+数值码：`0`、`-1` … `-7`。见 [错误处理](/zh/web/error-handling)。

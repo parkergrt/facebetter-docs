@@ -92,7 +92,6 @@ description: "iOS 美颜特效 SDK 2.0 常见问题"
 
 - 引擎为 `nil` 或初始化失败（`-2` / 事件 `101`）。
 - 帧无效（尺寸为 0、格式不支持）。
-- `externalContext = YES` 但当前线程没有 GL 上下文。
 - 按处理失败（`FBErrorCode_Process`）处理。
 
 ### 帧类型
@@ -122,7 +121,7 @@ FBImageFrame *out = [engine processImage:frame];
 
 1. 从 `AVCaptureVideoDataOutput` 取 `CVPixelBuffer`。
 2. 用 `createWithNV12:...` 或 `createWithBGRA:...` 创建 `FBImageFrame`。
-3. 设置 `type = FBFrameTypeVideo`，可选 `setMirror:@"horizontal"`。
+3. 设置 `type = FBFrameTypeVideo`，可选 `setMirror:FBMirrorModeHorizontal`。
 4. `processImage:` 后显示 `[output data]` 或 `[output texture]`。
 
 ## 性能与内存
@@ -154,5 +153,4 @@ logConfig.fileName = logPath;
 ## 线程
 
 - 默认引擎：所有 `processImage:` 以及触及 GL 资源的 setter 走串行队列。
-- `externalContext = YES`：在 GL 线程创建并处理。
 - 仅在主队列更新 UI。

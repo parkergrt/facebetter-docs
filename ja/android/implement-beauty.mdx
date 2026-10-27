@@ -116,7 +116,6 @@ BeautyEffectEngine.EngineConfig config = new BeautyEffectEngine.EngineConfig();
 config.appId = "your appId";
 config.appKey = "your appKey";
 // config.licenseToken = "/* license token, {token} JSON, or .lic contents */";
-// config.externalContext = false;
 
 BeautyEffectEngine engine;
 try {
@@ -138,13 +137,14 @@ engine.setSmoothing(0.5f);
 engine.setSmoothingStyle(SmoothingStyle.NATURAL);
 engine.setWhitening(0.3f);
 engine.setWhiteningStyle(WhiteningStyle.COLD_WHITE);
-engine.setSharpening(0.2f);
 engine.setRosiness(0.15f);
+engine.setBrightness(0.1f);
+engine.setClarity(0.2f);
 engine.setBeautySkinOnly(true);
 ```
 
 <Tip>
-`setBeautySkinOnly(true)` では、スムージング / 美白 / シャープニング / 血色は検出された肌にのみ適用されます。衣服と背景は変わりません。
+`setBeautySkinOnly(true)` では、スムージング / 美白 / 血色は検出された肌にのみ適用されます。衣服と背景は変わりません。
 </Tip>
 
 スタイル: [パラメータ列挙](/ja/intro/makeup)。
@@ -331,11 +331,11 @@ ImageFrame output = engine.processImage(input);
 Bitmap preview = output.toBitmap();
 ```
 
-カメラセンサーが回転している場合は、処理前に回転 / ミラーします。
+カメラセンサーが回転している場合は、処理前に回転 / ミラーします。これらは CPU ピクセルだけを変え、OpenGL テクスチャは変換しません。
 
 ```java
 input.rotate(ImageFrame.Rotation.ROTATION_90);
-input.mirror("horizontal");
+input.mirror(ImageFrame.MirrorMode.HORIZONTAL);
 ```
 
 <Tip>
@@ -377,7 +377,7 @@ if (input == null) {
 }
 if (isFrontCamera) {
     input.rotate(ImageFrame.Rotation.ROTATION_270);
-    input.mirror("horizontal");
+    input.mirror(ImageFrame.MirrorMode.HORIZONTAL);
 } else {
     input.rotate(ImageFrame.Rotation.ROTATION_90);
 }
@@ -389,7 +389,7 @@ image.close();
 ## 外部テクスチャ（OpenGL ES）
 
 <Warning>
-`externalContext = true` で、GL スレッド上にエンジンを作成してください。入力と出力のテクスチャはそのコンテキストを共有する必要があります。
+GL コンテキストがカレントなスレッドでエンジンを作成して処理します。入出力テクスチャはそのコンテキストに属している必要があります。CPU フレームに呼び出し側の GL コンテキストは不要です。設定にコンテキスト用のフラグはありません。
 </Warning>
 
 すでに OpenGL ES で描画しており、CPU の往復を避けたい場合に使います。
@@ -398,7 +398,6 @@ image.close();
 BeautyEffectEngine.EngineConfig config = new BeautyEffectEngine.EngineConfig();
 config.appId = "your appId";
 config.appKey = "your appKey";
-config.externalContext = true;
 BeautyEffectEngine engine = new BeautyEffectEngine(context, config);
 engine.setSmoothing(0.5f);
 ```

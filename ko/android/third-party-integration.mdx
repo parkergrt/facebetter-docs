@@ -11,7 +11,6 @@ SDK **2.0.0**. 서드파티 SDK의 **커스텀 비디오 전처리** 콜백에 F
 Third-party SDK (GL thread)
   input textureId
        ↓
-BeautyEffectEngine (externalContext = true)
   ImageFrame.createWithTexture → processImage
        ↓
   output textureId → write back to vendor frame / callback
@@ -21,13 +20,12 @@ BeautyEffectEngine (externalContext = true)
 
 | 항목 | 요구 사항 |
 | --- | --- |
-| 엔진 | `externalContext = true`, **벤더 GL 콜백 스레드**에서 지연 생성 |
 | 입력 | `GL_TEXTURE_2D`(RGBA); `stride`는 보통 `width * 4` |
 | 프레임 유형 | `ImageFrame.FrameType.VIDEO` |
 | 출력 | SDK가 출력 텍스처를 소유합니다. `glDeleteTextures`를 호출하지 마세요. 항상 `ImageFrame.release()` |
 | 라이프사이클 | 벤더가 GL 컨텍스트를 파괴하면 `engine.release()`한 뒤 새 컨텍스트에서 다시 생성 |
 
-Facebetter는 `createWithTexture`에 **`GL_TEXTURE_EXTERNAL_OES`를 받지 않습니다**. 벤더가 기본으로 OES를 쓰면 문서에 따라 **Texture2D / RGB**로 바꾸거나 먼저 `GL_TEXTURE_2D`로 blit하세요.
+`createWithTexture`는 `GL_TEXTURE_2D`를 받습니다. `externalOes`가 true이면 `GL_TEXTURE_EXTERNAL_OES`도 받습니다. OES이면 `SurfaceTexture.getTransformMatrix`의 float 16개를 넘기세요. 먼저 `GL_TEXTURE_2D`로 blit해도 됩니다.
 
 ### 공유 헬퍼
 
@@ -67,7 +65,6 @@ BeautyEffectEngine.EngineConfig config = new BeautyEffectEngine.EngineConfig();
 config.appId = "your appId";
 config.appKey = "your appKey";
 // or config.licenseToken = "...";
-config.externalContext = true;
 BeautyEffectEngine engine = new BeautyEffectEngine(context, config);
 engine.setSmoothing(0.5f);
 ```
@@ -258,7 +255,6 @@ room.localParticipant.publishVideoTrack(videoTrack)
 | 증상 | 확인 |
 | --- | --- |
 | 검은 화면 / 영상 없음 | 벤더 **GL 스레드**에서 엔진 생성 및 `processImage`; 실패한 프레임을 실수로 드롭하지 않았는지 |
-| 뷰티 없음 | `externalContext == true`; 입력이 `GL_TEXTURE_2D`인지 |
 | 간헐적 크래시 | GL destroy / capturer stop에서 `release()`; 출력에 `glDeleteTextures`를 호출하지 않았는지 |
 | 왜곡 | Width / height / rotation / mirror가 벤더 프레임과 일치하는지; OES가 2D로 변환되지 않았는지 |
 

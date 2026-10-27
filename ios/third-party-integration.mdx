@@ -21,9 +21,7 @@ FBBeautyEffectEngine
 
 | Item | Requirement |
 | --- | --- |
-| Texture path | `externalContext = YES`, lazy `createEngineWithConfig:` on the **vendor GL callback thread** |
 | Input texture | `GL_TEXTURE_2D` (RGBA); `stride` usually `width * 4` |
-| Pixel-buffer path | Use `createWithNV12:` / `createWithBGRA:` etc.; usually **`externalContext = NO`** so Facebetter owns GL |
 | Frame type | `FBFrameTypeVideo` |
 | Output | SDK owns output textures — do not `glDeleteTextures`. Keep a strong engine ref; set to `nil` when the session ends |
 | Lifecycle | When the vendor destroys the GL context, nil the engine, then recreate on the new context |
@@ -66,7 +64,6 @@ FBEngineConfig *config = [[FBEngineConfig alloc] init];
 config.appId = @"your appId";
 config.appKey = @"your appKey";
 // or config.licenseToken = @"...";
-config.externalContext = YES;
 self.beautyEngine = [FBBeautyEffectEngine createEngineWithConfig:config];
 [self.beautyEngine setSmoothing:0.5f];
 ```
@@ -100,7 +97,6 @@ static FBImageFrame *FBFrameFromNV12PixelBuffer(CVPixelBufferRef pb) {
 }
 ```
 
-For the pixel-buffer path, create the engine with `externalContext = NO`. Credentials: [Subscription](/intro/enable-service), [Auth & License](/intro/license).
 
 ---
 
@@ -124,7 +120,6 @@ Implement `TRTCVideoFrameDelegate`: create the engine in `onGLContextCreated`; s
   FBEngineConfig *config = [[FBEngineConfig alloc] init];
   config.appId = @"your appId";
   config.appKey = @"your appKey";
-  config.externalContext = YES;
   self.beautyEngine = [FBBeautyEffectEngine createEngineWithConfig:config];
   [self.beautyEngine setSmoothing:0.5f];
 }
@@ -191,7 +186,6 @@ You need to:
     FBEngineConfig *config = [[FBEngineConfig alloc] init];
     config.appId = @"your appId";
     config.appKey = @"your appKey";
-    config.externalContext = NO; // pixel-buffer path
     self.beautyEngine = [FBBeautyEffectEngine createEngineWithConfig:config];
   }
 
@@ -245,7 +239,6 @@ final class FacebetterVideoProcessor: VideoProcessor {
       let config = FBEngineConfig()
       config.appId = "your appId"
       config.appKey = "your appKey"
-      config.externalContext = false
       beautyEngine = FBBeautyEffectEngine.createEngine(with: config)
       beautyEngine?.setSmoothing(0.5)
     }
@@ -272,7 +265,6 @@ Official sample processors (for example background blur) ship as `BackgroundBlur
 | Symptom | Check |
 | --- | --- |
 | Black / no video | Texture path: engine on vendor **GL thread**. Pixel path: lock/unlock `CVPixelBuffer` |
-| No beauty | `externalContext` matches the path (YES for texture / usually NO for pixels); format is NV12/BGRA/`GL_TEXTURE_2D` |
 | Intermittent crash | Nil engine in `onGLContextDestory`; never delete output textures |
 | Distortion | Width / height / rotation / mirror match the vendor frame; strides use `BytesPerRow` |
 

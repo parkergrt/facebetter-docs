@@ -50,7 +50,6 @@ FBImageFrame *exportOut = [engine processImage:full];
 
 ## 一个引擎、一条串行队列
 
-`createEngineWithConfig:` 返回的是**实例**，不是进程级单例。每个会话保留一个引擎，并在**串行队列**上调用（`externalContext = YES` 时则在 GL 线程）。
 
 ```objc
 @interface BeautyEngineManager : NSObject
@@ -108,7 +107,6 @@ FBImageFrame *exportOut = [engine processImage:full];
 
 应用已有 GL 上下文时：
 
-1. 设置 `config.externalContext = YES`。
 2. 在**该 GL 线程**创建引擎。
 3. 用 `createWithTexture:width:height:stride:` 包装纹理。
 4. 输出用 `[output texture]`。
@@ -147,7 +145,7 @@ NSLog(@"fps=%.1f avg=%.2fms session=%.1fs",
 ## iOS 采集
 
 - 预览多为 NV12 或 BGRA，用 `createWithNV12:...` / `createWithBGRA:...`。
-- 前置摄像头：对帧 `setMirror:@"horizontal"`（需要先翻转像素时用 `mirror:`）。
+- 前置摄像头：对帧 `setMirror:FBMirrorModeHorizontal`（需要先翻转像素时用 `mirror:`）。
 - 相机权限：`Info.plist` 的 `NSCameraUsageDescription`。相册选图：`NSPhotoLibraryUsageDescription`。
 
 ## 测试

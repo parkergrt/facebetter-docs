@@ -80,7 +80,6 @@ FBEngineConfig *engineConfig = [[FBEngineConfig alloc] init];
 engineConfig.appId = @"your appId";
 engineConfig.appKey = @"your appKey";
 // engineConfig.licenseToken = @"your license token";
-engineConfig.externalContext = NO;  // YES only when you own the GL context
 
 self.beautyEffectEngine = [FBBeautyEffectEngine createEngineWithConfig:engineConfig];
 if (self.beautyEffectEngine == nil) {
@@ -100,8 +99,9 @@ A intensidade costuma ser `[0.0, 1.0]`. Enums de estilo: [Enums de parâmetros](
 [self.beautyEffectEngine setSmoothingStyle:FBSmoothingStyle_Natural];
 [self.beautyEffectEngine setWhitening:0.3f];
 [self.beautyEffectEngine setWhiteningStyle:FBWhiteningStyle_ColdWhite];
-[self.beautyEffectEngine setSharpening:0.2f];
 [self.beautyEffectEngine setRosiness:0.15f];
+[self.beautyEffectEngine setBrightness:0.1f];
+[self.beautyEffectEngine setClarity:0.2f];
 ```
 
 ### Somente pele
@@ -262,11 +262,11 @@ FBImageFrame *output = [self.beautyEffectEngine processImage:input];
 `FBFrameTypeVideo` é para streams ao vivo; `FBFrameTypeImage` é para stills.
 </Tip>
 
-Rotacionar / espelhar / converter / salvar:
+Rotacionar / espelhar / converter / salvar. `rotate:` e `setMirror:` alteram apenas pixels de CPU. Não transformam uma textura OpenGL, um CVPixelBuffer nem uma textura Metal:
 
 ```objc
 [input rotate:FBImageRotation90];
-[input setMirror:@"horizontal"];  // applied during processImage:
+[input setMirror:FBMirrorModeHorizontal];  // applied during processImage:
 FBImageFrame *rgba = [output convert:FBImageFormatRGBA];
 const uint8_t *bytes = [rgba data];
 [output toFile:@"/path/out.jpg" quality:90];
@@ -277,14 +277,13 @@ Planos YUV: `dataY`, `dataU`, `dataV`, `dataUV` e `strideY` / `strideU` / `strid
 ## Textura externa
 
 <Warning>
-Crie o mecanismo no thread OpenGL ES e defina `externalContext = YES`. As texturas de entrada e saída precisam compartilhar esse contexto.
+Crie o mecanismo e processe no thread cujo contexto GL é o atual. As texturas de entrada e saída devem pertencer a esse contexto. Quadros de CPU não precisam de um contexto GL do chamador. A config não tem um flag de contexto.
 </Warning>
 
 ```objc
 FBEngineConfig *config = [[FBEngineConfig alloc] init];
 config.appId = @"your appId";
 config.appKey = @"your appKey";
-config.externalContext = YES;
 self.engine = [FBBeautyEffectEngine createEngineWithConfig:config];
 
 FBImageFrame *inputFrame = [FBImageFrame createWithTexture:textureId

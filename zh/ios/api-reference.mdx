@@ -54,7 +54,6 @@ FB_OBJC_API @interface FBLogConfig : NSObject
 | `appId` | `NSString *` | 控制台 App ID（在线授权） |
 | `appKey` | `NSString *` | 控制台 App Key（在线授权） |
 | `licenseToken` | `NSString *` | 许可证 token、`{token}` JSON，或原生 `.lic` 内容 |
-| `externalContext` | `BOOL` | 默认 `NO`。`YES`：使用调用方的 OpenGL ES 上下文，SDK 不创建内部上下文 |
 
 **授权优先级：** `licenseToken` 非空则本地校验，跳过 `/facebetter/v2/auth`；否则用 `appId` + `appKey` 在线授权。请在控制台绑定应用 **Bundle ID**。
 
@@ -63,7 +62,6 @@ FB_OBJC_API @interface FBEngineConfig : NSObject
 @property(nonatomic, copy) NSString *appId;
 @property(nonatomic, copy) NSString *appKey;
 @property(nonatomic, copy, nullable) NSString *licenseToken;
-@property(nonatomic, assign) BOOL externalContext;
 - (instancetype)init;
 @end
 ```
@@ -91,8 +89,13 @@ FB_OBJC_API @interface FBBeautyEffectEngine : NSObject
 - (int)setSmoothingStyle:(FBSmoothingStyle)style;
 - (int)setWhitening:(float)intensity;
 - (int)setWhiteningStyle:(FBWhiteningStyle)style;
-- (int)setSharpening:(float)intensity;
 - (int)setRosiness:(float)intensity;
+- (int)setBrightness:(float)intensity;
+- (int)setContrast:(float)intensity;
+- (int)setSaturation:(float)intensity;
+- (int)setColorTemperature:(float)intensity;
+- (int)setColorTint:(float)intensity;
+- (int)setClarity:(float)intensity;
 - (int)setReshape:(FBReshape)param intensity:(float)value;
 - (int)setBodyReshape:(FBBodyReshape)param intensity:(float)value;
 - (int)setBeautySkinOnly:(BOOL)enabled;
@@ -118,6 +121,7 @@ FB_OBJC_API @interface FBBeautyEffectEngine : NSObject
 - (int)setEyelashColor:(FBEyelashColor)color;
 - (int)setPupil:(float)intensity;
 - (int)setPupilColor:(FBPupilColor)color;
+- (int)setTeethWhiten:(float)intensity;
 
 - (int)setChromaKey:(FBChromaKeyColor)color;
 - (int)clearChromaKey;
@@ -159,8 +163,13 @@ FB_OBJC_API @interface FBBeautyEffectEngine : NSObject
 | `setSmoothingStyle:` | 风格；强度仍由 `setSmoothing:` 控制 |
 | `setWhitening:` | `[0, 1]` |
 | `setWhiteningStyle:` | 切换美白 LUT |
-| `setSharpening:` | `[0, 1]` |
 | `setRosiness:` | `[0, 1]` |
+| `setBrightness:` | `[-1, 1]`, `0` neutral |
+| `setContrast:` | `[-1, 1]`, `0` neutral |
+| `setSaturation:` | `[-1, 1]`, `0` neutral |
+| `setColorTemperature:` | `[-1, 1]`, `0` neutral |
+| `setColorTint:` | `[-1, 1]`, `0` neutral |
+| `setClarity:` | `[0, 1]` |
 | `setBeautySkinOnly:` | `YES` = 仅皮肤区域 |
 
 ### 美型
@@ -233,6 +242,7 @@ typedef NS_ENUM(NSInteger, FBBodyReshape) {
 | `setEyebrow:` | `setEyebrowStyle:` | `setEyebrowColor:` |
 | `setEyelash:` | `setEyelashStyle:` | `setEyelashColor:` |
 | `setPupil:` | — | `setPupilColor:` |
+| `setTeethWhiten:` | — | — |
 
 ### 虚拟背景与色键
 
@@ -288,7 +298,6 @@ typedef NS_ENUM(NSInteger, FBChromaKeyColor) {
 ## 错误码
 
 
-
 ```objc
 typedef NS_ENUM(NSInteger, FBErrorCode) {
   FBErrorCode_Success = 0,
@@ -297,9 +306,8 @@ typedef NS_ENUM(NSInteger, FBErrorCode) {
   FBErrorCode_License = -3,
   FBErrorCode_Unsupported = -4,
   FBErrorCode_IO = -5,
-  FBErrorCode_NoSlot = -6,
-  FBErrorCode_Process = -7,
-  FBErrorCode_OutOfMemory = -8,
+  FBErrorCode_Process = -6,
+  FBErrorCode_OutOfMemory = -7,
 };
 ```
 
@@ -314,6 +322,8 @@ typedef NS_ENUM(NSInteger, FBErrorCode) {
 | `fps` | `double` | 每秒帧数 |
 | `avgProcessTimeMs` | `double` | `processImage:` 平均耗时（毫秒） |
 | `sessionTimeS` | `double` | 会话时长（秒） |
+| `gpuLiveTextures` | `NSUInteger` | 当前 GPU 纹理数（查泄漏） |
+| `gpuLiveMeshes` | `NSUInteger` | 当前 GPU 网格数（查泄漏） |
 
 ```objc
 - (FBEngineStats *)getStats;
@@ -384,6 +394,8 @@ FB_OBJC_API @interface FBFaceDetectionResult : NSObject
 | `createWithNV21:...` | Y + VU |
 | `createWithFile:` | png / jpg 路径 |
 | `createWithTexture:width:height:stride:` | 当前上下文中的 `GL_TEXTURE_2D`；`stride` 通常为 `width * 4` |
+| `setGlRenderTarget:` | 当前上下文上的可选 `GL_TEXTURE_2D` 渲染目标。借用 |
+| `setMetalRenderTarget:` | 同一设备上的可选 `MTLTexture` 输出。借用 |
 | `createWithUIImage:` | **仅 iOS** |
 
 ### 操作
@@ -391,11 +403,13 @@ FB_OBJC_API @interface FBFaceDetectionResult : NSObject
 | 方法 | 说明 |
 | --- | --- |
 | `rotate:` | `FBImageRotation`；返回 `FBErrorCode` |
-| `mirror:` | `"horizontal"` / `"vertical"` / `"both"`（大小写不敏感）；直接改像素 |
-| `setMirror:` | 供 `processImage:` 使用的标记（避免额外格式转换）。`nil` / `@""` 清除 |
+| `mirror:` | `FBMirrorModeHorizontal` / `Vertical` / `Both`；直接改像素。`None` 不改像素 |
+| `setMirror:` | 供 `processImage:` 使用的标记（避免额外格式转换）。`FBMirrorModeNone` 清除 |
 | `convert:` | 返回目标 `FBImageFormat` 的新帧 |
 | `toFile:quality:` | 质量 `0`–`100` |
 | `toFile:` | 质量 `90` |
+
+`rotate:`、`mirror:`、`setMirror:` 只改 CPU 像素帧（RGBA、RGB、YUV 和图片文件）。它们不会变换 OpenGL 纹理、CVPixelBuffer 或 Metal 纹理。这些输入请先转正再创建帧。
 
 ### 属性与访问器
 

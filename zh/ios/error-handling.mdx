@@ -19,9 +19,8 @@ description: "iOS 美颜特效 SDK 2.0 错误处理"
 | `-3` | `FBErrorCode_License` | 授权失败 |
 | `-4` | `FBErrorCode_Unsupported` | 不支持的格式、平台或能力 |
 | `-5` | `FBErrorCode_IO` | 文件 / 资源读写失败 |
-| `-6` | `FBErrorCode_NoSlot` | 无可用槽位（例如人脸过多） |
-| `-7` | `FBErrorCode_Process` | 帧处理失败 |
-| `-8` | `FBErrorCode_OutOfMemory` | 内存不足 |
+| `-6` | `FBErrorCode_Process` | 帧处理失败 |
+| `-7` | `FBErrorCode_OutOfMemory` | 内存不足 |
 
 ```objc
 typedef NS_ENUM(NSInteger, FBErrorCode) {
@@ -31,9 +30,8 @@ typedef NS_ENUM(NSInteger, FBErrorCode) {
   FBErrorCode_License = -3,
   FBErrorCode_Unsupported = -4,
   FBErrorCode_IO = -5,
-  FBErrorCode_NoSlot = -6,
-  FBErrorCode_Process = -7,
-  FBErrorCode_OutOfMemory = -8,
+  FBErrorCode_Process = -6,
+  FBErrorCode_OutOfMemory = -7,
 };
 ```
 
@@ -74,7 +72,6 @@ NSString *FBErrorMessage(int code) {
     case FBErrorCode_License: return @"授权失败";
     case FBErrorCode_Unsupported: return @"不支持";
     case FBErrorCode_IO: return @"读写失败";
-    case FBErrorCode_NoSlot: return @"无可用槽位";
     case FBErrorCode_Process: return @"处理失败";
     case FBErrorCode_OutOfMemory: return @"内存不足";
     default: return [NSString stringWithFormat:@"未知 (%d)", code];
@@ -168,4 +165,3 @@ logConfig.fileName = logPath;
 - **`-2` 未初始化**：`createEngineWithConfig:` 失败后实例为 `nil`，不要再发消息。
 - **`-3` 授权**：`appId` / `appKey` 错误、未绑定 Bundle ID、token 过期，或在线授权无网络。见 [授权与许可](/zh/intro/license)。
 - **`-5` I/O**：滤镜 / 贴纸 / 背景文件缺失或沙盒不可读。
-- **外部 GL**：`externalContext = YES` 时必须在同一 OpenGL ES 线程创建并处理，否则 `processImage:` 可能返回 `nil`。

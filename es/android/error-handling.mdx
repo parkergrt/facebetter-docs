@@ -15,9 +15,8 @@ public final class ErrorCode {
   public static final int LICENSE = -3;
   public static final int UNSUPPORTED = -4;
   public static final int IO = -5;
-  public static final int NO_SLOT = -6;
-  public static final int PROCESS = -7;
-  public static final int OUT_OF_MEMORY = -8;
+  public static final int PROCESS = -6;
+  public static final int OUT_OF_MEMORY = -7;
 }
 ```
 
@@ -29,9 +28,8 @@ public final class ErrorCode {
 | `-3` | `LICENSE` | Token / autenticación en línea rechazada |
 | `-4` | `UNSUPPORTED` | Formato o función no disponible |
 | `-5` | `IO` | Falta `.fbd`, imagen ilegible, ruta de archivo de log |
-| `-6` | `NO_SLOT` | Se alcanzó el límite de recursos |
-| `-7` | `PROCESS` | Falló el procesamiento del fotograma |
-| `-8` | `OUT_OF_MEMORY` | Memoria insuficiente |
+| `-6` | `PROCESS` | Falló el procesamiento del fotograma |
+| `-7` | `OUT_OF_MEMORY` | Memoria insuficiente |
 
 <Note>
 **`-1` es argumento no válido. `-2` es no inicializado.**

@@ -57,7 +57,7 @@ description: >-
 ## 2.0 口径
 
 - 本站只文档 **SDK 2.0.0**，不要写 1.x 兼容说明或头文件过渡期
-- 皮肤：`setSmoothing` / `setWhitening` / `setSharpening` / `setRosiness` / `setBeautySkinOnly` + 风格预设
+- 皮肤：`setSmoothing` / `setWhitening` / `setRosiness` / `setBeautySkinOnly` + 风格预设
 - 美型：26 项，强度 `[-1.0, 1.0]`
 - 美体：7 项，强度 `[0.0, 1.0]`。需要可选包 `resource_body.fbd`，先 `AddResourcePack` / `addResourcePack`
 - 美妆：强度 + Style + Color

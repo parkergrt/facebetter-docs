@@ -19,7 +19,9 @@ Ship `resource.fbd` next to the app (or under an assets dir) and resolve an abso
 
 ## One engine, serial `ProcessImage`
 
-`BeautyEffectEngine` is created with `Create` and is **not** a singleton. Keep one instance for the session. `ImageFrame` and the engine are not thread-safe — serialize `ProcessImage` on a single worker (or the GL thread when `external_context = true`).
+`Create` returns one engine for the session, not a process-wide singleton. `ImageFrame` and the engine are not thread-safe. Serialize `ProcessImage` and mutating setters on one thread.
+
+- Create the engine and call process on the thread whose GL context is current. Input and output textures must belong to that context. CPU frames do not need a caller GL context. There is no context flag on the config.
 
 ```cpp
 // good: one engine, one processing thread
@@ -85,10 +87,8 @@ Aim for `avg_process_time_ms` under your frame budget (about 33 ms at 30 fps). P
 
 ## OpenGL context
 
-| `external_context` | When |
-| --- | --- |
-| `false` (default) | SDK manages OpenGL |
-| `true` | You already have a current GL context; call `ProcessImage` on that thread |
+- Create the engine and call process on the thread whose GL context is current. Input and output textures must belong to that context. CPU frames do not need a caller GL context. There is no context flag on the config.
+
 
 Place `facebetter.dll` beside the `.exe` (or on `PATH`). Link `facebetter.lib` at build time.
 

@@ -76,13 +76,12 @@ engine.setSmoothing(0.8);
 engine.setSmoothingStyle(SmoothingStyle.Natural);
 engine.setWhitening(0.5);
 engine.setWhiteningStyle(WhiteningStyle.ColdWhite);
-engine.setSharpening(0.3);
 engine.setRosiness(0.2);
 engine.setBeautySkinOnly(true);
 ```
 
 <Tip>
-`setBeautySkinOnly(true)` 后，磨皮 / 美白 / 锐化 / 红润只作用在检出的皮肤上，衣服和背景不受影响。
+`setBeautySkinOnly(true)` 后，磨皮 / 美白 / 红润只作用在检出的皮肤上，衣服和背景不受影响。
 </Tip>
 
 风格枚举见 [参数枚举](/zh/intro/makeup)。
@@ -257,7 +256,7 @@ loop();
 - `FrameType.Video` — 摄像头 / 直播（带时域平滑）
 - `FrameType.Image` — 静态图
 
-`processTexture(textureHandle, width, height, stride, frameType, mirrorMode)` 用于自定义 GPU 纹理输入。**该路径不应用镜像。** 普通 Web 应用请用 `processImage`。
+`processTexture(textureHandle, width, height, stride, frameType, mirrorMode)` 用于自定义 GPU 纹理输入。**该路径不镜像，也不旋转。** 普通 Web 应用请用 `processImage`。
 
 ## 性能统计
 

@@ -19,9 +19,8 @@ Most setters return `int`:
 | `-3` | License |
 | `-4` | Unsupported |
 | `-5` | I/O |
-| `-6` | No slot |
-| `-7` | Process failed |
-| `-8` | Out of memory |
+| `-6` | Process failed |
+| `-7` | Out of memory |
 
 `BeautyEffectEngine::Create()` returns `std::shared_ptr`; failure is `nullptr`. `ProcessImage` may return `nullptr` on failure.
 
@@ -106,7 +105,7 @@ Or rebuild so CMake copies it next to the executable.
 
 ### 3. `ProcessImage` returns `nullptr`
 
-Check the input frame, engine pointer, and logs (`-7` process / `-8` OOM on setters).
+Check the input frame, engine pointer, and logs (`-6` process / `-7` OOM on setters).
 
 ```cpp
 auto input = ImageFrame::CreateWithFile("input.jpg");
@@ -149,7 +148,7 @@ glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
 glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
 ```
 
-If your app already owns the GL context, set `EngineConfig::external_context = true` and call `ProcessImage` on that thread.
+- Create the engine and call process on the thread whose GL context is current. Input and output textures must belong to that context. CPU frames do not need a caller GL context. There is no context flag on the config.
 
 ---
 

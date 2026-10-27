@@ -68,7 +68,6 @@ EngineConfig cfg;
 cfg.app_id = "your_app_id";
 cfg.app_key = "your_app_key";
 cfg.resource_path = "resource/resource.fbd";  // path to the .fbd file
-cfg.external_context = false;
 
 // cfg.license_token = "/* license token, {token} JSON, or .lic contents */";
 
@@ -93,7 +92,6 @@ engine->SetSmoothing(0.5f);
 engine->SetSmoothingStyle(SmoothingStyle::Natural);
 engine->SetWhitening(0.3f);
 engine->SetWhiteningStyle(WhiteningStyle::ColdWhite);
-engine->SetSharpening(0.2f);
 engine->SetRosiness(0.2f);
 engine->SetBeautySkinOnly(true);
 
@@ -195,7 +193,7 @@ glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA,
              0, GL_RGBA, GL_UNSIGNED_BYTE, output->Data());
 ```
 
-앱에 이미 현재 GL 컨텍스트가 있으면 `cfg.external_context = true`를 설정하고 해당 스레드에서 `ProcessImage`를 호출하세요.
+- GL 컨텍스트가 현재인 스레드에서 엔진을 만들고 처리하세요. 입력과 출력 텍스처는 그 컨텍스트에 속해야 합니다. CPU 프레임에는 호출 측 GL 컨텍스트가 필요 없습니다. 설정에 컨텍스트 플래그는 없습니다.
 
 ---
 

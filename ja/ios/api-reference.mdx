@@ -54,7 +54,6 @@ FB_OBJC_API @interface FBLogConfig : NSObject
 | `appId` | `NSString *` | コンソールの App ID（オンライン認証） |
 | `appKey` | `NSString *` | コンソールの App Key（オンライン認証） |
 | `licenseToken` | `NSString *` | ライセンストークン、`{token}` JSON、またはネイティブ `.lic` の内容 |
-| `externalContext` | `BOOL` | デフォルト `NO`。`YES`: 呼び出し側の OpenGL ES コンテキストを使用し、SDK は内部コンテキストを作成しません |
 
 **認証の優先順位:** `licenseToken` が空でなければローカル検証し、`/facebetter/v2/auth` をスキップします。それ以外は `appId` + `appKey` でオンライン認証します。コンソールでアプリの **Bundle ID** をバインドしてください。
 
@@ -63,7 +62,6 @@ FB_OBJC_API @interface FBEngineConfig : NSObject
 @property(nonatomic, copy) NSString *appId;
 @property(nonatomic, copy) NSString *appKey;
 @property(nonatomic, copy, nullable) NSString *licenseToken;
-@property(nonatomic, assign) BOOL externalContext;
 - (instancetype)init;
 @end
 ```
@@ -91,8 +89,13 @@ FB_OBJC_API @interface FBBeautyEffectEngine : NSObject
 - (int)setSmoothingStyle:(FBSmoothingStyle)style;
 - (int)setWhitening:(float)intensity;
 - (int)setWhiteningStyle:(FBWhiteningStyle)style;
-- (int)setSharpening:(float)intensity;
 - (int)setRosiness:(float)intensity;
+- (int)setBrightness:(float)intensity;
+- (int)setContrast:(float)intensity;
+- (int)setSaturation:(float)intensity;
+- (int)setColorTemperature:(float)intensity;
+- (int)setColorTint:(float)intensity;
+- (int)setClarity:(float)intensity;
 - (int)setReshape:(FBReshape)param intensity:(float)value;
 - (int)setBodyReshape:(FBBodyReshape)param intensity:(float)value;
 - (int)setBeautySkinOnly:(BOOL)enabled;
@@ -118,6 +121,7 @@ FB_OBJC_API @interface FBBeautyEffectEngine : NSObject
 - (int)setEyelashColor:(FBEyelashColor)color;
 - (int)setPupil:(float)intensity;
 - (int)setPupilColor:(FBPupilColor)color;
+- (int)setTeethWhiten:(float)intensity;
 
 - (int)setChromaKey:(FBChromaKeyColor)color;
 - (int)clearChromaKey;
@@ -159,8 +163,13 @@ FB_OBJC_API @interface FBBeautyEffectEngine : NSObject
 | `setSmoothingStyle:` | スタイル。強度は引き続き `setSmoothing:` で制御 |
 | `setWhitening:` | `[0, 1]` |
 | `setWhiteningStyle:` | 美白 LUT を切り替え |
-| `setSharpening:` | `[0, 1]` |
 | `setRosiness:` | `[0, 1]` |
+| `setBrightness:` | `[-1, 1]`, `0` neutral |
+| `setContrast:` | `[-1, 1]`, `0` neutral |
+| `setSaturation:` | `[-1, 1]`, `0` neutral |
+| `setColorTemperature:` | `[-1, 1]`, `0` neutral |
+| `setColorTint:` | `[-1, 1]`, `0` neutral |
+| `setClarity:` | `[0, 1]` |
 | `setBeautySkinOnly:` | `YES` = 肌領域のみ |
 
 ### リシェイプ
@@ -233,6 +242,7 @@ typedef NS_ENUM(NSInteger, FBBodyReshape) {
 | `setEyebrow:` | `setEyebrowStyle:` | `setEyebrowColor:` |
 | `setEyelash:` | `setEyelashStyle:` | `setEyelashColor:` |
 | `setPupil:` | — | `setPupilColor:` |
+| `setTeethWhiten:` | — | — |
 
 ### バーチャル背景とクロマキー
 
@@ -288,7 +298,6 @@ ID 登録はありません。パスまたはバイトを渡します。GPU リ�
 ## エラーコード
 
 
-
 ```objc
 typedef NS_ENUM(NSInteger, FBErrorCode) {
   FBErrorCode_Success = 0,
@@ -297,9 +306,8 @@ typedef NS_ENUM(NSInteger, FBErrorCode) {
   FBErrorCode_License = -3,
   FBErrorCode_Unsupported = -4,
   FBErrorCode_IO = -5,
-  FBErrorCode_NoSlot = -6,
-  FBErrorCode_Process = -7,
-  FBErrorCode_OutOfMemory = -8,
+  FBErrorCode_Process = -6,
+  FBErrorCode_OutOfMemory = -7,
 };
 ```
 
@@ -314,6 +322,8 @@ typedef NS_ENUM(NSInteger, FBErrorCode) {
 | `fps` | `double` | 1 秒あたりのフレーム数 |
 | `avgProcessTimeMs` | `double` | `processImage:` の平均所要時間（ミリ秒） |
 | `sessionTimeS` | `double` | セッション時間（秒） |
+| `gpuLiveTextures` | `NSUInteger` | 現在の GPU テクスチャ数（リーク調査） |
+| `gpuLiveMeshes` | `NSUInteger` | 現在の GPU メッシュ数（リーク調査） |
 
 ```objc
 - (FBEngineStats *)getStats;
@@ -384,6 +394,8 @@ FB_OBJC_API @interface FBFaceDetectionResult : NSObject
 | `createWithNV21:...` | Y + VU |
 | `createWithFile:` | png / jpg パス |
 | `createWithTexture:width:height:stride:` | 現在のコンテキスト内の `GL_TEXTURE_2D`。`stride` は通常 `width * 4` |
+| `setGlRenderTarget:` | 現在のコンテキスト上の任意 `GL_TEXTURE_2D` レンダーターゲット。借用 |
+| `setMetalRenderTarget:` | 同じデバイス上の任意 `MTLTexture` 出力。借用 |
 | `createWithUIImage:` | **iOS のみ** |
 
 ### 操作
@@ -391,11 +403,13 @@ FB_OBJC_API @interface FBFaceDetectionResult : NSObject
 | メソッド | 説明 |
 | --- | --- |
 | `rotate:` | `FBImageRotation`。戻り値は `FBErrorCode` |
-| `mirror:` | `"horizontal"` / `"vertical"` / `"both"`（大文字小文字を区別しません）。ピクセルを直接変更 |
-| `setMirror:` | `processImage:` 用のフラグ（余分な形式変換を避けます）。`nil` / `@""` でクリア |
+| `mirror:` | `FBMirrorModeHorizontal` / `Vertical` / `Both`。ピクセルを直接変更。`None` は何もしません |
+| `setMirror:` | `processImage:` 用のフラグ（余分な形式変換を避けます）。`FBMirrorModeNone` でクリア |
 | `convert:` | 対象 `FBImageFormat` の新しいフレームを返します |
 | `toFile:quality:` | 品質 `0`–`100` |
 | `toFile:` | 品質 `90` |
+
+`rotate:`、`mirror:`、`setMirror:` が変えるのは CPU ピクセルフレームだけです（RGBA、RGB、YUV、画像ファイル）。OpenGL テクスチャ、CVPixelBuffer、Metal テクスチャは変換しません。これらは正立にしてからフレームを作ってください。
 
 ### プロパティとアクセサ
 

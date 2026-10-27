@@ -80,7 +80,6 @@ FBEngineConfig *engineConfig = [[FBEngineConfig alloc] init];
 engineConfig.appId = @"your appId";
 engineConfig.appKey = @"your appKey";
 // engineConfig.licenseToken = @"your license token";
-engineConfig.externalContext = NO;  // 仅当由你持有 GL 上下文时设 YES
 
 self.beautyEffectEngine = [FBBeautyEffectEngine createEngineWithConfig:engineConfig];
 if (self.beautyEffectEngine == nil) {
@@ -100,8 +99,9 @@ if (self.beautyEffectEngine == nil) {
 [self.beautyEffectEngine setSmoothingStyle:FBSmoothingStyle_Natural];
 [self.beautyEffectEngine setWhitening:0.3f];
 [self.beautyEffectEngine setWhiteningStyle:FBWhiteningStyle_ColdWhite];
-[self.beautyEffectEngine setSharpening:0.2f];
 [self.beautyEffectEngine setRosiness:0.15f];
+[self.beautyEffectEngine setBrightness:0.1f];
+[self.beautyEffectEngine setClarity:0.2f];
 ```
 
 ### 仅皮肤区域
@@ -262,11 +262,11 @@ FBImageFrame *output = [self.beautyEffectEngine processImage:input];
 `FBFrameTypeVideo` 用于实时流，`FBFrameTypeImage` 用于静图。
 </Tip>
 
-旋转 / 镜像 / 转换 / 保存：
+旋转 / 镜像 / 转换 / 保存。`rotate:` 和 `setMirror:` 只改 CPU 像素，不会变换 OpenGL 纹理、CVPixelBuffer 或 Metal 纹理：
 
 ```objc
 [input rotate:FBImageRotation90];
-[input setMirror:@"horizontal"];  // 在 processImage: 时生效
+[input setMirror:FBMirrorModeHorizontal];  // 在 processImage: 时生效
 FBImageFrame *rgba = [output convert:FBImageFormatRGBA];
 const uint8_t *bytes = [rgba data];
 [output toFile:@"/path/out.jpg" quality:90];
@@ -277,14 +277,13 @@ YUV 平面：`dataY`、`dataU`、`dataV`、`dataUV` 以及 `strideY` / `strideU`
 ## 外部纹理
 
 <Warning>
-在 OpenGL ES 线程创建引擎，并设置 `externalContext = YES`。输入输出纹理必须共享该上下文。
+在 GL 上下文为当前上下文的线程上创建引擎并处理。输入和输出纹理必须属于该上下文。CPU 帧不需要调用方提供 GL 上下文。配置里没有上下文开关。
 </Warning>
 
 ```objc
 FBEngineConfig *config = [[FBEngineConfig alloc] init];
 config.appId = @"your appId";
 config.appKey = @"your appKey";
-config.externalContext = YES;
 self.engine = [FBBeautyEffectEngine createEngineWithConfig:config];
 
 FBImageFrame *inputFrame = [FBImageFrame createWithTexture:textureId

@@ -50,7 +50,6 @@ Comece baixo no vídeo ao vivo. Significados completos dos enums: [Enums de par�
 
 ## Um mecanismo, uma fila serial
 
-`createEngineWithConfig:` retorna uma **instância**, não um singleton de processo. Mantenha um mecanismo por sessão e chame-o a partir de uma fila **serial** (ou do thread GL quando `externalContext = YES`).
 
 ```objc
 @interface BeautyEngineManager : NSObject
@@ -108,7 +107,6 @@ Não processe quadros no thread principal, exceto stills minúsculos. Não compa
 
 Quando o app já possui um contexto GL:
 
-1. Defina `config.externalContext = YES`.
 2. Crie o mecanismo **nesse thread GL**.
 3. Encapsule a textura com `createWithTexture:width:height:stride:`.
 4. Leia a saída com `[output texture]`.
@@ -147,7 +145,7 @@ Use `__weak` nos blocos de `FBEngineCallbacks` para evitar ciclos de retenção.
 ## Captura no iOS
 
 - A prévia da câmera costuma ser `kCVPixelFormatType_420YpCbCr8BiPlanarFullRange` (NV12) ou BGRA. Crie `FBImageFrame` com `createWithNV12:...` ou `createWithBGRA:...` em vez de converter para RGBA na CPU.
-- Câmera frontal: `setMirror:@"horizontal"` no quadro (ou `mirror:` se precisar inverter os pixels antes do mecanismo).
+- Câmera frontal: `setMirror:FBMirrorModeHorizontal` no quadro (ou `mirror:` se precisar inverter os pixels antes do mecanismo).
 - Permissão de câmera: `NSCameraUsageDescription` no `Info.plist`. Biblioteca de fotos: `NSPhotoLibraryUsageDescription` se você escolher stills.
 
 ## Testes

@@ -116,7 +116,6 @@ BeautyEffectEngine.EngineConfig config = new BeautyEffectEngine.EngineConfig();
 config.appId = "your appId";
 config.appKey = "your appKey";
 // config.licenseToken = "/* license token, {token} JSON, or .lic contents */";
-// config.externalContext = false;
 
 BeautyEffectEngine engine;
 try {
@@ -138,13 +137,14 @@ engine.setSmoothing(0.5f);
 engine.setSmoothingStyle(SmoothingStyle.NATURAL);
 engine.setWhitening(0.3f);
 engine.setWhiteningStyle(WhiteningStyle.COLD_WHITE);
-engine.setSharpening(0.2f);
 engine.setRosiness(0.15f);
+engine.setBrightness(0.1f);
+engine.setClarity(0.2f);
 engine.setBeautySkinOnly(true);
 ```
 
 <Tip>
-`setBeautySkinOnly(true)`이면 스무딩 / 화이트닝 / 샤프닝 / 로지니스가 감지된 피부에만 적용됩니다. 옷과 배경은 그대로입니다.
+`setBeautySkinOnly(true)`이면 스무딩 / 화이트닝 / 로지니스가 감지된 피부에만 적용됩니다. 옷과 배경은 그대로입니다.
 </Tip>
 
 스타일: [파라미터 열거형](/ko/intro/makeup).
@@ -331,11 +331,11 @@ ImageFrame output = engine.processImage(input);
 Bitmap preview = output.toBitmap();
 ```
 
-카메라 센서가 회전되어 있으면 처리 전에 회전 / 미러합니다.
+카메라 센서가 회전되어 있으면 처리 전에 회전 / 미러합니다. 이 호출은 CPU 픽셀만 바꾸며 OpenGL 텍스처는 변환하지 않습니다.
 
 ```java
 input.rotate(ImageFrame.Rotation.ROTATION_90);
-input.mirror("horizontal");
+input.mirror(ImageFrame.MirrorMode.HORIZONTAL);
 ```
 
 <Tip>
@@ -377,7 +377,7 @@ if (input == null) {
 }
 if (isFrontCamera) {
     input.rotate(ImageFrame.Rotation.ROTATION_270);
-    input.mirror("horizontal");
+    input.mirror(ImageFrame.MirrorMode.HORIZONTAL);
 } else {
     input.rotate(ImageFrame.Rotation.ROTATION_90);
 }
@@ -389,7 +389,7 @@ image.close();
 ## 외부 텍스처 (OpenGL ES) {#external-texture-opengl-es}
 
 <Warning>
-GL 스레드에서 `externalContext = true`로 엔진을 만드세요. 입력과 출력 텍스처는 해당 컨텍스트를 공유해야 합니다.
+GL 컨텍스트가 현재인 스레드에서 엔진을 만들고 처리하세요. 입력과 출력 텍스처는 그 컨텍스트에 속해야 합니다. CPU 프레임에는 호출 측 GL 컨텍스트가 필요 없습니다. 설정에 컨텍스트 플래그는 없습니다.
 </Warning>
 
 이미 OpenGL ES로 렌더링하고 CPU round-trip을 피하고 싶을 때 사용합니다.
@@ -398,7 +398,6 @@ GL 스레드에서 `externalContext = true`로 엔진을 만드세요. 입력과
 BeautyEffectEngine.EngineConfig config = new BeautyEffectEngine.EngineConfig();
 config.appId = "your appId";
 config.appKey = "your appKey";
-config.externalContext = true;
 BeautyEffectEngine engine = new BeautyEffectEngine(context, config);
 engine.setSmoothing(0.5f);
 ```

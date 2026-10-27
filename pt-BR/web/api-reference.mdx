@@ -62,8 +62,13 @@ await engine.init({
 | `setSmoothingStyle(style)` | `SmoothingStyle` |
 | `setWhitening(value)` | `[0, 1]` |
 | `setWhiteningStyle(style)` | `WhiteningStyle` |
-| `setSharpening(value)` | `[0, 1]` |
 | `setRosiness(value)` | `[0, 1]` |
+| `setBrightness(value)` | `[-1, 1]` |
+| `setContrast(value)` | `[-1, 1]` |
+| `setSaturation(value)` | `[-1, 1]` |
+| `setColorTemperature(value)` | `[-1, 1]` |
+| `setColorTint(value)` | `[-1, 1]` |
+| `setClarity(value)` | `[0, 1]` |
 | `setBeautySkinOnly(enabled)` | `boolean` |
 
 ### Remodelagem
@@ -88,6 +93,7 @@ Intensidade `[0, 1]`. Enums de estilo / cor: [Enums de parâmetros](/pt-BR/intro
 | `setEyebrow` | `setEyebrowStyle`, `setEyebrowColor` |
 | `setEyelash` | `setEyelashStyle`, `setEyelashColor` |
 | `setPupil` | `setPupilColor` |
+| `setTeethWhiten` | — |
 
 ### Filtro / adesivo
 
@@ -133,17 +139,18 @@ processImage(input, width, height, frameType = FrameType.Video, mirrorMode = Mir
 
 - `input`: `ImageData` \| `HTMLImageElement` \| `HTMLCanvasElement` \| `HTMLVideoElement` \| `Uint8ClampedArray`
 - `width` / `height` obrigatórios somente para `Uint8ClampedArray`
+- `mirrorMode` espelha esta imagem de CPU antes do processamento. Web não tem API de rotação. `processTexture` não espelha nem rotaciona.
 
 ```javascript
 processTexture(textureHandle, width, height, stride, frameType, mirrorMode) → number
 ```
 
-Retorna um handle de saída `GL_TEXTURE_2D`. **O espelhamento não é aplicado neste caminho.** Prefira `processImage`.
+Retorna um handle de saída `GL_TEXTURE_2D`. **Neste caminho não há espelhamento nem rotação.** Prefira `processImage`.
 
 ### Estatísticas
 
 ```javascript
-engine.getStats() → { fps, avgProcessTimeMs, sessionTimeS }
+engine.getStats() → { fps, avgProcessTimeMs, sessionTimeS, gpuLiveTextures, gpuLiveMeshes }
 ```
 
 ## Enums (JS)
@@ -179,4 +186,4 @@ class FacebetterError extends Error {
 }
 ```
 
-Códigos numéricos: `0`, `-1` … `-8`. Veja [Tratamento de erros](/pt-BR/web/error-handling).
+Códigos numéricos: `0`, `-1` … `-7`. Veja [Tratamento de erros](/pt-BR/web/error-handling).

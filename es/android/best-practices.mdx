@@ -42,7 +42,9 @@ Empieza bajo; sube cuando confirmes la detección facial y el FPS.
 
 | API | Rango | Notas |
 | --- | --- | --- |
-| Suavizado / blanqueamiento / nitidez / rubor / intensidad de maquillaje / intensidad de filtro / desenfoque VB / mandos de croma | `[0, 1]` | `0` desactivado |
+| Suavizado / blanqueamiento / rubor / intensidad de maquillaje / intensidad de filtro / desenfoque VB / mandos de croma | `[0, 1]` | `0` desactivado |
+| Brillo / contraste / saturación / temperatura / tinte | **`[-1, 1]`** | `0` neutro; fotograma completo |
+| Claridad | `[0, 1]` | `0` apagado; fotograma completo |
 | `setReshape` | **`[-1, 1]`** | `0` desactivado; el signo es la dirección |
 
 Vista previa en directo (ejemplo):
@@ -94,7 +96,7 @@ try {
 
 ## OpenGL ES
 
-Cuando `externalContext = true`:
+Cuando pasas una textura GL:
 
 - Construye el motor en el hilo GL con un contexto actual
 - Mantén la textura de entrada, `processImage` y la textura de salida en ese mismo contexto
@@ -183,7 +185,7 @@ Guarda las intensidades tú mismo (`SharedPreferences`). Vuelve a aplicarlas con
 
 - `onResume` / `onPause`: inicia y detén la cámara; conserva el motor si vas a reanudar pronto
 - `onDestroy` / `onDetach`: `engine.release()` si este propietario lo creó
-- `externalContext`: crear / destruir en el hilo GL
+- Crea el motor y procesa en el hilo cuyo contexto GL es el actual. Las texturas de entrada y salida deben pertenecer a ese contexto. La config no tiene un flag de contexto.
 
 ## Pruebas
 

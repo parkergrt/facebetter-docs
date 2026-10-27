@@ -83,7 +83,6 @@ FBEngineConfig *engineConfig = [[FBEngineConfig alloc] init];
 engineConfig.appId = @"your appId";
 engineConfig.appKey = @"your appKey";
 // engineConfig.licenseToken = @"your license token";
-engineConfig.externalContext = NO;
 
 self.beautyEffectEngine = [FBBeautyEffectEngine createEngineWithConfig:engineConfig];
 if (self.beautyEffectEngine == nil) {
@@ -103,8 +102,9 @@ if (self.beautyEffectEngine == nil) {
 [self.beautyEffectEngine setSmoothingStyle:FBSmoothingStyle_Natural];
 [self.beautyEffectEngine setWhitening:0.3f];
 [self.beautyEffectEngine setWhiteningStyle:FBWhiteningStyle_ColdWhite];
-[self.beautyEffectEngine setSharpening:0.2f];
 [self.beautyEffectEngine setRosiness:0.15f];
+[self.beautyEffectEngine setBrightness:0.1f];
+[self.beautyEffectEngine setClarity:0.2f];
 [self.beautyEffectEngine setBeautySkinOnly:YES];
 ```
 
@@ -249,9 +249,11 @@ FBImageFrame *output = [self.beautyEffectEngine processImage:input];
 `FBFrameTypeVideo`는 라이브 스트림용이고, `FBFrameTypeImage`는 정지 이미지와 `NSImage`용입니다.
 </Tip>
 
+회전과 미러는 CPU 픽셀만 바꿉니다. OpenGL 텍스처, CVPixelBuffer, Metal 텍스처는 변환하지 않습니다.
+
 ```objc
 [input rotate:FBImageRotation90];
-[input setMirror:@"horizontal"];
+[input setMirror:FBMirrorModeHorizontal];
 FBImageFrame *rgba = [output convert:FBImageFormatRGBA];
 const uint8_t *bytes = [rgba data];
 [output toFile:@"/path/out.jpg" quality:90];
@@ -262,14 +264,13 @@ YUV 평면: `dataY`, `dataU`, `dataV`, `dataUV` 및 대응하는 stride.
 ## 외부 텍스처 {#external-texture}
 
 <Warning>
-OpenGL 스레드에서 엔진을 만들고 `externalContext = YES`를 설정하세요. 입력과 출력 텍스처는 해당 컨텍스트를 공유해야 합니다.
+GL 컨텍스트가 현재인 스레드에서 엔진을 만들고 처리하세요. 입력과 출력 텍스처는 그 컨텍스트에 속해야 합니다. CPU 프레임에는 호출 측 GL 컨텍스트가 필요 없습니다. 설정에 컨텍스트 플래그는 없습니다.
 </Warning>
 
 ```objc
 FBEngineConfig *config = [[FBEngineConfig alloc] init];
 config.appId = @"your appId";
 config.appKey = @"your appKey";
-config.externalContext = YES;
 self.engine = [FBBeautyEffectEngine createEngineWithConfig:config];
 
 FBImageFrame *inputFrame = [FBImageFrame createWithTexture:textureId

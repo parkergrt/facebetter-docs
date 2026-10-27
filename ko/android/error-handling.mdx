@@ -15,9 +15,8 @@ public final class ErrorCode {
   public static final int LICENSE = -3;
   public static final int UNSUPPORTED = -4;
   public static final int IO = -5;
-  public static final int NO_SLOT = -6;
-  public static final int PROCESS = -7;
-  public static final int OUT_OF_MEMORY = -8;
+  public static final int PROCESS = -6;
+  public static final int OUT_OF_MEMORY = -7;
 }
 ```
 
@@ -29,9 +28,8 @@ public final class ErrorCode {
 | `-3` | `LICENSE` | 토큰 / 온라인 인증 거부 |
 | `-4` | `UNSUPPORTED` | 형식 또는 기능을 사용할 수 없음 |
 | `-5` | `IO` | 없는 `.fbd`, 읽을 수 없는 이미지, 로그 파일 경로 |
-| `-6` | `NO_SLOT` | 리소스 한도에 도달 |
-| `-7` | `PROCESS` | 프레임 처리 실패 |
-| `-8` | `OUT_OF_MEMORY` | 메모리 부족 |
+| `-6` | `PROCESS` | 프레임 처리 실패 |
+| `-7` | `OUT_OF_MEMORY` | 메모리 부족 |
 
 <Note>
 **`-1`은 잘못된 인자입니다. `-2`는 미초기화입니다.**

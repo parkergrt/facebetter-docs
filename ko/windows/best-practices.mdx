@@ -19,7 +19,9 @@ cfg.resource_path = "C:/app/assets/resource.fbd";
 
 ## 엔진 하나, 직렬 `ProcessImage`
 
-`BeautyEffectEngine`은 `Create`로 만들며 싱글톤이 **아닙니다**. 세션 동안 인스턴스 하나를 유지하세요. `ImageFrame`과 엔진은 스레드 안전하지 않습니다. `ProcessImage`를 단일 워커에서 직렬화하세요(`external_context = true`이면 GL 스레드).
+`Create`는 세션당 엔진 하나를 반환하며 프로세스 전역 싱글톤이 아닙니다. `ImageFrame`과 엔진은 스레드 안전하지 않습니다. `ProcessImage`와 상태를 바꾸는 호출은 한 스레드에서 직렬화하세요.
+
+- GL 컨텍스트가 현재인 스레드에서 엔진을 만들고 처리하세요. 입력과 출력 텍스처는 그 컨텍스트에 속해야 합니다. CPU 프레임에는 호출 측 GL 컨텍스트가 필요 없습니다. 설정에 컨텍스트 플래그는 없습니다.
 
 ```cpp
 // good: one engine, one processing thread
@@ -85,10 +87,8 @@ if (s.avg_process_time_ms > 33.0) {
 
 ## OpenGL 컨텍스트
 
-| `external_context` | 시점 |
-| --- | --- |
-| `false` (기본값) | SDK가 OpenGL을 관리 |
-| `true` | 이미 현재 GL 컨텍스트가 있음. 해당 스레드에서 `ProcessImage` 호출 |
+- GL 컨텍스트가 현재인 스레드에서 엔진을 만들고 처리하세요. 입력과 출력 텍스처는 그 컨텍스트에 속해야 합니다. CPU 프레임에는 호출 측 GL 컨텍스트가 필요 없습니다. 설정에 컨텍스트 플래그는 없습니다.
+
 
 `facebetter.dll`을 `.exe` 옆(또는 `PATH`)에 두세요. 빌드 시 `facebetter.lib`를 링크하세요.
 

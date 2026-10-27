@@ -19,9 +19,8 @@ SDK **2.0.0**。認証: [認証とライセンス](/ja/intro/license)。
 | `-3` | ライセンス |
 | `-4` | 非対応 |
 | `-5` | I/O |
-| `-6` | 空きスロットなし（バックプレッシャー） |
-| `-7` | 処理失敗 |
-| `-8` | メモリ不足 |
+| `-6` | 処理失敗 |
+| `-7` | メモリ不足 |
 
 `BeautyEffectEngine::Create()` は `std::shared_ptr` を返し、失敗時は `nullptr` です。`ProcessImage` 失敗も空ポインタを返すことがあります。
 
@@ -106,7 +105,7 @@ copy sdk\lib\facebetter.dll build\
 
 ### 3. `ProcessImage` が `nullptr` を返す
 
-入力フレーム、エンジンポインタ、ログ（setter の `-7` 処理失敗 / `-8` メモリ不足）を確認します。
+入力フレーム、エンジンポインタ、ログ（setter の `-6` 処理失敗 / `-7` メモリ不足）を確認します。
 
 ```cpp
 auto input = ImageFrame::CreateWithFile("input.jpg");
@@ -149,7 +148,7 @@ glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
 glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
 ```
 
-アプリがすでに GL コンテキストを持っている場合は `EngineConfig::external_context = true` を設定し、そのスレッドで `ProcessImage` を呼び出します。
+- GL コンテキストがカレントなスレッドでエンジンを作成して処理します。入出力テクスチャはそのコンテキストに属している必要があります。CPU フレームに呼び出し側の GL コンテキストは不要です。設定にコンテキスト用のフラグはありません。
 
 ---
 

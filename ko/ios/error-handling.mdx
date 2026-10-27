@@ -19,9 +19,8 @@ Setter API는 `int`를 반환합니다. `0`이 성공입니다. `createEngineWit
 | `-3` | `FBErrorCode_License` | 라이선스 / 인증 실패 |
 | `-4` | `FBErrorCode_Unsupported` | 미지원 형식, 플랫폼 또는 기능 |
 | `-5` | `FBErrorCode_IO` | 파일 / 리소스 I/O 오류 |
-| `-6` | `FBErrorCode_NoSlot` | 사용 가능한 슬롯 없음(예: 얼굴이 너무 많음) |
-| `-7` | `FBErrorCode_Process` | 프레임 처리 실패 |
-| `-8` | `FBErrorCode_OutOfMemory` | 메모리 부족 |
+| `-6` | `FBErrorCode_Process` | 프레임 처리 실패 |
+| `-7` | `FBErrorCode_OutOfMemory` | 메모리 부족 |
 
 ```objc
 typedef NS_ENUM(NSInteger, FBErrorCode) {
@@ -31,9 +30,8 @@ typedef NS_ENUM(NSInteger, FBErrorCode) {
   FBErrorCode_License = -3,
   FBErrorCode_Unsupported = -4,
   FBErrorCode_IO = -5,
-  FBErrorCode_NoSlot = -6,
-  FBErrorCode_Process = -7,
-  FBErrorCode_OutOfMemory = -8,
+  FBErrorCode_Process = -6,
+  FBErrorCode_OutOfMemory = -7,
 };
 ```
 
@@ -74,7 +72,6 @@ NSString *FBErrorMessage(int code) {
     case FBErrorCode_License: return @"license / auth failure";
     case FBErrorCode_Unsupported: return @"unsupported";
     case FBErrorCode_IO: return @"I/O error";
-    case FBErrorCode_NoSlot: return @"no available slot";
     case FBErrorCode_Process: return @"process failed";
     case FBErrorCode_OutOfMemory: return @"out of memory";
     default: return [NSString stringWithFormat:@"unknown (%d)", code];
@@ -168,4 +165,3 @@ logConfig.fileName = logPath;
 - **`-2` 미초기화**: 실패한 `createEngineWithConfig:` 이후 setter 호출(인스턴스가 `nil`이므로 메시지를 보내지 마세요).
 - **`-3` 라이선스**: 잘못된 `appId` / `appKey`, 바인딩되지 않은 Bundle ID, 만료된 토큰, 또는 온라인 인증용 네트워크 없음. [인증 및 라이선스](/ko/intro/license)를 참고하세요.
 - **`-5` I/O**: 없는 필터 / 스티커 / 배경 파일, 또는 읽을 수 없는 샌드박스 경로.
-- **외부 GL**: `externalContext = YES`이면 같은 OpenGL ES 스레드에서 생성하고 처리하세요. 그렇지 않으면 `processImage:`가 `nil`을 반환할 수 있습니다.

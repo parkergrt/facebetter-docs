@@ -17,9 +17,8 @@ SDK **2.0.0**。鉴权见 [授权与许可](/zh/intro/license)。
 | `-3` | 授权 |
 | `-4` | 不支持 |
 | `-5` | I/O |
-| `-6` | 无空闲槽位（背压） |
-| `-7` | 处理失败 |
-| `-8` | 内存不足 |
+| `-6` | 处理失败 |
+| `-7` | 内存不足 |
 
 `Create()` 失败返回 `nullptr`。`ProcessImage` 也可能返回空指针。
 
@@ -140,7 +139,7 @@ sudo apt install libgl1-mesa-dev libglu1-mesa-dev mesa-utils
 glxinfo | grep "OpenGL version"
 ```
 
-需要 OpenGL 3.0+。无头服务器可用 OSMesa（`libosmesa6-dev`），并为离屏上下文设置 `external_context`。
+- 在 GL 上下文为当前上下文的线程上创建引擎并处理。输入和输出纹理必须属于该上下文。CPU 帧不需要调用方提供 GL 上下文。配置里没有上下文开关。
 
 ---
 

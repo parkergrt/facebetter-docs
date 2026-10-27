@@ -12,8 +12,7 @@ SDK **2.0.0**. 네임스페이스 `facebetter`. [Windows](/ko/windows/api-refere
 - `libfacebetter.so`를 배포하세요. `LD_LIBRARY_PATH`, rpath, 또는 `ldconfig`를 설정하세요.
 - `./scripts/build_linux.sh`로 SDK를 빌드하세요(출력 `build/linux/release`) 또는 CMake를 사용하세요.
 - `resource_path`는 **`resource.fbd` 파일**이어야 합니다.
-- `SetRenderView`는 없습니다.
-- `external_context = true`는 호출 스레드의 현재 GL 컨텍스트를 사용합니다(GLFW / EGL / OSMesa).
+- GL 컨텍스트가 현재인 스레드에서 엔진을 만들고 처리하세요. 입력과 출력 텍스처는 그 컨텍스트에 속해야 합니다. CPU 프레임에는 호출 측 GL 컨텍스트가 필요 없습니다. 설정에 컨텍스트 플래그는 없습니다.
 
 ```cmake
 target_include_directories(app PRIVATE /path/to/sdk/include)
@@ -50,7 +49,6 @@ static int BeautyEffectEngine::SetLogConfig(const LogConfig& config);
 | `app_id` / `app_key` | 네이티브 온라인 v2 인증 |
 | `resource_path` | `resource.fbd` 경로(파일이며 디렉터리 아님) |
 | `license_token` | 토큰 / `{token}` JSON / `.lic` — 비어 있지 않으면 우선 |
-| `external_context` | `false`: SDK가 OpenGL 관리; `true`: 호출 측 컨텍스트 |
 
 ```cpp
 struct EngineConfig {
@@ -58,7 +56,6 @@ struct EngineConfig {
   std::string app_key;
   std::string resource_path;
   std::string license_token;
-  bool external_context = false;
 };
 
 static std::shared_ptr<BeautyEffectEngine> BeautyEffectEngine::Create(
@@ -74,8 +71,13 @@ int SetSmoothing(float intensity);          // [0, 1]
 int SetSmoothingStyle(SmoothingStyle style);
 int SetWhitening(float intensity);
 int SetWhiteningStyle(WhiteningStyle style);
-int SetSharpening(float intensity);
 int SetRosiness(float intensity);
+int SetBrightness(float intensity);       // [-1, 1], 0 neutral
+int SetContrast(float intensity);
+int SetSaturation(float intensity);
+int SetColorTemperature(float intensity);
+int SetColorTint(float intensity);
+int SetClarity(float intensity);          // [0, 1]
 int SetBeautySkinOnly(bool enabled);
 ```
 
@@ -167,6 +169,8 @@ struct EngineStats {
   double fps = 0.0;
   double avg_process_time_ms = 0.0;
   double session_time_s = 0.0;
+  size_t gpu_live_textures = 0;
+  size_t gpu_live_meshes = 0;
 };
 ```
 
@@ -200,9 +204,11 @@ enum class FrameType { Image = 0, Video = 1 };
 
 **팩토리:** `CreateWithFile`, `Create`, `CreateWithRGBA/BGRA/RGB/BGR`, `CreateWithI420/NV12/NV21`, `CreateWithTexture`.
 
-**연산:** `Rotate`, `Mirror("horizontal"|"vertical"|"both")`, `SetMirror`, `Convert`, `ToFile`.
+**연산:** `Rotate`, `Mirror(MirrorMode::Horizontal|Vertical|Both)`, `SetMirror`, `Convert`, `ToFile`.
 
-**접근자:** `Width/Height/Stride/Size/GetFormat/Data`, YUV 평면, `Texture()`, `Buffer()`. 필드: `FrameType type`.
+`Rotate`, `Mirror`, `SetMirror`는 CPU 픽셀 프레임만 바꿉니다(RGBA, RGB, YUV, 이미지 파일). OpenGL 텍스처는 변환하지 않습니다. 텍스처는 먼저 똑바로 만든 뒤 넘기세요.
+
+**접근자:** `Width/Height/Stride/Size/GetFormat/Data`, YUV 평면, `Texture()`. 필드: `FrameType type`.
 
 ```cpp
 struct FaceDetectionResult {
@@ -227,8 +233,7 @@ struct FaceDetectionResult {
 | `-3` | 라이선스 |
 | `-4` | 미지원 |
 | `-5` | I/O |
-| `-6` | 슬롯 없음 |
-| `-7` | 처리 |
-| `-8` | 메모리 부족 |
+| `-6` | 처리 |
+| `-7` | 메모리 부족 |
 
 `ProcessImage`를 한 스레드에서 직렬화하세요. 픽셀 `Data()` 포인터는 읽기 전용입니다.

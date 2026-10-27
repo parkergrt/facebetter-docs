@@ -74,7 +74,6 @@ Classe aninhada: `BeautyEffectEngine.EngineConfig`.
 | `appId` | `String` | — | App ID do Console |
 | `appKey` | `String` | — | App Key do Console |
 | `licenseToken` | `String` | — | String do token de licença, JSON `{token}` ou conteúdo de `.lic` offline |
-| `externalContext` | `boolean` | `false` | `true` = usar o contexto OpenGL ES do chamador; `false` = contexto do SDK |
 
 **Prioridade de autenticação:** se `licenseToken` não estiver vazio, o SDK valida esse token localmente. Caso contrário, `appId` + `appKey` são obrigatórios e o SDK chama `/facebetter/v2/auth`. Detalhes: [Autenticação e licença](/pt-BR/intro/license).
 
@@ -83,7 +82,6 @@ public static class EngineConfig {
   public String appId;
   public String appKey;
   public String licenseToken;
-  public boolean externalContext = false;
 
   public EngineConfig();
   public EngineConfig(String appId, String appKey);
@@ -135,8 +133,13 @@ public int setSmoothing(float value);
 public int setSmoothingStyle(SmoothingStyle style);
 public int setWhitening(float value);
 public int setWhiteningStyle(WhiteningStyle style);
-public int setSharpening(float value);
 public int setRosiness(float value);
+public int setBrightness(float value);
+public int setContrast(float value);
+public int setSaturation(float value);
+public int setColorTemperature(float value);
+public int setColorTint(float value);
+public int setClarity(float value);
 public int setBeautySkinOnly(boolean enabled);
 ```
 
@@ -146,8 +149,13 @@ public int setBeautySkinOnly(boolean enabled);
 | `setSmoothingStyle` | Visual da suavização (`NATURAL`, `TEXTURE`, `SMOOTH`) |
 | `setWhitening` | Intensidade do clareamento |
 | `setWhiteningStyle` | LUT de clareamento (`COLD_WHITE`, `PINK_WHITE`, `WARM_WHITE`, `WHEAT`, `TAN`) |
-| `setSharpening` | Intensidade da nitidez |
 | `setRosiness` | Intensidade do tom rosado |
+| `setBrightness` | Brilho de quadro inteiro, `[-1, 1]`, `0` neutro |
+| `setContrast` | Contraste de quadro inteiro, `[-1, 1]`, `0` neutro |
+| `setSaturation` | Saturação de quadro inteiro, `[-1, 1]`, `0` neutro |
+| `setColorTemperature` | Temperatura de quadro inteiro, `[-1, 1]`, `0` neutro |
+| `setColorTint` | Matiz de quadro inteiro, `[-1, 1]`, `0` neutro |
+| `setClarity` | Nitidez de quadro inteiro, `[0, 1]`, `0` desligado |
 | `setBeautySkinOnly` | `true` = aplicar beleza da pele apenas na pele detectada; `false` = quadro inteiro |
 
 Enums de estilo: [Enums de parâmetros](/pt-BR/intro/makeup).
@@ -224,6 +232,7 @@ public int setEyelashColor(EyelashColor color);
 
 public int setPupil(float value);
 public int setPupilColor(PupilColor color);
+public int setTeethWhiten(float value);
 ```
 
 Os nomes das predefinições ficam em `BeautyParams.*`. Tabelas completas: [Enums de parâmetros](/pt-BR/intro/makeup).
@@ -316,9 +325,12 @@ public class EngineStats {
   public double fps;
   public double avgProcessTimeMs;
   public double sessionTimeS;
+  public int gpuLiveTextures;
+  public int gpuLiveMeshes;
 
   public EngineStats();
-  public EngineStats(double fps, double avgProcessTimeMs, double sessionTimeS);
+  public EngineStats(double fps, double avgProcessTimeMs, double sessionTimeS,
+      int gpuLiveTextures, int gpuLiveMeshes);
 }
 ```
 
@@ -392,9 +404,8 @@ public final class ErrorCode {
   public static final int LICENSE = -3;
   public static final int UNSUPPORTED = -4;
   public static final int IO = -5;
-  public static final int NO_SLOT = -6;
-  public static final int PROCESS = -7;
-  public static final int OUT_OF_MEMORY = -8;
+  public static final int PROCESS = -6;
+  public static final int OUT_OF_MEMORY = -7;
 }
 ```
 
@@ -406,9 +417,8 @@ public final class ErrorCode {
 | `-3` | `LICENSE` | Falha de licença / autenticação |
 | `-4` | `UNSUPPORTED` | Recurso ou formato não suportado |
 | `-5` | `IO` | Falha de I/O de arquivo ou recurso |
-| `-6` | `NO_SLOT` | Slot de recurso esgotado |
-| `-7` | `PROCESS` | Falha no processamento do quadro |
-| `-8` | `OUT_OF_MEMORY` | Falha na alocação |
+| `-6` | `PROCESS` | Falha no processamento do quadro |
+| `-7` | `OUT_OF_MEMORY` | Falha na alocação |
 
 <Note>
 **`-1` é argumento inválido. `-2` é não inicializado.**
@@ -437,6 +447,9 @@ public static ImageFrame createWithAndroid420(int width, int height,
     ByteBuffer yBuffer, int strideY, ByteBuffer uBuffer, int strideU,
     ByteBuffer vBuffer, int strideV, int pixelStrideUV);
 public static ImageFrame createWithTexture(int texture, int width, int height, int stride);
+public static ImageFrame createWithTexture(int texture, int width, int height, int stride, boolean externalOes);
+public static ImageFrame createWithTexture(int texture, int width, int height, int stride, boolean externalOes, float[] texMatrix);
+public void setGlRenderTarget(int texture);
 public static ImageFrame createWithBitmap(Bitmap bitmap);
 ```
 
@@ -445,6 +458,7 @@ public static ImageFrame createWithBitmap(Bitmap bitmap);
 | `createWithFile` | Caminho PNG / JPG |
 | `createWithAndroid420` | Camera2 `YUV_420_888` |
 | `createWithTexture` | `GL_TEXTURE_2D` no contexto GL **atual**; `stride` costuma ser `width * 4` |
+| `setGlRenderTarget` | Alvo `GL_TEXTURE_2D` opcional no contexto atual. Emprestado, não possuído |
 | `createWithBitmap` | Copia pixels `ARGB_8888` para um quadro RGBA |
 
 Retorna `null` em caso de falha (bitmap inválido, alocação nativa falhou, …). Prefira `ByteBuffer.allocateDirect` para as factories empacotadas / planares.
@@ -455,8 +469,8 @@ Retorna `null` em caso de falha (bitmap inválido, alocação nativa falhou, …
 public FrameType type = FrameType.VIDEO;
 
 public int rotate(Rotation rotation);
-public int mirror(String mode);
-public void setMirror(String mode);
+public int mirror(MirrorMode mode);
+public void setMirror(MirrorMode mode);
 public ImageFrame convert(Format format);
 public int toFile(String path, int quality);
 public int toFile(String path);
@@ -468,11 +482,13 @@ public void release();
 | Método | Descrição |
 | --- | --- |
 | `rotate` | Rotacionar no lugar. Retorna `0` em caso de sucesso |
-| `mirror` | Espelhamento imediato. `mode`: `"horizontal"`, `"vertical"`, `"both"` (sem diferenciar maiúsculas) |
-| `setMirror` | Flag aplicada **dentro** de `processImage` (evita um convert extra). `""` / `null` limpa |
+| `mirror` | Espelhamento imediato. `MirrorMode.HORIZONTAL` / `VERTICAL` / `BOTH`. `NONE` não altera os pixels |
+| `setMirror` | Flag aplicada **dentro** de `processImage` (evita um convert extra). `MirrorMode.NONE` limpa |
 | `convert` | Retorna um quadro **novo** em `format`; o chamador precisa dar `release()` |
 | `toFile` | Gravar PNG/JPG. Qualidade `1`–`100`; o overload usa `90` por padrão |
 | `toBitmap` | `Bitmap` `ARGB_8888` (converte para RGBA primeiro se necessário) |
+
+`rotate`, `mirror` e `setMirror` alteram apenas quadros de pixels na CPU (RGBA, RGB, YUV e arquivos de imagem). Não transformam uma textura OpenGL. Entregue a textura já na orientação correta.
 
 ### Acessores
 

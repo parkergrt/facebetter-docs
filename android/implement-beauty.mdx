@@ -116,7 +116,6 @@ BeautyEffectEngine.EngineConfig config = new BeautyEffectEngine.EngineConfig();
 config.appId = "your appId";
 config.appKey = "your appKey";
 // config.licenseToken = "/* license token, {token} JSON, or .lic contents */";
-// config.externalContext = false;
 
 BeautyEffectEngine engine;
 try {
@@ -138,13 +137,14 @@ engine.setSmoothing(0.5f);
 engine.setSmoothingStyle(SmoothingStyle.NATURAL);
 engine.setWhitening(0.3f);
 engine.setWhiteningStyle(WhiteningStyle.COLD_WHITE);
-engine.setSharpening(0.2f);
 engine.setRosiness(0.15f);
+engine.setBrightness(0.1f);
+engine.setClarity(0.2f);
 engine.setBeautySkinOnly(true);
 ```
 
 <Tip>
-With `setBeautySkinOnly(true)`, smoothing / whitening / sharpening / rosiness apply only on detected skin. Clothing and background stay unchanged.
+With `setBeautySkinOnly(true)`, smoothing / whitening / rosiness apply only on detected skin. Clothing and background stay unchanged.
 </Tip>
 
 Styles: [Parameter enums](/intro/makeup).
@@ -331,11 +331,11 @@ ImageFrame output = engine.processImage(input);
 Bitmap preview = output.toBitmap();
 ```
 
-Rotate / mirror before processing if the camera sensor is rotated:
+Rotate / mirror before processing if the camera sensor is rotated. These calls change CPU pixels only, not an OpenGL texture:
 
 ```java
 input.rotate(ImageFrame.Rotation.ROTATION_90);
-input.mirror("horizontal");
+input.mirror(ImageFrame.MirrorMode.HORIZONTAL);
 ```
 
 <Tip>
@@ -377,7 +377,7 @@ if (input == null) {
 }
 if (isFrontCamera) {
     input.rotate(ImageFrame.Rotation.ROTATION_270);
-    input.mirror("horizontal");
+    input.mirror(ImageFrame.MirrorMode.HORIZONTAL);
 } else {
     input.rotate(ImageFrame.Rotation.ROTATION_90);
 }
@@ -389,7 +389,7 @@ image.close();
 ## External texture (OpenGL ES)
 
 <Warning>
-Create the engine on the GL thread with `externalContext = true`. Input and output textures must share that context.
+Create the engine and call process on the thread whose GL context is current. Input and output textures must belong to that context. CPU frames do not need a caller GL context. There is no context flag on the config.
 </Warning>
 
 Use this when you already render with OpenGL ES and want to avoid CPU round-trips.
@@ -398,7 +398,6 @@ Use this when you already render with OpenGL ES and want to avoid CPU round-trip
 BeautyEffectEngine.EngineConfig config = new BeautyEffectEngine.EngineConfig();
 config.appId = "your appId";
 config.appKey = "your appKey";
-config.externalContext = true;
 BeautyEffectEngine engine = new BeautyEffectEngine(context, config);
 engine.setSmoothing(0.5f);
 ```

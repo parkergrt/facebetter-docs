@@ -68,7 +68,6 @@ EngineConfig cfg;
 cfg.app_id = "your_app_id";
 cfg.app_key = "your_app_key";
 cfg.resource_path = "resource/resource.fbd";  // .fbd ファイルを指す
-cfg.external_context = false;
 
 // cfg.license_token = "/* ライセンストークン、{token} JSON、または .lic の内容 */";
 
@@ -93,7 +92,6 @@ engine->SetSmoothing(0.5f);
 engine->SetSmoothingStyle(SmoothingStyle::Natural);
 engine->SetWhitening(0.3f);
 engine->SetWhiteningStyle(WhiteningStyle::ColdWhite);
-engine->SetSharpening(0.2f);
 engine->SetRosiness(0.2f);
 engine->SetBeautySkinOnly(true);
 
@@ -195,7 +193,7 @@ glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA,
              0, GL_RGBA, GL_UNSIGNED_BYTE, output->Data());
 ```
 
-アプリに現在の GL コンテキストがある場合は `cfg.external_context = true` を設定し、そのスレッドで `ProcessImage` を呼び出してください。
+- GL コンテキストがカレントなスレッドでエンジンを作成して処理します。入出力テクスチャはそのコンテキストに属している必要があります。CPU フレームに呼び出し側の GL コンテキストは不要です。設定にコンテキスト用のフラグはありません。
 
 ---
 

@@ -62,8 +62,13 @@ await engine.init({
 | `setSmoothingStyle(style)` | `SmoothingStyle` |
 | `setWhitening(value)` | `[0, 1]` |
 | `setWhiteningStyle(style)` | `WhiteningStyle` |
-| `setSharpening(value)` | `[0, 1]` |
 | `setRosiness(value)` | `[0, 1]` |
+| `setBrightness(value)` | `[-1, 1]` |
+| `setContrast(value)` | `[-1, 1]` |
+| `setSaturation(value)` | `[-1, 1]` |
+| `setColorTemperature(value)` | `[-1, 1]` |
+| `setColorTint(value)` | `[-1, 1]` |
+| `setClarity(value)` | `[0, 1]` |
 | `setBeautySkinOnly(enabled)` | `boolean` |
 
 ### リシェイプ
@@ -88,6 +93,7 @@ await engine.init({
 | `setEyebrow` | `setEyebrowStyle`、`setEyebrowColor` |
 | `setEyelash` | `setEyelashStyle`、`setEyelashColor` |
 | `setPupil` | `setPupilColor` |
+| `setTeethWhiten` | — |
 
 ### フィルター / ステッカー
 
@@ -133,17 +139,18 @@ processImage(input, width, height, frameType = FrameType.Video, mirrorMode = Mir
 
 - `input`: `ImageData` \| `HTMLImageElement` \| `HTMLCanvasElement` \| `HTMLVideoElement` \| `Uint8ClampedArray`
 - `Uint8ClampedArray` のときだけ `width` / `height` が必須
+- `mirrorMode` は処理前にこの CPU 画像をミラーします。Web に回転 API はありません。`processTexture` はミラーも回転もしません。
 
 ```javascript
 processTexture(textureHandle, width, height, stride, frameType, mirrorMode) → number
 ```
 
-出力 `GL_TEXTURE_2D` ハンドルを返します。**この経路はミラーを適用しません。** `processImage` を優先してください。
+出力 `GL_TEXTURE_2D` ハンドルを返します。**この経路はミラーも回転もしません。** `processImage` を優先してください。
 
 ### 統計
 
 ```javascript
-engine.getStats() → { fps, avgProcessTimeMs, sessionTimeS }
+engine.getStats() → { fps, avgProcessTimeMs, sessionTimeS, gpuLiveTextures, gpuLiveMeshes }
 ```
 
 ## 列挙（JS）
@@ -179,4 +186,4 @@ class FacebetterError extends Error {
 }
 ```
 
-数値コード: `0`、`-1` … `-8`。[エラー処理](/ja/web/error-handling) を参照してください。
+数値コード: `0`、`-1` … `-7`。[エラー処理](/ja/web/error-handling) を参照してください。

@@ -19,9 +19,8 @@ description: "iOS Beauty Effect SDK 2.0 のエラー処理"
 | `-3` | `FBErrorCode_License` | 認証失敗 |
 | `-4` | `FBErrorCode_Unsupported` | 非対応のフォーマット、プラットフォーム、または機能 |
 | `-5` | `FBErrorCode_IO` | ファイル / リソースの読み書き失敗 |
-| `-6` | `FBErrorCode_NoSlot` | 利用可能なスロットなし（例: 顔が多すぎる） |
-| `-7` | `FBErrorCode_Process` | フレーム処理失敗 |
-| `-8` | `FBErrorCode_OutOfMemory` | メモリ不足 |
+| `-6` | `FBErrorCode_Process` | フレーム処理失敗 |
+| `-7` | `FBErrorCode_OutOfMemory` | メモリ不足 |
 
 ```objc
 typedef NS_ENUM(NSInteger, FBErrorCode) {
@@ -31,9 +30,8 @@ typedef NS_ENUM(NSInteger, FBErrorCode) {
   FBErrorCode_License = -3,
   FBErrorCode_Unsupported = -4,
   FBErrorCode_IO = -5,
-  FBErrorCode_NoSlot = -6,
-  FBErrorCode_Process = -7,
-  FBErrorCode_OutOfMemory = -8,
+  FBErrorCode_Process = -6,
+  FBErrorCode_OutOfMemory = -7,
 };
 ```
 
@@ -74,7 +72,6 @@ NSString *FBErrorMessage(int code) {
     case FBErrorCode_License: return @"License failed";
     case FBErrorCode_Unsupported: return @"Unsupported";
     case FBErrorCode_IO: return @"I/O failed";
-    case FBErrorCode_NoSlot: return @"No slot";
     case FBErrorCode_Process: return @"Process failed";
     case FBErrorCode_OutOfMemory: return @"Out of memory";
     default: return [NSString stringWithFormat:@"Unknown (%d)", code];
@@ -168,4 +165,3 @@ logConfig.fileName = logPath;
 - **`-2` 未初期化**: `createEngineWithConfig:` 失敗後はインスタンスが `nil` です。メッセージを送らないでください。
 - **`-3` 認証**: `appId` / `appKey` の誤り、未バインドの Bundle ID、トークン期限切れ、またはオンライン認証のネットワークなし。[認証とライセンス](/ja/intro/license) を参照してください。
 - **`-5` I/O**: フィルター / ステッカー / 背景ファイルが欠けている、またはサンドボックスから読めない。
-- **外部 GL**: `externalContext = YES` のときは、同じ OpenGL ES スレッドで作成と処理を行わないと、`processImage:` が `nil` を返すことがあります。

@@ -19,9 +19,8 @@ Las APIs setter devuelven `int`. `0` es correcto. `createEngineWithConfig:` y `p
 | `-3` | `FBErrorCode_License` | Fallo de licencia / autenticación |
 | `-4` | `FBErrorCode_Unsupported` | Formato, plataforma o función no admitidos |
 | `-5` | `FBErrorCode_IO` | Error de E/S de archivo / recurso |
-| `-6` | `FBErrorCode_NoSlot` | No hay slot disponible (por ejemplo demasiados rostros) |
-| `-7` | `FBErrorCode_Process` | Falló el procesamiento del fotograma |
-| `-8` | `FBErrorCode_OutOfMemory` | Memoria insuficiente |
+| `-6` | `FBErrorCode_Process` | Falló el procesamiento del fotograma |
+| `-7` | `FBErrorCode_OutOfMemory` | Memoria insuficiente |
 
 ```objc
 typedef NS_ENUM(NSInteger, FBErrorCode) {
@@ -31,9 +30,8 @@ typedef NS_ENUM(NSInteger, FBErrorCode) {
   FBErrorCode_License = -3,
   FBErrorCode_Unsupported = -4,
   FBErrorCode_IO = -5,
-  FBErrorCode_NoSlot = -6,
-  FBErrorCode_Process = -7,
-  FBErrorCode_OutOfMemory = -8,
+  FBErrorCode_Process = -6,
+  FBErrorCode_OutOfMemory = -7,
 };
 ```
 
@@ -74,7 +72,6 @@ NSString *FBErrorMessage(int code) {
     case FBErrorCode_License: return @"license / auth failure";
     case FBErrorCode_Unsupported: return @"unsupported";
     case FBErrorCode_IO: return @"I/O error";
-    case FBErrorCode_NoSlot: return @"no available slot";
     case FBErrorCode_Process: return @"process failed";
     case FBErrorCode_OutOfMemory: return @"out of memory";
     default: return [NSString stringWithFormat:@"unknown (%d)", code];
@@ -168,4 +165,3 @@ logConfig.fileName = logPath;
 - **`-2` No inicializado**: llamar a setters tras un `createEngineWithConfig:` fallido (la instancia es `nil`: no le envíes mensajes).
 - **`-3` Licencia**: `appId` / `appKey` incorrectos, Bundle ID no vinculado, token caducado o sin red para autenticación en línea. Consulta [Autenticación y licencia](/es/intro/license).
 - **`-5` E/S**: falta el archivo de filtro / sticker / fondo, o la ruta del sandbox no es legible.
-- **GL externo**: si `externalContext = YES`, crea y procesa en el mismo hilo OpenGL ES; si no, `processImage:` puede devolver `nil`.

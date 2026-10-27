@@ -42,7 +42,9 @@ Start low; raise after you confirm face detection and FPS.
 
 | API | Range | Notes |
 | --- | --- | --- |
-| Smoothing / whitening / sharpening / rosiness / makeup intensity / filter intensity / VB blur / chroma knobs | `[0, 1]` | `0` off |
+| Smoothing / whitening / rosiness / makeup intensity / filter intensity / VB blur / chroma knobs | `[0, 1]` | `0` off |
+| Brightness / contrast / saturation / temperature / tint | **`[-1, 1]`** | `0` neutral; full frame |
+| Clarity | `[0, 1]` | `0` off; full frame |
 | `setReshape` | **`[-1, 1]`** | `0` off; sign is direction |
 
 Live preview (example):
@@ -94,7 +96,7 @@ try {
 
 ## OpenGL ES
 
-When `externalContext = true`:
+When you pass a GL texture:
 
 - Construct the engine on the GL thread with a current context
 - Keep input texture, `processImage`, and output texture on that same context
@@ -183,7 +185,7 @@ Store intensities yourself (`SharedPreferences`). Re-apply with `setSmoothing`, 
 
 - `onResume` / `onPause`: start and stop the camera; keep the engine if you will resume soon
 - `onDestroy` / `onDetach`: `engine.release()` if this owner created it
-- `externalContext`: create / destroy on the GL thread
+- Create the engine and call process on the thread whose GL context is current. Input and output textures must belong to that context. There is no context flag on the config.
 
 ## Tests
 

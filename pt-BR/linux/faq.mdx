@@ -30,7 +30,7 @@ Adicione `include/` do SDK ao include path. Vincule `libfacebetter.so`. Defina `
 
 ### `SetRenderView` está ausente
 
-Somente iOS / macOS. No Linux, faça blit da saída de `ProcessImage` para a sua textura GL.
+O SDK não tem `SetRenderView`. Desenhe você mesmo a saída de `ProcessImage`.
 
 ## Efeitos
 
@@ -66,7 +66,7 @@ Instale `libgl1-mesa-dev` / `mesa-libGL-devel` e reconfigure.
 
 ### Servidor headless
 
-Use OSMesa ou EGL + `external_context = true`. Ainda precisa de `resource.fbd` e de uma licença válida.
+- Crie o mecanismo e processe no thread cujo contexto GL é o atual. As texturas de entrada e saída devem pertencer a esse contexto. Quadros de CPU não precisam de um contexto GL do chamador. A config não tem um flag de contexto.
 
 ## Autenticação
 

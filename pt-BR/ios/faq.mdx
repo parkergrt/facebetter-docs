@@ -93,7 +93,6 @@ O chroma key é a **máscara**; o preenchimento continua sendo desfoque ou image
 
 - O mecanismo é `nil` ou o init falhou (`-2` / evento `101`).
 - Quadro inválido (tamanho zero, formato não suportado).
-- `externalContext = YES` mas o thread atual não tem contexto GL.
 - Trate como falha de processamento (`FBErrorCode_Process`).
 
 ### Tipo de quadro
@@ -123,7 +122,7 @@ FBImageFrame *out = [engine processImage:frame];
 
 1. Leia `CVPixelBuffer` de `AVCaptureVideoDataOutput`.
 2. Monte `FBImageFrame` com `createWithNV12:...` ou `createWithBGRA:...`.
-3. Defina `type = FBFrameTypeVideo`, opcionalmente `setMirror:@"horizontal"`.
+3. Defina `type = FBFrameTypeVideo`, opcionalmente `setMirror:FBMirrorModeHorizontal`.
 4. `processImage:` e, em seguida, exiba `[output data]` ou `[output texture]`.
 
 ## Desempenho e memória
@@ -155,5 +154,4 @@ Códigos de retorno: `0` sucesso, `-1` argumento inválido, `-2` não inicializa
 ## Threads
 
 - Mecanismo padrão: fila serial para todos os `processImage:` e setters que tocam recursos GL.
-- `externalContext = YES`: criar + processar no thread GL.
 - Atualize a UI apenas na fila principal.

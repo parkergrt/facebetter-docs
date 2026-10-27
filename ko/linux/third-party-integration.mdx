@@ -11,7 +11,7 @@ SDK **2.0.0**. [Windows · 서드파티 연동](/ko/windows/third-party-integrat
 Third-party SDK (preprocess callback)
   I420 planes
        ↓
-BeautyEffectEngine (external_context = false)
+BeautyEffectEngine
   CreateWithI420 → ProcessImage → write back
 ```
 
@@ -21,7 +21,7 @@ BeautyEffectEngine (external_context = false)
 | --- | --- |
 | 라이브러리 | `libfacebetter.so` + `facebetter/*.h` |
 | 링크 | [뷰티 효과 적용](/ko/linux/implement-beauty)을 참고하세요. 런타임에 `LD_LIBRARY_PATH` / rpath를 확인하세요 |
-| GL | 디스플레이가 있는 시스템 GL; 헤드리스는 OSMesa / EGL([권장 사항](/ko/linux/best-practices)). 버퍼 경로는 대부분 여전히 `external_context = false`를 사용합니다 |
+| GL | GL 컨텍스트가 현재인 스레드에서 엔진을 만들고 처리하세요. 입력과 출력 텍스처는 그 컨텍스트에 속해야 합니다. CPU 프레임에는 호출 측 GL 컨텍스트가 필요 없습니다. 설정에 컨텍스트 플래그는 없습니다. |
 | `resource_path` | `resource.fbd` **파일**을 가리켜야 합니다 |
 | 대시보드 바인딩 | 패키지 / 실행 파일 / 프로세스 이름 — [구독](/ko/intro/enable-service) |
 
@@ -32,7 +32,6 @@ EngineConfig cfg;
 cfg.app_id = "your_app_id";
 cfg.app_key = "your_app_key";
 cfg.resource_path = "/opt/yourapp/resource/resource.fbd";
-cfg.external_context = false;
 auto engine = BeautyEffectEngine::Create(cfg);
 ```
 

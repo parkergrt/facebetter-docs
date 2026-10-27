@@ -52,7 +52,6 @@ struct LogConfig {
 | `app_key` | App Key do Console |
 | `resource_path` | **Caminho para o arquivo `resource.fbd`** (obrigatório no desktop) |
 | `license_token` | String do token de licença, JSON `{token}` ou conteúdo de `.lic` offline |
-| `external_context` | `false`: contexto OpenGL gerenciado pelo SDK. `true`: contexto atual do chamador |
 
 **Prioridade de autenticação:** se `license_token` não estiver vazio, valide esse token localmente e pule a autenticação de rede com `app_id` + `app_key`. Caso contrário, use `app_id` + `app_key` contra `/facebetter/v2/auth`.
 
@@ -62,7 +61,6 @@ struct EngineConfig {
   std::string app_key;
   std::string resource_path;
   std::string license_token;
-  bool external_context = false;
 };
 ```
 
@@ -105,8 +103,13 @@ virtual int SetSmoothing(float intensity) = 0;
 virtual int SetSmoothingStyle(beauty_params::SmoothingStyle style) = 0;
 virtual int SetWhitening(float intensity) = 0;
 virtual int SetWhiteningStyle(beauty_params::WhiteningStyle style) = 0;
-virtual int SetSharpening(float intensity) = 0;
 virtual int SetRosiness(float intensity) = 0;
+virtual int SetBrightness(float intensity) = 0;
+virtual int SetContrast(float intensity) = 0;
+virtual int SetSaturation(float intensity) = 0;
+virtual int SetColorTemperature(float intensity) = 0;
+virtual int SetColorTint(float intensity) = 0;
+virtual int SetClarity(float intensity) = 0;
 virtual int SetBeautySkinOnly(bool enabled) = 0;
 ```
 
@@ -250,6 +253,8 @@ struct EngineStats {
   double fps = 0.0;
   double avg_process_time_ms = 0.0;
   double session_time_s = 0.0;
+  size_t gpu_live_textures = 0;
+  size_t gpu_live_meshes = 0;
 };
 ```
 
@@ -346,7 +351,9 @@ static std::shared_ptr<ImageFrame> CreateWithNV21(
     const uint8_t* dataY, int strideY,
     const uint8_t* dataUV, int strideUV);
 static std::shared_ptr<ImageFrame> CreateWithTexture(
-    uint32_t texture, int width, int height, int stride);
+    uint32_t texture, int width, int height, int stride,
+    bool external_oes = false, const float* tex_matrix_4x4 = nullptr);
+void SetGlRenderTarget(uint32_t texture);
 ```
 
 Prefira as factories YUV dedicadas em vez de `Create` para formatos multiplano.
@@ -355,13 +362,15 @@ Prefira as factories YUV dedicadas em vez de `Create` para formatos multiplano.
 
 ```cpp
 int Rotate(Rotation rotation);
-int Mirror(const std::string& mode);       // "horizontal" | "vertical" | "both"
-void SetMirror(const std::string& mode);   // applied inside ProcessImage; "" clears
+int Mirror(MirrorMode mode);                   // Horizontal | Vertical | Both
+void SetMirror(MirrorMode mode);               // inside ProcessImage; None clears
 std::shared_ptr<ImageFrame> Convert(Format format) const;
 int ToFile(const std::string& path, int quality = 90) const;
 ```
 
-**Acessores:** `Width()`, `Height()`, `Stride()`, `Size()`, `GetFormat()`, `Data()`, `DataY/U/V()`, `StrideY/U/V()`, `DataUV()`, `StrideUV()`, `Texture()`, `Buffer()`, `MirrorHorizontal()`, `MirrorVertical()`.
+`Rotate`, `Mirror` e `SetMirror` alteram apenas quadros de pixels na CPU (RGBA, RGB, YUV e arquivos de imagem). Não transformam uma textura OpenGL nem uma textura D3D11. Entregue essas imagens já na orientação correta.
+
+**Acessores:** `Width()`, `Height()`, `Stride()`, `Size()`, `GetFormat()`, `Data()`, `DataY/U/V()`, `StrideY/U/V()`, `DataUV()`, `StrideUV()`, `Texture()`.
 
 Campo público: `FrameType type = FrameType::Video`.
 
@@ -399,16 +408,14 @@ Retornos `int` típicos:
 | `-3` | Licença |
 | `-4` | Não suportado |
 | `-5` | I/O |
-| `-6` | Sem slot |
-| `-7` | Processamento |
-| `-8` | Sem memória |
+| `-6` | Processamento |
+| `-7` | Sem memória |
 
 ---
 
 ## Observações
 
-- **Thread safety:** serialize `ProcessImage` e chamadas que mutam em um thread (ou no thread GL se `external_context`).
+- Crie o mecanismo e processe no thread cujo contexto GL é o atual. As texturas de entrada e saída devem pertencer a esse contexto. Quadros de CPU não precisam de um contexto GL do chamador. A config não tem um flag de contexto.
 - **Lifetime:** os métodos factory retornam `std::shared_ptr`.
 - **Ponteiros de pixel** de `Data()` são `const` — não escreva através deles.
-- **`SetRenderView`** é somente iOS / macOS.
-- **Binário Windows:** vincule `facebetter.lib`, carregue `facebetter.dll` em runtime.
+- O SDK não tem `SetRenderView`. Desenhe você mesmo a saída de `ProcessImage`.

@@ -50,7 +50,6 @@ Empieza bajo en vídeo en directo. Significados de las enumeraciones: [Enumeraci
 
 ## Un motor, una cola serial
 
-`createEngineWithConfig:` devuelve una **instancia**, no un singleton de proceso. Mantén un motor por sesión y llámalo desde una cola **serial** (o el hilo GL cuando `externalContext = YES`).
 
 ```objc
 @interface BeautyEngineManager : NSObject
@@ -108,7 +107,6 @@ No proceses fotogramas en el hilo principal salvo estáticos muy pequeños. No c
 
 Cuando la vista AppKit ya posee un contexto GL:
 
-1. Configura `config.externalContext = YES`.
 2. Crea el motor **en ese hilo GL**.
 3. Envuelve la textura con `createWithTexture:width:height:stride:`.
 4. Lee la salida con `[output texture]`.
@@ -143,7 +141,7 @@ Usa `__weak` en los bloques de `FBEngineCallbacks`.
 ## Captura y visualización en macOS
 
 - Construye fotogramas con `createWithNV12:...`, `createWithBGRA:...` o `createWithNSImage:`.
-- Cámara frontal / vista previa de usuario: `setMirror:@"horizontal"`.
+- Cámara frontal / vista previa de usuario: `setMirror:FBMirrorModeHorizontal`.
 - Retina: procesa en tamaño de píxel (`backingScaleFactor`), no en puntos.
 - Cámara: `NSCameraUsageDescription`. Las apps en sandbox necesitan **Outgoing Connections** para autenticación en línea.
 - `.fbd` / imágenes de fondo elegidos por el usuario: URLs con ámbito de seguridad.

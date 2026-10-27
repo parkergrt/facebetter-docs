@@ -21,9 +21,7 @@ FBBeautyEffectEngine
 
 | 項目 | 要件 |
 | --- | --- |
-| テクスチャ経路 | `externalContext = YES`。**相手の GL コールバックスレッド**で遅延 `createEngineWithConfig:` |
 | 入力テクスチャ | `GL_TEXTURE_2D`（RGBA）。`stride` は通常 `width * 4` |
-| ピクセルバッファ経路 | `createWithNV12:` / `createWithBGRA:` などを使用。この場合は通常 **`externalContext = NO`** で、Facebetter が GL を管理 |
 | フレームタイプ | `FBFrameTypeVideo` |
 | 出力 | 出力テクスチャは SDK が所有。`glDeleteTextures` しない。エンジンは strong 参照。セッション終了時は `nil` |
 | ライフサイクル | 相手が GL コンテキストを破棄したら、先にエンジンを `nil` にし、新しいコンテキストで再作成 |
@@ -66,7 +64,6 @@ FBEngineConfig *config = [[FBEngineConfig alloc] init];
 config.appId = @"your appId";
 config.appKey = @"your appKey";
 // or config.licenseToken = @"...";
-config.externalContext = YES;
 self.beautyEngine = [FBBeautyEffectEngine createEngineWithConfig:config];
 [self.beautyEngine setSmoothing:0.5f];
 ```
@@ -100,7 +97,6 @@ static FBImageFrame *FBFrameFromNV12PixelBuffer(CVPixelBufferRef pb) {
 }
 ```
 
-ピクセルバッファ経路では、エンジン作成時に `externalContext = NO` を設定します。認証情報: [サブスクリプション](/ja/intro/enable-service)、[認証とライセンス](/ja/intro/license)。
 
 ---
 
@@ -124,7 +120,6 @@ static FBImageFrame *FBFrameFromNV12PixelBuffer(CVPixelBufferRef pb) {
   FBEngineConfig *config = [[FBEngineConfig alloc] init];
   config.appId = @"your appId";
   config.appKey = @"your appKey";
-  config.externalContext = YES;
   self.beautyEngine = [FBBeautyEffectEngine createEngineWithConfig:config];
   [self.beautyEngine setSmoothing:0.5f];
 }
@@ -191,7 +186,6 @@ BeautyProcessDelegate *delegate = [[BeautyProcessDelegate alloc] init];
     FBEngineConfig *config = [[FBEngineConfig alloc] init];
     config.appId = @"your appId";
     config.appKey = @"your appKey";
-    config.externalContext = NO; // pixel-buffer path
     self.beautyEngine = [FBBeautyEffectEngine createEngineWithConfig:config];
   }
 
@@ -245,7 +239,6 @@ final class FacebetterVideoProcessor: VideoProcessor {
       let config = FBEngineConfig()
       config.appId = "your appId"
       config.appKey = "your appKey"
-      config.externalContext = false
       beautyEngine = FBBeautyEffectEngine.createEngine(with: config)
       beautyEngine?.setSmoothing(0.5)
     }
@@ -272,7 +265,6 @@ try await room.localParticipant.publish(track: track)
 | 症状 | 確認 |
 | --- | --- |
 | 黒画面 / 映像なし | テクスチャ経路が相手の **GL スレッド**でエンジンを作成しているか。ピクセル経路で `CVPixelBuffer` の lock/unlock をしているか |
-| 美顔が効かない | `externalContext` が経路と一致しているか（テクスチャ YES / ピクセルは多く NO）。フォーマットが NV12/BGRA/`GL_TEXTURE_2D` か |
 | 断続的なクラッシュ | `onGLContextDestory` で `nil` にしたか。出力テクスチャを誤削除していないか |
 | 歪み / 引き伸ばし | 幅高さ、回転、ミラーが相手フレームと一致しているか。stride に `BytesPerRow` を使っているか |
 

@@ -68,7 +68,6 @@ EngineConfig cfg;
 cfg.app_id = "your_app_id";
 cfg.app_key = "your_app_key";
 cfg.resource_path = "resource/resource.fbd";  // path to the .fbd file
-cfg.external_context = false;
 
 // cfg.license_token = "/* license token, {token} JSON, or .lic contents */";
 
@@ -93,7 +92,6 @@ engine->SetSmoothing(0.5f);
 engine->SetSmoothingStyle(SmoothingStyle::Natural);
 engine->SetWhitening(0.3f);
 engine->SetWhiteningStyle(WhiteningStyle::ColdWhite);
-engine->SetSharpening(0.2f);
 engine->SetRosiness(0.2f);
 engine->SetBeautySkinOnly(true);
 
@@ -195,7 +193,7 @@ glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA,
              0, GL_RGBA, GL_UNSIGNED_BYTE, output->Data());
 ```
 
-If your app already has a current GL context, set `cfg.external_context = true` and call `ProcessImage` on that thread.
+- Create the engine and call process on the thread whose GL context is current. Input and output textures must belong to that context. CPU frames do not need a caller GL context. There is no context flag on the config.
 
 ---
 

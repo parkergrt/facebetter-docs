@@ -76,13 +76,12 @@ engine.setSmoothing(0.8);
 engine.setSmoothingStyle(SmoothingStyle.Natural);
 engine.setWhitening(0.5);
 engine.setWhiteningStyle(WhiteningStyle.ColdWhite);
-engine.setSharpening(0.3);
 engine.setRosiness(0.2);
 engine.setBeautySkinOnly(true);
 ```
 
 <Tip>
-`setBeautySkinOnly(true)` limits smoothing / whitening / sharpening / rosiness to detected skin. Clothing and background stay unchanged.
+`setBeautySkinOnly(true)` limits smoothing / whitening / rosiness to detected skin. Clothing and background stay unchanged.
 </Tip>
 
 Style enums: [Parameter enums](/intro/makeup).
@@ -257,7 +256,7 @@ loop();
 - `FrameType.Video` — live camera / streaming (temporal smoothing)
 - `FrameType.Image` — still photos
 
-`processTexture(textureHandle, width, height, stride, frameType, mirrorMode)` is for custom GPU texture input. **Mirror is not applied on this path.** Typical web apps should use `processImage`.
+`processTexture(textureHandle, width, height, stride, frameType, mirrorMode)` is for custom GPU texture input. **This path does not mirror or rotate.** Typical web apps should use `processImage`.
 
 ## Stats
 

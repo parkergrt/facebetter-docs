@@ -11,7 +11,7 @@ This page covers Linux-only differences. Shared helpers and TRTC / Agora / LiveK
 Third-party SDK (preprocess callback)
   I420 planes
        ↓
-BeautyEffectEngine (external_context = false)
+BeautyEffectEngine
   CreateWithI420 → ProcessImage → write back
 ```
 
@@ -21,7 +21,7 @@ BeautyEffectEngine (external_context = false)
 | --- | --- |
 | Library | `libfacebetter.so` + `facebetter/*.h` |
 | Link | See [Implement Beauty](/linux/implement-beauty); watch `LD_LIBRARY_PATH` / rpath at runtime |
-| GL | System GL with a display; headless via OSMesa / EGL ([Best Practices](/linux/best-practices)). Buffer path still uses `external_context = false` in most cases |
+| GL | Create the engine and call process on the thread whose GL context is current. Input and output textures must belong to that context. CPU frames do not need a caller GL context. There is no context flag on the config. |
 | `resource_path` | Must point at the `resource.fbd` **file** |
 | Dashboard binding | Package / executable / process name — [Subscription](/intro/enable-service) |
 
@@ -32,7 +32,6 @@ EngineConfig cfg;
 cfg.app_id = "your_app_id";
 cfg.app_key = "your_app_key";
 cfg.resource_path = "/opt/yourapp/resource/resource.fbd";
-cfg.external_context = false;
 auto engine = BeautyEffectEngine::Create(cfg);
 ```
 

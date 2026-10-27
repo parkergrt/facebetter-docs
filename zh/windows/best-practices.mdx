@@ -19,7 +19,9 @@ cfg.resource_path = "C:/app/assets/resource.fbd";
 
 ## 一个引擎，串行 `ProcessImage`
 
-用 `Create` 拿到实例，**不是**单例。会话期内保持一个引擎。`ImageFrame` 与引擎都不是线程安全的——把 `ProcessImage` 串行化到一条工作线程（`external_context = true` 时则必须在持有 GL 上下文的线程上调用）。
+`Create` 在会话里保持一个引擎，不是进程级单例。`ImageFrame` 和引擎都不是线程安全的。把 `ProcessImage` 和会改状态的调用串行到同一线程。
+
+- 在 GL 上下文为当前上下文的线程上创建引擎并处理。输入和输出纹理必须属于该上下文。CPU 帧不需要调用方提供 GL 上下文。配置里没有上下文开关。
 
 ```cpp
 std::shared_ptr<BeautyEffectEngine> engine = BeautyEffectEngine::Create(cfg);
@@ -84,10 +86,8 @@ if (s.avg_process_time_ms > 33.0) {
 
 ## OpenGL 上下文
 
-| `external_context` | 场景 |
-| --- | --- |
-| `false`（默认） | 由 SDK 管理 OpenGL |
-| `true` | 调用方已有当前 GL 上下文，在该线程调用 `ProcessImage` |
+- 在 GL 上下文为当前上下文的线程上创建引擎并处理。输入和输出纹理必须属于该上下文。CPU 帧不需要调用方提供 GL 上下文。配置里没有上下文开关。
+
 
 将 `facebetter.dll` 放在 `.exe` 旁（或加入 `PATH`）。链接时使用 `facebetter.lib`。
 

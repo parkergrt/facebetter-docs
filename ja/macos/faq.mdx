@@ -76,7 +76,6 @@ description: "macOS Beauty Effect SDK 2.0 のよくある質問"
 
 ### `processImage:` が `nil` を返す
 
-フレームが無効、初期化失敗、または `externalContext = YES` だが現在 GL コンテキストがない。
 
 ### フレームタイプ
 
@@ -103,7 +102,7 @@ FBImageFrame *out = [engine processImage:frame];
 
 1. `AVCaptureVideoDataOutput` → `CVPixelBuffer`。
 2. `createWithNV12:...` または `createWithBGRA:...`。
-3. `type = FBFrameTypeVideo`、任意で `setMirror:@"horizontal"`。
+3. `type = FBFrameTypeVideo`、任意で `setMirror:FBMirrorModeHorizontal`。
 4. AppKit / OpenGL ビューで `[output data]` または `[output texture]` を表示します。
 
 ## パフォーマンス

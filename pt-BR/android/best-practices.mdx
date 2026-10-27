@@ -42,7 +42,9 @@ Comece baixo; aumente depois de confirmar a detecção facial e o FPS.
 
 | API | Faixa | Observações |
 | --- | --- | --- |
-| Suavização / clareamento / nitidez / tom rosado / intensidade de maquiagem / intensidade de filtro / desfoque de fundo virtual / controles de chroma | `[0, 1]` | `0` desliga |
+| Suavização / clareamento / tom rosado / intensidade de maquiagem / intensidade de filtro / desfoque de fundo virtual / controles de chroma | `[0, 1]` | `0` desliga |
+| Brilho / contraste / saturação / temperatura / matiz | **`[-1, 1]`** | `0` neutro; quadro inteiro |
+| Clareza | `[0, 1]` | `0` desligado; quadro inteiro |
 | `setReshape` | **`[-1, 1]`** | `0` desliga; o sinal é a direção |
 
 Prévia ao vivo (exemplo):
@@ -94,7 +96,7 @@ try {
 
 ## OpenGL ES
 
-Quando `externalContext = true`:
+Quando você passa uma textura GL:
 
 - Construa o mecanismo no thread GL com um contexto atual
 - Mantenha a textura de entrada, `processImage` e a textura de saída nesse mesmo contexto
@@ -183,7 +185,7 @@ Armazene as intensidades você mesmo (`SharedPreferences`). Reaplique com `setSm
 
 - `onResume` / `onPause`: inicie e pare a câmera; mantenha o mecanismo se for retomar em breve
 - `onDestroy` / `onDetach`: `engine.release()` se este owner o criou
-- `externalContext`: criar / destruir no thread GL
+- Crie o mecanismo e processe no thread cujo contexto GL é o atual. As texturas de entrada e saída devem pertencer a esse contexto. A config não tem um flag de contexto.
 
 ## Testes
 

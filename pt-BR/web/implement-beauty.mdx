@@ -76,13 +76,12 @@ engine.setSmoothing(0.8);
 engine.setSmoothingStyle(SmoothingStyle.Natural);
 engine.setWhitening(0.5);
 engine.setWhiteningStyle(WhiteningStyle.ColdWhite);
-engine.setSharpening(0.3);
 engine.setRosiness(0.2);
 engine.setBeautySkinOnly(true);
 ```
 
 <Tip>
-`setBeautySkinOnly(true)` limita suavização / clareamento / nitidez / tom rosado à pele detectada. Roupas e fundo permanecem inalterados.
+`setBeautySkinOnly(true)` limita suavização / clareamento / tom rosado à pele detectada. Roupas e fundo permanecem inalterados.
 </Tip>
 
 Enums de estilo: [Enums de parâmetros](/pt-BR/intro/makeup).
@@ -257,7 +256,7 @@ loop();
 - `FrameType.Video` — câmera ao vivo / streaming (suavização temporal)
 - `FrameType.Image` — fotos estáticas
 
-`processTexture(textureHandle, width, height, stride, frameType, mirrorMode)` é para entrada de textura GPU personalizada. **O espelhamento não é aplicado neste caminho.** Apps web típicos devem usar `processImage`.
+`processTexture(textureHandle, width, height, stride, frameType, mirrorMode)` é para entrada de textura GPU personalizada. **Neste caminho não há espelhamento nem rotação.** Apps web típicos devem usar `processImage`.
 
 ## Estatísticas
 

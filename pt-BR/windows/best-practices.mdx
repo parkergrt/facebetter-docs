@@ -19,7 +19,9 @@ Envie `resource.fbd` junto com o app (ou em um diretório de assets) e resolva u
 
 ## Um mecanismo, `ProcessImage` serial
 
-`BeautyEffectEngine` é criado com `Create` e **não** é um singleton. Mantenha uma instância para a sessão. `ImageFrame` e o mecanismo não são thread-safe — serialize `ProcessImage` em um único worker (ou no thread GL quando `external_context = true`).
+`Create` devolve um mecanismo para a sessão, não um singleton de processo. `ImageFrame` e o mecanismo não são thread-safe. Serialize `ProcessImage` e os setters que mutam em um único thread.
+
+- Crie o mecanismo e processe no thread cujo contexto GL é o atual. As texturas de entrada e saída devem pertencer a esse contexto. Quadros de CPU não precisam de um contexto GL do chamador. A config não tem um flag de contexto.
 
 ```cpp
 // good: one engine, one processing thread
@@ -85,10 +87,8 @@ Mire `avg_process_time_ms` abaixo do orçamento de quadro (cerca de 33 ms a 30 f
 
 ## Contexto OpenGL
 
-| `external_context` | Quando |
-| --- | --- |
-| `false` (padrão) | O SDK gerencia o OpenGL |
-| `true` | Você já tem um contexto GL atual; chame `ProcessImage` nesse thread |
+- Crie o mecanismo e processe no thread cujo contexto GL é o atual. As texturas de entrada e saída devem pertencer a esse contexto. Quadros de CPU não precisam de um contexto GL do chamador. A config não tem um flag de contexto.
+
 
 Coloque `facebetter.dll` ao lado do `.exe` (ou no `PATH`). Vincule `facebetter.lib` na compilação.
 

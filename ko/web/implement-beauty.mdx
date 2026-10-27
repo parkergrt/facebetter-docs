@@ -76,13 +76,12 @@ engine.setSmoothing(0.8);
 engine.setSmoothingStyle(SmoothingStyle.Natural);
 engine.setWhitening(0.5);
 engine.setWhiteningStyle(WhiteningStyle.ColdWhite);
-engine.setSharpening(0.3);
 engine.setRosiness(0.2);
 engine.setBeautySkinOnly(true);
 ```
 
 <Tip>
-`setBeautySkinOnly(true)`는 스무딩 / 미백 / 샤프닝 / 혈색을 감지된 피부에만 제한합니다. 옷과 배경은 그대로입니다.
+`setBeautySkinOnly(true)`는 스무딩 / 미백 / 혈색을 감지된 피부에만 제한합니다. 옷과 배경은 그대로입니다.
 </Tip>
 
 스타일 열거형: [파라미터 열거형](/ko/intro/makeup).
@@ -257,7 +256,7 @@ loop();
 - `FrameType.Video` — 라이브 카메라 / 스트리밍(시간적 스무딩)
 - `FrameType.Image` — 정지 사진
 
-`processTexture(textureHandle, width, height, stride, frameType, mirrorMode)`는 커스텀 GPU 텍스처 입력용입니다. **이 경로에서는 미러가 적용되지 않습니다.** 일반적인 웹 앱은 `processImage`를 사용해야 합니다.
+`processTexture(textureHandle, width, height, stride, frameType, mirrorMode)`는 커스텀 GPU 텍스처 입력용입니다. **이 경로에서는 미러도 회전도 적용되지 않습니다.** 일반적인 웹 앱은 `processImage`를 사용해야 합니다.
 
 ## 통계
 

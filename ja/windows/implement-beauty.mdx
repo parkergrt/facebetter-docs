@@ -58,7 +58,6 @@ EngineConfig cfg;
 cfg.app_id = "your_app_id";
 cfg.app_key = "your_app_key";
 cfg.resource_path = "resource/resource.fbd";  // .fbd ファイルを指す
-cfg.external_context = false;                 // SDK が OpenGL コンテキストを管理
 
 // 任意: 空でなければ優先
 // cfg.license_token = "/* ライセンストークン、{token} JSON、または .lic の内容 */";
@@ -87,7 +86,6 @@ engine->SetSmoothing(0.5f);
 engine->SetSmoothingStyle(SmoothingStyle::Natural);
 engine->SetWhitening(0.3f);
 engine->SetWhiteningStyle(WhiteningStyle::ColdWhite);
-engine->SetSharpening(0.2f);
 engine->SetRosiness(0.2f);
 engine->SetBeautySkinOnly(true);  // 検出した肌のみに適用
 ```

@@ -50,7 +50,6 @@ FBImageFrame *exportOut = [engine processImage:full];
 
 ## 一个引擎、一条串行队列
 
-`createEngineWithConfig:` 返回的是**实例**，不是进程级单例。每个会话保留一个引擎，并在**串行队列**上调用（`externalContext = YES` 时则在 GL 线程）。
 
 ```objc
 @interface BeautyEngineManager : NSObject
@@ -108,7 +107,6 @@ FBImageFrame *exportOut = [engine processImage:full];
 
 AppKit 视图已有 **桌面 OpenGL 3.2 Core** 上下文（`NSOpenGLContext` / CGL）时：
 
-1. 设置 `config.externalContext = YES`。
 2. 在**该 GL 线程**创建引擎（复用调用方当前上下文，不要另建一套）。
 3. 用 `createWithTexture:width:height:stride:` 包装 `GL_TEXTURE_2D`。
 4. 输出用 `[output texture]`。
@@ -145,7 +143,7 @@ NSLog(@"fps=%.1f avg=%.2fms session=%.1fs",
 ## macOS 采集与显示
 
 - 用 `createWithNV12:...`、`createWithBGRA:...` 或 `createWithNSImage:` 建帧。
-- 前置 / 自拍预览：`setMirror:@"horizontal"`。
+- 前置 / 自拍预览：`setMirror:FBMirrorModeHorizontal`。
 - Retina：按像素尺寸处理（`backingScaleFactor`），不要用点尺寸。
 - 相机：`NSCameraUsageDescription`。沙盒应用的在线授权需要 **Outgoing Connections**。
 - 用户选择的 `.fbd` / 背景图：使用 security-scoped URL。

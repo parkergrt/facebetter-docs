@@ -116,7 +116,6 @@ BeautyEffectEngine.EngineConfig config = new BeautyEffectEngine.EngineConfig();
 config.appId = "your appId";
 config.appKey = "your appKey";
 // config.licenseToken = "/* license token, {token} JSON, or .lic contents */";
-// config.externalContext = false;
 
 BeautyEffectEngine engine;
 try {
@@ -138,13 +137,14 @@ engine.setSmoothing(0.5f);
 engine.setSmoothingStyle(SmoothingStyle.NATURAL);
 engine.setWhitening(0.3f);
 engine.setWhiteningStyle(WhiteningStyle.COLD_WHITE);
-engine.setSharpening(0.2f);
 engine.setRosiness(0.15f);
+engine.setBrightness(0.1f);
+engine.setClarity(0.2f);
 engine.setBeautySkinOnly(true);
 ```
 
 <Tip>
-Con `setBeautySkinOnly(true)`, suavizado / blanqueamiento / nitidez / rubor se aplican solo en la piel detectada. Ropa y fondo no cambian.
+Con `setBeautySkinOnly(true)`, suavizado / blanqueamiento / rubor se aplican solo en la piel detectada. Ropa y fondo no cambian.
 </Tip>
 
 Estilos: [Enumeraciones de parámetros](/es/intro/makeup).
@@ -331,11 +331,11 @@ ImageFrame output = engine.processImage(input);
 Bitmap preview = output.toBitmap();
 ```
 
-Rota / espeja antes de procesar si el sensor de la cámara está rotado:
+Rota / espeja antes de procesar si el sensor de la cámara está rotado. Estas llamadas solo cambian píxeles de CPU, no una textura OpenGL:
 
 ```java
 input.rotate(ImageFrame.Rotation.ROTATION_90);
-input.mirror("horizontal");
+input.mirror(ImageFrame.MirrorMode.HORIZONTAL);
 ```
 
 <Tip>
@@ -377,7 +377,7 @@ if (input == null) {
 }
 if (isFrontCamera) {
     input.rotate(ImageFrame.Rotation.ROTATION_270);
-    input.mirror("horizontal");
+    input.mirror(ImageFrame.MirrorMode.HORIZONTAL);
 } else {
     input.rotate(ImageFrame.Rotation.ROTATION_90);
 }
@@ -389,7 +389,7 @@ image.close();
 ## Textura externa (OpenGL ES) {#external-texture-opengl-es}
 
 <Warning>
-Crea el motor en el hilo GL con `externalContext = true`. Las texturas de entrada y salida deben compartir ese contexto.
+Crea el motor y procesa en el hilo cuyo contexto GL es el actual. Las texturas de entrada y salida deben pertenecer a ese contexto. Los fotogramas de CPU no necesitan un contexto GL del llamador. La config no tiene un flag de contexto.
 </Warning>
 
 Usa esto cuando ya renderizas con OpenGL ES y quieres evitar idas y vueltas por CPU.
@@ -398,7 +398,6 @@ Usa esto cuando ya renderizas con OpenGL ES y quieres evitar idas y vueltas por 
 BeautyEffectEngine.EngineConfig config = new BeautyEffectEngine.EngineConfig();
 config.appId = "your appId";
 config.appKey = "your appKey";
-config.externalContext = true;
 BeautyEffectEngine engine = new BeautyEffectEngine(context, config);
 engine.setSmoothing(0.5f);
 ```

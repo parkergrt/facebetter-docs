@@ -21,9 +21,7 @@ FBBeautyEffectEngine
 
 | Item | Requirement |
 | --- | --- |
-| Texture path | `externalContext = YES`, lazy `createEngineWithConfig:` on the **vendor GL callback thread** |
 | Input texture | `GL_TEXTURE_2D` (RGBA); `stride` usually `width * 4` |
-| Pixel-buffer path | Use `createWithNV12:` / `createWithBGRA:` etc.; usually **`externalContext = NO`** |
 | Frame type | `FBFrameTypeVideo` |
 | Output | Do not `glDeleteTextures` the output; keep a strong engine ref and nil it when the session ends |
 | Sandbox | Online auth needs **Outgoing Connections**; use `licenseToken` / `.lic` for offline |
@@ -63,7 +61,6 @@ static GLuint FBProcessTexture(FBBeautyEffectEngine *engine,
 FBEngineConfig *config = [[FBEngineConfig alloc] init];
 config.appId = @"your appId";
 config.appKey = @"your appKey";
-config.externalContext = YES;
 self.beautyEngine = [FBBeautyEffectEngine createEngineWithConfig:config];
 [self.beautyEngine setSmoothing:0.5f];
 ```
@@ -95,7 +92,6 @@ static FBImageFrame *FBFrameFromNV12PixelBuffer(CVPixelBufferRef pb) {
 }
 ```
 
-Use `externalContext = NO` for the pixel-buffer path. Credentials: [Subscription](/intro/enable-service), [Auth & License](/intro/license). Bind **process name** in the Dashboard for CLI tools without a Bundle ID.
 
 ---
 
@@ -117,7 +113,6 @@ Hook: `setLocalVideoProcessDelegete:pixelFormat:bufferType:` (official spelling 
   FBEngineConfig *config = [[FBEngineConfig alloc] init];
   config.appId = @"your appId";
   config.appKey = @"your appKey";
-  config.externalContext = YES;
   self.beautyEngine = [FBBeautyEffectEngine createEngineWithConfig:config];
   [self.beautyEngine setSmoothing:0.5f];
 }
@@ -176,7 +171,6 @@ Hook: `AgoraRtcEngineKit.setVideoFrameDelegate:` (Video SDK **4.x**). Captured f
     FBEngineConfig *config = [[FBEngineConfig alloc] init];
     config.appId = @"your appId";
     config.appKey = @"your appKey";
-    config.externalContext = NO;
     self.beautyEngine = [FBBeautyEffectEngine createEngineWithConfig:config];
   }
 
@@ -227,7 +221,6 @@ final class FacebetterVideoProcessor: VideoProcessor {
       let config = FBEngineConfig()
       config.appId = "your appId"
       config.appKey = "your appKey"
-      config.externalContext = false
       beautyEngine = FBBeautyEffectEngine.createEngine(with: config)
       beautyEngine?.setSmoothing(0.5)
     }
@@ -251,7 +244,6 @@ See `BackgroundBlurVideoProcessor` (macOS 12+) for an official sample. Screen-sh
 | Symptom | Check |
 | --- | --- |
 | Black / no video | Engine on vendor **GL thread**; sandbox not blocking online auth |
-| No beauty | `externalContext` matches the path; format is NV12/BGRA |
 | Intermittent crash | Nil engine in `onGLContextDestory` |
 | Distortion | Width / height / rotation / `BytesPerRow` strides |
 

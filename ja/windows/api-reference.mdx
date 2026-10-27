@@ -52,7 +52,6 @@ struct LogConfig {
 | `app_key` | コンソールのアプリキー |
 | `resource_path` | **`resource.fbd` ファイルパス**（デスクトップでは必須） |
 | `license_token` | ライセンストークン、`{token}` JSON、またはオフライン `.lic` の内容 |
-| `external_context` | `false`: SDK が OpenGL コンテキストを管理。`true`: 呼び出し側の現在のコンテキストを使用 |
 
 **認証の優先順位:** `license_token` が空でなければそのトークンをローカル検証し、`app_id` + `app_key` ではネット接続しません。それ以外は `app_id` + `app_key` で `/facebetter/v2/auth` をリクエストします。
 
@@ -62,7 +61,6 @@ struct EngineConfig {
   std::string app_key;
   std::string resource_path;
   std::string license_token;
-  bool external_context = false;
 };
 ```
 
@@ -105,8 +103,13 @@ virtual int SetSmoothing(float intensity) = 0;
 virtual int SetSmoothingStyle(beauty_params::SmoothingStyle style) = 0;
 virtual int SetWhitening(float intensity) = 0;
 virtual int SetWhiteningStyle(beauty_params::WhiteningStyle style) = 0;
-virtual int SetSharpening(float intensity) = 0;
 virtual int SetRosiness(float intensity) = 0;
+virtual int SetBrightness(float intensity) = 0;
+virtual int SetContrast(float intensity) = 0;
+virtual int SetSaturation(float intensity) = 0;
+virtual int SetColorTemperature(float intensity) = 0;
+virtual int SetColorTint(float intensity) = 0;
+virtual int SetClarity(float intensity) = 0;
 virtual int SetBeautySkinOnly(bool enabled) = 0;
 ```
 
@@ -250,6 +253,8 @@ struct EngineStats {
   double fps = 0.0;
   double avg_process_time_ms = 0.0;
   double session_time_s = 0.0;
+  size_t gpu_live_textures = 0;
+  size_t gpu_live_meshes = 0;
 };
 ```
 
@@ -346,7 +351,9 @@ static std::shared_ptr<ImageFrame> CreateWithNV21(
     const uint8_t* dataY, int strideY,
     const uint8_t* dataUV, int strideUV);
 static std::shared_ptr<ImageFrame> CreateWithTexture(
-    uint32_t texture, int width, int height, int stride);
+    uint32_t texture, int width, int height, int stride,
+    bool external_oes = false, const float* tex_matrix_4x4 = nullptr);
+void SetGlRenderTarget(uint32_t texture);
 ```
 
 複数プレーンの YUV は専用ファクトリを使い、汎用 `Create` は使わないでください。
@@ -355,13 +362,15 @@ static std::shared_ptr<ImageFrame> CreateWithTexture(
 
 ```cpp
 int Rotate(Rotation rotation);
-int Mirror(const std::string& mode);       // "horizontal" | "vertical" | "both"
-void SetMirror(const std::string& mode);   // ProcessImage 内で適用。"" でクリア
+int Mirror(MirrorMode mode);                   // Horizontal | Vertical | Both
+void SetMirror(MirrorMode mode);               // ProcessImage 内で適用。None でクリア
 std::shared_ptr<ImageFrame> Convert(Format format) const;
 int ToFile(const std::string& path, int quality = 90) const;
 ```
 
-**アクセサ:** `Width()`、`Height()`、`Stride()`、`Size()`、`GetFormat()`、`Data()`、`DataY/U/V()`、`StrideY/U/V()`、`DataUV()`、`StrideUV()`、`Texture()`、`Buffer()`、`MirrorHorizontal()`、`MirrorVertical()`。
+`Rotate`、`Mirror`、`SetMirror` が変えるのは CPU ピクセルフレームだけです（RGBA、RGB、YUV、画像ファイル）。OpenGL テクスチャと D3D11 テクスチャは変換しません。これらは正立にしてからフレームを作ってください。
+
+**アクセサ:** `Width()`、`Height()`、`Stride()`、`Size()`、`GetFormat()`、`Data()`、`DataY/U/V()`、`StrideY/U/V()`、`DataUV()`、`StrideUV()`、`Texture()`。
 
 公開フィールド: `FrameType type = FrameType::Video`。
 
@@ -399,16 +408,14 @@ struct FaceDetectionResult {
 | `-3` | 認証 |
 | `-4` | 非対応 |
 | `-5` | I/O |
-| `-6` | スロットなし |
-| `-7` | 処理失敗 |
-| `-8` | メモリ不足 |
+| `-6` | 処理失敗 |
+| `-7` | メモリ不足 |
 
 ---
 
 ## 注意事項
 
-- **スレッドセーフ:** `ProcessImage` と状態を変える呼び出しは同一スレッドへ直列化してください（`external_context` のときは GL スレッド）。
+- GL コンテキストがカレントなスレッドでエンジンを作成して処理します。入出力テクスチャはそのコンテキストに属している必要があります。CPU フレームに呼び出し側の GL コンテキストは不要です。設定にコンテキスト用のフラグはありません。
 - **ライフサイクル:** ファクトリメソッドは `std::shared_ptr` を返します。
 - **`Data()` ポインタは読み取り専用**です。書き込まないでください。
-- **`SetRenderView`** は iOS / macOS のみです。
-- **Windows バイナリ:** `facebetter.lib` をリンクし、実行時に `facebetter.dll` を読み込みます。
+- SDK に `SetRenderView` はありません。`ProcessImage` の出力はアプリ側で描画してください。

@@ -30,7 +30,7 @@ Add SDK `include/` to the include path. Link `libfacebetter.so`. Set `LD_LIBRARY
 
 ### `SetRenderView` is missing
 
-iOS / macOS only. On Linux, blit `ProcessImage` output to your GL texture.
+The SDK has no `SetRenderView`. Draw the `ProcessImage` output in your own view.
 
 ## Effects
 
@@ -66,7 +66,7 @@ Install `libgl1-mesa-dev` / `mesa-libGL-devel` and reconfigure.
 
 ### Headless server
 
-Use OSMesa or EGL + `external_context = true`. Still need `resource.fbd` and a valid license.
+- Create the engine and call process on the thread whose GL context is current. Input and output textures must belong to that context. CPU frames do not need a caller GL context. There is no context flag on the config.
 
 ## Auth
 

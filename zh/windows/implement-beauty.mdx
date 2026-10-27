@@ -58,7 +58,6 @@ EngineConfig cfg;
 cfg.app_id = "your_app_id";
 cfg.app_key = "your_app_key";
 cfg.resource_path = "resource/resource.fbd";  // 指向 .fbd 文件
-cfg.external_context = false;                 // SDK 管理 OpenGL 上下文
 
 // 可选：非空时优先
 // cfg.license_token = "/* 许可证 token、{token} JSON 或 .lic 内容 */";
@@ -87,7 +86,6 @@ engine->SetSmoothing(0.5f);
 engine->SetSmoothingStyle(SmoothingStyle::Natural);
 engine->SetWhitening(0.3f);
 engine->SetWhiteningStyle(WhiteningStyle::ColdWhite);
-engine->SetSharpening(0.2f);
 engine->SetRosiness(0.2f);
 engine->SetBeautySkinOnly(true);  // 仅作用于检测到的皮肤
 ```
