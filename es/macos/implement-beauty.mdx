@@ -218,9 +218,6 @@ callbacks.onEngineEvent = ^(FBEngineEventCode code, NSString * _Nullable message
   // 0 license OK, 1 license failed, 100 init complete, 101 init failed
   NSLog(@"engine event %ld %@", (long)code, message);
 };
-callbacks.onFaceLandmarks = ^(NSArray<FBFaceDetectionResult *> * _Nullable results) {
-  NSLog(@"faces %lu", (unsigned long)results.count);
-};
 [self.beautyEffectEngine setCallbacks:callbacks];
 
 FBEngineStats *stats = [self.beautyEffectEngine getStats];

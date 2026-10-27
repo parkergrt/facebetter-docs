@@ -344,12 +344,7 @@ public class EngineStats {
 
 ```java
 public class EngineCallbacks {
-  public OnFaceLandmarksCallback onFaceLandmarks;
   public OnEngineEventCallback onEngineEvent;
-
-  public interface OnFaceLandmarksCallback {
-    void onFaceLandmarks(List<FaceDetectionResult> results);
-  }
 
   public interface OnEngineEventCallback {
     void onEngineEvent(int code, String message);
@@ -376,21 +371,6 @@ public final class EngineEventCode {
 | `1` | 라이선스 거부; `message`에 세부 사항 |
 | `100` | 엔진이 프레임을 처리할 준비 완료 |
 | `101` | 엔진 초기화 실패; `message`에 세부 사항 |
-
-### FaceDetectionResult
-
-정규화 좌표는 처리된 프레임 기준 `[0, 1]`입니다.
-
-| 필드 | 타입 | 설명 |
-| --- | --- | --- |
-| `rect` | `Rect` | 얼굴 박스 |
-| `keyPoints` | `List<Point2d>` | 111개 랜드마크 |
-| `visibility` | `List<Float>` | 포인트별 가시성 `[0, 1]` |
-| `faceId` | `int` | 트래킹 id |
-| `score` | `float` | 검출 신뢰도 `[0, 1]` |
-| `pitch` / `roll` / `yaw` | `float` | 머리 자세(라디안), 범위 `[-π, π]` |
-
-`Point2d`는 `float x, y`를 가집니다. `Rect`는 `float x, y, width, height`(왼쪽 위 원점)입니다.
 
 ## ErrorCode {#errorcode}
 

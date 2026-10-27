@@ -344,12 +344,7 @@ public class EngineStats {
 
 ```java
 public class EngineCallbacks {
-  public OnFaceLandmarksCallback onFaceLandmarks;
   public OnEngineEventCallback onEngineEvent;
-
-  public interface OnFaceLandmarksCallback {
-    void onFaceLandmarks(List<FaceDetectionResult> results);
-  }
 
   public interface OnEngineEventCallback {
     void onEngineEvent(int code, String message);
@@ -376,21 +371,6 @@ public final class EngineEventCode {
 | `1` | Licencia rechazada; `message` incluye el detalle |
 | `100` | Motor listo para procesar fotogramas |
 | `101` | Falló la inicialización del motor; `message` incluye el detalle |
-
-### FaceDetectionResult
-
-Las coordenadas normalizadas están en `[0, 1]` relativas al fotograma procesado.
-
-| Campo | Tipo | Descripción |
-| --- | --- | --- |
-| `rect` | `Rect` | Caja de la cara |
-| `keyPoints` | `List<Point2d>` | 111 puntos clave |
-| `visibility` | `List<Float>` | Visibilidad por punto `[0, 1]` |
-| `faceId` | `int` | Id de seguimiento |
-| `score` | `float` | Confianza de detección `[0, 1]` |
-| `pitch` / `roll` / `yaw` | `float` | Pose de la cabeza en radianes, rango `[-π, π]` |
-
-`Point2d` tiene `float x, y`. `Rect` tiene `float x, y, width, height` (origen en la esquina superior izquierda).
 
 ## ErrorCode
 

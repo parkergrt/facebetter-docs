@@ -344,12 +344,7 @@ public class EngineStats {
 
 ```java
 public class EngineCallbacks {
-  public OnFaceLandmarksCallback onFaceLandmarks;
   public OnEngineEventCallback onEngineEvent;
-
-  public interface OnFaceLandmarksCallback {
-    void onFaceLandmarks(List<FaceDetectionResult> results);
-  }
 
   public interface OnEngineEventCallback {
     void onEngineEvent(int code, String message);
@@ -376,21 +371,6 @@ public final class EngineEventCode {
 | `1` | ライセンス拒否。`message` に詳細 |
 | `100` | エンジンがフレーム処理可能 |
 | `101` | エンジン初期化失敗。`message` に詳細 |
-
-### FaceDetectionResult
-
-正規化座標は処理済みフレームに対する `[0, 1]` です。
-
-| フィールド | 型 | 説明 |
-| --- | --- | --- |
-| `rect` | `Rect` | 顔ボックス |
-| `keyPoints` | `List<Point2d>` | 111 ランドマーク |
-| `visibility` | `List<Float>` | 点ごとの可視性 `[0, 1]` |
-| `faceId` | `int` | トラッキング ID |
-| `score` | `float` | 検出信頼度 `[0, 1]` |
-| `pitch` / `roll` / `yaw` | `float` | 頭部姿勢（ラジアン）、範囲 `[-π, π]` |
-
-`Point2d` は `float x, y` を持ちます。`Rect` は `float x, y, width, height`（左上原点）です。
 
 ## ErrorCode
 

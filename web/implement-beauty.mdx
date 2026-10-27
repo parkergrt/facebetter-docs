@@ -206,10 +206,6 @@ engine.setCallbacks({
       console.error('init failed', message);
     }
   },
-  onFaceLandmarks: (faces) => {
-    // faces[].rect, key_points, visibility, face_id, score, pitch, roll, yaw
-  },
-  maxFaces: 10,
 });
 ```
 
@@ -220,7 +216,6 @@ engine.setCallbacks({
 | `100` | `EngineEventCode.InitializationComplete` |
 | `101` | `EngineEventCode.InitializationFailed` |
 
-Omit `onFaceLandmarks` unless you need landmarks. Enabling it runs face detection every frame.
 
 ## Process frames
 

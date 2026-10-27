@@ -278,14 +278,11 @@ enum class EngineEventCode {
 
 ```cpp
 struct EngineCallbacks {
-  std::function<void(const std::vector<FaceDetectionResult>& results)>
-      on_face_landmarks = nullptr;
   std::function<void(int code, const std::string& message)>
       on_engine_event = nullptr;
 };
 ```
 
-`on_face_landmarks` puede ejecutarse en cada fotograma procesado (vacío si no hay rostro).
 
 ---
 
@@ -373,26 +370,6 @@ int ToFile(const std::string& path, int quality = 90) const;
 **Accesores:** `Width()`, `Height()`, `Stride()`, `Size()`, `GetFormat()`, `Data()`, `DataY/U/V()`, `StrideY/U/V()`, `DataUV()`, `StrideUV()`, `Texture()`.
 
 Campo público: `FrameType type = FrameType::Video`.
-
----
-
-## Tipos de detección
-
-```cpp
-struct Point2d { float x; float y; };  // normalized [0, 1]
-struct Rect { float x, y, width, height; };  // normalized
-
-struct FaceDetectionResult {
-  Rect rect;
-  std::vector<Point2d> key_points;  // 111 points
-  std::vector<float> visibility;
-  int face_id = -1;
-  float score = 0.0f;
-  float pitch = 0.0f;  // up -, down +
-  float roll = 0.0f;
-  float yaw = 0.0f;
-};
-```
 
 ---
 

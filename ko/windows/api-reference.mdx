@@ -278,14 +278,11 @@ enum class EngineEventCode {
 
 ```cpp
 struct EngineCallbacks {
-  std::function<void(const std::vector<FaceDetectionResult>& results)>
-      on_face_landmarks = nullptr;
   std::function<void(int code, const std::string& message)>
       on_engine_event = nullptr;
 };
 ```
 
-`on_face_landmarks`는 처리된 프레임마다 실행될 수 있습니다(얼굴이 없으면 비어 있음).
 
 ---
 
@@ -373,26 +370,6 @@ int ToFile(const std::string& path, int quality = 90) const;
 **접근자:** `Width()`, `Height()`, `Stride()`, `Size()`, `GetFormat()`, `Data()`, `DataY/U/V()`, `StrideY/U/V()`, `DataUV()`, `StrideUV()`, `Texture()`.
 
 공개 필드: `FrameType type = FrameType::Video`.
-
----
-
-## 검출 유형
-
-```cpp
-struct Point2d { float x; float y; };  // normalized [0, 1]
-struct Rect { float x, y, width, height; };  // normalized
-
-struct FaceDetectionResult {
-  Rect rect;
-  std::vector<Point2d> key_points;  // 111 points
-  std::vector<float> visibility;
-  int face_id = -1;
-  float score = 0.0f;
-  float pitch = 0.0f;  // up -, down +
-  float roll = 0.0f;
-  float yaw = 0.0f;
-};
-```
 
 ---
 

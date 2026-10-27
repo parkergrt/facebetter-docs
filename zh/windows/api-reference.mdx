@@ -278,14 +278,11 @@ enum class EngineEventCode {
 
 ```cpp
 struct EngineCallbacks {
-  std::function<void(const std::vector<FaceDetectionResult>& results)>
-      on_face_landmarks = nullptr;
   std::function<void(int code, const std::string& message)>
       on_engine_event = nullptr;
 };
 ```
 
-`on_face_landmarks` 可能每帧触发（无人脸时为空）。
 
 ---
 
@@ -373,26 +370,6 @@ int ToFile(const std::string& path, int quality = 90) const;
 **访问器：** `Width()`、`Height()`、`Stride()`、`Size()`、`GetFormat()`、`Data()`、`DataY/U/V()`、`StrideY/U/V()`、`DataUV()`、`StrideUV()`、`Texture()`。
 
 公开字段：`FrameType type = FrameType::Video`。
-
----
-
-## 检测类型
-
-```cpp
-struct Point2d { float x; float y; };  // 归一化 [0, 1]
-struct Rect { float x, y, width, height; };  // 归一化
-
-struct FaceDetectionResult {
-  Rect rect;
-  std::vector<Point2d> key_points;  // 111 点
-  std::vector<float> visibility;
-  int face_id = -1;
-  float score = 0.0f;
-  float pitch = 0.0f;  // 上负下正
-  float roll = 0.0f;
-  float yaw = 0.0f;
-};
-```
 
 ---
 

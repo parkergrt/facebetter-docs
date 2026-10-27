@@ -297,9 +297,6 @@ callbacks.onEngineEvent = (code, message) -> {
             break;
     }
 };
-callbacks.onFaceLandmarks = results -> {
-    Log.d(TAG, "faces=" + results.size());
-};
 engine.setCallbacks(callbacks);
 
 EngineStats stats = engine.getStats();

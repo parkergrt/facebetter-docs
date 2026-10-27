@@ -187,7 +187,6 @@ struct EngineStats {
 
 ```cpp
 struct EngineCallbacks {
-  std::function<void(const std::vector<FaceDetectionResult>&)> on_face_landmarks;
   std::function<void(int code, const std::string& message)> on_engine_event;
 };
 ```
@@ -209,17 +208,6 @@ enum class FrameType { Image = 0, Video = 1 };
 `Rotate`, `Mirror` y `SetMirror` solo modifican fotogramas de píxeles en CPU (RGBA, RGB, YUV y archivos de imagen). No transforman una textura OpenGL. Entregue la textura ya en orientación correcta.
 
 **Accesores:** `Width/Height/Stride/Size/GetFormat/Data`, planos YUV, `Texture()`. Campo: `FrameType type`.
-
-```cpp
-struct FaceDetectionResult {
-  Rect rect;
-  std::vector<Point2d> key_points;  // 111
-  std::vector<float> visibility;
-  int face_id = -1;
-  float score = 0.0f;
-  float pitch, roll, yaw;
-};
-```
 
 ---
 

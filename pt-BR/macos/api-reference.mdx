@@ -341,39 +341,8 @@ typedef NS_ENUM(NSInteger, FBErrorCode) {
 
 ```objc
 FB_OBJC_API @interface FBEngineCallbacks : NSObject
-@property(nonatomic, copy, nullable) void (^onFaceLandmarks)
-    (NSArray<FBFaceDetectionResult *> * _Nullable results);
 @property(nonatomic, copy, nullable) void (^onEngineEvent)
     (FBEngineEventCode code, NSString * _Nullable message);
-@end
-```
-
-### Tipos de resultado facial
-
-```objc
-FB_OBJC_API @interface FBPoint2d : NSObject
-@property(nonatomic, assign) float x;
-@property(nonatomic, assign) float y;
-- (instancetype)initWithX:(float)x y:(float)y;
-@end
-
-FB_OBJC_API @interface FBRect : NSObject
-@property(nonatomic, assign) float x;
-@property(nonatomic, assign) float y;
-@property(nonatomic, assign) float width;
-@property(nonatomic, assign) float height;
-- (instancetype)initWithX:(float)x y:(float)y width:(float)width height:(float)height;
-@end
-
-FB_OBJC_API @interface FBFaceDetectionResult : NSObject
-@property(nonatomic, strong) FBRect *rect;
-@property(nonatomic, copy, nullable) NSArray<FBPoint2d *> *keyPoints;  // 111 points
-@property(nonatomic, copy, nullable) NSArray<NSNumber *> *visibility;  // [0, 1]
-@property(nonatomic, assign) int faceId;
-@property(nonatomic, assign) float score;
-@property(nonatomic, assign) float pitch;  // up -, down +; [-π, π]
-@property(nonatomic, assign) float roll;   // left -, right +
-@property(nonatomic, assign) float yaw;    // left -, right +
 @end
 ```
 

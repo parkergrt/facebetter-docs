@@ -112,7 +112,6 @@ Camera preview is a different path: capture resolution + `FrameType.Video`. Debo
 
 Start low in real-time preview (`smoothing` ~ `0.2`–`0.5`). Reshape is `[-1, 1]`; small values look more natural on camera.
 
-Do not register `onFaceLandmarks` unless the UI needs them — it forces per-frame detection.
 
 `setBeautySkinOnly(true)` avoids smearing backgrounds when smoothing is high.
 

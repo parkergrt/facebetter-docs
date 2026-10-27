@@ -187,7 +187,6 @@ struct EngineStats {
 
 ```cpp
 struct EngineCallbacks {
-  std::function<void(const std::vector<FaceDetectionResult>&)> on_face_landmarks;
   std::function<void(int code, const std::string& message)> on_engine_event;
 };
 ```
@@ -209,17 +208,6 @@ enum class FrameType { Image = 0, Video = 1 };
 `Rotate`、`Mirror`、`SetMirror` が変えるのは CPU ピクセルフレームだけです（RGBA、RGB、YUV、画像ファイル）。OpenGL テクスチャは変換しません。テクスチャは正立にしてから渡してください。
 
 **アクセサ:** `Width/Height/Stride/Size/GetFormat/Data`、YUV プレーン、`Texture()`。フィールド: `FrameType type`。
-
-```cpp
-struct FaceDetectionResult {
-  Rect rect;
-  std::vector<Point2d> key_points;  // 111
-  std::vector<float> visibility;
-  int face_id = -1;
-  float score = 0.0f;
-  float pitch, roll, yaw;
-};
-```
 
 ---
 

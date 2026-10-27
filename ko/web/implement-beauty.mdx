@@ -206,10 +206,6 @@ engine.setCallbacks({
       console.error('init failed', message);
     }
   },
-  onFaceLandmarks: (faces) => {
-    // faces[].rect, key_points, visibility, face_id, score, pitch, roll, yaw
-  },
-  maxFaces: 10,
 });
 ```
 
@@ -220,7 +216,6 @@ engine.setCallbacks({
 | `100` | `EngineEventCode.InitializationComplete` |
 | `101` | `EngineEventCode.InitializationFailed` |
 
-랜드마크가 필요하지 않으면 `onFaceLandmarks`를 생략하세요. 켜면 매 프레임 얼굴 검출이 실행됩니다.
 
 ## 프레임 처리
 

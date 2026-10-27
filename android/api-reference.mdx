@@ -344,12 +344,7 @@ public class EngineStats {
 
 ```java
 public class EngineCallbacks {
-  public OnFaceLandmarksCallback onFaceLandmarks;
   public OnEngineEventCallback onEngineEvent;
-
-  public interface OnFaceLandmarksCallback {
-    void onFaceLandmarks(List<FaceDetectionResult> results);
-  }
 
   public interface OnEngineEventCallback {
     void onEngineEvent(int code, String message);
@@ -376,21 +371,6 @@ public final class EngineEventCode {
 | `1` | License rejected; `message` has detail |
 | `100` | Engine ready to process frames |
 | `101` | Engine init failed; `message` has detail |
-
-### FaceDetectionResult
-
-Normalized coordinates are in `[0, 1]` relative to the processed frame.
-
-| Field | Type | Description |
-| --- | --- | --- |
-| `rect` | `Rect` | Face box |
-| `keyPoints` | `List<Point2d>` | 111 landmarks |
-| `visibility` | `List<Float>` | Per-point visibility `[0, 1]` |
-| `faceId` | `int` | Tracking id |
-| `score` | `float` | Detection confidence `[0, 1]` |
-| `pitch` / `roll` / `yaw` | `float` | Head pose in radians, range `[-π, π]` |
-
-`Point2d` has `float x, y`. `Rect` has `float x, y, width, height` (top-left origin).
 
 ## ErrorCode
 

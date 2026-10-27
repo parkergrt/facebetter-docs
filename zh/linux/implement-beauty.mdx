@@ -151,9 +151,6 @@ cbs.on_engine_event = [](int code, const std::string& message) {
     // 0 授权成功，1 失败，100 初始化完成，101 初始化失败
     printf("[event] %d %s\n", code, message.c_str());
 };
-cbs.on_face_landmarks = [](const std::vector<FaceDetectionResult>& faces) {
-    printf("faces=%zu\n", faces.size());
-};
 engine->SetCallbacks(cbs);
 
 EngineStats stats = engine->GetStats();

@@ -188,7 +188,6 @@ struct EngineStats {
 
 ```cpp
 struct EngineCallbacks {
-  std::function<void(const std::vector<FaceDetectionResult>&)> on_face_landmarks;
   std::function<void(int code, const std::string& message)> on_engine_event;
 };
 ```
@@ -210,17 +209,6 @@ enum class FrameType { Image = 0, Video = 1 };
 `Rotate`、`Mirror`、`SetMirror` 只改 CPU 像素帧（RGBA、RGB、YUV 和图片文件）。它们不会变换 OpenGL 纹理。纹理请先转正再传入。
 
 **访问器：** `Width/Height/Stride/Size/GetFormat/Data`、YUV 平面、`Texture()`。字段：`FrameType type`。
-
-```cpp
-struct FaceDetectionResult {
-  Rect rect;
-  std::vector<Point2d> key_points;  // 111
-  std::vector<float> visibility;
-  int face_id = -1;
-  float score = 0.0f;
-  float pitch, roll, yaw;
-};
-```
 
 ---
 

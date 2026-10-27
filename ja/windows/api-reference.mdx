@@ -278,14 +278,11 @@ enum class EngineEventCode {
 
 ```cpp
 struct EngineCallbacks {
-  std::function<void(const std::vector<FaceDetectionResult>& results)>
-      on_face_landmarks = nullptr;
   std::function<void(int code, const std::string& message)>
       on_engine_event = nullptr;
 };
 ```
 
-`on_face_landmarks` は毎フレーム発火することがあります（顔がないときは空です）。
 
 ---
 
@@ -373,26 +370,6 @@ int ToFile(const std::string& path, int quality = 90) const;
 **アクセサ:** `Width()`、`Height()`、`Stride()`、`Size()`、`GetFormat()`、`Data()`、`DataY/U/V()`、`StrideY/U/V()`、`DataUV()`、`StrideUV()`、`Texture()`。
 
 公開フィールド: `FrameType type = FrameType::Video`。
-
----
-
-## 検出の型
-
-```cpp
-struct Point2d { float x; float y; };  // 正規化 [0, 1]
-struct Rect { float x, y, width, height; };  // 正規化
-
-struct FaceDetectionResult {
-  Rect rect;
-  std::vector<Point2d> key_points;  // 111 点
-  std::vector<float> visibility;
-  int face_id = -1;
-  float score = 0.0f;
-  float pitch = 0.0f;  // 上負下正
-  float roll = 0.0f;
-  float yaw = 0.0f;
-};
-```
 
 ---
 

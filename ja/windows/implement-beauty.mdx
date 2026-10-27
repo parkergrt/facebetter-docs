@@ -172,9 +172,6 @@ cbs.on_engine_event = [](int code, const std::string& message) {
     // 0 認証成功、1 認証失敗、100 初期化完了、101 初期化失敗
     printf("[event] %d %s\n", code, message.c_str());
 };
-cbs.on_face_landmarks = [](const std::vector<FaceDetectionResult>& faces) {
-    printf("faces=%zu\n", faces.size());
-};
 engine->SetCallbacks(cbs);
 
 EngineStats stats = engine->GetStats();

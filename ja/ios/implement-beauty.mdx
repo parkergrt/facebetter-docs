@@ -224,15 +224,9 @@ NSString *sticker3dPath = [[NSBundle mainBundle] pathForResource:@"oculos" ofTyp
 
 ```objc
 FBEngineCallbacks *callbacks = [[FBEngineCallbacks alloc] init];
-__weak typeof(self) weakSelf = self;
 callbacks.onEngineEvent = ^(FBEngineEventCode code, NSString * _Nullable message) {
   // 0 license OK, 1 license failed, 100 init complete, 101 init failed
   NSLog(@"engine event %ld %@", (long)code, message);
-};
-callbacks.onFaceLandmarks = ^(NSArray<FBFaceDetectionResult *> * _Nullable results) {
-  for (FBFaceDetectionResult *face in results) {
-    NSLog(@"face %d keypoints %lu", face.faceId, (unsigned long)face.keyPoints.count);
-  }
 };
 [self.beautyEffectEngine setCallbacks:callbacks];
 

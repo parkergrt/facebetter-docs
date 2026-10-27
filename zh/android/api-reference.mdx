@@ -344,12 +344,7 @@ public class EngineStats {
 
 ```java
 public class EngineCallbacks {
-  public OnFaceLandmarksCallback onFaceLandmarks;
   public OnEngineEventCallback onEngineEvent;
-
-  public interface OnFaceLandmarksCallback {
-    void onFaceLandmarks(List<FaceDetectionResult> results);
-  }
 
   public interface OnEngineEventCallback {
     void onEngineEvent(int code, String message);
@@ -376,21 +371,6 @@ public final class EngineEventCode {
 | `1` | 授权失败，`message` 含详情 |
 | `100` | 引擎可处理帧 |
 | `101` | 引擎初始化失败，`message` 含详情 |
-
-### FaceDetectionResult
-
-归一化坐标相对处理后的画面，范围 `[0, 1]`。
-
-| 字段 | 类型 | 说明 |
-| --- | --- | --- |
-| `rect` | `Rect` | 人脸框 |
-| `keyPoints` | `List<Point2d>` | 111 个关键点 |
-| `visibility` | `List<Float>` | 各点可见度 `[0, 1]` |
-| `faceId` | `int` | 跟踪 ID |
-| `score` | `float` | 检测置信度 `[0, 1]` |
-| `pitch` / `roll` / `yaw` | `float` | 头部姿态（弧度），范围 `[-π, π]` |
-
-`Point2d` 含 `float x, y`。`Rect` 含 `float x, y, width, height`（左上角原点）。
 
 ## ErrorCode
 
