@@ -27,7 +27,7 @@ new EngineConfig({
 })
 ```
 
-Web **不接受**在该对象上设置 `appId` / `appKey`。Web **不支持**离线 `.lic`。
+Web **不接受**在该对象上设置 `appId` / `appKey`。离线 `.lic` 必须对上页面 origin。Electron 不校验 origin。
 
 `licenseToken` 为非空字符串时 `isValid()` 为 true。
 

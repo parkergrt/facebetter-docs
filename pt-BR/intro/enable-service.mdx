@@ -15,9 +15,9 @@ Abra **Credentials** do projeto. O SDK verifica se o app em execução correspon
 
 - **iOS / macOS**: Bundle ID (ex.: `com.example.app`)
 - **Android**: nome do pacote do aplicativo (ex.: `com.example.app`)
-- **Windows**: nome do aplicativo ou nome do executável
-- **Linux** (oficialmente Ubuntu 22.04+): nome do aplicativo ou do pacote
-- **Web**: domínio do aplicativo (ex.: `example.com`)
+- **Windows**: nome do executável, com `.exe` (ex.: `CustomerApp.exe`)
+- **Linux** (oficialmente Ubuntu 22.04+): nome do executável (ex.: `customerapp`)
+- **Web**: origem da página (ex.: `https://app.example.com`). O Electron não verifica esta origem
 
 A autenticação falha se as vinculações estiverem ausentes ou não corresponderem. Para ferramentas de linha de comando sem Bundle ID, vincule o nome do processo conforme indicado no Console.
 

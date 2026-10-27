@@ -16,7 +16,7 @@ SDK **2.0** 使用 **license token** 鉴权。原生平台也可以用 `appId` +
 | 模式 | 配置字段 | 适用场景 |
 |------|----------|----------|
 | 在线 | `appId` + `appKey` | 设备能访问 `/facebetter/v2/auth` |
-| Token | `licenseToken` | 许可证 token、`{token}` JSON，或原生离线 `.lic` |
+| Token | `licenseToken` | 许可证 token、`{token}` JSON，或离线 `.lic` |
 
 **优先级**：`licenseToken` 非空时，SDK 本地校验该 token，**不会**再用 `appId` / `appKey` 请求网络。
 
@@ -73,7 +73,7 @@ config.appKey = "your appKey";
 官方 Demo（`demo/web/react`）也是这套模式：前端见 `src/fetchLicenseToken.js`，服务端代理见 `api/facebetter/auth.js`。
 
 <Warning>
-不要把 `appKey` 打进前端包。Web **不支持**离线 `.lic`。在线 token 几分钟内过期，重新创建引擎前要再换一张。
+不要把 `appKey` 打进前端包。Web 离线 `.lic` 必须对上页面 origin，例如 `https://app.example.com`。Electron 不校验 origin。在线 token 几分钟内过期，重新创建引擎前要再换一张。
 </Warning>
 
 ### 前端
@@ -150,21 +150,20 @@ app.post('/api/facebetter/auth', async (req, res) => {
 
 成功时上游返回 JSON（含 `token` 字段）。你可原样把响应文本交给 SDK，也可只抽出 `token` 字符串；两者 SDK 都接受。
 
-## 离线许可证（仅原生） {#offline-license}
+## 离线许可证 {#offline-license}
 
-控制台**不再提供**离线 `.lic` 自助下载。如需离线授权，请联系销售或管理员：
+在控制台凭证页下载离线 `.lic`，把**全文**赋给 `licenseToken` / `license_token`。
 
-- 邮箱：[hello@facebetter.net](mailto:hello@facebetter.net)（主题建议注明 `[商务合作] 离线许可证`）
-- 更多方式：[联系我们](https://facebetter.net/zh/contact)
+付费后，已保存的标识会锁定，空着的平台可以补一次。要改已锁定的标识，请[联系我们](https://facebetter.net/zh/contact)。免费版可以随时改标识并下载。
 
-获得文件后，把**全文**赋给 `licenseToken` / `license_token`。有效期与当前订阅一致；续费或改套餐后需重新申请并替换。
+文件在订阅结束后再多 15 天到期。重新下载不会把到期日往后推。续费后重新下载一张。
 
 ### 注意
 
-- 离线许可证绑定控制台里配置的应用标识，不匹配会校验失败。
+- 在线票和离线许可证都核对控制台里的应用标识：iOS / macOS 是 Bundle ID，Android 是包名，Windows / Linux 是可执行文件名，浏览器是页面 origin。Electron 不校验 origin。对不上就失败。
 - 未过期：能力跟随订阅套餐。
-- 已过期：引擎仍可初始化，能力回退到**免费版**（始终带水印）。续费后重新申请。
-- Web 不能使用离线许可证，必须走在线 v2 鉴权。
+- 已过期：引擎仍可初始化，能力回退到**免费版**（始终带水印）。续费后在控制台重新下载。
+- Web 离线许可证绑定页面 origin。把 `.lic` 全文赋给 `licenseToken`。
 
 ## 引擎事件
 

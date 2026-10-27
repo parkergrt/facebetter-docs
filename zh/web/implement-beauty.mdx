@@ -37,7 +37,7 @@ Web 的 `EngineConfig` **只有**下列字段，配置对象上没有 `appId` / 
 | --- | --- |
 | `licenseToken` | 许可证 token，或 `{token}` JSON。**必填。** 在 `init()` 之前换好。 |
 
-引擎运行时文件在 `init()` 时由 SDK 加载，不必在站点根路径放 `resource.fbd`。可选下载进度：`init({ onProgress })`。引擎不会去换 token。Web **不支持**离线 `.lic`。
+引擎运行时文件在 `init()` 时由 SDK 加载，不必在站点根路径放 `resource.fbd`。可选下载进度：`init({ onProgress })`。引擎不会去换 token。离线 `.lic` 必须对上页面 origin。Electron 不校验 origin。
 
 ```javascript
 const licenseToken = await fetch('/api/facebetter/auth', { method: 'POST' }).then((r) => r.text());

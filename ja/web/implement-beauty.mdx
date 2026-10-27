@@ -37,7 +37,7 @@ Web の `EngineConfig` には次のフィールド**だけ**があり、設定�
 | --- | --- |
 | `licenseToken` | ライセンストークン、または `{token}` JSON。**必須。** `init()` の前に取得します。 |
 
-エンジンのランタイムファイルは `init()` 時に SDK が読み込みます。サイトルートに `resource.fbd` を置く必要はありません。任意のダウンロード進捗: `init({ onProgress })`。エンジンはトークンを取得しません。Web はオフライン `.lic` に**対応していません**。
+エンジンのランタイムファイルは `init()` 時に SDK が読み込みます。サイトルートに `resource.fbd` を置く必要はありません。任意のダウンロード進捗: `init({ onProgress })`。エンジンはトークンを取得しません。オフライン `.lic` はページ origin と一致する必要があります。Electron は origin を確認しません。
 
 ```javascript
 const licenseToken = await fetch('/api/facebetter/auth', { method: 'POST' }).then((r) => r.text());

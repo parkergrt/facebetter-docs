@@ -27,7 +27,7 @@ new EngineConfig({
 })
 ```
 
-A Web **não** aceita `appId` / `appKey` neste objeto. A Web **não** suporta `.lic` offline.
+A Web **não** aceita `appId` / `appKey` neste objeto. Um `.lic` offline precisa corresponder à origem da página. O Electron não verifica a origem.
 
 `isValid()` é verdadeiro quando `licenseToken` é uma string não vazia.
 

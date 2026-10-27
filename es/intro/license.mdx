@@ -73,7 +73,7 @@ El SDK del navegador **no** tiene campos `appId` / `appKey`. El motor solo acept
 El demo oficial (`demo/web/react`) usa el mismo patrón: frontend en `src/fetchLicenseToken.js`, proxy del servidor en `api/facebetter/auth.js`.
 
 <Warning>
-No pongas `appKey` en un bundle de frontend. Web **no** admite archivos `.lic` sin conexión. Los tokens en línea caducan en minutos: obtén uno nuevo antes de volver a crear el motor.
+No pongas `appKey` en un bundle de frontend. Un `.lic` sin conexión en la web debe coincidir con el origen de la página, por ejemplo `https://app.example.com`. Electron no comprueba el origen. Los tokens en línea caducan en minutos: obtén uno nuevo antes de volver a crear el motor.
 </Warning>
 
 ### Frontend
@@ -150,21 +150,20 @@ En otros lenguajes, implementa los mismos pasos: construye la cadena a firmar �
 
 Si tiene éxito, el upstream devuelve JSON (incluido un campo `token`). Puedes reenviar el texto de la respuesta tal cual, o extraer solo la cadena `token`: el SDK acepta ambos.
 
-## Licencia sin conexión (nativo) {#offline-license}
+## Licencia sin conexión {#offline-license}
 
-La Consola **ya no** ofrece descargas de `.lic` sin conexión en autoservicio. Para obtener una licencia sin conexión, contacta con ventas o un administrador:
+Descarga un `.lic` sin conexión en la página de credenciales de la Consola y pasa el **contenido completo** como `licenseToken` / `license_token`.
 
-- Correo: [hello@facebetter.net](mailto:hello@facebetter.net) (asunto sugerido: `[Alianza comercial] Licencia sin conexión`)
-- Más opciones: [Contacto](https://facebetter.net/es/contact)
+Los planes de pago bloquean cada identificador guardado. Una plataforma vacía se puede completar una vez. Para cambiar un valor bloqueado, [contacta con soporte](https://facebetter.net/es/contact). Los planes gratis pueden editar identificadores y descargar en cualquier momento.
 
-Cuando recibas el archivo, pasa el **contenido completo** como `licenseToken` / `license_token`. La validez coincide con tu suscripción actual; tras renovar o cambiar de plan, solicita un archivo nuevo y sustitúyelo en la app.
+El archivo caduca 15 días después de que termine la suscripción. Volver a descargarlo no alarga esa fecha. Tras renovar, descarga un archivo nuevo.
 
 ### Notas
 
-- La licencia sin conexión está vinculada a los identificadores de app configurados en la Consola; si no coinciden, la validación falla.
+- Los tokens en línea y las licencias sin conexión comprueban el identificador de la Consola: iOS y macOS usan el Bundle ID, Android el nombre del paquete, Windows y Linux el nombre del ejecutable, y un navegador el origen de la página. Electron no comprueba el origen. Si no coinciden, la validación falla.
 - Si no ha caducado: las funciones siguen tu plan de suscripción.
-- Si ha caducado: el motor aún puede inicializarse, pero las capacidades vuelven al plan **Free** (prueba con marca de agua). Renueva y solicita una licencia nueva.
-- Web no puede usar licencias sin conexión; debe completar una ruta de autenticación v2 en línea.
+- Si ha caducado: el motor aún puede inicializarse, pero las capacidades vuelven al plan **Free** (prueba con marca de agua). Tras renovar, descarga un archivo nuevo en la Consola.
+- Las licencias sin conexión en la web están vinculadas al origen de la página. Pasa el `.lic` completo como `licenseToken`.
 
 ## Eventos del motor
 

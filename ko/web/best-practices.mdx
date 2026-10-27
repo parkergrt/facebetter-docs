@@ -20,7 +20,7 @@ const engine = new BeautyEffectEngine(new EngineConfig({ licenseToken }));
 프론트엔드 번들에 `appKey`를 넣지 마세요.
 </Warning>
 
-대시보드에 정확한 프로덕션 도메인을 바인딩하세요. Web은 오프라인 `.lic`를 사용할 수 없습니다.
+대시보드에 페이지 origin(예: `https://app.example.com`)을 바인딩하세요. Electron은 origin을 검사하지 않습니다.
 
 ## 페이지당 엔진 하나
 

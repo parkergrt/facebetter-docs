@@ -20,7 +20,7 @@ const engine = new BeautyEffectEngine(new EngineConfig({ licenseToken }));
 Nunca coloque `appKey` em um bundle de frontend.
 </Warning>
 
-Vincule o domínio exato de produção no Console. A Web não pode usar `.lic` offline.
+Vincule a origem exata da página no Console, por exemplo `https://app.example.com`. O Electron não verifica a origem.
 
 ## Um mecanismo por página
 

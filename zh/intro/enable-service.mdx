@@ -15,9 +15,9 @@ description: "开通美颜特效 SDK 订阅服务并获取 AppID & AppKey，开�
 
 - **iOS / macOS**：Bundle ID（例如 `com.example.app`）
 - **Android**：应用包名（例如 `com.example.app`）
-- **Windows**：应用名称或可执行文件名
-- **Linux**（官方支持 Ubuntu 22.04+）：应用名称或包名
-- **Web**：应用域名（例如 `example.com`）
+- **Windows**：可执行文件名，带 `.exe`（例如 `CustomerApp.exe`）
+- **Linux**（官方支持 Ubuntu 22.04+）：可执行文件名（例如 `customerapp`）
+- **Web**：页面 origin（例如 `https://app.example.com`）。Electron 不校验这项
 
 未绑定或不匹配时，鉴权会失败。命令行工具等无 Bundle 的场景，请按控制台提示绑定进程名。
 

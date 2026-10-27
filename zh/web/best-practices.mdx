@@ -20,7 +20,7 @@ const engine = new BeautyEffectEngine(new EngineConfig({ licenseToken }));
 不要把 `appKey` 打进前端包。
 </Warning>
 
-在控制台绑定与线上一致的域名。Web 不能使用离线 `.lic`。
+在控制台绑定页面 origin，例如 `https://app.example.com`。Electron 不校验 origin。
 
 ## 一页一个引擎
 

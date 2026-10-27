@@ -37,7 +37,7 @@ import {
 | --- | --- |
 | `licenseToken` | License token string, or `{token}` JSON. **Required.** Fetch it before `init()`. |
 
-The SDK loads runtime files during `init()`. You do not host a site-root `resource.fbd` for the engine. Optional download progress: `init({ onProgress })`. The engine does not fetch tokens. Web does **not** support offline `.lic`.
+The SDK loads runtime files during `init()`. You do not host a site-root `resource.fbd` for the engine. Optional download progress: `init({ onProgress })`. The engine does not fetch tokens. An offline `.lic` must match the page origin. Electron does not check origin.
 
 ```javascript
 const licenseToken = await fetch('/api/facebetter/auth', { method: 'POST' }).then((r) => r.text());

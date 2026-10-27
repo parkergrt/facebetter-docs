@@ -20,7 +20,7 @@ const engine = new BeautyEffectEngine(new EngineConfig({ licenseToken }));
 Never put `appKey` in a frontend bundle.
 </Warning>
 
-Bind the exact production domain in the Dashboard. Web cannot use offline `.lic`.
+Bind the exact page origin in the Dashboard, for example `https://app.example.com`. Electron does not check origin.
 
 ## One engine per page
 

@@ -73,7 +73,7 @@ O SDK do navegador **não** tem campos `appId` / `appKey`. O mecanismo aceita ap
 O demo oficial (`demo/web/react`) usa o mesmo padrão: frontend em `src/fetchLicenseToken.js`, proxy do servidor em `api/facebetter/auth.js`.
 
 <Warning>
-Não coloque `appKey` em um bundle de frontend. A Web **não** suporta arquivos `.lic` offline. Tokens online expiram em minutos — busque um novo antes de criar o mecanismo novamente.
+Não coloque `appKey` em um bundle de frontend. Um `.lic` offline na Web precisa corresponder à origem da página, por exemplo `https://app.example.com`. O Electron não verifica a origem. Tokens online expiram em minutos — busque um novo antes de criar o mecanismo novamente.
 </Warning>
 
 ### Frontend
@@ -150,21 +150,20 @@ Em outras linguagens, implemente os mesmos passos: montar a string de assinatura
 
 Em caso de sucesso, o upstream devolve JSON (incluindo um campo `token`). Você pode encaminhar o texto da resposta como está ou extrair apenas a string `token` — o SDK aceita os dois.
 
-## Licença offline (nativo) {#offline-license}
+## Licença offline {#offline-license}
 
-O Console **não oferece mais** download self-serve de `.lic` offline. Para obter uma licença offline, fale com vendas ou um administrador:
+Baixe um `.lic` offline na página de credenciais do Console e passe o **conteúdo inteiro** como `licenseToken` / `license_token`.
 
-- E-mail: [hello@facebetter.net](mailto:hello@facebetter.net) (dica de assunto: `[Business Partnership] Offline license`)
-- Mais opções: [Fale conosco](https://facebetter.net/pt-BR/contact)
+Planos pagos bloqueiam cada identificador salvo. Uma plataforma vazia pode ser preenchida uma vez. Para alterar um valor bloqueado, [fale com o suporte](https://facebetter.net/pt-BR/contact). Planos gratuitos podem editar identificadores e baixar a qualquer momento.
 
-Depois de receber o arquivo, passe o **conteúdo inteiro** como `licenseToken` / `license_token`. A validade acompanha sua assinatura atual; após renovar ou alterar o plano, solicite um arquivo novo e substitua-o no app.
+O arquivo expira 15 dias após o fim da assinatura. Baixar de novo não empurra essa data. Após renovar, baixe um arquivo novo.
 
 ### Observações
 
-- A licença offline está vinculada aos identificadores do app configurados no Console; uma divergência falha na validação.
+- Tokens online e licenças offline verificam o identificador do Console: iOS e macOS usam o Bundle ID, Android o nome do pacote, Windows e Linux o nome do executável, e um navegador a origem da página. O Electron não verifica a origem. Uma divergência falha na validação.
 - Não expirada: os recursos seguem o plano de assinatura.
-- Expirada: o mecanismo ainda pode inicializar, mas as capacidades voltam ao plano **Free** (teste com marca d'água). Renove e solicite uma nova licença.
-- A Web não pode usar licenças offline; precisa concluir um caminho de autenticação online v2.
+- Expirada: o mecanismo ainda pode inicializar, mas as capacidades voltam ao plano **Free** (teste com marca d'água). Após renovar, baixe um arquivo novo no Console.
+- Licenças offline na Web são vinculadas à origem da página. Passe o `.lic` inteiro como `licenseToken`.
 
 ## Eventos do mecanismo
 

@@ -16,7 +16,7 @@ SDK **2.0**은 **라이선스 토큰**으로 인증합니다. 네이티브 플�
 | 모드 | 설정 필드 | 사용 시점 |
 |------|---------------|-------------|
 | 온라인 | `appId` + `appKey` | 기기가 `/facebetter/v2/auth`에 도달할 수 있을 때 |
-| Token | `licenseToken` | 라이선스 토큰 문자열, `{token}` JSON, 또는 네이티브 오프라인 `.lic` |
+| Token | `licenseToken` | 라이선스 토큰 문자열, `{token}` JSON, 또는 오프라인 `.lic` |
 
 **우선순위**: `licenseToken`이 비어 있지 않으면 SDK는 해당 토큰을 로컬에서 검증하며, `appId` / `appKey`로 네트워크를 호출하지 **않습니다**.
 
@@ -73,7 +73,7 @@ config.appKey = "your appKey";
 공식 데모(`demo/web/react`)도 같은 패턴입니다. 프론트엔드는 `src/fetchLicenseToken.js`, 서버 프록시는 `api/facebetter/auth.js`입니다.
 
 <Warning>
-프론트엔드 번들에 `appKey`를 넣지 마세요. Web은 오프라인 `.lic` 파일을 지원하지 **않습니다**. 온라인 토큰은 수 분 안에 만료되므로, 엔진을 다시 만들기 전에 새 토큰을 받으세요.
+프론트엔드 번들에 `appKey`를 넣지 마세요. Web 오프라인 `.lic`는 페이지 origin(예: `https://app.example.com`)과 일치해야 합니다. Electron은 origin을 검사하지 않습니다. 온라인 토큰은 수 분 안에 만료되므로, 엔진을 다시 만들기 전에 새 토큰을 받으세요.
 </Warning>
 
 ### 프론트엔드
@@ -150,21 +150,20 @@ app.post('/api/facebetter/auth', async (req, res) => {
 
 성공 시 업스트림은 JSON(`token` 필드 포함)을 반환합니다. 응답 텍스트를 그대로 전달하거나 `token` 문자열만 추출해도 됩니다. SDK는 둘 다 받습니다.
 
-## 오프라인 라이선스 (네이티브) {#offline-license}
+## 오프라인 라이선스 {#offline-license}
 
-대시보드는 오프라인 `.lic` 셀프 다운로드를 **더 이상** 제공하지 않습니다. 오프라인 라이선스가 필요하면 영업 또는 관리자에게 문의하세요.
+대시보드 인증 정보 페이지에서 오프라인 `.lic`를 받아 **전체 내용**을 `licenseToken` / `license_token`으로 전달하세요.
 
-- 이메일: [hello@facebetter.net](mailto:hello@facebetter.net) (제목 예시: `[Business Partnership] Offline license`)
-- 기타 방법: [문의하기](https://facebetter.net/ko/contact)
+유료 플랜은 저장된 식별자를 잠급니다. 비어 있는 플랫폼은 한 번만 입력할 수 있습니다. 잠긴 값을 바꾸려면 [지원](https://facebetter.net/ko/contact)에 문의하세요. 무료 플랜은 식별자를 바꾸고 언제든 다운로드할 수 있습니다.
 
-파일을 받은 뒤 **전체 내용**을 `licenseToken` / `license_token`으로 전달하세요. 유효 기간은 현재 구독과 같습니다. 갱신하거나 요금제를 바꾼 뒤에는 새 파일을 요청해 앱에 교체하세요.
+파일은 구독 종료 15일 후에 만료됩니다. 다시 받아도 날짜는 늘어나지 않습니다. 갱신 후 새 파일을 다운로드하세요.
 
 ### 참고
 
-- 오프라인 라이선스는 대시보드에 설정한 앱 식별자에 바인딩됩니다. 불일치하면 검증이 실패합니다.
+- 온라인 토큰과 오프라인 라이선스 모두 대시보드의 앱 식별자를 확인합니다. iOS / macOS는 Bundle ID, Android는 패키지 이름, Windows / Linux는 실행 파일 이름, 브라우저는 페이지 origin입니다. Electron은 origin을 검사하지 않습니다. 불일치하면 검증이 실패합니다.
 - 만료되지 않음: 기능은 구독 요금제를 따릅니다.
-- 만료됨: 엔진은 초기화할 수 있지만, 기능은 **Free** 요금제로 떨어집니다(워터마크 체험). 갱신 후 새 라이선스를 요청하세요.
-- Web은 오프라인 라이선스를 사용할 수 없으며, 온라인 v2 인증 경로를 완료해야 합니다.
+- 만료됨: 엔진은 초기화할 수 있지만, 기능은 **Free** 요금제로 떨어집니다(워터마크 체험). 갱신 후 대시보드에서 새 파일을 다운로드하세요.
+- Web 오프라인 라이선스는 페이지 origin에 바인딩됩니다. `.lic` 전문을 `licenseToken`에 전달하세요.
 
 ## 엔진 이벤트
 

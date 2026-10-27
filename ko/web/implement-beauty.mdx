@@ -37,7 +37,7 @@ Web의 `EngineConfig`에는 **이 필드만** 있습니다. 설정 객체에 `ap
 | --- | --- |
 | `licenseToken` | 라이선스 토큰 문자열, 또는 `{token}` JSON. **필수.** `init()` 전에 받으세요. |
 
-SDK는 `init()` 동안 런타임 파일을 로드합니다. 엔진을 위해 사이트 루트에 `resource.fbd`를 두지 마세요. 선택적 다운로드 진행률: `init({ onProgress })`. 엔진은 토큰을 fetch하지 않습니다. Web은 오프라인 `.lic`를 지원하지 **않습니다**.
+SDK는 `init()` 동안 런타임 파일을 로드합니다. 엔진을 위해 사이트 루트에 `resource.fbd`를 두지 마세요. 선택적 다운로드 진행률: `init({ onProgress })`. 엔진은 토큰을 fetch하지 않습니다. 오프라인 `.lic`는 페이지 origin과 일치해야 합니다. Electron은 origin을 검사하지 않습니다.
 
 ```javascript
 const licenseToken = await fetch('/api/facebetter/auth', { method: 'POST' }).then((r) => r.text());

@@ -27,7 +27,7 @@ new EngineConfig({
 })
 ```
 
-Web은 이 객체에서 `appId` / `appKey`를 받지 **않습니다**. Web은 오프라인 `.lic`를 지원하지 **않습니다**.
+Web은 이 객체에서 `appId` / `appKey`를 받지 **않습니다**. 오프라인 `.lic`는 페이지 origin과 일치해야 합니다. Electron은 origin을 검사하지 않습니다.
 
 `licenseToken`이 비어 있지 않은 문자열이면 `isValid()`가 true입니다.
 

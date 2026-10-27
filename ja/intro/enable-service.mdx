@@ -15,9 +15,9 @@ description: "Beauty Effect SDK のサブスクリプションを有効にし、
 
 - **iOS / macOS**: Bundle ID（例: `com.example.app`）
 - **Android**: アプリケーションのパッケージ名（例: `com.example.app`）
-- **Windows**: アプリケーション名または実行ファイル名
-- **Linux**（公式サポート Ubuntu 22.04+）：アプリケーション名またはパッケージ名
-- **Web**: アプリケーションドメイン（例: `example.com`）
+- **Windows**: 実行ファイル名。`.exe` を含める（例: `CustomerApp.exe`）
+- **Linux**（公式サポート Ubuntu 22.04+）：実行ファイル名（例: `customerapp`）
+- **Web**: ページ origin（例: `https://app.example.com`）。Electron はこの origin を確認しません
 
 バインドが欠けていたり一致しなかったりすると、認証は失敗します。Bundle ID のない CLI ツールでは、コンソールの案内どおりプロセス名をバインドしてください。
 

@@ -27,7 +27,7 @@ new EngineConfig({
 })
 ```
 
-Web **no** acepta `appId` / `appKey` en este objeto. Web **no** admite `.lic` sin conexión.
+Web **no** acepta `appId` / `appKey` en este objeto. Un `.lic` sin conexión debe coincidir con el origen de la página. Electron no comprueba el origen.
 
 `isValid()` es true cuando `licenseToken` es una cadena no vacía.
 

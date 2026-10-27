@@ -37,7 +37,7 @@ import {
 | --- | --- |
 | `licenseToken` | Cadena del token de licencia, o JSON `{token}`. **Obligatorio.** Obténlo antes de `init()`. |
 
-El SDK carga los archivos de runtime durante `init()`. No alojas un `resource.fbd` en la raíz del sitio para el motor. Progreso de descarga opcional: `init({ onProgress })`. El motor no obtiene tokens. Web **no** admite `.lic` sin conexión.
+El SDK carga los archivos de runtime durante `init()`. No alojas un `resource.fbd` en la raíz del sitio para el motor. Progreso de descarga opcional: `init({ onProgress })`. El motor no obtiene tokens. Un `.lic` sin conexión debe coincidir con el origen de la página. Electron no comprueba el origen.
 
 ```javascript
 const licenseToken = await fetch('/api/facebetter/auth', { method: 'POST' }).then((r) => r.text());

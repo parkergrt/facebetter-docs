@@ -16,7 +16,7 @@ Pass one of the following when creating the engine:
 | Mode | Config fields | When to use |
 |------|---------------|-------------|
 | Online | `appId` + `appKey` | Device can reach `/facebetter/v2/auth` |
-| Token | `licenseToken` | License token string, `{token}` JSON, or native offline `.lic` |
+| Token | `licenseToken` | License token string, `{token}` JSON, or offline `.lic` |
 
 **Priority**: if `licenseToken` is non-empty, the SDK validates that token locally and does **not** call the network with `appId` / `appKey`.
 
@@ -73,7 +73,7 @@ The browser SDK has **no** `appId` / `appKey` fields. The engine only accepts `l
 The official demo (`demo/web/react`) uses the same pattern: frontend in `src/fetchLicenseToken.js`, server proxy in `api/facebetter/auth.js`.
 
 <Warning>
-Do not put `appKey` in a frontend bundle. Web does **not** support offline `.lic` files. Online tokens expire in minutes — fetch a new one before creating the engine again.
+Do not put `appKey` in a frontend bundle. An offline `.lic` on the web must match the page origin, for example `https://app.example.com`. Electron does not check origin. Online tokens expire in minutes — fetch a new one before creating the engine again.
 </Warning>
 
 ### Frontend
@@ -150,21 +150,20 @@ In other languages, implement the same steps: build the sign string → HMAC-SHA
 
 On success the upstream returns JSON (including a `token` field). You may forward the response text as-is, or extract only the `token` string — the SDK accepts either.
 
-## Offline license (native) {#offline-license}
+## Offline license {#offline-license}
 
-The Dashboard **no longer** offers self-serve offline `.lic` downloads. To get an offline license, contact sales or an administrator:
+Download an offline `.lic` from the Dashboard credentials page and pass the **entire contents** as `licenseToken` / `license_token`.
 
-- Email: [hello@facebetter.net](mailto:hello@facebetter.net) (subject tip: `[Business Partnership] Offline license`)
-- More options: [Contact Us](https://facebetter.net/contact)
+Paid plans lock each saved identifier. An empty platform can be filled once. To change a locked identifier, contact [support](https://facebetter.net/contact). Free plans can edit identifiers and download anytime.
 
-After you receive the file, pass the **entire contents** as `licenseToken` / `license_token`. Validity matches your current subscription; after renewing or changing the plan, request a new file and replace it in the app.
+The file expires 15 days after the subscription ends. Downloading again does not move that date. After renewal, download a new file.
 
 ### Notes
 
-- The offline license is bound to the app identifiers configured in the Dashboard; a mismatch fails validation.
+- Online tokens and offline licenses both check the Dashboard app identifier: iOS and macOS use the Bundle ID, Android uses the package name, Windows and Linux use the executable file name, and a browser uses the page origin. Electron does not check origin. A mismatch fails validation.
 - Not expired: features follow your subscription plan.
-- Expired: the engine can still initialize, but capabilities fall back to the **Free** plan (watermarked trial). Renew and request a new license.
-- Web cannot use offline licenses; it must complete an online v2 auth path.
+- Expired: the engine can still initialize, but capabilities fall back to the **Free** plan (watermarked trial). After renewal, download a new file from the Dashboard.
+- Web offline licenses are bound to the page origin. Pass the entire `.lic` as `licenseToken`.
 
 ## Engine events
 

@@ -20,7 +20,7 @@ const engine = new BeautyEffectEngine(new EngineConfig({ licenseToken }));
 `appKey` をフロントエンドバンドルに入れないでください。
 </Warning>
 
-コンソールに本番と同じドメインをバインドします。Web はオフライン `.lic` を使えません。
+コンソールにページ origin（例: `https://app.example.com`）をバインドします。Electron は origin を確認しません。
 
 ## 1 ページに 1 エンジン
 

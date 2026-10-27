@@ -15,9 +15,9 @@ description: "Beauty Effect SDK 구독 서비스를 활성화하고 AppID와 App
 
 - **iOS / macOS**: Bundle ID (예: `com.example.app`)
 - **Android**: 애플리케이션 패키지 이름 (예: `com.example.app`)
-- **Windows**: 애플리케이션 이름 또는 실행 파일 이름
-- **Linux** (공식 지원 Ubuntu 22.04+): 애플리케이션 이름 또는 패키지 이름
-- **Web**: 애플리케이션 도메인 (예: `example.com`)
+- **Windows**: 실행 파일 이름. `.exe` 포함 (예: `CustomerApp.exe`)
+- **Linux** (공식 지원 Ubuntu 22.04+): 실행 파일 이름 (예: `customerapp`)
+- **Web**: 페이지 origin (예: `https://app.example.com`). Electron은 이 origin을 검사하지 않습니다
 
 바인딩이 없거나 일치하지 않으면 인증이 실패합니다. Bundle ID가 없는 CLI 도구는 콘솔에 안내된 대로 프로세스 이름을 바인딩하세요.
 
