@@ -6,48 +6,29 @@ iconType: "brands"
 description: "Instale o plugin Facebetter para OBS no Windows."
 ---
 
-O Facebetter é um filtro de beleza em tempo real para o OBS Studio. Pele, formato do rosto, maquiagem, cor, adesivos, corpo e fundo são processados neste computador.
+Facebetter é um filtro de beleza em tempo real para o OBS Studio. Pele, forma do rosto, maquiagem, filtros de cor, adesivos, corpo e fundo são processados neste computador.
 
 Ele não entra sozinho em todo o OBS. Adicione **Facebetter Beauty** à fonte que você quer tratar e os controles do painel à direita passam a funcionar. Serve câmera, imagem ou vídeo. Os passos do Mac estão em [Instalar no Mac](/pt-BR/obs/install). Depois de instalar, o login e os ajustes são iguais nos dois sistemas: [Entrar e adicionar o filtro](/pt-BR/obs/login).
 
 Antes de começar:
 
 - Windows 10 ou Windows 11, 64 bits.
-- OBS Studio 28 ou posterior, 64 bits.
+- OBS Studio 30 ou posterior, 64 bits.
 
 Download: [facebetter.net/pt-BR/obs](https://facebetter.net/pt-BR/obs)
 
-## Fechar o OBS e descompactar
+## Feche o OBS e instale
 
-Feche o OBS por completo. Se o OBS estiver aberto enquanto você copia o plugin, essa sessão não o carrega.
+Feche o OBS por completo primeiro. Se o OBS estiver aberto durante a instalação, essa sessão não carrega o plugin.
 
-Baixe o zip do Windows e descompacte. Dentro está a pasta `obs-facebetter` inteira e guias curtos em chinês e inglês. Copie essa pasta. Não retire uma única DLL.
+Baixe o zip do Windows e descompacte. Clique duas vezes em `Facebetter-OBS-*-windows-x64-setup.exe`, permita o aviso de administrador e conclua o assistente.
 
-## Copiar para a pasta de plugins do OBS
+O instalador não é assinado. Se o SmartScreen disser que o Windows protegeu o PC, clique em Mais informações → Executar mesmo assim.
 
-Copie a pasta `obs-facebetter` inteira para:
-
-```text
-C:\ProgramData\obs-studio\plugins\
-```
-
-Quando a cópia terminar, a pasta do plugin é:
+Instala em:
 
 ```text
 C:\ProgramData\obs-studio\plugins\obs-facebetter\
 ```
 
-`ProgramData` fica oculta por padrão. No Explorador de Arquivos, abra Exibir → Mostrar → Itens ocultos. Se o Windows pedir permissão ao copiar, permita.
-
-Esta é a pasta compartilhada de plugins deste PC. O OBS carrega os plugins daqui. Não coloque a pasta em `%APPDATA%\obs-studio\`. Ali ficam cenas e registros, não plugins.
-
-Estes dois arquivos precisam estar presentes, com estes nomes:
-
-```text
-C:\ProgramData\obs-studio\plugins\obs-facebetter\bin\64bit\obs-facebetter.dll
-C:\ProgramData\obs-studio\plugins\obs-facebetter\bin\64bit\facebetter.dll
-```
-
-Mantenha a pasta `data` ao lado de `bin`. Ela guarda idiomas e recursos.
-
-Abra o OBS e siga para [Entrar e adicionar o filtro](/pt-BR/obs/login).
+Abra o OBS e depois [entre e adicione o filtro](/pt-BR/obs/login).

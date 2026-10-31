@@ -1,28 +1,27 @@
 ---
 title: "자주 묻는 질문"
-sidebarTitle: "Windows 자주 묻는 질문"
+sidebarTitle: "Windows FAQ"
 icon: "circle-question"
 iconType: "solid"
-description: "Windows에서 Facebetter OBS 플러그인이 없거나, 슬라이더가 움직이지 않거나, 미리보기가 바뀌지 않을 때입니다."
+description: "Windows에서 Facebetter OBS 플러그인이 없거나, 슬라이더가 움직이지 않거나, 미리보기가 변하지 않을 때."
 ---
 
-## 패널과 필터 목록에 Facebetter 가 없음
+## 패널과 필터 목록에 Facebetter가 없습니다
 
-64비트 OBS Studio 28 이상인지 확인합니다. 폴더를 복사한 뒤 OBS 를 완전히 종료하고 다시 엽니다.
+64비트 OBS Studio 30 이상인지 확인합니다. 설치한 뒤 OBS를 완전히 종료하고 다시 엽니다.
 
-플러그인은 `%APPDATA%\obs-studio\` 에 두지 않습니다. 다음 두 파일이 이 파일명 그대로 모두 있는지 확인합니다.
+플러그인은 `%APPDATA%\obs-studio\`에 두지 않습니다. 아래 파일이 있는지, 파일명이 그대로인지 확인하세요.
 
 ```text
 C:\ProgramData\obs-studio\plugins\obs-facebetter\bin\64bit\obs-facebetter.dll
-C:\ProgramData\obs-studio\plugins\obs-facebetter\bin\64bit\facebetter.dll
 ```
 
-`bin` 옆의 `data` 폴더도 남겨 둡니다. 절차는 [Windows 설치](/ko/obs/install-windows) 입니다.
+`bin` 옆의 `data` 폴더도 그대로 둡니다. [Windows에 설치](/ko/obs/install-windows)를 보세요.
 
-## 슬라이더가 회색이라 움직이지 않음
+## 슬라이더가 회색이고 움직이지 않습니다
 
-소스에 필터가 아직 없습니다. 패널에는 조절하려면 필터를 추가하라고 나옵니다. 소스를 우클릭 → 필터 → + → Facebetter 뷰티. 페이지 제목은 눌러 내용을 볼 수 있습니다. 슬라이더는 필터를 추가한 뒤에 움직입니다. 절차는 [로그인하고 필터 추가](/ko/obs/login) 입니다.
+아직 소스에 필터가 없습니다. 패널에 조절하려면 필터를 추가해야 한다고 나옵니다. 소스를 오른쪽 클릭 → 필터 → + → Facebetter 뷰티. 페이지 제목은 눌러 볼 수 있고, 슬라이더는 필터를 추가한 뒤에 풀립니다. [로그인하고 필터 추가](/ko/obs/login)를 보세요.
 
-## 필터를 추가했는데 미리보기가 바뀌지 않음
+## 필터는 추가했는데 미리보기가 안 변합니다
 
-패널 위 스위치가 켜져 있는지, 소스 메뉴가 지금 보는 소스인지 확인합니다. 슬라이더가 모두 0 이면 화면은 원본과 같아 보입니다. 바디는 사람이 화면에서 비교적 크게 보여야 합니다. 얼굴만 나오면 변화가 거의 보이지 않습니다. 각 페이지의 내용은 [효과 조절](/ko/obs/effects) 입니다.
+패널 위쪽 스위치가 켜져 있는지, 소스 메뉴가 지금 보고 있는 소스인지 확인하세요. 슬라이더가 전부 0이면 원본과 같습니다. 바디 효과는 화면에 몸이 더 들어와야 합니다. 얼굴만 보이면 거의 안 변합니다. 각 페이지 역할은 [효과 조절](/ko/obs/effects)에 있습니다.

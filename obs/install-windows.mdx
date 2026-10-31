@@ -13,41 +13,22 @@ It does not affect the whole OBS window by itself. Add **Facebetter Beauty** to 
 Before you start:
 
 - Windows 10 or Windows 11, 64-bit.
-- OBS Studio 28 or later, 64-bit.
+- OBS Studio 30 or later, 64-bit.
 
 Download: [facebetter.net/obs](https://facebetter.net/obs)
 
-## Quit OBS and unzip
+## Quit OBS and install
 
-Quit OBS completely first. If OBS is running while you copy the plugin, that session will not load it.
+Quit OBS completely first. If OBS is running while you install, that session will not load the plugin.
 
-Download the Windows zip and unzip it. Inside is the whole `obs-facebetter` folder, plus short guides in Chinese and English. Copy that folder. Do not pull out a single DLL on its own.
+Download the Windows zip and unzip it. Double-click `Facebetter-OBS-*-windows-x64-setup.exe`, allow the admin prompt, and finish the wizard.
 
-## Copy it into the OBS plugin folder
+The installer is unsigned. If SmartScreen says Windows protected your PC, click More info → Run anyway.
 
-Copy the entire `obs-facebetter` folder to:
-
-```text
-C:\ProgramData\obs-studio\plugins\
-```
-
-When the copy finishes, the plugin folder is:
+Installs to:
 
 ```text
 C:\ProgramData\obs-studio\plugins\obs-facebetter\
 ```
-
-`ProgramData` is hidden by default. In File Explorer, open View → Show → Hidden items. If Windows asks for permission while copying, allow it.
-
-This is the shared plugin folder on this PC. OBS loads plugins from here. Do not put the folder in `%APPDATA%\obs-studio\`. That location holds scenes and logs, not plugins.
-
-Both of these files must be present, with these names:
-
-```text
-C:\ProgramData\obs-studio\plugins\obs-facebetter\bin\64bit\obs-facebetter.dll
-C:\ProgramData\obs-studio\plugins\obs-facebetter\bin\64bit\facebetter.dll
-```
-
-Keep the `data` folder next to `bin`. It holds locales and resources.
 
 Open OBS, then [sign in and add the filter](/obs/login).
