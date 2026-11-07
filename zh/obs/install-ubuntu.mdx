@@ -1,0 +1,45 @@
+---
+title: "在 Ubuntu 上安装"
+sidebarTitle: "Ubuntu 安装"
+icon: "linux"
+iconType: "brands"
+description: "在 Ubuntu 上安装 Facebetter OBS 美颜滤镜插件。"
+---
+
+Facebetter 是 OBS Studio 的实时美颜滤镜。美肤、美型、美妆、调色、贴纸、美体和背景都在这台电脑上处理。它不会铺满整个 OBS，只跟着你选中的画面源走。
+
+## 开始之前
+
+- Ubuntu 22.04 或更高，x86_64。
+- OBS Studio 28 或更高，并且是 64 位。
+- 这个 Ubuntu 构建是测试版。
+
+下载：[https://facebetter.net/zh/obs](https://facebetter.net/zh/obs)。 其他系统：[macOS](/zh/obs/install)、[Windows](/zh/obs/install-windows)。
+
+## 安装
+
+安装前先完全退出 OBS，菜单栏里的图标也要退。装的时候 OBS 开着，这次启动不会加载新插件。
+
+下载 Ubuntu 的 tar.gz，解开后运行安装脚本：
+
+```bash
+tar -xzf facebetter-obs-*-linux-x64.tar.gz
+cd Facebetter-OBS-*-linux-x64
+./install.sh
+```
+
+装给当前用户：
+
+```text
+~/.config/obs-studio/plugins/obs-facebetter/
+```
+
+Flatpak 版 OBS 不在正式支持范围内。如果仍要试：
+
+```bash
+./install.sh --flatpak
+```
+
+这会把插件拷到 `~/.var/app/com.obsproject.Studio/config/obs-studio/plugins/`。它仍然需要那个 Flatpak 自带的 OBS 运行时。
+
+然后看 [登录并使用](/zh/obs/login)。

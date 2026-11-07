@@ -1,0 +1,28 @@
+---
+title: "Preguntas"
+sidebarTitle: "Preguntas de Ubuntu"
+icon: "circle-question"
+iconType: "solid"
+description: "El plugin no aparece, los controles no se mueven o la vista previa no cambia en Ubuntu."
+---
+
+## Facebetter no aparece
+
+Usa OBS Studio 28 o posterior, de 64 bits, y cierra OBS por completo después de instalar. Confirma que estas dos rutas existen y no les cambies el nombre:
+
+```text
+~/.config/obs-studio/plugins/obs-facebetter/bin/64bit/obs-facebetter.so
+~/.config/obs-studio/plugins/obs-facebetter/data/resource.fbd
+```
+
+Deja la carpeta `data` junto a `bin`. Ahí están los idiomas y los recursos. OBS en Flatpak no tiene soporte oficial. Mira [Instalar en Ubuntu](/es/obs/install-ubuntu).
+
+Para los registros, sigue [Preferencias](/es/obs/settings).
+
+## Los controles están en gris
+
+Selecciona una fuente que tenga imagen. Si **Añadir al ajustar** está activado, mueve un control y el filtro se añade. Si está apagado, clic derecho en la fuente, Filtros, + y Facebetter Beauty. Los títulos de página se pueden abrir aunque los controles estén bloqueados. Mira [Iniciar sesión y usarlo](/es/obs/login).
+
+## La vista previa no cambia
+
+Comprueba que la fuente de la cabecera es la que estás viendo. Una fuente oculta no muestra el efecto hasta que la muestras. Si todos los controles están en 0, la imagen parece la original. Usa **Mantén para comparar** para ver la diferencia. Los efectos de cuerpo necesitan más de la persona en cuadro. Lo que hace cada página empieza en [Ajustar efectos](/es/obs/effects).

@@ -3,41 +3,21 @@ title: "Ajustar efectos"
 sidebarTitle: "Ajustar efectos"
 icon: "sliders"
 iconType: "solid"
-description: "Ajusta piel, forma del rostro, maquillaje, stickers y fondo en el panel Facebetter."
+description: "Cómo el panel sigue a la fuente seleccionada y qué se ajusta en cada página."
 ---
 
-Cuando el filtro está en una fuente, ajústalo en el panel de la derecha. La vista previa de OBS sigue los controles. La emisión y la grabación envían la imagen procesada. Si aún no has añadido el filtro, empieza por [Iniciar sesión y añadir el filtro](/es/obs/login).
+Selecciona una fuente y ajústala aquí. La vista previa de OBS sigue a los controles. La emisión y la grabación envían la imagen procesada. Mientras **Mantén para comparar** está pulsado, ese momento sale sin procesar.
 
-<Frame>
-  <img src="/images/obs/panel.png" alt="Ajustar la piel en el panel Facebetter" />
-</Frame>
+Si la cabecera dice **Al ajustar se añadirá Facebetter**, mover un control añade **Facebetter Beauty** a esa fuente. Si falta el panel o los controles están bloqueados, mira [Iniciar sesión y usarlo](/es/obs/login).
 
-En la parte superior del panel, de izquierda a derecha:
+Cada página tiene su propio restablecer. **Añadir al ajustar**, en [Preferencias](/es/obs/settings), viene activado.
 
-- **Interruptor**: compara encendido y apagado. Apagado muestra la vista previa original. Vuelve a encenderlo antes de emitir.
-- **Menú de fuente**: una fuente que ya tiene el filtro, o **All sources**. Todas las fuentes escribe el cambio en cada filtro Facebetter.
-- **Restablecer**: devuelve la página actual a sus valores iniciales.
-- **Engranaje**: ajustes. Elige si el panel se abre al iniciar OBS, y abre la cuenta y la suscripción.
-
-Debajo hay siete páginas:
-
-| Página | Qué hace |
+| Página | Qué se ajusta |
 | --- | --- |
-| Skin | Suavizar, aclarar y tono rosado. **Skin only** limita el efecto a la piel, así que la ropa, el fondo y un producto en cuadro se quedan como están. Los estilos de suavizado son Texture, Natural y Smooth. Los tonos de aclarado son Cool, Pink, Warm, Wheat y Tan. |
-| Shape | Rostro, frente y cejas, ojos, nariz y boca. Cada control se mueve en los dos sentidos. 0 significa sin cambio. |
-| Makeup | Labial, rubor, contorno, sombra, delineador, cejas, pestañas y lentillas. Estilo, tono e intensidad van por separado. |
-| Filter | Color de película. Elige una LUT y luego la intensidad. None apaga el color. |
-| Sticker | Seguimiento facial 2D, stickers de pantalla 2D y stickers 3D. None quita el sticker. |
-| Body | Afinar cuerpo, cintura, piernas, hombros y brazos, alargar las piernas y ajustar el busto. Encaja en un plano de medio cuerpo o de cuerpo entero. |
-| BG | Conservar el fondo original, desenfocarlo o cambiarlo por un preajuste. El recorte puede usar segmentación de retrato, o una pantalla verde, azul o roja. |
-
-El idioma del panel sigue a OBS. Chino simplificado, chino tradicional, inglés, japonés, coreano, portugués, español y alemán tienen su propia interfaz. Los demás idiomas de OBS se muestran en inglés.
-
-## Quitar la marca de agua
-
-El plan gratis incluye todos los efectos de arriba y la salida lleva marca de agua. Pro la quita y se puede usar en 2 dispositivos.
-
-- Mensual: $8.99
-- Anual: $69
-
-Pulsa **Remove watermark** arriba del panel, o abre el engranaje → Cuenta y suscríbete en la página. Cerrar el aviso solo lo oculta hasta que cierres OBS. Suscripción y dispositivos: [facebetter.net/es/dashboard/obs](https://facebetter.net/es/dashboard/obs).
+| [Piel](/es/obs/effects-skin) | Estilo de suavizado, imperfecciones, tono, sonrosado y claridad. Opcional: solo en la piel. |
+| [Forma](/es/obs/effects-shape) | Cara, frente y cejas, ojos, nariz y boca. Cada control va en los dos sentidos. 0 no cambia nada. |
+| [Maquillaje](/es/obs/effects-makeup) | Labial, rubor, dientes, contorno, sombra, delineador, cejas, pestañas y lentillas. Intensidad 0 apaga ese elemento. |
+| [Color](/es/obs/effects-color) | Brillo, contraste, saturación, temperatura y tinte, y después un LUT. |
+| [Sticker](/es/obs/effects-sticker) | Un sticker de cara, de pantalla o un prop 3D. Ninguno lo quita. |
+| [Cuerpo](/es/obs/effects-body) | Torso, hombros y brazos, piernas. Hace falta más cuerpo en cuadro que un plano de solo cara. |
+| [Fondo](/es/obs/effects-background) | Conservar, desenfocar o sustituir el fondo. Recorte con detección de persona, o pantalla verde, azul o roja. |

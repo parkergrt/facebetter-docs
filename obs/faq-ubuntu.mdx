@@ -1,0 +1,28 @@
+---
+title: "FAQ"
+sidebarTitle: "Ubuntu FAQ"
+icon: "circle-question"
+iconType: "solid"
+description: "The plugin is missing, the sliders will not move, or the preview does not change on Ubuntu."
+---
+
+## Facebetter does not appear
+
+Use 64-bit OBS Studio 28 or later, and quit OBS completely after installing. Confirm both paths exist, and do not rename them:
+
+```text
+~/.config/obs-studio/plugins/obs-facebetter/bin/64bit/obs-facebetter.so
+~/.config/obs-studio/plugins/obs-facebetter/data/resource.fbd
+```
+
+Keep the `data` folder next to `bin`. It holds the languages and the resources. Flatpak OBS is not officially supported. See [Install on Ubuntu](/obs/install-ubuntu).
+
+For logs, follow [Preferences](/obs/settings).
+
+## Sliders are gray
+
+Select one source that has a picture. If **Auto-add to sources** is on, move a slider and the filter is added. If it is off, right-click the source, choose Filters, click +, and choose Facebetter Beauty. Page titles can still be opened while the sliders are locked. See [Sign in and use it](/obs/login).
+
+## The preview does not change
+
+Check the source in the header is the one you are looking at. A hidden source does not show the effect until you show it. If every slider is at 0, the picture looks like the original. Use **Hold to compare** to see the difference. Body effects need more of the person in frame. What each page does starts at [Adjust effects](/obs/effects).

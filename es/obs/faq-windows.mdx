@@ -1,27 +1,27 @@
 ---
-title: "Preguntas frecuentes"
-sidebarTitle: "FAQ de Windows"
+title: "Preguntas"
+sidebarTitle: "Preguntas de Windows"
 icon: "circle-question"
 iconType: "solid"
-description: "Qué hacer en Windows si falta el plugin Facebetter de OBS, los controles no se mueven o la vista previa no cambia."
+description: "El plugin no aparece, los controles no se mueven o la vista previa no cambia en Windows."
 ---
 
-## Facebetter no aparece en el panel ni en la lista de filtros
+## Facebetter no aparece
 
-Usa OBS Studio 30 o posterior, de 64 bits. Después de instalar, cierra OBS por completo y ábrelo otra vez.
-
-El plugin no va en `%APPDATA%\obs-studio\`. Confirma que existe este archivo, con este nombre:
+Usa OBS Studio 28 o posterior, de 64 bits. El plugin no va en `%APPDATA%\obs-studio\`. Confirma que este archivo existe, con este nombre:
 
 ```text
 C:\ProgramData\obs-studio\plugins\obs-facebetter\bin\64bit\obs-facebetter.dll
 ```
 
-Conserva la carpeta `data` junto a `bin`. Mira [Instalar en Windows](/es/obs/install-windows).
+Deja la carpeta `data` junto a `bin`. Mira [Instalar en Windows](/es/obs/install-windows).
 
-## Los controles están grises y no se mueven
+Para los registros, sigue [Preferencias](/es/obs/settings).
 
-El filtro aún no está en una fuente. El panel dice que hay que añadir un filtro para poder ajustar. Clic derecho en la fuente → Filtros → + → Facebetter Beauty. Puedes pulsar los títulos de página para ver qué hay. Los controles se desbloquean al añadir el filtro. Mira [Iniciar sesión y añadir el filtro](/es/obs/login).
+## Los controles están en gris
 
-## El filtro está añadido, pero la vista previa no cambia
+Selecciona una fuente que tenga imagen. Si **Añadir al ajustar** está activado, mueve un control y el filtro se añade. Si está apagado, clic derecho en la fuente, Filtros, + y Facebetter Beauty. Los títulos de página se pueden abrir aunque los controles estén bloqueados. Mira [Iniciar sesión y usarlo](/es/obs/login).
 
-Comprueba que el interruptor de arriba del panel esté activado y que el menú de fuente sea la fuente que estás mirando. Si todos los controles están en 0, la imagen se ve como el original. Los efectos de cuerpo necesitan más del cuerpo en cuadro. Un plano solo de cara casi no cambia. Qué hace cada página está en [Ajustar efectos](/es/obs/effects).
+## La vista previa no cambia
+
+Comprueba que la fuente de la cabecera es la que estás viendo. Una fuente oculta no muestra el efecto hasta que la muestras. Si todos los controles están en 0, la imagen parece la original. Usa **Mantén para comparar** para ver la diferencia. Los efectos de cuerpo necesitan más de la persona en cuadro. Lo que hace cada página empieza en [Ajustar efectos](/es/obs/effects).

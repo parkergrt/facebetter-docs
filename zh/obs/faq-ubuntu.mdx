@@ -1,0 +1,28 @@
+---
+title: "常见问题"
+sidebarTitle: "Ubuntu 常见问题"
+icon: "circle-question"
+iconType: "solid"
+description: "在 Ubuntu 上找不到插件、滑块拖不动，或预览没有变化。"
+---
+
+## 找不到 Facebetter
+
+用 64 位 OBS Studio 28 或更高，装完后完全退出再打开。确认这两个路径都在，不要改名：
+
+```text
+~/.config/obs-studio/plugins/obs-facebetter/bin/64bit/obs-facebetter.so
+~/.config/obs-studio/plugins/obs-facebetter/data/resource.fbd
+```
+
+保留 `bin` 旁边的 `data` 文件夹。里面是语言文件和资源。Flatpak 版 OBS 不在正式支持范围内。见 [在 Ubuntu 上安装](/zh/obs/install-ubuntu)。
+
+拿日志的步骤见 [偏好设置](/zh/obs/settings)。
+
+## 滑块是灰的
+
+选中一个有画面的源。**调节源时自动加滤镜** 开着时，拖一下滑块就会加上滤镜。关掉时，在来源上右键，选「滤镜」，点 +，再选 Facebetter 美颜。滑块锁着的时候，分页标题仍然可以点开。见 [登录并使用](/zh/obs/login)。
+
+## 预览没有变化
+
+看顶部显示的源是不是你正在看的那个。隐藏的源要先显示，才能看到效果。滑块都在 0 时，画面和原片一样。用底部的 **按住对比** 看差别。美体需要人在画面里占得更全。每一页做什么，从 [调节效果](/zh/obs/effects) 看起。

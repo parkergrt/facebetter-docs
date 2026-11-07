@@ -1,0 +1,74 @@
+---
+title: "Preferences"
+sidebarTitle: "Preferences"
+icon: "gear"
+iconType: "solid"
+description: "The Preferences switches, and how to collect logs when something goes wrong."
+---
+
+Open the account button at the top right of the panel. It says **Sign in** until you sign in, then it shows the name from your email. In that menu, choose **Preferences**.
+
+The same menu also has **Get Pro** (**Membership** once you are subscribed), **Refresh subscription**, and **Sign in** or **Sign out**. Signing in is covered in [Sign in and use it](/obs/login).
+
+## General & startup
+
+- **Load panel when OBS starts** — on by default. Turn it off and OBS will not open the Facebetter panel at launch. Open it later from **Tools → Facebetter**.
+- **Auto-add to sources** — on by default. Select one source that has a picture and move a slider. Facebetter adds **Facebetter Beauty** to that source. Turn it off to add the filter yourself: right-click the source, choose Filters, click +, and choose **Facebetter Beauty**.
+
+## Logs & diagnostics
+
+**Write debug log** is off by default. After you turn it on, Facebetter writes a more detailed record to `facebetter-obs.log`. OBS keeps its own log either way, and that log includes lines that start with `[Facebetter]`.
+
+When something goes wrong, collect both logs and send them:
+
+1. Turn on **Write debug log**.
+2. Repeat the steps that failed. Anything you did before the switch was on is not in this file.
+3. Click the folder button on that row. The tooltip is **Open log folder**. Send `facebetter-obs.log` from that folder. If the file is not there yet, repeat the steps and wait for it to appear.
+4. Then take the OBS log. Use **Help → Log Files** and view or upload the current log. Or open the folder below and take the newest file.
+
+If you cannot find the folder button, the files are here.
+
+### macOS
+
+```text
+~/Library/Application Support/obs-studio/plugin_config/facebetter/facebetter-obs.log
+```
+
+OBS log folder:
+
+```text
+~/Library/Application Support/obs-studio/logs/
+```
+
+### Windows
+
+```text
+%APPDATA%\obs-studio\plugin_config\obs-facebetter\facebetter-obs.log
+```
+
+This is the current user's folder, not the plugin install folder under `C:\ProgramData\...`. OBS log folder:
+
+```text
+%APPDATA%\obs-studio\logs\
+```
+
+### Ubuntu
+
+```text
+~/.config/obs-studio/plugin_config/obs-facebetter/facebetter-obs.log
+```
+
+OBS log folder:
+
+```text
+~/.config/obs-studio/logs/
+```
+
+Turn **Write debug log** off again when you are done.
+
+## About & updates
+
+This card shows the current version, such as `v1.3.0`.
+
+- **Check** — looks for a newer version. On the latest build it says **You are on the latest stable build**. When an update exists it says **An update is available**, and the button becomes **Download**. That opens the download page. Quit OBS, install the new build, then open OBS again. If the check fails it says **Check failed. Try again.**
+- **Terms** and **Privacy Policy** open in the browser.

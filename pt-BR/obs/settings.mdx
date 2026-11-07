@@ -1,0 +1,74 @@
+---
+title: "Preferências"
+sidebarTitle: "Preferências"
+icon: "gear"
+iconType: "solid"
+description: "Os interruptores de Preferências e como juntar os logs quando algo falha."
+---
+
+Abra o botão da conta, no canto superior direito do painel. Ele mostra **Entrar** até você entrar; depois mostra o nome do e-mail. Nesse menu, escolha **Preferências**.
+
+O mesmo menu também tem **Obter Pro** (**Assinatura** depois de assinar), **Atualizar assinatura** e **Entrar** ou **Sair**. O login está em [Entrar e usar](/pt-BR/obs/login).
+
+## Geral e início
+
+- **Abrir o painel ao iniciar o OBS** — ligado por padrão. Se desligar, o OBS não abre o painel do Facebetter ao iniciar. Abra depois em **Ferramentas → Facebetter**.
+- **Adicionar ao ajustar** — ligado por padrão. Selecione uma fonte com imagem e mova um controle. O Facebetter adiciona **Facebetter Beauty** a essa fonte. Desligue para adicionar você mesmo: clique com o botão direito na fonte, Filtros, + e **Facebetter Beauty**.
+
+## Logs e diagnóstico
+
+**Gravar log de depuração** fica desligado por padrão. Depois de ligar, o Facebetter grava um registro mais detalhado em `facebetter-obs.log`. O log do OBS existe sempre e inclui linhas que começam com `[Facebetter]`.
+
+Se algo falhar, junte os dois e envie:
+
+1. Ligue **Gravar log de depuração**.
+2. Repita os passos que falharam. O que você fez antes de ligar não entra neste arquivo.
+3. Clique no botão de pasta dessa linha. A dica é **Abrir pasta do log**. Envie o `facebetter-obs.log`. Se o arquivo ainda não existir, repita os passos e espere ele aparecer.
+4. Depois pegue o log do OBS. Use **Ajuda → Arquivos de log** para ver ou enviar o log atual. Ou abra a pasta abaixo e pegue o arquivo mais recente.
+
+Se não achar o botão de pasta, os arquivos ficam aqui.
+
+### macOS
+
+```text
+~/Library/Application Support/obs-studio/plugin_config/facebetter/facebetter-obs.log
+```
+
+Pasta de logs do OBS:
+
+```text
+~/Library/Application Support/obs-studio/logs/
+```
+
+### Windows
+
+```text
+%APPDATA%\obs-studio\plugin_config\obs-facebetter\facebetter-obs.log
+```
+
+Esta é a pasta do usuário atual, não a pasta de instalação em `C:\ProgramData\...`. Pasta de logs do OBS:
+
+```text
+%APPDATA%\obs-studio\logs\
+```
+
+### Ubuntu
+
+```text
+~/.config/obs-studio/plugin_config/obs-facebetter/facebetter-obs.log
+```
+
+Pasta de logs do OBS:
+
+```text
+~/.config/obs-studio/logs/
+```
+
+Quando terminar, desligue **Gravar log de depuração**.
+
+## Sobre e atualizações
+
+Aqui aparece a versão atual, por exemplo `v1.3.0`.
+
+- **Verificar** — procura uma versão nova. Na mais recente, diz **Você está na versão estável mais recente**. Se houver atualização, diz **Há uma atualização** e o botão vira **Baixar**. Isso abre a página de download. Feche o OBS, instale a versão nova e abra de novo. Se a verificação falhar, diz **Falha na verificação. Tente de novo.**
+- **Termos** e **Privacidade** abrem no navegador.

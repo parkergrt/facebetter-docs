@@ -19,7 +19,7 @@ Facebetter Beauty は、macOS Apple シリコン上の **Final Cut Pro** と **M
 
 1. macOS 用 zip をダウンロードして解凍します。
 2. **Facebetter FCP Beauty.app** を「アプリケーション」（または `~/Applications`）へ移動します。
-3. アプリを開き、**Set up for Final Cut** /「一键完成设置」をクリックします（プラグイン登録と Motion テンプレートのインストール）。
+3. アプリを開き、**ワンクリックで設定**をクリックします（プラグイン登録と Motion テンプレートのインストール）。
 4. Final Cut Pro を完全に終了して開き直し、エフェクトで **Facebetter Beauty** を探してクリップにドラッグします。
 
 通常の手順では管理者パスワードは不要です。
@@ -28,18 +28,4 @@ Facebetter Beauty は、macOS Apple シリコン上の **Final Cut Pro** と **M
 同じセットアップで Motion テンプレートも入り、Motion でも使えます。
 </Tip>
 
-## 「破損している」と表示されたとき
-
-まだ署名・公証していないため、Gatekeeper が「破損」「開けない」「確認できない」と出すことがあります。
-
-1. アプリを右クリック → **開く** → **開く**。
-2. または：**システム設定** → **プライバシーとセキュリティ** → **このまま開く**。
-3. またはターミナルで（パスは必要に応じて変更）：
-
-```bash
-xattr -cr "/Applications/Facebetter FCP Beauty.app"
-```
-
-そのあとアプリを開き直し、**Set up for Final Cut** を完了してください。
-
-詳しい対処は [FAQ](/ja/fcp/faq) を見てください。
+詳しくは [FAQ](/ja/fcp/faq)。

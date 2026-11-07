@@ -1,66 +1,49 @@
 ---
-title: "Sign in and add the filter"
-sidebarTitle: "Sign in and add the filter"
+title: "Sign in and use it"
+sidebarTitle: "Sign in and use it"
 icon: "right-to-bracket"
 iconType: "solid"
-description: "Sign in to Facebetter and add the beauty filter to an OBS source."
+description: "Sign in, and let the panel add Facebetter to the source you are adjusting."
 ---
 
-[Install on macOS](/obs/install) or [install on Windows](/obs/install-windows) first, then sign in and attach the filter to a source.
-
-Sign-in, adding the filter, and adjusting effects work the same on macOS and Windows. The screenshots below are English OBS on a Mac.
+Install first: [macOS](/obs/install), [Windows](/obs/install-windows), or [Ubuntu](/obs/install-ubuntu). Sign-in and the panel work the same on all three.
 
 ## Sign in
 
-After OBS opens, the Facebetter panel sits on the right. If you do not see it, use **Tools → Facebetter**. The panel can stay docked next to the audio mixer.
+After OBS opens, the Facebetter panel is on the right. If you do not see it, use **Tools → Facebetter**. It can stay docked, like the audio mixer.
 
-Before you sign in, the middle of the panel is the sign-in page.
-
-<Frame>
-  <img src="/images/obs/login.png" alt="Facebetter panel on the right of OBS, before sign-in" />
-</Frame>
-
-1. Click **Sign in**. If you do not have an account, click **Sign up** underneath.
-2. The system browser opens the Facebetter authorization page. If you are already signed in on the website, the page shows that account and does not ask for the password again.
+1. Click **Sign in**. If you do not have an account, click **Sign up** under it.
+2. The system browser opens the Facebetter authorization page. If you are already signed in on the website, it shows that account and does not ask for the password again.
 3. Click **Authorize OBS**. To use another account, click **Use a different account**.
 
-<Frame>
-  <img src="/images/obs/login-auth.png" alt="Authorize the current account for the OBS plugin" />
-</Frame>
+Come back to OBS when the browser finishes. The free plan includes every effect. Output carries a `facebetter.net` watermark until you subscribe.
 
-When authorization finishes, return to OBS. The free plan includes every effect. Output carries a `facebetter.net` watermark.
+## The panel follows the selected source
 
-## Add the filter to a source
+Select one source in the OBS Sources list. A camera, image, video, or media source can take the filter. A source with no picture cannot.
 
-Signing in does not beautify the picture. If the top of the panel says **No filter yet**, the sliders stay locked. Add the filter to a source first.
+The header shows that source, and a short hint:
 
-The source does not have to be a camera. An image, a video, or a media source works the same way.
+- **Adjusting will add a Facebetter filter** — this source has no Facebetter filter yet. Move any slider and the filter is added. This is on by default.
+- **Hidden — show it to see the effect** — the source is hidden. Show it to see the effect.
+- **Unsupported source** — This source has no video, so Facebetter can't be added
+- Several sources are selected — pick one.
 
-### Open Filters for that source
+The switch is in [Preferences](/obs/settings), under **General & startup**: **Auto-add to sources**. Turn it off if you want to add the filter yourself: right-click the source, choose Filters, click +, and choose **Facebetter Beauty**. You can also use the Filters button under the Sources list.
 
-In the Sources list, right-click the item you want to process and choose **Filters**.
+## While you adjust
 
-<Frame>
-  <img src="/images/obs/add-filter.png" alt="Right-click a source and choose Filters" />
-</Frame>
+- **Hold to compare** — hold it to see that source without the effect. The picture you send is also unprocessed while you hold it. Release to go back.
+- **Effect presets** — built-in looks, plus **Save as my preset**. **Default** turns the effects off. Saving stores the current controls as your own preset.
+- **Reset** on a page returns that page to its defaults. Other pages stay as they are.
+- Panel switches, update checks, and how to collect logs are in [Preferences](/obs/settings).
 
-There is also a **Filters** button under the Sources list. Select the source, then click that button.
+The panel language follows OBS. Simplified Chinese, Traditional Chinese, English, Japanese, Korean, Portuguese, Spanish, and German have their own interface. Other OBS languages show English.
 
-### Add Facebetter Beauty
+What each page adjusts is in the sidebar under Adjust, starting at [Adjust effects](/obs/effects).
 
-At the bottom left of the Filters window, click **+**, choose **Facebetter Beauty**, confirm the name, and close the window.
+## Remove the watermark
 
-<Frame>
-  <img src="/images/obs/add-beauty.png" alt="Choose Facebetter Beauty in the filter list" />
-</Frame>
+Every control is available on the free plan. A subscription removes the watermark. Open the account button and choose **Get Pro**, or subscribe at [https://facebetter.net/dashboard/obs](https://facebetter.net/dashboard/obs).
 
-Two things happen:
-
-- The Facebetter panel comes forward. To open it later, use **Tools → Facebetter**.
-- The source menu at the top of the panel changes from “No filter yet” to that source, or to **All sources**. The sliders can be dragged.
-
-The Filters window is not where you adjust the look. It has one sentence and an **Open Facebetter panel** button. Smoothing, whitening, and face shape are adjusted in the Facebetter panel on the right.
-
-If a scene has several pictures, add the filter once on each source you want to process.
-
-Next, drag the sliders in [Adjust effects](/obs/effects). If a slider is gray, see the [macOS FAQ](/obs/faq) or the [Windows FAQ](/obs/faq-windows).
+Built-in looks: Fresh natural, Cool & clear, Sweet glow, Outdoor sun, Esports look, Default.

@@ -1,0 +1,28 @@
+---
+title: "자주 묻는 질문"
+sidebarTitle: "Ubuntu 질문"
+icon: "circle-question"
+iconType: "solid"
+description: "Ubuntu에서 플러그인이 없거나, 슬라이더가 움직이지 않거나, 미리보기가 변하지 않을 때."
+---
+
+## Facebetter가 보이지 않음
+
+64비트 OBS Studio 28 이상을 쓰고, 설치 후 OBS를 완전히 종료했다가 엽니다. 다음 두 경로가 이름을 바꾸지 않은 채 있는지 확인합니다:
+
+```text
+~/.config/obs-studio/plugins/obs-facebetter/bin/64bit/obs-facebetter.so
+~/.config/obs-studio/plugins/obs-facebetter/data/resource.fbd
+```
+
+`bin` 옆의 `data` 폴더도 둡니다. 언어와 리소스가 들어 있습니다. Flatpak OBS는 정식 지원 대상이 아닙니다. [Ubuntu에 설치](/ko/obs/install-ubuntu)를 보세요.
+
+로그를 모으는 방법은 [환경설정](/ko/obs/settings)에 있습니다.
+
+## 슬라이더가 회색임
+
+영상이 있는 소스를 하나 고릅니다. **소스 조절 시 필터 추가**가 켜져 있으면 슬라이더를 움직일 때 필터가 추가됩니다. 꺼져 있으면 소스를 오른쪽 클릭하고 필터를 연 뒤 +에서 Facebetter Beauty를 고릅니다. 슬라이더가 잠겨 있어도 페이지 제목은 열 수 있습니다. [로그인하고 사용](/ko/obs/login)을 보세요.
+
+## 미리보기가 변하지 않음
+
+머리글의 소스가 지금 보고 있는 소스인지 확인합니다. 숨긴 소스는 표시해야 효과가 보입니다. 슬라이더가 모두 0이면 원본과 같아 보입니다. **길게 눌러 비교**를 눌러 차이를 봅니다. 바디는 사람이 더 크게 보여야 합니다. 각 페이지는 [효과 조절](/ko/obs/effects)에서 시작합니다.

@@ -1,0 +1,74 @@
+---
+title: "Preferencias"
+sidebarTitle: "Preferencias"
+icon: "gear"
+iconType: "solid"
+description: "Los interruptores de Preferencias y cómo recoger registros cuando algo falla."
+---
+
+Abre el botón de la cuenta, arriba a la derecha del panel. Dice **Iniciar sesión** hasta que entras; después muestra el nombre del correo. En ese menú, elige **Preferencias**.
+
+El mismo menú también tiene **Hazte Pro** (**Membresía** si ya estás suscrito), **Actualizar suscripción** y **Iniciar sesión** o **Cerrar sesión**. El inicio de sesión está en [Iniciar sesión y usarlo](/es/obs/login).
+
+## General e inicio
+
+- **Abrir el panel al iniciar OBS** — activado por defecto. Si lo apagas, OBS no abre el panel de Facebetter al arrancar. Ábrelo después desde **Herramientas → Facebetter**.
+- **Añadir al ajustar** — activado por defecto. Selecciona una fuente con imagen y mueve un control. Facebetter añade **Facebetter Beauty** a esa fuente. Apágalo para añadirlo tú: clic derecho en la fuente, Filtros, +, y **Facebetter Beauty**.
+
+## Registros y diagnóstico
+
+**Escribir registro de depuración** está apagado por defecto. Al activarlo, Facebetter escribe un registro más detallado en `facebetter-obs.log`. El registro de OBS existe siempre e incluye líneas que empiezan por `[Facebetter]`.
+
+Si algo falla, recoge los dos y envíalos:
+
+1. Activa **Escribir registro de depuración**.
+2. Repite los pasos que fallaron. Lo que hiciste antes de activarlo no queda en este archivo.
+3. Pulsa el botón de carpeta de esa fila. La ayuda dice **Abrir carpeta del registro**. Envía `facebetter-obs.log`. Si el archivo aún no está, repite los pasos y espera a que aparezca.
+4. Después toma el registro de OBS. Usa **Ayuda → Archivos de registro** para ver o subir el registro actual. También puedes abrir la carpeta de abajo y tomar el archivo más reciente.
+
+Si no encuentras el botón de carpeta, los archivos están aquí.
+
+### macOS
+
+```text
+~/Library/Application Support/obs-studio/plugin_config/facebetter/facebetter-obs.log
+```
+
+Carpeta de registros de OBS:
+
+```text
+~/Library/Application Support/obs-studio/logs/
+```
+
+### Windows
+
+```text
+%APPDATA%\obs-studio\plugin_config\obs-facebetter\facebetter-obs.log
+```
+
+Es la carpeta del usuario actual, no la de instalación en `C:\ProgramData\...`. Carpeta de registros de OBS:
+
+```text
+%APPDATA%\obs-studio\logs\
+```
+
+### Ubuntu
+
+```text
+~/.config/obs-studio/plugin_config/obs-facebetter/facebetter-obs.log
+```
+
+Carpeta de registros de OBS:
+
+```text
+~/.config/obs-studio/logs/
+```
+
+Cuando termines, apaga **Escribir registro de depuración**.
+
+## Acerca y actualizaciones
+
+Aquí aparece la versión actual, por ejemplo `v1.3.0`.
+
+- **Comprobar** — busca una versión nueva. Si ya es la última, dice **Tienes la última versión estable**. Si hay una actualización, dice **Hay una actualización** y el botón pasa a **Descargar**. Eso abre la página de descarga. Cierra OBS, instala la versión nueva y vuelve a abrir OBS. Si falla, dice **La comprobación falló. Inténtalo de nuevo.**
+- **Términos** y **Privacidad** se abren en el navegador.

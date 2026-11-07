@@ -1,0 +1,45 @@
+---
+title: "Ubuntu にインストール"
+sidebarTitle: "Ubuntu にインストール"
+icon: "linux"
+iconType: "brands"
+description: "Ubuntu に Facebetter OBS 美顔フィルタープラグインをインストールします。"
+---
+
+Facebetter は OBS Studio のリアルタイム美顔フィルタです。美肌、輪郭、メイク、カラー、スタンプ、体型、背景はすべてこのパソコンで処理します。OBS 全体にはかからず、選んだソースだけに従います。
+
+## 始める前に
+
+- Ubuntu 22.04 以降、x86_64。
+- OBS Studio 28 以降、64 ビット。
+- この Ubuntu ビルドはベータです。
+
+ダウンロード：[https://facebetter.net/ja/obs](https://facebetter.net/ja/obs)。 ほかのシステム：[macOS](/ja/obs/install)、[Windows](/ja/obs/install-windows)。
+
+## インストール
+
+インストール前に OBS を完全に終了します。メニューバーのアイコンも終了してください。OBS を開いたまま入れると、その起動では新しいプラグインを読みません。
+
+Ubuntu の tar.gz を展開して、インストーラを実行します：
+
+```bash
+tar -xzf facebetter-obs-*-linux-x64.tar.gz
+cd Facebetter-OBS-*-linux-x64
+./install.sh
+```
+
+今のユーザーに入ります：
+
+```text
+~/.config/obs-studio/plugins/obs-facebetter/
+```
+
+Flatpak 版 OBS は正式にはサポートしていません。試す場合：
+
+```bash
+./install.sh --flatpak
+```
+
+プラグインは `~/.var/app/com.obsproject.Studio/config/obs-studio/plugins/` にコピーされます。その Flatpak に付いている OBS ランタイムが必要です。
+
+そのあと [ログインして使う](/ja/obs/login) を見てください。

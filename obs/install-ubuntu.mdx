@@ -1,0 +1,45 @@
+---
+title: "Install on Ubuntu"
+sidebarTitle: "Install on Ubuntu"
+icon: "linux"
+iconType: "brands"
+description: "Install the Facebetter OBS Beauty Filter Plugin on Ubuntu."
+---
+
+Facebetter is a realtime beauty filter for OBS Studio. Skin, shape, makeup, color, stickers, body, and background are processed on this computer. It does not cover the whole OBS window. It follows the source you select.
+
+## Before you start
+
+- Ubuntu 22.04 or later, x86_64.
+- OBS Studio 28 or later, 64-bit.
+- This Ubuntu build is a beta.
+
+Download: [https://facebetter.net/obs](https://facebetter.net/obs). Other systems: [macOS](/obs/install), [Windows](/obs/install-windows).
+
+## Install
+
+Quit OBS completely first, including the menu-bar icon. If OBS is running during install, that session will not load the plugin.
+
+Download the Ubuntu tar.gz and unpack it, then run the installer:
+
+```bash
+tar -xzf facebetter-obs-*-linux-x64.tar.gz
+cd Facebetter-OBS-*-linux-x64
+./install.sh
+```
+
+That installs for the current user:
+
+```text
+~/.config/obs-studio/plugins/obs-facebetter/
+```
+
+Flatpak OBS is not officially supported. If you still want to try it:
+
+```bash
+./install.sh --flatpak
+```
+
+That copies the plugin into `~/.var/app/com.obsproject.Studio/config/obs-studio/plugins/`. It still needs the OBS runtime that comes with that Flatpak.
+
+Then [sign in and use it](/obs/login).

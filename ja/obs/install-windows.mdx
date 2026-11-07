@@ -1,34 +1,32 @@
 ---
 title: "Windows にインストール"
-sidebarTitle: "Windows インストール"
+sidebarTitle: "Windows にインストール"
 icon: "windows"
 iconType: "brands"
-description: "Windows に Facebetter OBS プラグインをインストールします。"
+description: "Windows に Facebetter OBS 美顔フィルタープラグインをインストールします。"
 ---
 
-Facebetter は OBS Studio 用のリアルタイム美顔フィルタです。肌、顔立ち、メイク、カラーフィルタ、ステッカー、ボディ、背景は、このパソコン上で処理されます。
+Facebetter は OBS Studio のリアルタイム美顔フィルタです。美肌、輪郭、メイク、カラー、スタンプ、体型、背景はすべてこのパソコンで処理します。OBS 全体にはかからず、選んだソースだけに従います。
 
-OBS 全体には自動ではかかりません。処理したいソースに **Facebetter ビューティー** を追加すると、右のパネルのスライダーが使えます。カメラ、画像、動画のいずれでも構いません。Mac の手順は [Mac にインストール](/ja/obs/install) です。インストールのあと、ログインと調整は両方のシステムで同じです。[ログインしてフィルタを追加](/ja/obs/login) を見てください。
-
-始める前に：
+## 始める前に
 
 - Windows 10 または Windows 11、64 ビット。
-- OBS Studio 30 以降、64 ビット。
+- OBS Studio 28 以降、64 ビット。
 
-ダウンロード：[facebetter.net/ja/obs](https://facebetter.net/ja/obs)
+ダウンロード：[https://facebetter.net/ja/obs](https://facebetter.net/ja/obs)。 ほかのシステム：[macOS](/ja/obs/install)、[Ubuntu](/ja/obs/install-ubuntu)。
 
-## OBS を終了してインストール
+## インストール
 
-先に OBS を完全に終了してください。インストール中に OBS が開いていると、そのセッションではプラグインが読み込まれません。
+インストール前に OBS を完全に終了します。メニューバーのアイコンも終了してください。OBS を開いたまま入れると、その起動では新しいプラグインを読みません。
 
-Windows の zip をダウンロードして解凍します。`Facebetter-OBS-*-windows-x64-setup.exe` をダブルクリックし、管理者の許可を出してウィザードを完了します。
+Windows の zip を解凍し、`Facebetter-OBS-*-windows-x64-setup.exe` をダブルクリックします。管理者の確認を許可して、ウィザードを終わらせます。
 
-インストーラは署名されていません。SmartScreen が PC を保護したと出たら、「詳細情報」→「実行」を選びます。
+インストーラは未署名です。SmartScreen が「Windows によって PC が保護されました」と出たら、「詳細情報」から「実行」を選びます。
 
-インストール先：
+入り先：
 
 ```text
 C:\ProgramData\obs-studio\plugins\obs-facebetter\
 ```
 
-OBS を開き、[ログインしてフィルタを追加](/ja/obs/login) に進みます。
+そのあと [ログインして使う](/ja/obs/login) を見てください。

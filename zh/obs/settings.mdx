@@ -1,0 +1,74 @@
+---
+title: "偏好设置"
+sidebarTitle: "偏好设置"
+icon: "gear"
+iconType: "solid"
+description: "偏好设置里的开关，以及出问题时怎么拿出日志。"
+---
+
+点面板右上角的账号按钮打开菜单。没登录时按钮写着 **登录**，登录后显示邮箱名。菜单里点 **偏好设置**。
+
+同一菜单里还有 **升级专业版**（已经订阅时是 **我的会员**）、**刷新订阅**，以及 **立即登录** 或 **退出登录**。登录步骤见 [登录并使用](/zh/obs/login)。
+
+## 通用与启动
+
+- **启动 OBS 时自动加载面板** — 默认开着。关掉之后，OBS 启动时不会自动打开 Facebetter 面板。需要时用菜单 **工具 → Facebetter** 打开。
+- **调节源时自动加滤镜** — 默认开着。选中一个有画面的源，拖一下滑块，就会给这个源加上 **Facebetter 美颜**。关掉之后要自己加：在来源上右键，选「滤镜」，点 +，再选 **Facebetter 美颜**。
+
+## 日志与诊断
+
+**写入排查日志** 默认关着。打开之后，Facebetter 才把更细的记录写进 `facebetter-obs.log`。OBS 自己的日志一直都有，里面有以 `[Facebetter]` 开头的摘要。
+
+出了问题，按这个顺序拿日志。两份都发给支持：
+
+1. 打开 **写入排查日志**。
+2. 把出问题的操作再做一遍。打开之前的操作不会出现在这份日志里。
+3. 点这一行旁边的文件夹按钮。提示是 **打开日志目录**。把里面的 `facebetter-obs.log` 发出来。目录里还没有这个文件时，先再操作一遍，等文件出现再发。
+4. 再拿 OBS 的日志。菜单 **帮助 → 日志文件**，查看或上传当前日志。也可以到下面的目录，取修改时间最新的那个文件。
+
+找不到文件夹按钮时，文件在这些位置。
+
+### macOS
+
+```text
+~/Library/Application Support/obs-studio/plugin_config/facebetter/facebetter-obs.log
+```
+
+OBS 日志目录：
+
+```text
+~/Library/Application Support/obs-studio/logs/
+```
+
+### Windows
+
+```text
+%APPDATA%\obs-studio\plugin_config\obs-facebetter\facebetter-obs.log
+```
+
+这是当前用户的目录，不是安装插件的 `C:\ProgramData\...`。OBS 日志目录：
+
+```text
+%APPDATA%\obs-studio\logs\
+```
+
+### Ubuntu
+
+```text
+~/.config/obs-studio/plugin_config/obs-facebetter/facebetter-obs.log
+```
+
+OBS 日志目录：
+
+```text
+~/.config/obs-studio/logs/
+```
+
+排查结束可以把 **写入排查日志** 关掉。
+
+## 关于与检查更新
+
+这里显示当前版本号，例如 `v1.3.0`。
+
+- **检查** — 查询有没有新版本。已经是最新时显示 **当前为最新稳定版本**。有更新时显示 **有新版本可用**，按钮变成 **前往更新**，点它打开下载页。然后退出 OBS，装上新版本，再重新打开。检查失败时显示 **检查失败，请重试**。
+- **服务条款** 和 **隐私政策** 在浏览器里打开。

@@ -180,19 +180,43 @@
             ]
           },
           {
-            "tab": "OBS Plugin",
+            "tab": "OBS Beauty Filter Plugin",
             "groups": [
               {
-                "group": "OBS Plugin",
+                "group": "Get started",
                 "pages": [
                   "obs/install",
                   "obs/install-windows",
+                  "obs/install-ubuntu",
                   "obs/login",
-                  "obs/effects",
                   "obs/faq",
-                  "obs/faq-windows"
+                  "obs/faq-windows",
+                  "obs/faq-ubuntu"
                 ],
                 "icon": "video",
+                "iconType": "solid"
+              },
+              {
+                "group": "Settings",
+                "pages": [
+                  "obs/settings"
+                ],
+                "icon": "gear",
+                "iconType": "solid"
+              },
+              {
+                "group": "Adjust",
+                "pages": [
+                  "obs/effects",
+                  "obs/effects-skin",
+                  "obs/effects-shape",
+                  "obs/effects-makeup",
+                  "obs/effects-color",
+                  "obs/effects-sticker",
+                  "obs/effects-body",
+                  "obs/effects-background"
+                ],
+                "icon": "sliders",
                 "iconType": "solid"
               }
             ]
@@ -362,19 +386,43 @@
             ]
           },
           {
-            "tab": "OBS 插件",
+            "tab": "OBS 美颜滤镜插件",
             "groups": [
               {
-                "group": "OBS 插件",
+                "group": "安装与使用",
                 "pages": [
                   "zh/obs/install",
                   "zh/obs/install-windows",
+                  "zh/obs/install-ubuntu",
                   "zh/obs/login",
-                  "zh/obs/effects",
                   "zh/obs/faq",
-                  "zh/obs/faq-windows"
+                  "zh/obs/faq-windows",
+                  "zh/obs/faq-ubuntu"
                 ],
                 "icon": "video",
+                "iconType": "solid"
+              },
+              {
+                "group": "设置",
+                "pages": [
+                  "zh/obs/settings"
+                ],
+                "icon": "gear",
+                "iconType": "solid"
+              },
+              {
+                "group": "调节",
+                "pages": [
+                  "zh/obs/effects",
+                  "zh/obs/effects-skin",
+                  "zh/obs/effects-shape",
+                  "zh/obs/effects-makeup",
+                  "zh/obs/effects-color",
+                  "zh/obs/effects-sticker",
+                  "zh/obs/effects-body",
+                  "zh/obs/effects-background"
+                ],
+                "icon": "sliders",
                 "iconType": "solid"
               }
             ]
@@ -544,19 +592,43 @@
             ]
           },
           {
-            "tab": "OBS プラグイン",
+            "tab": "OBS 美顔フィルタープラグイン",
             "groups": [
               {
-                "group": "OBS プラグイン",
+                "group": "導入",
                 "pages": [
                   "ja/obs/install",
                   "ja/obs/install-windows",
+                  "ja/obs/install-ubuntu",
                   "ja/obs/login",
-                  "ja/obs/effects",
                   "ja/obs/faq",
-                  "ja/obs/faq-windows"
+                  "ja/obs/faq-windows",
+                  "ja/obs/faq-ubuntu"
                 ],
                 "icon": "video",
+                "iconType": "solid"
+              },
+              {
+                "group": "設定",
+                "pages": [
+                  "ja/obs/settings"
+                ],
+                "icon": "gear",
+                "iconType": "solid"
+              },
+              {
+                "group": "調整",
+                "pages": [
+                  "ja/obs/effects",
+                  "ja/obs/effects-skin",
+                  "ja/obs/effects-shape",
+                  "ja/obs/effects-makeup",
+                  "ja/obs/effects-color",
+                  "ja/obs/effects-sticker",
+                  "ja/obs/effects-body",
+                  "ja/obs/effects-background"
+                ],
+                "icon": "sliders",
                 "iconType": "solid"
               }
             ]
@@ -726,19 +798,43 @@
             ]
           },
           {
-            "tab": "OBS 플러그인",
+            "tab": "OBS 뷰티 필터 플러그인",
             "groups": [
               {
-                "group": "OBS 플러그인",
+                "group": "시작",
                 "pages": [
                   "ko/obs/install",
                   "ko/obs/install-windows",
+                  "ko/obs/install-ubuntu",
                   "ko/obs/login",
-                  "ko/obs/effects",
                   "ko/obs/faq",
-                  "ko/obs/faq-windows"
+                  "ko/obs/faq-windows",
+                  "ko/obs/faq-ubuntu"
                 ],
                 "icon": "video",
+                "iconType": "solid"
+              },
+              {
+                "group": "설정",
+                "pages": [
+                  "ko/obs/settings"
+                ],
+                "icon": "gear",
+                "iconType": "solid"
+              },
+              {
+                "group": "조절",
+                "pages": [
+                  "ko/obs/effects",
+                  "ko/obs/effects-skin",
+                  "ko/obs/effects-shape",
+                  "ko/obs/effects-makeup",
+                  "ko/obs/effects-color",
+                  "ko/obs/effects-sticker",
+                  "ko/obs/effects-body",
+                  "ko/obs/effects-background"
+                ],
+                "icon": "sliders",
                 "iconType": "solid"
               }
             ]
@@ -908,19 +1004,43 @@
             ]
           },
           {
-            "tab": "Plugin de OBS",
+            "tab": "Plugin de filtro de belleza para OBS",
             "groups": [
               {
-                "group": "Plugin de OBS",
+                "group": "Empezar",
                 "pages": [
                   "es/obs/install",
                   "es/obs/install-windows",
+                  "es/obs/install-ubuntu",
                   "es/obs/login",
-                  "es/obs/effects",
                   "es/obs/faq",
-                  "es/obs/faq-windows"
+                  "es/obs/faq-windows",
+                  "es/obs/faq-ubuntu"
                 ],
                 "icon": "video",
+                "iconType": "solid"
+              },
+              {
+                "group": "Ajustes",
+                "pages": [
+                  "es/obs/settings"
+                ],
+                "icon": "gear",
+                "iconType": "solid"
+              },
+              {
+                "group": "Ajustar",
+                "pages": [
+                  "es/obs/effects",
+                  "es/obs/effects-skin",
+                  "es/obs/effects-shape",
+                  "es/obs/effects-makeup",
+                  "es/obs/effects-color",
+                  "es/obs/effects-sticker",
+                  "es/obs/effects-body",
+                  "es/obs/effects-background"
+                ],
+                "icon": "sliders",
                 "iconType": "solid"
               }
             ]
@@ -1090,19 +1210,43 @@
             ]
           },
           {
-            "tab": "Plugin para OBS",
+            "tab": "Plugin de filtro de beleza para OBS",
             "groups": [
               {
-                "group": "Plugin para OBS",
+                "group": "Começar",
                 "pages": [
                   "pt-BR/obs/install",
                   "pt-BR/obs/install-windows",
+                  "pt-BR/obs/install-ubuntu",
                   "pt-BR/obs/login",
-                  "pt-BR/obs/effects",
                   "pt-BR/obs/faq",
-                  "pt-BR/obs/faq-windows"
+                  "pt-BR/obs/faq-windows",
+                  "pt-BR/obs/faq-ubuntu"
                 ],
                 "icon": "video",
+                "iconType": "solid"
+              },
+              {
+                "group": "Ajustes",
+                "pages": [
+                  "pt-BR/obs/settings"
+                ],
+                "icon": "gear",
+                "iconType": "solid"
+              },
+              {
+                "group": "Ajustar",
+                "pages": [
+                  "pt-BR/obs/effects",
+                  "pt-BR/obs/effects-skin",
+                  "pt-BR/obs/effects-shape",
+                  "pt-BR/obs/effects-makeup",
+                  "pt-BR/obs/effects-color",
+                  "pt-BR/obs/effects-sticker",
+                  "pt-BR/obs/effects-body",
+                  "pt-BR/obs/effects-background"
+                ],
+                "icon": "sliders",
                 "iconType": "solid"
               }
             ]

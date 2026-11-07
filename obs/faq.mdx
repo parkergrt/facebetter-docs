@@ -3,10 +3,10 @@ title: "FAQ"
 sidebarTitle: "macOS FAQ"
 icon: "circle-question"
 iconType: "solid"
-description: "What to do on a Mac when the Facebetter OBS plugin is missing, sliders will not move, or the preview does not change."
+description: "The plugin is missing, the sliders will not move, or the preview does not change on a Mac."
 ---
 
-## Facebetter is missing from the panel and from the filter list
+## Facebetter does not appear
 
 Quit OBS completely and open it again. Then check that the plugin is here:
 
@@ -16,18 +16,12 @@ Quit OBS completely and open it again. Then check that the plugin is here:
 
 An Intel Mac needs the Intel build of OBS. Apple silicon needs the Apple silicon build. OBS will not load the plugin if those do not match. See [Install on Mac](/obs/install).
 
-## macOS says the plugin is damaged
+For logs, follow [Preferences](/obs/settings).
 
-Open Terminal, paste this line, press Return, and open OBS again:
+## Sliders are gray
 
-```bash
-xattr -dr com.apple.quarantine ~/Library/Application\ Support/obs-studio/plugins/facebetter.plugin
-```
+Select one source that has a picture. If **Auto-add to sources** is on, move a slider and the filter is added. If it is off, right-click the source, choose Filters, click +, and choose Facebetter Beauty. Page titles can still be opened while the sliders are locked. See [Sign in and use it](/obs/login).
 
-## Sliders are gray and will not move
+## The preview does not change
 
-The filter is not on a source yet. The panel says you need to add a filter before the controls can be used. Right-click the source → Filters → + → Facebetter Beauty. You can still click the page titles to see what is there. The sliders unlock after the filter is added. See [Sign in and add the filter](/obs/login).
-
-## The filter is added, but the preview does not change
-
-Check that the switch at the top of the panel is on, and that the source menu is the source you are looking at. If every slider is at 0, the picture looks like the original. Body effects need more of the person in frame. A face-only shot barely changes. What each page does is in [Adjust effects](/obs/effects).
+Check the source in the header is the one you are looking at. A hidden source does not show the effect until you show it. If every slider is at 0, the picture looks like the original. Use **Hold to compare** to see the difference. Body effects need more of the person in frame. What each page does starts at [Adjust effects](/obs/effects).

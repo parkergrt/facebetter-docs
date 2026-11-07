@@ -1,14 +1,14 @@
 ---
-title: "Preguntas frecuentes"
+title: "Preguntas"
 sidebarTitle: "Preguntas de macOS"
 icon: "circle-question"
 iconType: "solid"
-description: "Qué hacer en un Mac si falta el plugin Facebetter para OBS, los controles no se mueven o la vista previa no cambia."
+description: "El plugin no aparece, los controles no se mueven o la vista previa no cambia en un Mac."
 ---
 
-## Facebetter no está en el panel ni en la lista de filtros
+## Facebetter no aparece
 
-Cierra OBS por completo y ábrelo otra vez. Después comprueba que el plugin está aquí:
+Cierra OBS por completo y ábrelo de nuevo. Comprueba que el plugin está aquí:
 
 ```text
 ~/Library/Application Support/obs-studio/plugins/facebetter.plugin
@@ -16,18 +16,12 @@ Cierra OBS por completo y ábrelo otra vez. Después comprueba que el plugin est
 
 Un Mac Intel necesita OBS para Intel. Apple silicon necesita OBS para Apple silicon. Si no coinciden, OBS no carga el plugin. Mira [Instalar en Mac](/es/obs/install).
 
-## macOS dice que el plugin está dañado
+Para los registros, sigue [Preferencias](/es/obs/settings).
 
-Abre Terminal, pega esta línea, pulsa Retorno y abre OBS otra vez:
+## Los controles están en gris
 
-```bash
-xattr -dr com.apple.quarantine ~/Library/Application\ Support/obs-studio/plugins/facebetter.plugin
-```
+Selecciona una fuente que tenga imagen. Si **Añadir al ajustar** está activado, mueve un control y el filtro se añade. Si está apagado, clic derecho en la fuente, Filtros, + y Facebetter Beauty. Los títulos de página se pueden abrir aunque los controles estén bloqueados. Mira [Iniciar sesión y usarlo](/es/obs/login).
 
-## Los controles están en gris y no se mueven
+## La vista previa no cambia
 
-El filtro aún no está en una fuente. El panel dice que hay que añadir un filtro para poder ajustar. Clic derecho en la fuente → Filtros → + → Facebetter Beauty. Puedes pulsar los títulos de página para ver qué hay. Los controles se desbloquean al añadir el filtro. Mira [Iniciar sesión y añadir el filtro](/es/obs/login).
-
-## El filtro está añadido, pero la vista previa no cambia
-
-Comprueba que el interruptor de arriba del panel está encendido y que el menú de fuente es la fuente que estás viendo. Si todos los controles están en 0, la imagen parece la original. Los efectos de cuerpo necesitan que la persona ocupe más del cuadro. Un plano solo de cara apenas cambia. Lo que hace cada página está en [Ajustar efectos](/es/obs/effects).
+Comprueba que la fuente de la cabecera es la que estás viendo. Una fuente oculta no muestra el efecto hasta que la muestras. Si todos los controles están en 0, la imagen parece la original. Usa **Mantén para comparar** para ver la diferencia. Los efectos de cuerpo necesitan más de la persona en cuadro. Lo que hace cada página empieza en [Ajustar efectos](/es/obs/effects).

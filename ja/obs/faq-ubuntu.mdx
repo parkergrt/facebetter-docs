@@ -1,0 +1,28 @@
+---
+title: "よくある質問"
+sidebarTitle: "Ubuntu の質問"
+icon: "circle-question"
+iconType: "solid"
+description: "Ubuntu でプラグインが出ない、スライダーが動かない、プレビューが変わらないとき。"
+---
+
+## Facebetter が出てこない
+
+64 ビットの OBS Studio 28 以降を使い、入れたあと OBS を完全に終了して開き直します。次の二つのパスが、名前を変えずに存在するか確認します：
+
+```text
+~/.config/obs-studio/plugins/obs-facebetter/bin/64bit/obs-facebetter.so
+~/.config/obs-studio/plugins/obs-facebetter/data/resource.fbd
+```
+
+`bin` の隣の `data` フォルダも残します。言語とリソースが入っています。Flatpak 版 OBS は正式にはサポートしていません。[Ubuntu にインストール](/ja/obs/install-ubuntu) を見てください。
+
+ログの取り方は [環境設定](/ja/obs/settings)。
+
+## スライダーが灰色
+
+映像のあるソースを一つ選びます。**調整時にフィルタを追加** がオンなら、スライダーを動かすとフィルタが付きます。オフなら、ソースを右クリックし、フィルタを開き、+ から Facebetter Beauty を選びます。スライダーがロックされていても、ページ名は開けます。[ログインして使う](/ja/obs/login) を見てください。
+
+## プレビューが変わらない
+
+ヘッダーのソースが、見ているソースか確認します。非表示のソースは表示するまで効果が見えません。スライダーがすべて 0 なら、元の映像と同じに見えます。**長押しで比較** を押して違いを見ます。体型は、人がより大きく映っている必要があります。各ページの内容は [効果を調整](/ja/obs/effects) から。

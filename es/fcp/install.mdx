@@ -19,7 +19,7 @@ Antes de empezar:
 
 1. Descarga el zip de macOS y descomprímelo.
 2. Mueve **Facebetter FCP Beauty.app** a **Aplicaciones** (o `~/Applications`).
-3. Abre la app y pulsa **Set up for Final Cut** (registra el plugin e instala la plantilla de Motion).
+3. Abre la app y pulsa **Configurar para Final Cut** (registra el plugin e instala la plantilla de Motion).
 4. Cierra por completo Final Cut Pro, ábrelo de nuevo, busca **Facebetter Beauty** en Efectos y arrástralo a un clip.
 
 En la ruta habitual no hace falta contraseña de administrador.
@@ -27,19 +27,5 @@ En la ruta habitual no hace falta contraseña de administrador.
 <Tip>
 La misma configuración también instala la plantilla de Motion para usar el efecto en Motion.
 </Tip>
-
-## Si macOS dice que la app está dañada
-
-Las builds aún no están firmadas ni notarizadas. Gatekeeper puede mostrar «dañada», «no se puede abrir» o «no se puede verificar».
-
-1. Preferible: clic derecho en la app → **Abrir** → **Abrir**.
-2. O: **Ajustes del Sistema** → **Privacidad y seguridad** → **Abrir de todos modos**.
-3. O en Terminal (ajusta la ruta si hace falta):
-
-```bash
-xattr -cr "/Applications/Facebetter FCP Beauty.app"
-```
-
-Luego abre la app otra vez y termina **Set up for Final Cut**.
 
 Más ayuda: [FAQ](/es/fcp/faq).

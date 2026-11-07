@@ -3,31 +3,25 @@ title: "常见问题"
 sidebarTitle: "macOS 常见问题"
 icon: "circle-question"
 iconType: "solid"
-description: "Mac 上 Facebetter OBS 插件没有出现、滑块不能拖或画面没有变化时怎么处理。"
+description: "在 Mac 上找不到插件、滑块拖不动，或预览没有变化。"
 ---
 
-## 面板里没有 Facebetter，滤镜列表里也没有
+## 找不到 Facebetter
 
-先完全退出 OBS 再打开。然后看插件是否在：
+完全退出 OBS 再打开。然后确认插件在这里：
 
 ```text
 ~/Library/Application Support/obs-studio/plugins/facebetter.plugin
 ```
 
-Intel Mac 要配 Intel 版 OBS，Apple 芯片要配 Apple 版 OBS，两边对不上时 OBS 不会加载插件。安装步骤见 [在 Mac 上安装](/zh/obs/install)。
+Intel Mac 要配 Intel 版 OBS，Apple 芯片要配 Apple 版 OBS。两边对不上时，OBS 不会加载插件。安装步骤见 [在 Mac 上安装](/zh/obs/install)。
 
-## 系统说插件已损坏
+拿日志的步骤见 [偏好设置](/zh/obs/settings)。
 
-打开「终端」，整行粘贴后回车，再重新打开 OBS：
+## 滑块是灰的
 
-```bash
-xattr -dr com.apple.quarantine ~/Library/Application\ Support/obs-studio/plugins/facebetter.plugin
-```
+选中一个有画面的源。**调节源时自动加滤镜** 开着时，拖一下滑块就会加上滤镜。关掉时，在来源上右键，选「滤镜」，点 +，再选 Facebetter 美颜。滑块锁着的时候，分页标题仍然可以点开。见 [登录并使用](/zh/obs/login)。
 
-## 滑块是灰的，拖不动
+## 预览没有变化
 
-滤镜还没加到来源上。面板里会写：需添加滤镜才能调节。回到来源上右键 → 滤镜 → + → Facebetter 美颜。分页标题可以点，用来先看有哪些功能；滑块要等滤镜加上才能拖。完整步骤见 [登录并添加滤镜](/zh/obs/login)。
-
-## 加了滤镜，预览却没有变化
-
-看面板顶部的开关是不是开着，来源菜单是不是选中了当前这个源。滑块如果都在 0，画面看起来会和原片一样。美体需要人在画面里占得比较全，只露一张脸时变化不明显。各分页做什么，见 [调节效果](/zh/obs/effects)。
+看顶部显示的源是不是你正在看的那个。隐藏的源要先显示，才能看到效果。滑块都在 0 时，画面和原片一样。用底部的 **按住对比** 看差别。美体需要人在画面里占得更全。每一页做什么，从 [调节效果](/zh/obs/effects) 看起。
