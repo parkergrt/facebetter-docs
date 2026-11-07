@@ -1,0 +1,68 @@
+---
+title: "Ejemplo de Expo"
+sidebarTitle: "Inicio rápido"
+description: "Ejecuta el ejemplo prebuild de Expo en Android e iOS"
+---
+
+El ejemplo de Expo es una app de React Native para ver el retoque de piel con la cámara frontal. Android e iOS comparten la misma pantalla. Llama a los SDK de Android e iOS. No es el SDK de [Web](/es/web/quick-start).
+
+Para una app de producción, sigue [Android](/es/android/quick-start) o [iOS](/es/ios/quick-start). Esta página solo explica cómo ejecutar el ejemplo. Una app de Expo que llame a este SDK también tiene que ser una app prebuild.
+
+## Expo Go y prebuild
+
+Expo arranca una app de dos maneras. Este SDK solo funciona con prebuild.
+
+| | Expo Go | Prebuild |
+| --- | --- | --- |
+| Inicio | `npx expo start` y abrir la app Expo Go | `npx expo run:android` o `npx expo run:ios` |
+| Qué se ejecuta en el teléfono | La app compartida Expo Go. Este proyecto solo aporta JavaScript. | Una app compilada desde este proyecto. Expo genera el proyecto de Android o iOS y después lo compila. |
+| Beauty Effect SDK | No se puede llamar. Expo Go trae un conjunto fijo de bibliotecas nativas, y este SDK no está entre ellas. No se puede instalar otra biblioteca nativa en Expo Go. | Se enlaza al compilar. Android usa el paquete de Maven. iOS usa el paquete de CocoaPods. |
+| Velocidad | No hay vista previa de belleza, porque el SDK nativo no llega a cargarse. | El fotograma de la cámara lo procesa el SDK nativo dentro de la app. JavaScript solo cambia los controles. Es la misma ruta que los ejemplos de Android e iOS. |
+
+Prebuild es la forma más rápida de ejecutar este SDK. El retoque se queda en la biblioteca nativa. Hacer el mismo trabajo en JavaScript sería mucho más lento, y Expo Go no puede llamar a la biblioteca. El primer prebuild tarda más que abrir Expo Go, porque compila la app nativa. Después, la vista previa es el SDK nativo.
+
+Una compilación de lanzamiento sigue siendo una app prebuild, no Expo Go. Usa prebuild en cualquier proyecto de Expo que llame al Beauty Effect SDK.
+
+## Requisitos
+
+- **Node.js**: `^22.13` o `^24.3`
+- **Android**: Android SDK, un dispositivo o emulador arm64, API 24 o superior
+- **iOS**: Xcode en un Mac. Usa un dispositivo para la cámara frontal.
+
+## Obtener el ejemplo
+
+Clona el [repositorio de GitHub](https://github.com/pixpark/facebetter-sdk) y abre `demo/expo`.
+
+```bash
+git clone https://github.com/pixpark/facebetter-sdk.git
+cd facebetter-sdk/demo/expo
+npm install
+```
+
+## Ejecutar
+
+```bash
+npx expo run:android
+npx expo run:ios
+```
+
+Cada comando ejecuta prebuild, genera el proyecto nativo de esa plataforma e instala una compilación de depuración. Vuelve a ejecutarlo después de cambiar código nativo o JavaScript. `npx expo prebuild` solo genera el proyecto nativo, que después puedes abrir en Android Studio o Xcode.
+
+<Warning>
+`npx expo start` abre Expo Go. Ese modo no puede cargar este SDK.
+</Warning>
+
+## Paquetes
+
+| Plataforma | Paquete | Identidad en el ejemplo |
+| --- | --- | --- |
+| Android | Maven `net.pixpark:facebetter:2.2.1` | Paquete `net.pixpark.fbexample` |
+| iOS | CocoaPods `Facebetter` 2.2.1 | Bundle ID `com.pixpark.fbdemo` |
+
+Ambos incluyen `resource.fbd`. El ejemplo no carga los paquetes opcionales de 3D ni de cuerpo.
+
+Las credenciales incluidas están vinculadas a esas identidades. Para tu propia app, vincula el nombre del paquete o el bundle ID en el [panel](https://facebetter.net/es/dashboard) y luego cambia `app.json`. Consulta [Autenticación y licencia](/es/intro/license).
+
+## Pantalla
+
+La vista previa es la cámara frontal, en vertical y reflejada. El panel ajusta Smooth, Tone, Rosy, Blemish, Clarity y Skin only. Arriba a la derecha está el tiempo del último fotograma. Arriba a la izquierda aparecen el modelo del teléfono, el búfer de la cámara, el tamaño que entra al SDK y el tamaño de la vista. Si el búfer es mucho más pequeño que la vista, se amplía y se ve borroso.

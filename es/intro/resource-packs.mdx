@@ -20,7 +20,7 @@ Descárgalos desde el [GitHub Release](https://github.com/pixpark/facebetter-sdk
 
 ## Cómo funciona la búsqueda
 
-El motor busca en el paquete principal más cada paquete extra que añadas. Los archivos se identifican por su **ruta relativa interna**. Mantén las rutas internas únicas entre paquetes: da a cada capacidad su propio prefijo (`tddfa/…`, `body/…`). Si dos paquetes contienen la misma ruta, gana el **último** `AddResourcePack`.
+El SDK busca en el paquete principal y en cada paquete extra que añadas. Los archivos se identifican por su **ruta relativa interna**. Mantén esas rutas únicas entre paquetes. Si dos paquetes contienen la misma ruta, gana el **último** `AddResourcePack`.
 
 Registra cada `.fbd` con una llamada independiente. **No** concatenes archivos de paquete.
 

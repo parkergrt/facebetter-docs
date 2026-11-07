@@ -4,7 +4,7 @@ description: "Face reshape, body reshape, makeup, whitening, and smoothing enums
 ---
 
 <Note>
-This page matches SDK **2.0**. Numeric values are identical on C++, Objective-C, Java, JavaScript, and Dart.
+This page matches SDK **2.0**. Numeric values are identical on C++, Objective-C, Java, and JavaScript.
 </Note>
 
 Makeup is three knobs:
@@ -13,9 +13,9 @@ Makeup is three knobs:
 2. **Shape** — swap the mask texture (`SetBlushStyle`, `SetContourStyle`, `SetEyeShadowStyle`, …).
 3. **Color** — tint the current shape (`SetLipstickColor`, `SetBlushColor`, `SetEyeShadowColor`, …). **Pupil** and **Contour** do not tint; changing them swaps the texture.
 
-| C++ / JS | Java | Objective-C | Dart |
-| --- | --- | --- | --- |
-| `LipstickColor::Rouge` | `LipstickColor.ROUGE` | `FBLipstickColor_Rouge` | `FBLipstickColor.rouge` |
+| C++ / JS | Java | Objective-C |
+| --- | --- | --- |
+| `LipstickColor::Rouge` | `LipstickColor.ROUGE` | `FBLipstickColor_Rouge` |
 
 ## Whitening (`WhiteningStyle`)
 
@@ -76,7 +76,7 @@ Face reshape is available from **Pro**. Free can try it with a watermark. See [P
 | 24 | `BrowDistance` | Wider / closer brows |
 | 25 | `BrowThickness` | Thicker / thinner brows |
 
-Java names are `SNAKE_CASE` (`FACE_THIN`, `FACE_V_SHAPE`, …). Objective-C uses `FBReshape_FaceThin`. Dart uses `FBReshape.faceThin`.
+Java names are `SNAKE_CASE` (`FACE_THIN`, `FACE_V_SHAPE`, …). Objective-C uses `FBReshape_FaceThin`.
 
 ## Body reshape (`BodyReshape`)
 
@@ -100,7 +100,7 @@ Requires the optional pack `resource_body.fbd` except `LegStretch` and `TorsoLon
 | 7 | `LegStretch` | Stretch below the waist (face only; no `resource_body.fbd`) |
 | 8 | `TorsoLong` | Lengthen the torso chin-to-waist (face only; no `resource_body.fbd`) |
 
-Java names are `SNAKE_CASE` (`BODY_SLIM`, `WAIST_SLIM`, …). Objective-C uses `FBBodyReshape_BodySlim`. Dart uses `FBBodyReshape.bodySlim`.
+Java names are `SNAKE_CASE` (`BODY_SLIM`, `WAIST_SLIM`, …). Objective-C uses `FBBodyReshape_BodySlim`.
 
 ## Lipstick (`LipstickColor`)
 
@@ -139,7 +139,7 @@ Shape via `BlushStyle` (swap texture). Color via `BlushColor` (tint). Default sh
 
 ## Contour (`ContourStyle`)
 
-Mid-gray Overlay map: lighter than 128 highlights, darker contours. Swap texture, no tint. Default: `Natural`.
+Swap the texture. There is no tint: lighter areas highlight and darker areas contour. Default: `Natural`.
 
 | Value | Name | Meaning |
 | --- | --- | --- |

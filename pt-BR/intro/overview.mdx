@@ -1,123 +1,109 @@
 ---
 title: "Visão geral"
-description: "Visão geral do mecanismo SDK de efeitos de beleza Facebetter"
+description: "Recursos do Beauty Effect SDK para imagem e vídeo ao vivo"
 ---
 
-O Facebetter é um mecanismo de efeitos de beleza em tempo real pensado para desenvolvedores. Ele oferece processamento de beleza com IA de alta qualidade para imagens e fluxos de vídeo ao vivo. É acelerado por GPU para baixa latência e altas taxas de quadros, e se integra a Android, iOS, macOS, Windows, Linux e Web.
+O Beauty Effect SDK processa imagens e vídeo ao vivo no Android, iOS, Web, macOS, Windows e Linux. O processamento usa aceleração por GPU. As enumerações estão em [Enums de parâmetros](./makeup). Os planos estão em [Planos e recursos](./pricing).
 
 ## Recursos principais
 
-### Beleza da pele
+### Pele
 
-Os controles de pele são suavização, clareamento e tom rosado, cada um em `[0.0, 1.0]` (`0` desliga). Suavização e clareamento também têm estilos. A cor de quadro inteiro é separada: brilho, contraste, saturação, temperatura e matiz ficam em `[-1.0, 1.0]` (`0` é neutro); a clareza é `[0.0, 1.0]`.
+Suavização, clareamento, tom rosado e remoção de manchas. Cada um vai de `[0.0, 1.0]` (`0` desliga).
+
+- A suavização tem três estilos: Natural, Texture e Smooth. O padrão é Natural.
+- O clareamento tem cinco tons: Cold white, Pink white, Warm white, Wheat e Tan. O padrão é Cold white.
+- `setBeautySkinOnly` limita a beleza de pele à região de pele segmentada.
+- A remoção de manchas é independente da suavização. Ela usa a região de pele, não os pontos do rosto.
+
+### Correção de cor
+
+Controles de quadro inteiro. Não usam pontos faciais nem a máscara de pele, e ficam independentes do clareamento, do tom rosado e dos filtros LUT.
+
+Brilho, contraste, saturação, temperatura e matiz vão de `[-1.0, 1.0]` (`0` é neutro). A nitidez vai de `[0.0, 1.0]` (`0` desliga) e aumenta o contraste local.
+
+### Dentes
+
+`setTeethWhiten` vai de `[0.0, 1.0]` (`0` desliga). Clareia os dentes com a boca aberta e não altera uma boca fechada.
 
 ### Remodelagem facial
 
-Ajustes abrangentes de contorno facial e proporções dos traços:
-
-- **Formato do rosto**: afinamento, formato em V, estreitar, encurtar, reduzir o rosto, testa
-- **Contorno**: maçã do rosto, mandíbula, queixo
-- **Traços**: afinamento/comprimento do nariz, filtro, tamanho/posição/sorriso da boca, espessura dos lábios
-- **Olhos e sobrancelhas**: tamanho/distância/redondez/posição/ângulo/canto dos olhos, pálpebra inferior, posição/distância/espessura das sobrancelhas
-
-A faixa de intensidade é `[-1.0, 1.0]`. Veja [Enums de parâmetros](/pt-BR/intro/makeup).
-
-> Um único quadro suporta até **5 rostos** para remodelagem e maquiagem ao mesmo tempo.
+26 controles, cada um em `[-1.0, 1.0]`. `0` mantém a proporção original. Positivo e negativo são direções opostas. Um quadro pode remodelar e maquiar no máximo **5 rostos**. A lista está em [Enums de parâmetros](./makeup). Exige **Pro** (Free: teste com marca d'água). Veja [Planos e recursos](./pricing).
 
 ### Remodelagem corporal
 
-Controles de afinamento e proporção: corpo, cintura, pernas, ombros, braços, alongar pernas e realce do busto. A intensidade é `[0.0, 1.0]` (`0` desliga). Exige o pacote opcional `resource_body.fbd` — veja [Pacotes de recursos opcionais](/pt-BR/intro/resource-packs) e [Enums de parâmetros](/pt-BR/intro/makeup). Exige **Pro+** (Free: teste com marca d'água). Veja [Planos e recursos](/pt-BR/intro/pricing).
+Nove controles, cada um em `[0.0, 1.0]` (`0` desliga). Não há direção negativa.
+
+Sete acompanham o corpo: corpo inteiro, cintura, pernas, ombros, braços, alongar pernas e busto. Esses precisam do pacote opcional `resource_body.fbd`. Veja [Pacotes de recursos opcionais](./resource-packs).
+
+`LegStretch` e `TorsoLong` usam só pontos faciais e não precisam desse pacote.
+
+Exige **Pro+** (Free: teste com marca d'água). Veja [Planos e recursos](./pricing).
 
 ### Maquiagem
 
-Maquiagem em camadas: batom, blush, sombra, delineador, sobrancelha, cílios, lentes coloridas e contorno. Intensidade, formato e cor são definidos separadamente. Vários itens podem ser aplicados ao mesmo tempo. Veja [Enums de parâmetros](/pt-BR/intro/makeup).
+Batom, blush, contorno, sombra, delineador, sobrancelhas, cílios e lentes de contato. A intensidade é `[0.0, 1.0]`. Forma e cor são ajustadas à parte, com duas exceções:
 
-### Filtros e estilos
+- O batom é uma máscara de lábios mais uma cor. Há seis cores e não há troca de estilo.
+- Contorno e lentes trocam uma textura e não recebem tinta. Há nove cores de lente.
 
-Mais de 20 filtros de estilo em tempo real cobrindo retrato, comida, paisagem, moderno e outros temas. A intensidade é ajustável. Filtros personalizados são arquivos `.fbd` carregados com `setFilter`.
+Vários itens podem ficar ativos ao mesmo tempo. As enumerações estão em [Enums de parâmetros](./makeup). Exige **Pro** (Free: teste com marca d'água).
+
+### Filtros
+
+A biblioteca traz **51** LUTs em quatro grupos: retrato, moderno, comida e paisagem. A intensidade é ajustável. Um filtro próprio é um arquivo `.fbd` passado a `setFilter`. Exige **Pro** (Free: teste com marca d'água).
+
+### Adesivos
+
+- **Adesivos de tela** ficam em um lugar fixo do quadro.
+- **Adesivos de rosto** seguem os pontos faciais.
+- **Adesivos 3D** são malhas como óculos, chapéus e máscaras. Precisam de `resource_3d.fbd`. Veja [Pacotes de recursos opcionais](./resource-packs).
+
+Os recursos são arquivos `.fbd`. Aplique um adesivo 2D com `setSticker` e um 3D com `set3DSticker` (caminho ou bytes). Remova com `clearSticker` / `clear3DSticker`. O arquivo novo vale no próximo quadro processado. Exige **Pro+** (Free: teste com marca d'água).
 
 ### Fundo virtual
 
-Com segmentação de retrato em tempo real:
+- **Desfoque**: `setVirtualBackgroundBlur`. `0` desliga.
+- **Imagem**: `setVirtualBackground` com um caminho ou bytes JPEG ou PNG.
+- **Chroma key**: verde, azul ou vermelho como máscara. Similaridade, suavização da borda e supressão de vazamento são controles separados. Sem desfoque nem imagem, a área recortada fica transparente.
+- **Contorno do sujeito**: um traço ao redor do recorte. Ele aparece quando desfoque, troca de imagem ou chroma key está ligado.
 
-- **Desfoque de fundo**: mantém o sujeito em primeiro plano nítido enquanto aplica desfoque gaussiano ao fundo
-- **Substituição de fundo**: troca o fundo por uma imagem JPEG / PNG
+Exige **Pro+** (Free: teste com marca d'água).
 
-### Efeitos de adesivo
+## Formatos de entrada
 
-Efeitos de adesivo 2D e 3D:
-
-- **Adesivos de tela**: sobrepostos em uma posição fixa no quadro
-- **Adesivos com rastreamento facial**: ancorados aos pontos-chave do rosto e acompanham o movimento da cabeça
-- **Adesivos 3D**: props em malha (óculos, chapéus, máscaras). Exigem o pacote opcional `resource_3d.fbd` — veja [Pacotes de recursos opcionais](/pt-BR/intro/resource-packs). Exigem **Pro+** (Free: teste com marca d'água). Veja [Planos e recursos](/pt-BR/intro/pricing)
-
-Os recursos de adesivo (e de filtro) são **arquivos `.fbd`**. Aplique um adesivo 2D por vez com `setSticker` e um adesivo 3D com `set3DSticker` (caminho ou bytes). Remova com `clearSticker` / `clear3DSticker`. O novo recurso passa a valer no próximo quadro processado.
-
-### Recursos avançados
-
-- **Chroma key**: recorte de tela verde, azul ou vermelha como máscara de fundo virtual
-
-A disponibilidade dos recursos depende do plano de assinatura. O plano Free permite testar a maioria dos efeitos com marca d'água. Veja [Planos e recursos](/pt-BR/intro/pricing).
-
----
-
-## Formatos de entrada / saída
-
-### Formatos de imagem
-
-| Tipo | Formatos suportados |
+| Tipo | Formatos |
 | --- | --- |
-| Imagens estáticas | `JPEG`, `PNG` |
-| Quadros de vídeo | `YUV I420`, `NV12`, `NV21`, `RGB`, `RGBA`, `BGR`, `BGRA` |
-| Textura GPU | OpenGL / OpenGL ES `Texture` |
+| Imagem estática | JPEG, PNG |
+| Quadro de vídeo | YUV I420, NV12, NV21, RGB, RGBA, BGR, BGRA |
+| Textura de GPU | Textura OpenGL / OpenGL ES |
 
-### Limites de resolução
+`ImageFrame` converte entre esses formatos de pixel.
 
-| Cenário | Máximo |
+## Plataformas
+
+| Plataforma | Requisito |
 | --- | --- |
-| Fluxo de vídeo em tempo real | `720P @ 60fps` / `1080P @ 30fps` |
-| Processamento de imagem estática | Até `4K` |
+| Android | 7.0+ (API 24) |
+| iOS | 12.0+ |
+| Web | Chrome 57+, Firefox 52+, Safari 11+, Edge 16+. A câmera precisa de HTTPS ou `localhost` |
+| macOS | 10.15+ |
+| Windows | Windows 10+ |
+| Linux | Ubuntu 22.04+ |
 
-`ImageFrame` converte entre esses formatos.
-
----
-
-## Desempenho
-
-| Métrica | Valor |
+| Linguagem | Onde |
 | --- | --- |
-| Latência de renderização | ~`10ms` em média a `1080P` (GPU em paralelo) |
-| Uso de CPU | < `5%` durante a renderização em tempo real |
-| Consumo de memória | Principalmente memória GPU; o uso de RAM do sistema é baixo |
-
----
-
-## Plataformas suportadas
-
-| Plataforma | SO / Versão |
-| --- | --- |
-| Mobile | `iOS 12.0+`, `Android 7.0+` (API 24) |
-| Web | Chrome, Firefox, Safari, Edge |
-
----
-
-## Linguagens e interfaces de integração
-
-| Interface | Caso de uso |
-| --- | --- |
-| Java / Kotlin | Aplicativos Android |
-| Objective-C / Swift | Aplicativos iOS e macOS |
-| JavaScript | Web (navegador e Node.js) |
-
----
+| Java / Kotlin | Android |
+| Objective-C / Swift | iOS, macOS |
+| C++ | Windows, Linux, macOS |
+| JavaScript | SDK de navegador. Não coloque `appKey` na página. Node serve só para trocar o token de licença. Veja [Autenticação e licença](./license). |
 
 ## Início rápido
 
-Selecione a plataforma de destino e siga o guia de integração:
-
-- [Início rápido no Android](/pt-BR/android/quick-start)
-- [Início rápido no iOS](/pt-BR/ios/quick-start)
-- [Início rápido no macOS](/pt-BR/macos/quick-start)
-- [Início rápido no Windows](/pt-BR/windows/quick-start)
-- [Início rápido no Linux](/pt-BR/linux/quick-start)
-- [Início rápido na Web](/pt-BR/web/quick-start)
+- [Android](../android/quick-start)
+- [iOS](../ios/quick-start)
+- [Web](../web/quick-start)
+- [Exemplo Expo](../expo/quick-start)
+- [macOS](../macos/quick-start)
+- [Windows](../windows/quick-start)
+- [Linux](../linux/quick-start)

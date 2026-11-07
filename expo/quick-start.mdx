@@ -1,0 +1,68 @@
+---
+title: "Expo sample"
+sidebarTitle: "Quick Start"
+description: "Run the Expo prebuild sample on Android and iOS"
+---
+
+The Expo sample is a React Native app for a quick look at skin beauty on the front camera. Android and iOS share one screen. It calls the Android and iOS SDKs. It is not the [Web](/web/quick-start) SDK.
+
+Ship a production app from [Android](/android/quick-start) or [iOS](/ios/quick-start). This page only runs the sample. An Expo app that calls this SDK still has to be a prebuild app.
+
+## Expo Go and prebuild
+
+Expo starts an app in one of two ways. This SDK works only with prebuild.
+
+| | Expo Go | Prebuild |
+| --- | --- | --- |
+| Start | `npx expo start`, then open the Expo Go app | `npx expo run:android` or `npx expo run:ios` |
+| What runs on the phone | The shared Expo Go app. This project only supplies JavaScript. | An app compiled from this project. Expo generates the Android or iOS project, then builds it. |
+| Beauty Effect SDK | Cannot be called. Expo Go ships a fixed set of native libraries, and this SDK is not one of them. You cannot install another native library into Expo Go. | Linked when the app is built. Android uses the Maven package. iOS uses the CocoaPods package. |
+| Speed | There is no beauty preview, because the native SDK never loads. | The camera frame is processed by the native SDK inside the app. JavaScript only updates the controls. That is the same path as the Android and iOS samples. |
+
+Prebuild is the faster way to run this SDK. The beauty work stays in the native library. Doing the same work in JavaScript would be much slower, and Expo Go cannot call the library at all. The first prebuild takes longer than opening Expo Go, because it compiles the native app. After that, the preview is the native SDK.
+
+A release build is still a prebuild app, not Expo Go. Use prebuild for any Expo project that calls the Beauty Effect SDK.
+
+## Requirements
+
+- **Node.js**: `^22.13` or `^24.3`
+- **Android**: Android SDK, an arm64 device or emulator, API 24 and above
+- **iOS**: Xcode on a Mac. Use a device so the front camera is available.
+
+## Get the sample
+
+Clone the [GitHub repository](https://github.com/pixpark/facebetter-sdk) and open `demo/expo`.
+
+```bash
+git clone https://github.com/pixpark/facebetter-sdk.git
+cd facebetter-sdk/demo/expo
+npm install
+```
+
+## Run
+
+```bash
+npx expo run:android
+npx expo run:ios
+```
+
+Each command runs prebuild, generates that platform's native project, and installs a debug build. Run the same command again after native or JavaScript changes. `npx expo prebuild` only generates the native project, which you can then open in Android Studio or Xcode.
+
+<Warning>
+`npx expo start` opens Expo Go. That mode cannot load this SDK.
+</Warning>
+
+## Packages
+
+| Platform | Package | Identity in the sample |
+| --- | --- | --- |
+| Android | Maven `net.pixpark:facebetter:2.2.1` | Package `net.pixpark.fbexample` |
+| iOS | CocoaPods `Facebetter` 2.2.1 | Bundle ID `com.pixpark.fbdemo` |
+
+Both packages include `resource.fbd`. The sample does not load the optional 3D or body packs.
+
+The included credentials are bound to those identities. For your own app, bind the package name or bundle ID in the [dashboard](https://facebetter.net/dashboard), then change `app.json`. See [Auth & License](/intro/license).
+
+## Screen
+
+The preview is the front camera, portrait and mirrored. The panel sets Smooth, Tone, Rosy, Blemish, Clarity, and Skin only. The upper right is the latest frame time. The upper left shows the phone model, the camera buffer, the size passed into the SDK, and the on-screen view. A camera buffer much smaller than the view is scaled up and looks soft.

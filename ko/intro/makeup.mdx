@@ -4,7 +4,7 @@ description: "Beauty Effect SDK 2.0의 페이스 리셰이프, 바디 리셰이�
 ---
 
 <Note>
-이 페이지는 SDK **2.0**에 해당합니다. 숫자 값은 C++, Objective-C, Java, JavaScript, Dart에서 동일합니다.
+이 페이지는 SDK **2.0**에 해당합니다. 숫자 값은 C++, Objective-C, Java, JavaScript에서 동일합니다.
 </Note>
 
 메이크업은 세 가지 조절입니다.
@@ -13,9 +13,9 @@ description: "Beauty Effect SDK 2.0의 페이스 리셰이프, 바디 리셰이�
 2. **형태** — 마스크 텍스처를 바꿉니다(`SetBlushStyle`, `SetContourStyle`, `SetEyeShadowStyle`, …).
 3. **색상** — 현재 형태에 틴트를 적용합니다(`SetLipstickColor`, `SetBlushColor`, `SetEyeShadowColor`, …). **Pupil**과 **Contour**는 틴트하지 않으며, 항목을 바꾸면 텍스처가 교체됩니다.
 
-| C++ / JS | Java | Objective-C | Dart |
-| --- | --- | --- | --- |
-| `LipstickColor::Rouge` | `LipstickColor.ROUGE` | `FBLipstickColor_Rouge` | `FBLipstickColor.rouge` |
+| C++ / JS | Java | Objective-C |
+| --- | --- | --- |
+| `LipstickColor::Rouge` | `LipstickColor.ROUGE` | `FBLipstickColor_Rouge` |
 
 ## 미백 (`WhiteningStyle`)
 
@@ -76,7 +76,7 @@ description: "Beauty Effect SDK 2.0의 페이스 리셰이프, 바디 리셰이�
 | 24 | `BrowDistance` | 눈썹 간격 넓게 / 좁게 |
 | 25 | `BrowThickness` | 눈썹 두껍게 / 얇게 |
 
-Java 이름은 `SNAKE_CASE`입니다(`FACE_THIN`, `FACE_V_SHAPE`, …). Objective-C는 `FBReshape_FaceThin`입니다. Dart는 `FBReshape.faceThin`입니다.
+Java 이름은 `SNAKE_CASE`입니다(`FACE_THIN`, `FACE_V_SHAPE`, …). Objective-C는 `FBReshape_FaceThin`입니다.
 
 ## 바디 리셰이프 (`BodyReshape`)
 
@@ -100,7 +100,7 @@ Java 이름은 `SNAKE_CASE`입니다(`FACE_THIN`, `FACE_V_SHAPE`, …). Objectiv
 | 7 | `LegStretch` | 허리 아래 늘리기 (얼굴 포인트만, `resource_body.fbd` 불필요) |
 | 8 | `TorsoLong` | 턱~허리 늘리기 (얼굴 포인트만, `resource_body.fbd` 불필요) |
 
-Java 이름은 `SNAKE_CASE`입니다(`BODY_SLIM`, `WAIST_SLIM`, …). Objective-C는 `FBBodyReshape_BodySlim`입니다. Dart는 `FBBodyReshape.bodySlim`입니다.
+Java 이름은 `SNAKE_CASE`입니다(`BODY_SLIM`, `WAIST_SLIM`, …). Objective-C는 `FBBodyReshape_BodySlim`입니다.
 
 ## 립스틱 (`LipstickColor`)
 
@@ -139,7 +139,7 @@ Java 이름은 `SNAKE_CASE`입니다(`BODY_SLIM`, `WAIST_SLIM`, …). Objective-
 
 ## 컨투어 (`ContourStyle`)
 
-중간 회색 Overlay 맵입니다. 128보다 밝으면 하이라이트, 어두우면 음영입니다. 텍스처를 바꾸며 틴트는 없습니다. 기본값: `Natural`.
+텍스처를 바꾸며 틴트는 없습니다. 밝은 부분은 하이라이트, 어두운 부분은 음영입니다. 기본값: `Natural`.
 
 | 값 | 이름 | 의미 |
 | --- | --- | --- |

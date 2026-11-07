@@ -1,0 +1,68 @@
+---
+title: "Expo 샘플"
+sidebarTitle: "빠른 시작"
+description: "Android와 iOS에서 Expo 프리빌드 샘플 실행"
+---
+
+Expo 샘플은 전면 카메라의 피부 보정을 빠르게 확인하는 React Native 앱입니다. Android와 iOS가 같은 화면을 씁니다. 호출하는 것은 Android와 iOS SDK이며, [Web](/ko/web/quick-start) SDK가 아닙니다.
+
+제품에 넣을 때는 [Android](/ko/android/quick-start) 또는 [iOS](/ko/ios/quick-start)를 따르세요. 이 페이지는 샘플 실행만 설명합니다. Expo에서 이 SDK를 부르는 앱도 prebuild로 만들어야 합니다.
+
+## Expo Go와 prebuild
+
+Expo는 앱을 두 가지 방식으로 실행합니다. 이 SDK는 prebuild에서만 호출할 수 있습니다.
+
+| | Expo Go | Prebuild |
+| --- | --- | --- |
+| 실행 | `npx expo start` 후 Expo Go 앱에서 열기 | `npx expo run:android` 또는 `npx expo run:ios` |
+| 휴대폰에서 실행되는 것 | 공통 Expo Go 앱. 이 프로젝트는 JavaScript만 제공합니다. | 이 프로젝트로 컴파일한 앱. Expo가 Android 또는 iOS 프로젝트를 만든 다음 빌드합니다. |
+| 뷰티 효과 SDK | 호출할 수 없습니다. Expo Go에 들어 있는 네이티브 라이브러리는 고정되어 있고, 이 SDK는 포함되어 있지 않습니다. 다른 네이티브 라이브러리를 추가할 수도 없습니다. | 빌드할 때 링크됩니다. Android는 Maven 패키지, iOS는 CocoaPods 패키지를 사용합니다. |
+| 속도 | 네이티브 SDK가 로드되지 않으므로 뷰티 미리보기가 없습니다. | 카메라 프레임은 앱 안의 네이티브 SDK가 처리합니다. JavaScript는 컨트롤만 바꿉니다. Android, iOS 샘플과 같은 경로입니다. |
+
+이 SDK를 실행할 때는 prebuild가 더 빠릅니다. 뷰티 처리는 네이티브 라이브러리에 남습니다. 같은 작업을 JavaScript로 하면 훨씬 느리고, Expo Go에서는 라이브러리를 호출할 수 없습니다. 첫 prebuild는 네이티브 앱을 컴파일하므로 Expo Go를 여는 것보다 오래 걸립니다. 그다음의 미리보기는 네이티브 SDK입니다.
+
+릴리스 빌드도 Expo Go가 아니라 prebuild로 만든 앱입니다. 이 SDK를 부르는 Expo 프로젝트는 prebuild를 사용하세요.
+
+## 요구 사항
+
+- **Node.js**: `^22.13` 또는 `^24.3`
+- **Android**: Android SDK, arm64 기기 또는 에뮬레이터, API 24 이상
+- **iOS**: Mac의 Xcode. 전면 카메라는 실기기에서 확인하세요.
+
+## 샘플 받기
+
+[GitHub 저장소](https://github.com/pixpark/facebetter-sdk)를 클론하고 `demo/expo`를 엽니다.
+
+```bash
+git clone https://github.com/pixpark/facebetter-sdk.git
+cd facebetter-sdk/demo/expo
+npm install
+```
+
+## 실행
+
+```bash
+npx expo run:android
+npx expo run:ios
+```
+
+각 명령은 prebuild를 실행하고, 해당 플랫폼의 네이티브 프로젝트를 만든 다음 디버그 빌드를 설치합니다. 네이티브 코드나 JavaScript를 바꾼 뒤에는 같은 명령을 다시 실행하세요. `npx expo prebuild`는 네이티브 프로젝트만 만듭니다. 그다음은 Android Studio나 Xcode에서 열 수 있습니다.
+
+<Warning>
+`npx expo start`가 여는 것은 Expo Go입니다. 이 모드에서는 이 SDK를 불러올 수 없습니다.
+</Warning>
+
+## 패키지
+
+| 플랫폼 | 패키지 | 샘플의 앱 식별자 |
+| --- | --- | --- |
+| Android | Maven `net.pixpark:facebetter:2.2.1` | 패키지 이름 `net.pixpark.fbexample` |
+| iOS | CocoaPods `Facebetter` 2.2.1 | Bundle ID `com.pixpark.fbdemo` |
+
+두 패키지 모두 `resource.fbd`를 포함합니다. 샘플은 선택 사항인 3D 팩과 바디 팩을 불러오지 않습니다.
+
+포함된 자격 증명은 위 식별자에 묶여 있습니다. 자신의 앱에서는 [대시보드](https://facebetter.net/ko/dashboard)에서 패키지 이름 또는 Bundle ID를 등록한 다음 `app.json`을 바꾸세요. [인증 및 라이선스](/ko/intro/license)를 참고하세요.
+
+## 화면
+
+미리보기는 전면 카메라, 세로, 좌우 반전입니다. 아래에서 Smooth, Tone, Rosy, Blemish, Clarity, Skin only를 조절합니다. 오른쪽 위는 최근 프레임의 처리 시간입니다. 왼쪽 위는 기기 모델, 카메라 버퍼, SDK에 넘기는 크기, 화면의 뷰 크기입니다. 카메라 버퍼가 뷰보다 훨씬 작으면 확대되어 흐릿해 보입니다.

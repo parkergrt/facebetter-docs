@@ -1,123 +1,109 @@
 ---
 title: "Overview"
-description: "Facebetter Beauty Effects SDK Engine Product Overview"
+description: "Beauty Effect SDK capabilities for images and live video"
 ---
 
-Facebetter is a real-time beauty effects engine designed for developers. It delivers high-quality AI-powered beauty processing for both images and live video streams. It is GPU-accelerated for low latency and high frame rates, and integrates into Android, iOS, macOS, Windows, Linux, and Web.
+The Beauty Effect SDK processes images and live video on Android, iOS, Web, macOS, Windows, and Linux. Processing is GPU-accelerated. Enums are on [Parameter enums](./makeup). Plans are on [Plans & Features](./pricing).
 
-## Core Features
+## Core features
 
-### Skin Beauty
+### Skin
 
-Skin controls are smoothing, whitening, and rosy tone, each in `[0.0, 1.0]` (`0` is off). Smoothing and whitening also have style presets. Full-frame color grade is separate: brightness, contrast, saturation, temperature, and tint are `[-1.0, 1.0]` (`0` is neutral); clarity is `[0.0, 1.0]`.
+Smoothing, whitening, rosiness, and blemish removal. Each is `[0.0, 1.0]` (`0` is off).
 
-### Face Reshaping
+- Smoothing has three styles: Natural, Texture, and Smooth. The default is Natural.
+- Whitening has five looks: Cold white, Pink white, Warm white, Wheat, and Tan. The default is Cold white.
+- `setBeautySkinOnly` limits skin beauty to the segmented skin region.
+- Blemish removal is independent of smoothing. It uses the skin region, not face landmarks.
 
-Comprehensive adjustments spanning facial contour and feature proportions:
+### Color grade
 
-- **Face shape**: slim, V-shape, narrow, short, small face, forehead
-- **Contour**: cheekbone, jaw, chin
-- **Features**: nose slim/length, philtrum, mouth size/position/smile, lip thickness
-- **Eyes & brows**: eye size/distance/round/position/angle/corner, lower eyelid, brow position/distance/thickness
+Full-frame controls. They do not use face landmarks or the skin mask, and they stay independent of whitening, rosiness, and LUT filters.
 
-Intensity range is `[-1.0, 1.0]`. See [Parameter enums](./makeup).
+Brightness, contrast, saturation, temperature, and tint are `[-1.0, 1.0]` (`0` is neutral). Clarity is `[0.0, 1.0]` (`0` is off) and raises local contrast.
 
-> A single frame supports up to **5 faces** for reshape and makeup at once.
+### Teeth
+
+`setTeethWhiten` is `[0.0, 1.0]` (`0` is off). It whitens teeth in an open mouth and leaves a closed mouth unchanged.
+
+### Face reshape
+
+26 controls, each in `[-1.0, 1.0]`. `0` keeps the original proportion. Positive and negative are opposite directions. One frame can reshape and apply makeup on at most **5 faces**. The list is on [Parameter enums](./makeup). Requires **Pro** (Free: watermarked trial). See [Plans & Features](./pricing).
 
 ### Body reshape
 
-Body slimming and proportion controls: whole-body slim, waist, legs, shoulders, arms, longer legs, and bust enhance. Intensity is `[0.0, 1.0]` (`0` is off). Requires the optional `resource_body.fbd` pack — see [Optional resource packs](./resource-packs) and [Parameter enums](./makeup). Requires **Pro+** (Free: watermarked trial). See [Plans & Features](./pricing).
+Nine controls, each in `[0.0, 1.0]` (`0` is off). There is no negative direction.
+
+Seven follow the body: whole-body slim, waist, legs, shoulders, arms, longer legs, and bust. Those need the optional `resource_body.fbd` pack. See [Optional resource packs](./resource-packs).
+
+`LegStretch` and `TorsoLong` use face landmarks only and do not need that pack.
+
+Requires **Pro+** (Free: watermarked trial). See [Plans & Features](./pricing).
 
 ### Makeup
 
-Layered makeup: lipstick, blush, eyeshadow, eyeliner, eyebrow, eyelash, colored contacts, and contour. Intensity, shape, and color are set separately. Multiple items can be applied at once. See [Parameter enums](./makeup).
+Lipstick, blush, contour, eyeshadow, eyeliner, eyebrows, eyelashes, and colored contacts. Intensity is `[0.0, 1.0]`. Shape and color are set separately, with two exceptions:
 
-### Filters & Styles
+- Lipstick is one lip mask plus a color. There are six colors and no style swap.
+- Contour and contacts swap a texture and are not tinted. There are nine contact colors.
 
-20+ real-time style filters covering portrait, food, landscape, modern, and other themes. Intensity is adjustable. Custom filters are `.fbd` files loaded with `setFilter`.
+Several makeup items can be on at once. Enums are on [Parameter enums](./makeup). Requires **Pro** (Free: watermarked trial).
 
-### Virtual Background
+### Filters
 
-Powered by real-time portrait segmentation:
+The library ships **51** LUT filters in four groups: portrait, modern, food, and landscape. Intensity is adjustable. A custom filter is an `.fbd` file passed to `setFilter`. Requires **Pro** (Free: watermarked trial).
 
-- **Background blur**: keeps the foreground subject sharp while applying Gaussian blur to the background
-- **Background replacement**: swaps the background with a JPEG / PNG image
+### Stickers
 
-### Sticker Effects
+- **Screen stickers** stay at a fixed place on the frame.
+- **Face stickers** follow face landmarks.
+- **3D stickers** are mesh props such as glasses, hats, and masks. They need `resource_3d.fbd`. See [Optional resource packs](./resource-packs).
 
-2D and 3D sticker effects:
+Resources are `.fbd` files. Apply one 2D sticker with `setSticker` and one 3D sticker with `set3DSticker` (path or bytes). Remove them with `clearSticker` / `clear3DSticker`. The new file applies on the next processed frame. Requires **Pro+** (Free: watermarked trial).
 
-- **Screen stickers**: overlaid at a fixed position on the frame
-- **Face-tracking stickers**: anchored to face keypoints and follow head movement
-- **3D stickers**: mesh props (glasses, hats, masks). Requires the optional `resource_3d.fbd` pack — see [Optional resource packs](./resource-packs). Requires **Pro+** (Free: watermarked trial). See [Plans & Features](./pricing)
+### Virtual background
 
-Sticker (and filter) resources are **`.fbd` files**. Apply one 2D sticker at a time with `setSticker` and one 3D sticker with `set3DSticker` (path or bytes). Remove with `clearSticker` / `clear3DSticker`. The new resource takes effect on the next processed frame.
+- **Blur**: `setVirtualBackgroundBlur`. `0` turns it off.
+- **Image**: `setVirtualBackground` with a JPEG or PNG path or encoded bytes.
+- **Chroma key**: green, blue, or red as the mask. Similarity, edge feather, and spill suppression are separate controls. With no blur or image, the keyed area is transparent.
+- **Subject outline**: a stroke around the cutout. It draws when blur, image replace, or chroma key is on.
 
-### Advanced Features
+Requires **Pro+** (Free: watermarked trial).
 
-- **Chroma key**: key out green, blue, or red screen as the virtual-background mask
+## Input formats
 
-Feature availability depends on the subscription plan. Free can try most effects with a watermark. See [Plans & Features](./pricing).
-
----
-
-## Input / Output Formats
-
-### Image Formats
-
-| Type | Supported Formats |
+| Type | Formats |
 | --- | --- |
-| Static images | `JPEG`, `PNG` |
-| Video frames | `YUV I420`, `NV12`, `NV21`, `RGB`, `RGBA`, `BGR`, `BGRA` |
-| GPU texture | OpenGL / OpenGL ES `Texture` |
+| Still image | JPEG, PNG |
+| Video frame | YUV I420, NV12, NV21, RGB, RGBA, BGR, BGRA |
+| GPU texture | OpenGL / OpenGL ES texture |
 
-### Resolution Limits
+`ImageFrame` converts among the pixel formats.
 
-| Scenario | Maximum |
+## Platforms
+
+| Platform | Requirement |
 | --- | --- |
-| Real-time video stream | `720P @ 60fps` / `1080P @ 30fps` |
-| Static image processing | Up to `4K` |
+| Android | 7.0+ (API 24) |
+| iOS | 12.0+ |
+| Web | Chrome 57+, Firefox 52+, Safari 11+, Edge 16+. The camera needs HTTPS or `localhost` |
+| macOS | 10.15+ |
+| Windows | Windows 10+ |
+| Linux | Ubuntu 22.04+ |
 
-`ImageFrame` converts among these formats.
-
----
-
-## Performance
-
-| Metric | Value |
+| Language | Where |
 | --- | --- |
-| Render latency | ~`10ms` average at `1080P` (GPU parallel) |
-| CPU usage | < `5%` during real-time rendering |
-| Memory footprint | Primarily GPU memory; system RAM usage is low |
+| Java / Kotlin | Android |
+| Objective-C / Swift | iOS, macOS |
+| C++ | Windows, Linux, macOS |
+| JavaScript | The browser SDK. Do not put `appKey` in the page. A Node server is only for exchanging the license token. See [Auth & License](./license). |
 
----
+## Quick start
 
-## Supported Platforms
-
-| Platform | OS / Version |
-| --- | --- |
-| Mobile | `iOS 12.0+`, `Android 7.0+` (API 24) |
-| Web | Chrome, Firefox, Safari, Edge |
-
----
-
-## Integration Languages & Interfaces
-
-| Interface | Use Case |
-| --- | --- |
-| Java / Kotlin | Android applications |
-| Objective-C / Swift | iOS and macOS applications |
-| JavaScript | Web (browser and Node.js) |
-
----
-
-## Quick Start
-
-Select your target platform and follow the integration guide:
-
-- [Android Quick Start](../android/quick-start)
-- [iOS Quick Start](../ios/quick-start)
-- [macOS Quick Start](../macos/quick-start)
-- [Windows Quick Start](../windows/quick-start)
-- [Linux Quick Start](../linux/quick-start)
-- [Web Quick Start](../web/quick-start)
+- [Android](../android/quick-start)
+- [iOS](../ios/quick-start)
+- [Web](../web/quick-start)
+- [Expo sample](../expo/quick-start)
+- [macOS](../macos/quick-start)
+- [Windows](../windows/quick-start)
+- [Linux](../linux/quick-start)

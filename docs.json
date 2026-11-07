@@ -59,7 +59,7 @@
         "language": "en",
         "tabs": [
           {
-            "tab": "SDK Docs",
+            "tab": "Beauty Effect SDK Docs",
             "groups": [
               {
                 "group": "Introduction",
@@ -106,6 +106,28 @@
                 "iconType": "brands"
               },
               {
+                "group": "Web",
+                "pages": [
+                  "web/quick-start",
+                  "web/implement-beauty",
+                  "web/third-party-integration",
+                  "web/error-handling",
+                  "web/api-reference",
+                  "web/best-practices",
+                  "web/faq"
+                ],
+                "icon": "globe",
+                "iconType": "solid"
+              },
+              {
+                "group": "Expo",
+                "pages": [
+                  "expo/quick-start"
+                ],
+                "icon": "mobile-screen",
+                "iconType": "solid"
+              },
+              {
                 "group": "macOS",
                 "pages": [
                   "macos/quick-start",
@@ -146,20 +168,6 @@
                 ],
                 "icon": "linux",
                 "iconType": "brands"
-              },
-              {
-                "group": "Web",
-                "pages": [
-                  "web/quick-start",
-                  "web/implement-beauty",
-                  "web/third-party-integration",
-                  "web/error-handling",
-                  "web/api-reference",
-                  "web/best-practices",
-                  "web/faq"
-                ],
-                "icon": "globe",
-                "iconType": "solid"
               }
             ]
           },
@@ -222,12 +230,13 @@
             ]
           },
           {
-            "tab": "Edit Plugins",
+            "tab": "Beauty Effect FCP/AE Plugin",
             "groups": [
               {
                 "group": "Final Cut Pro",
                 "pages": [
                   "fcp/install",
+                  "fcp/effects",
                   "fcp/faq"
                 ],
                 "icon": "clapperboard",
@@ -265,7 +274,7 @@
         "language": "zh",
         "tabs": [
           {
-            "tab": "SDK 文档",
+            "tab": "Beauty Effect SDK 文档",
             "groups": [
               {
                 "group": "产品介绍",
@@ -312,6 +321,28 @@
                 "iconType": "brands"
               },
               {
+                "group": "Web",
+                "pages": [
+                  "zh/web/quick-start",
+                  "zh/web/implement-beauty",
+                  "zh/web/third-party-integration",
+                  "zh/web/error-handling",
+                  "zh/web/api-reference",
+                  "zh/web/best-practices",
+                  "zh/web/faq"
+                ],
+                "icon": "globe",
+                "iconType": "solid"
+              },
+              {
+                "group": "Expo",
+                "pages": [
+                  "zh/expo/quick-start"
+                ],
+                "icon": "mobile-screen",
+                "iconType": "solid"
+              },
+              {
                 "group": "macOS",
                 "pages": [
                   "zh/macos/quick-start",
@@ -352,20 +383,6 @@
                 ],
                 "icon": "linux",
                 "iconType": "brands"
-              },
-              {
-                "group": "Web",
-                "pages": [
-                  "zh/web/quick-start",
-                  "zh/web/implement-beauty",
-                  "zh/web/third-party-integration",
-                  "zh/web/error-handling",
-                  "zh/web/api-reference",
-                  "zh/web/best-practices",
-                  "zh/web/faq"
-                ],
-                "icon": "globe",
-                "iconType": "solid"
               }
             ]
           },
@@ -428,12 +445,13 @@
             ]
           },
           {
-            "tab": "剪辑插件",
+            "tab": "美颜特效 FCP/AE 插件",
             "groups": [
               {
                 "group": "Final Cut Pro",
                 "pages": [
                   "zh/fcp/install",
+                  "zh/fcp/effects",
                   "zh/fcp/faq"
                 ],
                 "icon": "clapperboard",
@@ -471,7 +489,7 @@
         "language": "ja",
         "tabs": [
           {
-            "tab": "SDK ドキュメント",
+            "tab": "Beauty Effect SDK ドキュメント",
             "groups": [
               {
                 "group": "はじめに",
@@ -518,6 +536,28 @@
                 "iconType": "brands"
               },
               {
+                "group": "Web",
+                "pages": [
+                  "ja/web/quick-start",
+                  "ja/web/implement-beauty",
+                  "ja/web/third-party-integration",
+                  "ja/web/error-handling",
+                  "ja/web/api-reference",
+                  "ja/web/best-practices",
+                  "ja/web/faq"
+                ],
+                "icon": "globe",
+                "iconType": "solid"
+              },
+              {
+                "group": "Expo",
+                "pages": [
+                  "ja/expo/quick-start"
+                ],
+                "icon": "mobile-screen",
+                "iconType": "solid"
+              },
+              {
                 "group": "macOS",
                 "pages": [
                   "ja/macos/quick-start",
@@ -558,20 +598,6 @@
                 ],
                 "icon": "linux",
                 "iconType": "brands"
-              },
-              {
-                "group": "Web",
-                "pages": [
-                  "ja/web/quick-start",
-                  "ja/web/implement-beauty",
-                  "ja/web/third-party-integration",
-                  "ja/web/error-handling",
-                  "ja/web/api-reference",
-                  "ja/web/best-practices",
-                  "ja/web/faq"
-                ],
-                "icon": "globe",
-                "iconType": "solid"
               }
             ]
           },
@@ -634,12 +660,13 @@
             ]
           },
           {
-            "tab": "編集プラグイン",
+            "tab": "美顔エフェクト FCP/AE プラグイン",
             "groups": [
               {
                 "group": "Final Cut Pro",
                 "pages": [
                   "ja/fcp/install",
+                  "ja/fcp/effects",
                   "ja/fcp/faq"
                 ],
                 "icon": "clapperboard",
@@ -677,7 +704,7 @@
         "language": "ko",
         "tabs": [
           {
-            "tab": "SDK 문서",
+            "tab": "Beauty Effect SDK 문서",
             "groups": [
               {
                 "group": "소개",
@@ -724,6 +751,28 @@
                 "iconType": "brands"
               },
               {
+                "group": "Web",
+                "pages": [
+                  "ko/web/quick-start",
+                  "ko/web/implement-beauty",
+                  "ko/web/third-party-integration",
+                  "ko/web/error-handling",
+                  "ko/web/api-reference",
+                  "ko/web/best-practices",
+                  "ko/web/faq"
+                ],
+                "icon": "globe",
+                "iconType": "solid"
+              },
+              {
+                "group": "Expo",
+                "pages": [
+                  "ko/expo/quick-start"
+                ],
+                "icon": "mobile-screen",
+                "iconType": "solid"
+              },
+              {
                 "group": "macOS",
                 "pages": [
                   "ko/macos/quick-start",
@@ -764,20 +813,6 @@
                 ],
                 "icon": "linux",
                 "iconType": "brands"
-              },
-              {
-                "group": "Web",
-                "pages": [
-                  "ko/web/quick-start",
-                  "ko/web/implement-beauty",
-                  "ko/web/third-party-integration",
-                  "ko/web/error-handling",
-                  "ko/web/api-reference",
-                  "ko/web/best-practices",
-                  "ko/web/faq"
-                ],
-                "icon": "globe",
-                "iconType": "solid"
               }
             ]
           },
@@ -840,12 +875,13 @@
             ]
           },
           {
-            "tab": "편집 플러그인",
+            "tab": "뷰티 이펙트 FCP/AE 플러그인",
             "groups": [
               {
                 "group": "Final Cut Pro",
                 "pages": [
                   "ko/fcp/install",
+                  "ko/fcp/effects",
                   "ko/fcp/faq"
                 ],
                 "icon": "clapperboard",
@@ -883,7 +919,7 @@
         "language": "es",
         "tabs": [
           {
-            "tab": "Docs del SDK",
+            "tab": "Docs del Beauty Effect SDK",
             "groups": [
               {
                 "group": "Introducción",
@@ -930,6 +966,28 @@
                 "iconType": "brands"
               },
               {
+                "group": "Web",
+                "pages": [
+                  "es/web/quick-start",
+                  "es/web/implement-beauty",
+                  "es/web/third-party-integration",
+                  "es/web/error-handling",
+                  "es/web/api-reference",
+                  "es/web/best-practices",
+                  "es/web/faq"
+                ],
+                "icon": "globe",
+                "iconType": "solid"
+              },
+              {
+                "group": "Expo",
+                "pages": [
+                  "es/expo/quick-start"
+                ],
+                "icon": "mobile-screen",
+                "iconType": "solid"
+              },
+              {
                 "group": "macOS",
                 "pages": [
                   "es/macos/quick-start",
@@ -970,20 +1028,6 @@
                 ],
                 "icon": "linux",
                 "iconType": "brands"
-              },
-              {
-                "group": "Web",
-                "pages": [
-                  "es/web/quick-start",
-                  "es/web/implement-beauty",
-                  "es/web/third-party-integration",
-                  "es/web/error-handling",
-                  "es/web/api-reference",
-                  "es/web/best-practices",
-                  "es/web/faq"
-                ],
-                "icon": "globe",
-                "iconType": "solid"
               }
             ]
           },
@@ -1046,12 +1090,13 @@
             ]
           },
           {
-            "tab": "Plugins de edición",
+            "tab": "Plugin FCP/AE de belleza",
             "groups": [
               {
                 "group": "Final Cut Pro",
                 "pages": [
                   "es/fcp/install",
+                  "es/fcp/effects",
                   "es/fcp/faq"
                 ],
                 "icon": "clapperboard",
@@ -1089,7 +1134,7 @@
         "language": "pt-BR",
         "tabs": [
           {
-            "tab": "Docs do SDK",
+            "tab": "Docs do Beauty Effect SDK",
             "groups": [
               {
                 "group": "Introdução",
@@ -1136,6 +1181,28 @@
                 "iconType": "brands"
               },
               {
+                "group": "Web",
+                "pages": [
+                  "pt-BR/web/quick-start",
+                  "pt-BR/web/implement-beauty",
+                  "pt-BR/web/third-party-integration",
+                  "pt-BR/web/error-handling",
+                  "pt-BR/web/api-reference",
+                  "pt-BR/web/best-practices",
+                  "pt-BR/web/faq"
+                ],
+                "icon": "globe",
+                "iconType": "solid"
+              },
+              {
+                "group": "Expo",
+                "pages": [
+                  "pt-BR/expo/quick-start"
+                ],
+                "icon": "mobile-screen",
+                "iconType": "solid"
+              },
+              {
                 "group": "macOS",
                 "pages": [
                   "pt-BR/macos/quick-start",
@@ -1176,20 +1243,6 @@
                 ],
                 "icon": "linux",
                 "iconType": "brands"
-              },
-              {
-                "group": "Web",
-                "pages": [
-                  "pt-BR/web/quick-start",
-                  "pt-BR/web/implement-beauty",
-                  "pt-BR/web/third-party-integration",
-                  "pt-BR/web/error-handling",
-                  "pt-BR/web/api-reference",
-                  "pt-BR/web/best-practices",
-                  "pt-BR/web/faq"
-                ],
-                "icon": "globe",
-                "iconType": "solid"
               }
             ]
           },
@@ -1252,12 +1305,13 @@
             ]
           },
           {
-            "tab": "Plugins de edição",
+            "tab": "Plugin FCP/AE de beleza",
             "groups": [
               {
                 "group": "Final Cut Pro",
                 "pages": [
                   "pt-BR/fcp/install",
+                  "pt-BR/fcp/effects",
                   "pt-BR/fcp/faq"
                 ],
                 "icon": "clapperboard",

@@ -20,7 +20,7 @@ Baixe-os no [GitHub Release](https://github.com/pixpark/facebetter-sdk/releases)
 
 ## Como funciona a busca
 
-O mecanismo pesquisa o pacote principal mais todos os pacotes extras que você adicionar. Os arquivos são indexados pelo **caminho relativo interno**. Mantenha os caminhos internos únicos entre os pacotes — dê a cada capacidade o próprio prefixo (`tddfa/…`, `body/…`). Se dois pacotes contiverem o mesmo caminho, o **último** `AddResourcePack` prevalece.
+O SDK pesquisa o pacote principal e cada pacote extra que você adicionar. Os arquivos são indexados pelo **caminho relativo interno**. Mantenha esses caminhos únicos entre os pacotes. Se dois pacotes tiverem o mesmo caminho, o **último** `AddResourcePack` prevalece.
 
 Registre cada `.fbd` com uma chamada separada. **Não** concatene os arquivos dos pacotes.
 

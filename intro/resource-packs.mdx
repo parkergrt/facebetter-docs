@@ -20,7 +20,7 @@ Download them from the [GitHub Release](https://github.com/pixpark/facebetter-sd
 
 ## How lookup works
 
-The engine searches the core pack plus every extra pack you add. Files are keyed by their **inner relative path**. Keep inner paths unique across packs — give each capability its own prefix (`tddfa/…`, `body/…`). If two packs contain the same path, the **last** `AddResourcePack` wins.
+The SDK searches the core pack plus every extra pack you add. Files are keyed by their **inner relative path**. Keep those paths unique across packs. If two packs contain the same path, the **last** `AddResourcePack` wins.
 
 Register each `.fbd` with a separate call. Do **not** concatenate pack files.
 

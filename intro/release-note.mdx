@@ -3,7 +3,37 @@ title: "Changelog"
 description: "Beauty Effect SDK Release Note"
 ---
 
-This site documents **SDK 2.x**. Latest: **v2.1.0**.
+This site documents **SDK 2.x**. Latest: **v2.2.1**.
+
+## v2.2.1
+
+2026-10-30
+
+1. Strength changes apply on the next frame, without waiting for the frame already in progress.
+2. Faster skin and portrait masks.
+
+## v2.2.0
+
+2026-10-29
+
+1. Full-frame color: brightness, contrast, saturation, temperature, tint, and clarity. Clarity replaces the separate sharpening control.
+2. Blemish removal, separate from smoothing. It uses the skin region.
+3. Teeth whitening on an open mouth.
+4. A subject outline around the virtual-background cutout.
+5. Android and iOS makeup colors for lipstick, blush, eyeshadow, eyeliner, and eyebrows match the shared presets.
+6. Eyebrow styles fade the natural brow before drawing.
+7. Body reshape anchors on the shoulders. Waist slimming and bust are separate.
+8. A Web offline license can be bound to the page origin. Online auth tries a backup host if the first request fails.
+9. A still image returns the frame you submitted. Live video returns the previous processed frame.
+10. The watermark sits higher and stays clearer when scaled.
+11. Fixed stripes in Windows color grade and in OpenGL masks, and fixed Linux preview.
+
+## v2.1.1
+
+2026-09-30
+
+1. The desktop sample finds its resources next to the program, so a copied build still runs.
+2. The Windows sample follows the display scale.
 
 ## v2.1.0
 
@@ -29,7 +59,7 @@ This site documents **SDK 2.x**. Latest: **v2.1.0**.
 4. Makeup: intensity, shape, and color. See [Parameter enums](./makeup)
 5. LUT filters and 2D stickers (`.fbd`)
 6. Virtual background: blur, image replace, chroma key
-8. Processing stats (`getStats()`)
+7. Processing stats (`getStats()`)
 
 ## v1.5.1
 
@@ -64,7 +94,7 @@ This site documents **SDK 2.x**. Latest: **v2.1.0**.
 
 2026-06-09
 
-3. Fixed sticker black screen in live video
+1. Fixed sticker black screen in live video
 
 ## v1.4.4
 

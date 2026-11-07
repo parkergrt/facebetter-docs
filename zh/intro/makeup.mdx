@@ -4,7 +4,7 @@ description: "美颜特效 SDK 2.0 的美型、美体、美妆、美白、磨皮
 ---
 
 <Note>
-本文档对应 SDK **2.0**。枚举数值在 C++、Objective-C、Java、JavaScript、Dart 上完全一致。
+本文档对应 SDK **2.0**。枚举数值在 C++、Objective-C、Java、JavaScript 上完全一致。
 </Note>
 
 美妆是三个旋钮：
@@ -13,9 +13,9 @@ description: "美颜特效 SDK 2.0 的美型、美体、美妆、美白、磨皮
 2. **形状** — 换蒙版贴图（`SetBlushStyle`、`SetContourStyle`、`SetEyeShadowStyle` 等）。
 3. **色号** — 给当前形状染色（`SetLipstickColor`、`SetBlushColor`、`SetEyeShadowColor` 等）。**美瞳和修容不染色**，换项就是换贴图。
 
-| C++ / JS | Java | Objective-C | Dart |
-| --- | --- | --- | --- |
-| `LipstickColor::Rouge` | `LipstickColor.ROUGE` | `FBLipstickColor_Rouge` | `FBLipstickColor.rouge` |
+| C++ / JS | Java | Objective-C |
+| --- | --- | --- |
+| `LipstickColor::Rouge` | `LipstickColor.ROUGE` | `FBLipstickColor_Rouge` |
 
 ## 美白（`WhiteningStyle`）
 
@@ -76,7 +76,7 @@ description: "美颜特效 SDK 2.0 的美型、美体、美妆、美白、磨皮
 | 24 | `BrowDistance` | 拉开眉距 / 拉近眉距 |
 | 25 | `BrowThickness` | 粗眉 / 细眉 |
 
-Java 使用 `SNAKE_CASE`（`FACE_THIN`、`FACE_V_SHAPE` …）。Objective-C 使用 `FBReshape_FaceThin`。Dart 使用 `FBReshape.faceThin`。
+Java 使用 `SNAKE_CASE`（`FACE_THIN`、`FACE_V_SHAPE` …）。Objective-C 使用 `FBReshape_FaceThin`。
 
 ## 美体（`BodyReshape`）
 
@@ -100,7 +100,7 @@ Java 使用 `SNAKE_CASE`（`FACE_THIN`、`FACE_V_SHAPE` …）。Objective-C 使
 | 7 | `LegStretch` | 腰以下拉伸（只需人脸点，不需要 `resource_body.fbd`） |
 | 8 | `TorsoLong` | 下巴到腰修长（只需人脸点，不需要 `resource_body.fbd`） |
 
-Java 使用 `SNAKE_CASE`（`BODY_SLIM`、`WAIST_SLIM` …）。Objective-C 使用 `FBBodyReshape_BodySlim`。Dart 使用 `FBBodyReshape.bodySlim`。
+Java 使用 `SNAKE_CASE`（`BODY_SLIM`、`WAIST_SLIM` …）。Objective-C 使用 `FBBodyReshape_BodySlim`。
 
 ## 口红（`LipstickColor`）
 
@@ -139,7 +139,7 @@ Java 使用 `SNAKE_CASE`（`BODY_SLIM`、`WAIST_SLIM` …）。Objective-C 使�
 
 ## 修容（`ContourStyle`）
 
-中灰 Overlay：比 128 亮是高光，比 128 暗是阴影。换贴图，不染色。默认：`Natural`。
+换贴图，不染色。较亮的区域提亮，较暗的区域塑形。默认：`Natural`。
 
 | 值 | 名称 | 说明 |
 | --- | --- | --- |

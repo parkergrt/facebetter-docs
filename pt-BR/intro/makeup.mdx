@@ -4,7 +4,7 @@ description: "Enums de remodelagem facial, remodelagem corporal, maquiagem, clar
 ---
 
 <Note>
-Esta página corresponde ao SDK **2.0**. Os valores numéricos são idênticos em C++, Objective-C, Java, JavaScript e Dart.
+Esta página corresponde ao SDK **2.0**. Os valores numéricos são idênticos em C++, Objective-C, Java e JavaScript.
 </Note>
 
 A maquiagem tem três controles:
@@ -13,9 +13,9 @@ A maquiagem tem três controles:
 2. **Formato** — troca a textura da máscara (`SetBlushStyle`, `SetContourStyle`, `SetEyeShadowStyle`, …).
 3. **Cor** — tinge o formato atual (`SetLipstickColor`, `SetBlushColor`, `SetEyeShadowColor`, …). **Pupil** e **Contour** não recebem tintura; alterá-los troca a textura.
 
-| C++ / JS | Java | Objective-C | Dart |
-| --- | --- | --- | --- |
-| `LipstickColor::Rouge` | `LipstickColor.ROUGE` | `FBLipstickColor_Rouge` | `FBLipstickColor.rouge` |
+| C++ / JS | Java | Objective-C |
+| --- | --- | --- |
+| `LipstickColor::Rouge` | `LipstickColor.ROUGE` | `FBLipstickColor_Rouge` |
 
 ## Clareamento (`WhiteningStyle`)
 
@@ -76,7 +76,7 @@ A remodelagem facial está disponível a partir do **Pro**. O Free pode testar c
 | 24 | `BrowDistance` | Afastar / aproximar as sobrancelhas |
 | 25 | `BrowThickness` | Sobrancelhas mais grossas / mais finas |
 
-Os nomes em Java são `SNAKE_CASE` (`FACE_THIN`, `FACE_V_SHAPE`, …). Objective-C usa `FBReshape_FaceThin`. Dart usa `FBReshape.faceThin`.
+Os nomes em Java são `SNAKE_CASE` (`FACE_THIN`, `FACE_V_SHAPE`, …). Objective-C usa `FBReshape_FaceThin`.
 
 ## Remodelagem corporal (`BodyReshape`)
 
@@ -100,7 +100,7 @@ Exige o pacote opcional `resource_body.fbd`, exceto `LegStretch` e `TorsoLong`. 
 | 7 | `LegStretch` | Esticar abaixo da cintura (só face; sem `resource_body.fbd`) |
 | 8 | `TorsoLong` | Alongar o tronco do queixo à cintura (só face; sem `resource_body.fbd`) |
 
-Os nomes em Java são `SNAKE_CASE` (`BODY_SLIM`, `WAIST_SLIM`, …). Objective-C usa `FBBodyReshape_BodySlim`. Dart usa `FBBodyReshape.bodySlim`.
+Os nomes em Java são `SNAKE_CASE` (`BODY_SLIM`, `WAIST_SLIM`, …). Objective-C usa `FBBodyReshape_BodySlim`.
 
 ## Batom (`LipstickColor`)
 
@@ -139,7 +139,7 @@ Formato via `BlushStyle` (troca a textura). Cor via `BlushColor` (tintura). Form
 
 ## Contorno (`ContourStyle`)
 
-Mapa Overlay em cinza médio: mais claro que 128 destaca, mais escuro contorna. Troca a textura, sem tintura. Padrão: `Natural`.
+Troca a textura, sem tinta. Áreas mais claras iluminam e áreas mais escuras contornam. Padrão: `Natural`.
 
 | Valor | Nome | Significado |
 | --- | --- | --- |

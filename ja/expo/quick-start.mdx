@@ -1,0 +1,68 @@
+---
+title: "Expo サンプル"
+sidebarTitle: "クイックスタート"
+description: "Android と iOS で Expo のプリビルドサンプルを実行する"
+---
+
+Expo サンプルは、フロントカメラの美肌を手早く確認するための React Native アプリです。Android と iOS は同じ画面を使います。呼び出しているのは Android と iOS の SDK で、[Web](/ja/web/quick-start) SDK ではありません。
+
+製品への組み込みは [Android](/ja/android/quick-start) または [iOS](/ja/ios/quick-start) を参照してください。このページはサンプルの起動だけを説明します。Expo からこの SDK を呼ぶアプリも、prebuild で作る必要があります。
+
+## Expo Go と prebuild
+
+Expo にはアプリの起動方法が二つあります。この SDK は prebuild でしか呼べません。
+
+| | Expo Go | Prebuild |
+| --- | --- | --- |
+| 起動 | `npx expo start` のあと、Expo Go アプリで開く | `npx expo run:android` または `npx expo run:ios` |
+| 端末で動くもの | 共通の Expo Go アプリ。このプロジェクトが渡すのは JavaScript だけです。 | このプロジェクトからコンパイルしたアプリ。Expo が Android または iOS のプロジェクトを生成してからビルドします。 |
+| 美顔エフェクト SDK | 呼べません。Expo Go に入っているネイティブライブラリは固定で、この SDK は含まれません。別のネイティブライブラリを後から入れることもできません。 | ビルド時にリンクされます。Android は Maven、iOS は CocoaPods のパッケージを使います。 |
+| 速度 | ネイティブ SDK が読み込まれないため、美肌プレビューはありません。 | カメラフレームはアプリ内のネイティブ SDK が処理します。JavaScript が変えるのはコントロールだけです。Android と iOS のサンプルと同じ経路です。 |
+
+この SDK を動かすなら prebuild の方が速いです。美顔処理はネイティブライブラリの中に残ります。同じ処理を JavaScript で行うとずっと遅く、Expo Go からはライブラリを呼べません。最初の prebuild はネイティブアプリをコンパイルするため、Expo Go を開くより時間がかかります。完了したあとのプレビューはネイティブ SDK です。
+
+リリースビルドも Expo Go ではなく、prebuild したアプリです。この SDK を呼ぶ Expo プロジェクトでは prebuild を使ってください。
+
+## 必要条件
+
+- **Node.js**: `^22.13` または `^24.3`
+- **Android**: Android SDK、arm64 の実機またはエミュレータ、API 24 以上
+- **iOS**: Mac 上の Xcode。フロントカメラは実機を使ってください。
+
+## サンプルを取得する
+
+[GitHub リポジトリ](https://github.com/pixpark/facebetter-sdk)をクローンし、`demo/expo` を開きます。
+
+```bash
+git clone https://github.com/pixpark/facebetter-sdk.git
+cd facebetter-sdk/demo/expo
+npm install
+```
+
+## 実行
+
+```bash
+npx expo run:android
+npx expo run:ios
+```
+
+各コマンドは prebuild を実行し、対象プラットフォームのネイティブプロジェクトを生成して、デバッグビルドをインストールします。ネイティブコードまたは JavaScript を変更したあとは、同じコマンドをもう一度実行します。`npx expo prebuild` はネイティブプロジェクトを生成するだけです。その後は Android Studio または Xcode で開けます。
+
+<Warning>
+`npx expo start` が開くのは Expo Go です。このモードでは本 SDK を読み込めません。
+</Warning>
+
+## パッケージ
+
+| プラットフォーム | パッケージ | サンプルの識別子 |
+| --- | --- | --- |
+| Android | Maven `net.pixpark:facebetter:2.2.1` | パッケージ名 `net.pixpark.fbexample` |
+| iOS | CocoaPods `Facebetter` 2.2.1 | Bundle ID `com.pixpark.fbdemo` |
+
+どちらも `resource.fbd` を含みます。サンプルはオプションの 3D パックとボディパックを読み込みません。
+
+同梱の認証情報は上記の識別子に紐づいています。独自のアプリでは、[ダッシュボード](https://facebetter.net/ja/dashboard)でパッケージ名または Bundle ID を登録してから `app.json` を変更してください。[認証とライセンス](/ja/intro/license)を参照してください。
+
+## 画面
+
+プレビューはフロントカメラで、縦向き、ミラー表示です。下部で Smooth、Tone、Rosy、Blemish、Clarity、Skin only を調整します。右上は直前のフレームの処理時間です。左上は端末名、カメラバッファ、SDK に渡すサイズ、画面上のビューサイズです。カメラバッファがビューよりかなり小さいと拡大され、ぼやけて見えます。

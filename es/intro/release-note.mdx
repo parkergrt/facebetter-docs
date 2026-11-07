@@ -3,7 +3,37 @@ title: "Registro de cambios"
 description: "Notas de la versión del SDK Facebetter"
 ---
 
-Este sitio documenta el **SDK 2.x**. Última versión: **v2.1.0**.
+Este sitio documenta el **SDK 2.x**. Última versión: **v2.2.1**.
+
+## v2.2.1
+
+2026-10-30
+
+1. Los cambios de intensidad se aplican en el fotograma siguiente, sin esperar al que ya se está procesando.
+2. Máscaras de piel y de retrato más rápidas.
+
+## v2.2.0
+
+2026-10-29
+
+1. Color de todo el fotograma: brillo, contraste, saturación, temperatura, tinte y claridad. La claridad sustituye al control de nitidez separado.
+2. Eliminación de imperfecciones, aparte del suavizado. Actúa sobre la región de piel.
+3. Blanqueamiento dental con la boca abierta.
+4. Contorno del sujeto alrededor del recorte del fondo virtual.
+5. Los colores de labial, colorete, sombra, delineador y cejas en Android e iOS coinciden con los preajustes compartidos.
+6. Los estilos de ceja atenúan la ceja natural antes de dibujar.
+7. El remodelado corporal se ancla en los hombros. La cintura y el busto van separados.
+8. Una licencia offline de Web puede vincularse al origen de la página. La autenticación en línea prueba un servidor de reserva si falla el primero.
+9. Una imagen fija devuelve el fotograma enviado. El vídeo en directo devuelve el fotograma procesado anterior.
+10. La marca de agua queda más arriba y se ve más nítida al reducirse.
+11. Corregidas las bandas del color en Windows, las rayas de máscara en OpenGL y la vista previa en Linux.
+
+## v2.1.1
+
+2026-09-30
+
+1. El ejemplo de escritorio carga los recursos junto al programa, así que una copia sigue funcionando.
+2. El ejemplo de Windows sigue la escala de la pantalla.
 
 ## v2.1.0
 
@@ -29,7 +59,7 @@ Este sitio documenta el **SDK 2.x**. Última versión: **v2.1.0**.
 4. Maquillaje: intensidad, forma y color. Consulta [Enumeraciones de parámetros](./makeup)
 5. Filtros LUT y stickers 2D (`.fbd`)
 6. Fondo virtual: desenfoque, imagen, croma
-8. Estadísticas de proceso (`getStats()`)
+7. Estadísticas de proceso (`getStats()`)
 
 ## v1.5.1
 
@@ -64,7 +94,7 @@ Este sitio documenta el **SDK 2.x**. Última versión: **v2.1.0**.
 
 2026-06-09
 
-3. Corregida pantalla negra de stickers en vídeo en directo
+1. Corregida pantalla negra de stickers en vídeo en directo
 
 ## v1.4.4
 

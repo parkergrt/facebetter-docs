@@ -4,7 +4,7 @@ description: "Beauty Effect SDK 2.0 のフェイスリシェイプ、ボディ�
 ---
 
 <Note>
-このページは SDK **2.0** に対応します。数値は C++、Objective-C、Java、JavaScript、Dart で同一です。
+このページは SDK **2.0** に対応します。数値は C++、Objective-C、Java、JavaScript で同一です。
 </Note>
 
 メイクは 3 つのつまみです。
@@ -13,9 +13,9 @@ description: "Beauty Effect SDK 2.0 のフェイスリシェイプ、ボディ�
 2. **形状** — マスクテクスチャを差し替えます（`SetBlushStyle`、`SetContourStyle`、`SetEyeShadowStyle` など）。
 3. **色** — 現在の形状に着色します（`SetLipstickColor`、`SetBlushColor`、`SetEyeShadowColor` など）。**瞳孔**と**シェーディング**は着色せず、項目を変えるとテクスチャが切り替わります。
 
-| C++ / JS | Java | Objective-C | Dart |
-| --- | --- | --- | --- |
-| `LipstickColor::Rouge` | `LipstickColor.ROUGE` | `FBLipstickColor_Rouge` | `FBLipstickColor.rouge` |
+| C++ / JS | Java | Objective-C |
+| --- | --- | --- |
+| `LipstickColor::Rouge` | `LipstickColor.ROUGE` | `FBLipstickColor_Rouge` |
 
 ## 美白（`WhiteningStyle`）
 
@@ -76,7 +76,7 @@ description: "Beauty Effect SDK 2.0 のフェイスリシェイプ、ボディ�
 | 24 | `BrowDistance` | 眉間を広く / 狭く |
 | 25 | `BrowThickness` | 眉を太く / 細く |
 
-Java の名前は `SNAKE_CASE`（`FACE_THIN`、`FACE_V_SHAPE` など）です。Objective-C は `FBReshape_FaceThin`、Dart は `FBReshape.faceThin` です。
+Java の名前は `SNAKE_CASE`（`FACE_THIN`、`FACE_V_SHAPE` など）です。Objective-C は `FBReshape_FaceThin` です。
 
 ## ボディリシェイプ（`BodyReshape`）
 
@@ -100,7 +100,7 @@ Java の名前は `SNAKE_CASE`（`FACE_THIN`、`FACE_V_SHAPE` など）です。
 | 7 | `LegStretch` | ウエストより下を伸ばす（顔点のみ。`resource_body.fbd` 不要） |
 | 8 | `TorsoLong` | あご〜ウエストを伸ばす（顔点のみ。`resource_body.fbd` 不要） |
 
-Java の名前は `SNAKE_CASE`（`BODY_SLIM`、`WAIST_SLIM` など）です。Objective-C は `FBBodyReshape_BodySlim`、Dart は `FBBodyReshape.bodySlim` です。
+Java の名前は `SNAKE_CASE`（`BODY_SLIM`、`WAIST_SLIM` など）です。Objective-C は `FBBodyReshape_BodySlim` です。
 
 ## リップ（`LipstickColor`）
 
@@ -139,7 +139,7 @@ Java の名前は `SNAKE_CASE`（`BODY_SLIM`、`WAIST_SLIM` など）です。Ob
 
 ## シェーディング（`ContourStyle`）
 
-中間グレーの Overlay マップです。128 より明るい部分はハイライト、暗い部分は陰影です。テクスチャ差し替えのみで着色はありません。デフォルト: `Natural`。
+テクスチャを差し替え、着色はありません。明るい部分はハイライト、暗い部分は陰影です。デフォルト: `Natural`。
 
 | 値 | 名前 | 意味 |
 | --- | --- | --- |
